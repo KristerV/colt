@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Liid — design canvas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; padding: 0; background: #f0eee9; }
+    body { font-family: "Inter Tight", system-ui, sans-serif; }
+    em { font-family: "Instrument Serif", serif; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="liid-shared.jsx"></script>
+  <script type="text/babel" src="views-0-2.jsx"></script>
+  <script type="text/babel" src="view-3.jsx"></script>
+  <script type="text/babel" src="view-4.jsx"></script>
+
+  <script type="text/babel">
+    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+      "accent": "#3d7a3d",
+      "density": "comfy",
+      "viz": "pills"
+    }/*EDITMODE-END*/;
+
+    // Convert hex to oklch-ish accent (we just pass through hex for the Tweaks color picker;
+    // shared module accepts any color string).
+    function App() {
+      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+      const accent = t.accent;
+      const density = t.density;
+      const viz = t.viz;
+
+      // Common artboard size — large to fit dense layouts
+      const W = 1280, H = 800;
+
+      return (
+        <>
+          <DesignCanvas>
+            {/* The hero — view 4. First section so the focused view shows funnel by default. */}
+            <DCSection id="funnel" title="Funnel & enrichment" subtitle="View 4 — companies list with per-row enrichment progress">
+              <DCArtboard id="funnel-pills" label="A · Pills (default)" width={W} height={H}>
+                <View4Funnel accent={accent} density={density} viz="pills" />
+              </DCArtboard>
+              <DCArtboard id="funnel-bar" label="B · Segmented bar" width={W} height={H}>
+                <View4Funnel accent={accent} density={density} viz="bar" />
+              </DCArtboard>
+              <DCArtboard id="funnel-log" label="C · Live log line" width={W} height={H}>
+                <View4Funnel accent={accent} density={density} viz="log" />
+              </DCArtboard>
+              <DCArtboard id="funnel-expanded" label="D · Row expanded · pipeline detail" width={W} height={H + 380}>
+                <View4Funnel accent={accent} density={density} viz="pills" expanded={6} />
+              </DCArtboard>
+              <DCArtboard id="funnel-export" label="E · Export modal" width={W} height={H}>
+                <View4Funnel accent={accent} density={density} viz="pills" showExport={true} />
+              </DCArtboard>
+              <DCPostIt top={-30} left={1300}>
+                Hero view. Toggle viz styles via the Tweaks panel — pills, bar, or log.
+              </DCPostIt>
+            </DCSection>
+
+            <DCSection id="filters" title="Filters with live preview" subtitle="View 3 — counter + preview list update as you tweak filters">
+              <DCArtboard id="filters-default" label="A · Filter panel + live count" width={W} height={H}>
+                <View3Filters accent={accent} density={density} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="setup" title="Campaign setup" subtitle="Views 0–2 — name, ICP, market">
+              <DCArtboard id="v0" label="View 0 · Name campaign" width={W} height={H}>
+                <View0NewCampaign accent={accent} density={density} />
+              </DCArtboard>
+              <DCArtboard id="v1" label="View 1 · ICP + job titles" width={W} height={H}>
+                <View1ICP accent={accent} density={density} />
+              </DCArtboard>
+              <DCArtboard id="v2" label="View 2 · Market" width={W} height={H}>
+                <View2Market accent={accent} density={density} />
+              </DCArtboard>
+            </DCSection>
+          </DesignCanvas>
+
+          <TweaksPanel title="Liid — Tweaks">
+            <TweakSection label="Theme" />
+            <TweakColor label="Accent" value={t.accent} onChange={(v) => setTweak('accent', v)} />
+            <TweakRadio label="Density" value={t.density}
+              options={[{ value: 'compact', label: 'Compact' }, { value: 'comfy', label: 'Comfy' }]}
+              onChange={(v) => setTweak('density', v)} />
+            <TweakSection label="Enrichment row" />
+            <TweakRadio label="Viz" value={t.viz}
+              options={[
+                { value: 'pills', label: 'Pills' },
+                { value: 'bar',   label: 'Bar' },
+                { value: 'log',   label: 'Log' },
+              ]}
+              onChange={(v) => setTweak('viz', v)} />
+            <TweakSection label="Presets" />
+            <TweakButton label="Forest green" onClick={() => setTweak('accent', '#3d7a3d')} secondary />
+            <TweakButton label="Ink only"     onClick={() => setTweak('accent', '#1f2937')} secondary />
+            <TweakButton label="Rust"         onClick={() => setTweak('accent', '#b85c3a')} secondary />
+            <TweakButton label="Cobalt"       onClick={() => setTweak('accent', '#2a52be')} secondary />
+          </TweaksPanel>
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

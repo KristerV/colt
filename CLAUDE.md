@@ -133,3 +133,21 @@ mix usage_rules.search_docs "Enum.zip" --query-by title
 
 <!-- usage_rules:otp-end -->
 <!-- usage-rules-end -->
+
+## Project docs
+
+- `docs/spec.md` — product spec. Read before scoping or designing any feature. §3.2 is the authoritative list of third-party services and credential locations.
+- `docs/design.md` — design system (tokens, type, components, per-view layouts) and the rules for respecting it.
+- `docs/phases.md` — phased build plan. Work through one phase at a time; clear context between phases. Don't start phase N+1 until phase N's Acceptance bullets pass. Read its **"Working with third-party services"** section before adding any external API integration.
+
+## UI / frontend work — required reading
+
+**Before touching any LiveView, template, CSS, or component, read `docs/design.md` and open the relevant prototype file under `priv/design_prototype/project/`.** The prototype is the visual source of truth; the design doc is its distilled spec. Don't approximate from memory — match the prototype.
+
+Hard rules:
+- Brand name in all UI copy is **Liid**, not Colt.
+- Use the oklch tokens defined in `docs/design.md` §1. Don't substitute Tailwind grays.
+- Use **Inter Tight** (UI), **Instrument Serif** (display accents only, with one italicised word per page heading), **JetBrains Mono** (numbers, labels, log lines).
+- Border radius is 2px. Sharp by intent.
+- Status dots, animations, and icon set are defined once in `priv/design_prototype/project/liid-shared.jsx`. Reuse, don't reinvent.
+- Section §5 of `docs/design.md` lists open spec-vs-design conflicts. If you're about to implement a screen affected by one, surface it instead of picking a side silently.
