@@ -1,4 +1,8 @@
 import Config
+config :colt, Oban, testing: :manual
+config :colt, token_signing_secret: "KxwFvNFwCZBaJ0xco+cU4/HiaeDzHQpw"
+config :bcrypt_elixir, log_rounds: 1
+config :ash, policies: [show_policy_breakdowns?: true], disable_async?: true
 
 # Configure your database
 #

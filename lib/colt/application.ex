@@ -11,11 +11,17 @@ defmodule Colt.Application do
       ColtWeb.Telemetry,
       Colt.Repo,
       {DNSCluster, query: Application.get_env(:colt, :dns_cluster_query) || :ignore},
+      {Oban,
+       AshOban.config(
+         Application.fetch_env!(:colt, :ash_domains),
+         Application.fetch_env!(:colt, Oban)
+       )},
       {Phoenix.PubSub, name: Colt.PubSub},
       # Start a worker by calling: Colt.Worker.start_link(arg)
       # {Colt.Worker, arg},
       # Start to serve requests, typically the last entry
-      ColtWeb.Endpoint
+      ColtWeb.Endpoint,
+      {AshAuthentication.Supervisor, [otp_app: :colt]}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

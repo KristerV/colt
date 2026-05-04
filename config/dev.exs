@@ -1,4 +1,5 @@
 import Config
+config :ash, policies: [show_policy_breakdowns?: true]
 
 # Configure your database
 config :colt, Colt.Repo,
@@ -68,7 +69,7 @@ config :colt, ColtWeb.Endpoint,
   ]
 
 # Enable dev routes for dashboard and mailbox
-config :colt, dev_routes: true
+config :colt, dev_routes: true, token_signing_secret: "D9MrZDPYd/dq5Ov06lAjgtj/bqyRZ8qE"
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
