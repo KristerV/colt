@@ -27,6 +27,9 @@ defmodule ColtWeb.Router do
 
     ash_authentication_live_session :authenticated_routes do
       live "/", HomeLive
+      live "/campaigns/new", Campaigns.NewLive
+      live "/campaigns/:id/icp", Campaigns.IcpLive
+      live "/campaigns/:id/market", Campaigns.MarketLive
       live "/admin", AdminLive
       live "/admin/companies", Admin.CompaniesLive
       live "/admin/storage", Admin.StorageLive

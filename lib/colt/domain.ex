@@ -5,5 +5,7 @@ defmodule Colt.Domain do
   resources do
     resource Colt.Resources.Company
     resource Colt.Resources.AnnualReport
+    resource Colt.Resources.Campaign
+    resource Colt.Resources.CampaignCompany
   end
 end

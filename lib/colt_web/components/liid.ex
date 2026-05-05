@@ -160,6 +160,7 @@ defmodule ColtWeb.Components.Liid do
   attr :step, :any, default: nil
   attr :current_user, :map, default: nil
   attr :campaign_name, :string, default: nil
+  attr :campaign_id, :any, default: nil
 
   def top_bar(assigns) do
     assigns = assign(assigns, :steps, @stepper_steps)
@@ -177,16 +178,8 @@ defmodule ColtWeb.Components.Liid do
       <nav :if={not is_nil(@step)} class="flex items-center font-mono text-[11px] tracking-[0.04em]">
         <%= for {label, i} <- Enum.with_index(@steps) do %>
           <% state = step_state(i, @step) %>
-          <div class={["flex items-center gap-2 px-3 py-1.5", step_color(state)]}>
-            <span class={[
-              "tnum",
-              state == :active && "font-semibold",
-              state == :active && "text-[var(--accent)]"
-            ]}>
-              {String.pad_leading(Integer.to_string(i), 2, "0")}
-            </span>
-            <span class="uppercase tracking-[0.08em]">{label}</span>
-          </div>
+          <% href = step_href(i, state, @campaign_id) %>
+          <.step_segment state={state} href={href} index={i} label={label} />
           <span :if={i < length(@steps) - 1} class="w-[14px] h-px bg-ink20" />
         <% end %>
       </nav>
@@ -240,6 +233,53 @@ defmodule ColtWeb.Components.Liid do
   defp step_color(:done), do: "text-ink55"
   defp step_color(:future), do: "text-ink40"
 
+  defp step_href(0, :done, _campaign_id), do: "/campaigns/new"
+  defp step_href(_, :done, nil), do: nil
+  defp step_href(1, :done, id), do: "/campaigns/#{id}/icp"
+  defp step_href(2, :done, id), do: "/campaigns/#{id}/market"
+  defp step_href(_, _, _), do: nil
+
+  attr :state, :atom, required: true
+  attr :href, :any, required: true
+  attr :index, :integer, required: true
+  attr :label, :string, required: true
+
+  defp step_segment(%{href: nil} = assigns) do
+    ~H"""
+    <div class={["flex items-center gap-2 px-3 py-1.5", step_color(@state)]}>
+      <.step_inner state={@state} index={@index} label={@label} />
+    </div>
+    """
+  end
+
+  defp step_segment(assigns) do
+    ~H"""
+    <.link
+      navigate={@href}
+      class={["flex items-center gap-2 px-3 py-1.5 no-underline hover:text-ink", step_color(@state)]}
+    >
+      <.step_inner state={@state} index={@index} label={@label} />
+    </.link>
+    """
+  end
+
+  attr :state, :atom, required: true
+  attr :index, :integer, required: true
+  attr :label, :string, required: true
+
+  defp step_inner(assigns) do
+    ~H"""
+    <span class={[
+      "tnum",
+      @state == :active && "font-semibold",
+      @state == :active && "text-[var(--accent)]"
+    ]}>
+      {String.pad_leading(Integer.to_string(@index), 2, "0")}
+    </span>
+    <span class="uppercase tracking-[0.08em]">{@label}</span>
+    """
+  end
+
   defp avatar_initial(%{email: email}) do
     email |> to_string() |> String.first() |> String.upcase()
   end
@@ -252,13 +292,19 @@ defmodule ColtWeb.Components.Liid do
   attr :step, :any, default: nil
   attr :current_user, :map, default: nil
   attr :campaign_name, :string, default: nil
+  attr :campaign_id, :any, default: nil
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
   def screen(assigns) do
     ~H"""
     <div class="min-h-screen flex flex-col bg-paper text-ink">
-      <.top_bar step={@step} current_user={@current_user} campaign_name={@campaign_name} />
+      <.top_bar
+        step={@step}
+        current_user={@current_user}
+        campaign_name={@campaign_name}
+        campaign_id={@campaign_id}
+      />
       <main class={["flex-1 px-14 py-10", @class]}>
         {render_slot(@inner_block)}
       </main>
