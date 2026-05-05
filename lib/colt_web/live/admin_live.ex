@@ -14,20 +14,49 @@ defmodule ColtWeb.AdminLive do
         <h1 class="text-3xl font-semibold">Admin</h1>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <.link
-            :for={tile <- @tiles}
-            navigate={tile.path}
-            class="card bg-base-200 hover:bg-base-300 border border-base-300 transition-colors"
-          >
-            <div class="card-body">
-              <div class="text-xs uppercase tracking-wider opacity-60">{tile.kicker}</div>
-              <div class="text-xl font-semibold">{tile.title}</div>
-              <div class="text-sm font-mono tabular-nums opacity-70">{tile.value}</div>
-            </div>
-          </.link>
+          <.tile :for={tile <- @tiles} tile={tile} />
         </div>
       </div>
     </Layouts.app>
+    """
+  end
+
+  attr :tile, :map, required: true
+
+  defp tile(%{tile: %{external: true}} = assigns) do
+    ~H"""
+    <a
+      href={@tile.path}
+      target="_blank"
+      rel="noopener"
+      class="card bg-base-200 hover:bg-base-300 border border-base-300 transition-colors"
+    >
+      <div class="card-body">
+        <div class="text-xs uppercase tracking-wider opacity-60">{@tile.kicker}</div>
+        <div class="text-xl font-semibold">{@tile.title}</div>
+        <div class={[
+          "text-sm font-mono tabular-nums",
+          if(Map.get(@tile, :alert), do: "text-error font-semibold", else: "opacity-70")
+        ]}>
+          {@tile.value}
+        </div>
+      </div>
+    </a>
+    """
+  end
+
+  defp tile(assigns) do
+    ~H"""
+    <.link
+      navigate={@tile.path}
+      class="card bg-base-200 hover:bg-base-300 border border-base-300 transition-colors"
+    >
+      <div class="card-body">
+        <div class="text-xs uppercase tracking-wider opacity-60">{@tile.kicker}</div>
+        <div class="text-xl font-semibold">{@tile.title}</div>
+        <div class="text-sm font-mono tabular-nums opacity-70">{@tile.value}</div>
+      </div>
+    </.link>
     """
   end
 
@@ -50,8 +79,29 @@ defmodule ColtWeb.AdminLive do
         title: "Costs",
         value: format_money(current_month_cost()),
         path: "/admin/costs"
-      }
+      },
+      oban_tile()
     ]
+  end
+
+  defp oban_tile do
+    discarded = discarded_count()
+
+    %{
+      kicker: "Background",
+      title: "Oban Jobs",
+      value: format_int(discarded) <> " discarded",
+      path: "/admin/oban",
+      external: true,
+      alert: discarded > 0
+    }
+  end
+
+  defp discarded_count do
+    import Ecto.Query
+
+    from(j in Oban.Job, where: j.state == "discarded")
+    |> Colt.Repo.aggregate(:count)
   end
 
   defp format_int(n),

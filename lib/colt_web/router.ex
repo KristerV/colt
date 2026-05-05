@@ -98,7 +98,7 @@ defmodule ColtWeb.Router do
     scope "/" do
       pipe_through :browser
 
-      oban_dashboard("/oban")
+      oban_dashboard("/admin/oban")
     end
   end
 end
