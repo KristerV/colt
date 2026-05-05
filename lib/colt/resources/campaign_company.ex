@@ -18,12 +18,22 @@ defmodule Colt.Resources.CampaignCompany do
     end
   end
 
+  code_interface do
+    define :get, action: :read, get_by: [:id]
+    define :mark_enriched, action: :mark_enriched
+  end
+
   actions do
     defaults [:read]
     default_accept []
 
     create :create do
       accept [:campaign_id, :company_id]
+    end
+
+    update :mark_enriched do
+      description "Stub-pipeline terminal: mark a campaign company enriched."
+      change set_attribute(:status, :enriched)
     end
   end
 

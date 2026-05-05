@@ -92,7 +92,7 @@ defmodule ColtWeb.Campaigns.FlowTest do
 
     {:error, {:live_redirect, %{to: to}}} = render_click(view, "continue", %{})
 
-    assert to == "/"
+    assert to == "/campaigns/#{c.id}/filters"
     {:ok, fresh} = Campaign.get(c.id, actor: user)
     assert fresh.market == :ee
     assert fresh.status == :collecting

@@ -49,13 +49,8 @@ defmodule ColtWeb.Campaigns.MarketLive do
     case Campaign.set_market(socket.assigns.campaign, socket.assigns.selected,
            actor: socket.assigns.current_user
          ) do
-      {:ok, _campaign} ->
-        socket =
-          socket
-          |> put_flash(:info, "Market locked. Filters (view 3) ship in Phase 3.")
-          |> push_navigate(to: ~p"/")
-
-        {:noreply, socket}
+      {:ok, campaign} ->
+        {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/filters")}
 
       {:error, err} ->
         {:noreply, assign(socket, error: inspect(err))}

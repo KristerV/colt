@@ -1,0 +1,44 @@
+# TODO — deferred from earlier phases
+
+Things noted while building later phases that should be picked up later. Not
+blocking the phase that surfaced them.
+
+## From Phase 3 — filters
+
+- **Industry chip coverage at scale.** The panel shows the 12 most common
+  EMTAK codes by company count. At 10k seeded rows that's a usable slice; at
+  the full ~200k Estonian registry the long tail is unreachable from chips
+  alone. Replacement: typeahead / search input over `Colt.Filters.IndustryLabels`
+  (615 NACE classes, all human-labelled), with the top-12 still rendered as
+  shortcut chips. Don't bump the chip count to 50+ — that's the wrong UX.
+
+- **Region filter.** Removed in v1 — the registry's `region` field is
+  free-text, low-signal, and ate too much sidebar real estate. If we ever
+  reintroduce it, do it as a typeahead like the industry idea above, not a
+  fixed chip set.
+
+- **Signals (Has registered website / VAT registered / Filed annual report).**
+  All three removed in v1. The first two were always thin (website is
+  enrichment's job, VAT has no source field). Annual-report-recency could be
+  useful for "is this company still alive" but we already have the growth
+  bucket as a proxy. Reintroduce only if a real workflow needs it.
+
+- **Founded year filter** (spec §5.4, design view-3 `Founded` fset). The `Company`
+  resource has no `founded_at` / registered-at field and the rik.ee Phase 1
+  ingest doesn't populate one. The Founded fset is omitted from the filter panel
+  in v1. To restore: add a `founded_at` (or `registered_at`) date attribute to
+  `Colt.Resources.Company`, populate it from the rik.ee `ettevotja_rekvisiidid`
+  CSV (the registry tracks an `esmane_kanne_kpv` / first-entry date), backfill
+  with a one-shot migration over existing rows, then add a range filter and a
+  Founded `Fset` to `ColtWeb.Campaigns.FiltersLive`.
+
+- **VAT-registered signal** (design view-3 Signals fset). No VAT field exists on
+  `Company` and rik.ee Avaandmed doesn't expose KMKR (VAT) status in the basic
+  open-data dump. To restore: either source from EMTA's VAT lookup (separate
+  endpoint, rate-limited) or scrape teatmik.ee. Whichever, add a
+  `vat_registered :boolean` attribute, an ingest path, and the checkbox.
+
+## From other phases
+
+(Add as you go — keep the format above: what, why deferred, what it would take
+to bring back.)

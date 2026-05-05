@@ -237,6 +237,7 @@ defmodule ColtWeb.Components.Liid do
   defp step_href(_, :done, nil), do: nil
   defp step_href(1, :done, id), do: "/campaigns/#{id}/icp"
   defp step_href(2, :done, id), do: "/campaigns/#{id}/market"
+  defp step_href(3, :done, id), do: "/campaigns/#{id}/filters"
   defp step_href(_, _, _), do: nil
 
   attr :state, :atom, required: true

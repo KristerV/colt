@@ -17,6 +17,7 @@ defmodule Colt.Resources.Company do
     define :with_employees
     define :by_market, args: [:market]
     define :active
+    define :filtered
   end
 
   actions do
@@ -77,6 +78,42 @@ defmodule Colt.Resources.Company do
       accept [:industry_code, :website_url, :website_source, :generic_email]
       require_atomic? false
     end
+
+    read :filtered do
+      description """
+      View 3 — companies matching the user-selected filter set, in a market.
+      Always sorted randomly so the same action serves count, preview (limit 100),
+      and confirm-time sample (limit 1000). Pass `query: [limit: n]` to bound the read.
+      """
+
+      argument :market, :atom, allow_nil?: false
+      # NACE 4-digit prefixes (e.g. "6201"). EMTAK is 5-digit; the 5th digit is
+      # a national subclass that doesn't change the wording, so we filter on the
+      # NACE class via LEFT(industry_code, 4).
+      argument :industries, {:array, :string}, default: []
+      argument :growth_buckets, {:array, :atom}, default: []
+      argument :employees_min, :integer
+      argument :employees_max, :integer
+      argument :revenue_min, :integer
+      argument :revenue_max, :integer
+
+      filter expr(
+               market == ^arg(:market) and
+                 status == :registered and
+                 (^arg(:industries) == [] or
+                    fragment("LEFT(?, 4) = ANY(?)", industry_code, ^arg(:industries))) and
+                 (^arg(:growth_buckets) == [] or
+                    revenue_growth_bucket in ^arg(:growth_buckets)) and
+                 (is_nil(^arg(:employees_min)) or
+                    employees_latest >= ^arg(:employees_min)) and
+                 (is_nil(^arg(:employees_max)) or
+                    employees_latest <= ^arg(:employees_max)) and
+                 (is_nil(^arg(:revenue_min)) or revenue_latest >= ^arg(:revenue_min)) and
+                 (is_nil(^arg(:revenue_max)) or revenue_latest <= ^arg(:revenue_max))
+             )
+
+      prepare build(sort: [random_seed: :asc])
+    end
   end
 
   attributes do
@@ -122,6 +159,10 @@ defmodule Colt.Resources.Company do
 
   relationships do
     has_many :annual_reports, Colt.Resources.AnnualReport
+  end
+
+  calculations do
+    calculate :random_seed, :float, expr(fragment("random()"))
   end
 
   identities do

@@ -20,6 +20,7 @@ defmodule Colt.Resources.Campaign do
     define :set_icp, args: [:icp_description, :target_job_title]
     define :set_market, args: [:market]
     define :list_recent_for_user, args: [:user_id]
+    define :finalize, args: [:filters]
   end
 
   actions do
@@ -49,6 +50,18 @@ defmodule Colt.Resources.Campaign do
       description "View 2 — set market and advance to :collecting."
       accept [:market]
       change set_attribute(:status, :collecting)
+      require_atomic? false
+    end
+
+    update :finalize do
+      description "View 3 — save filters, lock the campaign, advance to :enriching."
+      accept [:filters]
+      change set_attribute(:status, :enriching)
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :finalized_at, DateTime.utc_now())
+      end
+
       require_atomic? false
     end
   end

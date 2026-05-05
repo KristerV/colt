@@ -12,7 +12,7 @@ config :ash_oban, pro?: false
 config :colt, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10, registry: 1],
+  queues: [default: 10, registry: 1, enrichment: 10],
   repo: Colt.Repo,
   plugins: [
     {Oban.Plugins.Cron,

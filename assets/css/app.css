@@ -140,3 +140,41 @@ em {
 
 /* Make LiveView wrapper divs transparent for layout */
 [data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* Dual-thumb range slider — two overlaid <input type=range> with transparent
+   tracks; only the thumb is interactive. Track + selected segment are drawn
+   by sibling divs. */
+.liid-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  appearance: none;
+  background: transparent;
+  pointer-events: none;
+  margin: 0;
+}
+.liid-range::-webkit-slider-runnable-track { background: transparent; }
+.liid-range::-moz-range-track { background: transparent; }
+.liid-range::-webkit-slider-thumb {
+  pointer-events: auto;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1.5px solid var(--accent);
+  cursor: grab;
+  margin-top: -7px;
+}
+.liid-range::-moz-range-thumb {
+  pointer-events: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--paper);
+  border: 1.5px solid var(--accent);
+  cursor: grab;
+}
+.liid-range:active::-webkit-slider-thumb { cursor: grabbing; }
+.liid-range:active::-moz-range-thumb { cursor: grabbing; }

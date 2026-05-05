@@ -30,6 +30,8 @@ defmodule ColtWeb.Router do
       live "/campaigns/new", Campaigns.NewLive
       live "/campaigns/:id/icp", Campaigns.IcpLive
       live "/campaigns/:id/market", Campaigns.MarketLive
+      live "/campaigns/:id/filters", Campaigns.FiltersLive
+      live "/campaigns/:id/funnel", Campaigns.FunnelLive
       live "/admin", AdminLive
       live "/admin/companies", Admin.CompaniesLive
       live "/admin/storage", Admin.StorageLive

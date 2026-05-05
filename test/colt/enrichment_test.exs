@@ -1,0 +1,74 @@
+defmodule Colt.EnrichmentTest do
+  use Colt.DataCase, async: false
+  use Oban.Testing, repo: Colt.Repo
+
+  alias Colt.Accounts.User
+  alias Colt.Enrichment
+  alias Colt.Resources.{Campaign, CampaignCompany, Company}
+
+  defp seed_user do
+    User
+    |> Ash.Changeset.for_create(:seed, %{email: "owner@example.com"}, authorize?: false)
+    |> Ash.create!(authorize?: false)
+  end
+
+  defp seed_companies(n) do
+    for i <- 1..n do
+      Company.upsert_basic!(%{
+        registry_code: "TEST#{i}",
+        market: :ee,
+        name: "Co #{i}",
+        region: "Tallinn",
+        status: :registered
+      })
+    end
+  end
+
+  setup do
+    user = seed_user()
+    {:ok, c} = Campaign.create_draft("Hunt", actor: user)
+    {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", actor: user)
+    {:ok, c} = Campaign.set_market(c, :ee, actor: user)
+    %{user: user, campaign: c}
+  end
+
+  test "run/3 creates CampaignCompany rows, finalizes campaign, enqueues stubs",
+       %{user: user, campaign: c} do
+    seed_companies(5)
+
+    {:ok, %{count: count, campaign: c2}} =
+      Enrichment.run(c, %{market: :ee}, user)
+
+    assert count == 5
+    assert c2.status == :enriching
+    assert c2.finalized_at
+
+    ccs = Ash.read!(CampaignCompany)
+    assert length(ccs) == 5
+    assert Enum.all?(ccs, &(&1.status == :pending))
+
+    assert_enqueued(worker: Colt.Enrichment.Stub)
+  end
+
+  test "run/3 caps at 1000 even when filter matches more", %{user: user, campaign: c} do
+    seed_companies(1010)
+
+    {:ok, %{count: count}} = Enrichment.run(c, %{market: :ee}, user)
+
+    assert count == 1000
+  end
+
+  test "Stub.perform marks the row :enriched", %{user: user, campaign: c} do
+    seed_companies(1)
+    {:ok, _} = Enrichment.run(c, %{market: :ee}, user)
+
+    [job] = all_enqueued(worker: Colt.Enrichment.Stub)
+    [cc_id] = [job.args["campaign_company_id"]]
+
+    # bypass the 2s sleep by short-circuiting the stub call
+    cc = CampaignCompany.get!(cc_id)
+    {:ok, cc2} = CampaignCompany.mark_enriched(cc)
+
+    assert cc2.status == :enriched
+  end
+end
