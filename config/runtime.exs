@@ -22,6 +22,23 @@ end
 
 config :colt, ColtWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+# ── Third-party API credentials ───────────────────────────────────────
+# Single-tenant: all keys are global env vars. Prod raises on missing.
+# Dev / test tolerates missing — enrichment jobs will fail loudly when invoked.
+if config_env() == :prod do
+  config :colt, :openrouter, api_key: System.fetch_env!("OPENROUTER_API_KEY")
+
+  config :colt, :google_cse,
+    api_key: System.fetch_env!("GOOGLE_CSE_API_KEY"),
+    engine_id: System.fetch_env!("GOOGLE_CSE_ENGINE_ID")
+else
+  config :colt, :openrouter, api_key: System.get_env("OPENROUTER_API_KEY")
+
+  config :colt, :google_cse,
+    api_key: System.get_env("GOOGLE_CSE_API_KEY"),
+    engine_id: System.get_env("GOOGLE_CSE_ENGINE_ID")
+end
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
