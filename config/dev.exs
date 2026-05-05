@@ -73,6 +73,7 @@ config :colt, dev_routes: true, token_signing_secret: "D9MrZDPYd/dq5Ov06lAjgtj/b
 
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
+config :logger, level: :info
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

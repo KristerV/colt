@@ -1,0 +1,97 @@
+[
+    {
+        "ariregistri_kood":10000001,
+        "nimi":"Alpha Growth OÜ",
+        "yldandmed":{
+            "staatus":"R",
+            "sidevahendid":[
+                {"kirje_id":1,"liik":"WWW","sisu":"https://alpha.ee","lopp_kpv":null},
+                {"kirje_id":2,"liik":"EMAIL","sisu":"info@alpha.ee","lopp_kpv":null},
+                {"kirje_id":3,"liik":"EMAIL","sisu":"old@alpha.ee","lopp_kpv":"01.01.2020"}
+            ],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"62012","on_pohitegevusala":true,"algus_kpv":"01.02.2018","lopp_kpv":null}
+            ]
+        }
+    },
+    {
+        "ariregistri_kood":10000002,
+        "nimi":"Beta Decline OÜ",
+        "yldandmed":{
+            "staatus":"R",
+            "sidevahendid":[
+                {"kirje_id":4,"liik":"WWW","sisu":"https://beta.ee","lopp_kpv":null},
+                {"kirje_id":5,"liik":"EMAIL","sisu":"hello@beta.ee","lopp_kpv":null}
+            ],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"62012","on_pohitegevusala":true,"algus_kpv":"15.03.2015","lopp_kpv":null}
+            ]
+        }
+    },
+    {
+        "ariregistri_kood":10000003,
+        "nimi":"Gamma Stagnant OÜ",
+        "yldandmed":{
+            "staatus":"R",
+            "sidevahendid":[
+                {"kirje_id":6,"liik":"WWW","sisu":"https://gamma.ee","lopp_kpv":null},
+                {"kirje_id":7,"liik":"EMAIL","sisu":"sales@gamma.ee","lopp_kpv":null}
+            ],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"73111","on_pohitegevusala":true,"algus_kpv":"20.06.2017","lopp_kpv":null}
+            ]
+        }
+    },
+    {
+        "ariregistri_kood":10000004,
+        "nimi":"Delta Rocket OÜ",
+        "yldandmed":{
+            "staatus":"R",
+            "sidevahendid":[
+                {"kirje_id":8,"liik":"WWW","sisu":"https://delta.ee","lopp_kpv":null}
+            ],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"62012","on_pohitegevusala":true,"algus_kpv":"05.09.2020","lopp_kpv":null}
+            ]
+        }
+    },
+    {
+        "ariregistri_kood":10000005,
+        "nimi":"Epsilon Fresh OÜ",
+        "yldandmed":{
+            "staatus":"R",
+            "sidevahendid":[],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"62012","on_pohitegevusala":true,"algus_kpv":"10.11.2023","lopp_kpv":null}
+            ]
+        }
+    },
+    {
+        "ariregistri_kood":10000006,
+        "nimi":"Zeta Liquidating OÜ",
+        "yldandmed":{
+            "staatus":"L",
+            "sidevahendid":[
+                {"kirje_id":9,"liik":"WWW","sisu":"https://zeta.ee","lopp_kpv":null}
+            ],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"73111","on_pohitegevusala":true,"algus_kpv":"12.01.2014","lopp_kpv":null}
+            ]
+        }
+    },
+    {
+        "ariregistri_kood":10000007,
+        "nimi":"Eta Big OÜ",
+        "yldandmed":{
+            "staatus":"R",
+            "sidevahendid":[
+                {"kirje_id":10,"liik":"WWW","sisu":"https://eta.ee","lopp_kpv":null},
+                {"kirje_id":11,"liik":"EMAIL","sisu":"info@eta.ee","lopp_kpv":null}
+            ],
+            "teatatud_tegevusalad":[
+                {"emtak_kood":"62012","on_pohitegevusala":true,"algus_kpv":"22.04.2010","lopp_kpv":null},
+                {"emtak_kood":"70220","on_pohitegevusala":false,"algus_kpv":"22.04.2010","lopp_kpv":null}
+            ]
+        }
+    }
+]

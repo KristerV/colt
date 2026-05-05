@@ -12,9 +12,14 @@ config :ash_oban, pro?: false
 config :colt, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10],
+  queues: [default: 10, registry: 1],
   repo: Colt.Repo,
-  plugins: [{Oban.Plugins.Cron, []}]
+  plugins: [
+    {Oban.Plugins.Cron,
+     crontab: [
+       {"0 3 * * 0", Colt.Jobs.RikIngest}
+     ]}
+  ]
 
 config :ash,
   allow_forbidden_field_for_relationships_by_default?: true,
@@ -61,7 +66,8 @@ config :spark,
 config :colt,
   ecto_repos: [Colt.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [Colt.Accounts],
+  ash_domains: [Colt.Accounts, Colt.Domain],
+  rik_ee_cache_dir: "priv/ingest_cache",
   ash_authentication: [return_error_on_invalid_magic_link_token?: true]
 
 # Configure the endpoint

@@ -77,9 +77,20 @@ defmodule Colt.Accounts.User do
       change {AshAuthentication.Strategy.RememberMe.MaybeGenerateTokenChange,
               strategy_name: :remember_me}
 
+      change Colt.Accounts.User.Changes.MaybePromoteFirstAdmin
+
       metadata :token, :string do
         allow_nil? false
       end
+    end
+
+    create :seed do
+      description "Seeds / tests only. Skips magic-link plumbing but applies the first-admin rule."
+      accept [:email]
+      upsert? true
+      upsert_identity :unique_email
+      upsert_fields [:email]
+      change Colt.Accounts.User.Changes.MaybePromoteFirstAdmin
     end
 
     action :request_magic_link do
@@ -103,6 +114,12 @@ defmodule Colt.Accounts.User do
     attribute :email, :ci_string do
       allow_nil? false
       public? true
+    end
+
+    attribute :is_admin, :boolean do
+      allow_nil? false
+      default false
+      public? false
     end
   end
 
