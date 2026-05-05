@@ -26,23 +26,16 @@ defmodule ColtWeb.Router do
     pipe_through :browser
 
     ash_authentication_live_session :authenticated_routes do
-      # in each liveview, add one of the following at the top of the module:
-      #
-      # If an authenticated user must be present:
-      # on_mount {ColtWeb.LiveUserAuth, :live_user_required}
-      #
-      # If an authenticated user *may* be present:
-      # on_mount {ColtWeb.LiveUserAuth, :live_user_optional}
-      #
-      # If an authenticated user must *not* be present:
-      # on_mount {ColtWeb.LiveUserAuth, :live_no_user}
+      live "/", HomeLive
+      live "/admin", AdminLive
+      live "/admin/companies", Admin.CompaniesLive
+      live "/admin/storage", Admin.StorageLive
     end
   end
 
   scope "/", ColtWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
     auth_routes AuthController, Colt.Accounts.User, path: "/auth"
     sign_out_route AuthController
 

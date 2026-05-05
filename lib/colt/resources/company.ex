@@ -13,6 +13,10 @@ defmodule Colt.Resources.Company do
     define :upsert_basic
     define :patch_details
     define :list_by_market, args: [:market]
+    define :with_annual_report
+    define :with_employees
+    define :by_market, args: [:market]
+    define :active
   end
 
   actions do
@@ -22,6 +26,23 @@ defmodule Colt.Resources.Company do
     read :list_by_market do
       argument :market, :atom, allow_nil?: false
       filter expr(market == ^arg(:market))
+    end
+
+    read :with_annual_report do
+      filter expr(exists(annual_reports, true))
+    end
+
+    read :with_employees do
+      filter expr(not is_nil(employees_latest))
+    end
+
+    read :by_market do
+      argument :market, :atom, allow_nil?: false
+      filter expr(market == ^arg(:market))
+    end
+
+    read :active do
+      filter expr(status == :registered)
     end
 
     create :upsert_basic do
