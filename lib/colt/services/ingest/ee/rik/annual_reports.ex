@@ -8,12 +8,13 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   2. From each `elemendid_YYYY.csv`, pick out Revenue (under non-liquidation
      `Kasumiaruanne skeem 1/2`) and average employees (under
      `Lisa: Tööjõukulud`). Liquidation-only reports are dropped.
-  3. Upsert one `AnnualReport` per (company, year), then recompute growth on
-     every affected company.
+  3. Upsert one `AnnualReport` per (company, year), then recompute growth in
+     a single SQL pass across all companies that have any reports.
   """
 
   alias Colt.Resources.{AnnualReport, Company}
   alias Colt.Services.Ingest.Progress
+  alias Colt.Services.Ingest.Sample
 
   @overview_file "aruannete_yldandmed.csv"
   @revenue_tables MapSet.new(["Kasumiaruanne skeem 1", "Kasumiaruanne skeem 2"])
@@ -24,10 +25,9 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
          years <- year_files |> Enum.map(&elem(&1, 0)),
          {:ok, latest_by_report} <- index_latest_reports(years),
          {:ok, by_code} <- index_companies(),
-         {:ok, %{count: count, affected: affected}} <-
-           upsert_reports(year_files, latest_by_report, by_code),
-         {:ok, _} <- recompute_growth(affected) do
-      {:ok, %{processed: count, years: years, growth_recomputed: MapSet.size(affected)}}
+         {:ok, count} <- upsert_reports(year_files, latest_by_report, by_code),
+         {:ok, recomputed} <- recompute_growth() do
+      {:ok, %{processed: count, years: years, growth_recomputed: recomputed}}
     end
   end
 
@@ -69,9 +69,11 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
       path
       |> File.stream!()
       |> Stream.drop(1)
+      |> Progress.tick("aruannete rows read")
       |> Stream.map(&parse_overview_row(&1, headers))
       |> Stream.reject(&is_nil/1)
       |> Stream.filter(&MapSet.member?(years_set, &1.year))
+      |> Stream.filter(&Sample.included?(&1.registry_code))
       |> Enum.reduce(%{}, fn row, acc ->
         key = {row.registry_code, row.year}
 
@@ -126,50 +128,51 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   # ---- read elemendid → upsert AnnualReports ----
 
   defp upsert_reports(year_files, latest_by_report, by_code) do
-    Enum.reduce_while(year_files, {:ok, %{count: 0, affected: MapSet.new()}}, fn {year, path},
-                                                                                 {:ok, acc} ->
-      values_by_report = collect_values(path, latest_by_report)
+    total =
+      Enum.reduce(year_files, 0, fn {year, path}, count ->
+        params = build_params(year, path, latest_by_report, by_code)
 
-      params_list =
-        Enum.flat_map(values_by_report, fn {report_id, vals} ->
-          ref = Map.fetch!(latest_by_report, report_id)
-          company = Map.get(by_code, ref.registry_code)
-
-          cond do
-            is_nil(company) ->
-              []
-
-            is_nil(vals.revenue) ->
-              []
-
-            true ->
-              [
-                %{
-                  company_id: company.id,
-                  year: year,
-                  revenue_eur: vals.revenue,
-                  employees: vals.employees,
-                  source: :rik
-                }
-              ]
-          end
+        params
+        |> Stream.chunk_every(500)
+        |> Enum.each(fn chunk ->
+          Ash.bulk_create!(chunk, AnnualReport, :upsert,
+            return_errors?: true,
+            stop_on_error?: true
+          )
         end)
 
-      params_list
-      |> Stream.chunk_every(500)
-      |> Enum.each(fn chunk ->
-        Ash.bulk_create!(chunk, AnnualReport, :upsert,
-          return_errors?: true,
-          stop_on_error?: true
-        )
+        Progress.done("annual reports upserted (#{year})", length(params))
+        count + length(params)
       end)
 
-      Progress.done("annual reports upserted (#{year})", length(params_list))
+    {:ok, total}
+  end
 
-      affected =
-        Enum.reduce(params_list, acc.affected, fn p, set -> MapSet.put(set, p.company_id) end)
+  defp build_params(year, path, latest_by_report, by_code) do
+    path
+    |> collect_values(latest_by_report)
+    |> Enum.flat_map(fn {report_id, vals} ->
+      ref = Map.fetch!(latest_by_report, report_id)
+      company = Map.get(by_code, ref.registry_code)
 
-      {:cont, {:ok, %{count: acc.count + length(params_list), affected: affected}}}
+      cond do
+        is_nil(company) ->
+          []
+
+        is_nil(vals.revenue) ->
+          []
+
+        true ->
+          [
+            %{
+              company_id: company.id,
+              year: year,
+              revenue_eur: vals.revenue,
+              employees: vals.employees,
+              source: :rik
+            }
+          ]
+      end
     end)
   end
 
@@ -182,10 +185,10 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     path
     |> File.stream!()
     |> Stream.drop(1)
+    |> Progress.tick(label)
     |> Stream.map(&parse_element_row(&1, headers))
     |> Stream.reject(&is_nil/1)
     |> Stream.filter(&Map.has_key?(latest_by_report, &1.report_id))
-    |> Progress.tick(label)
     |> Enum.reduce(%{}, fn row, acc ->
       classify(row, acc)
     end)
@@ -262,12 +265,8 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
 
   # ---- compute growth ----
 
-  # Bulk recompute via a single SQL CTE — the per-company `:compute_growth`
-  # Ash action stays the source of truth for individual recomputes (e.g. when
-  # a single annual report changes outside this ingest). For the post-ingest
-  # sweep we'd otherwise be doing one read + one update per company; SQL
-  # collapses ~250k of those into one query.
-  defp recompute_growth(_affected) do
+  # Single-query recompute. Buckets per spec §3.1.
+  defp recompute_growth do
     sql = """
     WITH ranked AS (
       SELECT

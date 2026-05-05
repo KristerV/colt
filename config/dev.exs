@@ -1,6 +1,11 @@
 import Config
 config :ash, policies: [show_policy_breakdowns?: true]
 
+# Hash-sample ~3% of registry codes (≈11k of 371k) for the rik.ee ingest in
+# dev. Same set every run, evenly distributed across companies.
+# Unset / 0 in prod = ingest everything.
+config :colt, ingest_sample_rate: 0.03
+
 # Configure your database
 config :colt, Colt.Repo,
   username: "postgres",

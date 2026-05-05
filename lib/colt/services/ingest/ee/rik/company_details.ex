@@ -11,13 +11,16 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
   alias Colt.Resources.Company
   alias Colt.Services.Ingest.Ee.Rik.JsonRecordStream
   alias Colt.Services.Ingest.Progress
+  alias Colt.Services.Ingest.Sample
 
   @filename "yldandmed.json"
   @batch 500
 
+  @peek_regex ~r/"ariregistri_kood"\s*:\s*(\d+)/
+
   def run do
     with {:ok, path} <- locate_file(),
-         {:ok, stream} <- JsonRecordStream.run(path),
+         {:ok, stream} <- JsonRecordStream.run(path, decode: false),
          {:ok, count} <- bulk_upsert(stream) do
       {:ok, %{file: @filename, patched: count}}
     end
@@ -33,9 +36,11 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
   defp bulk_upsert(stream) do
     count =
       stream
+      |> Progress.tick("yldandmed records read")
+      |> Stream.map(&peek_and_decode/1)
+      |> Stream.reject(&is_nil/1)
       |> Stream.map(&extract/1)
       |> Stream.reject(&is_nil/1)
-      |> Progress.tick("companies patched")
       |> Stream.chunk_every(@batch)
       |> Enum.reduce(0, fn chunk, n ->
         Ash.bulk_create!(chunk, Company, :upsert_details,
@@ -48,6 +53,16 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
 
     Progress.done("companies patched", count)
     {:ok, count}
+  end
+
+  defp peek_and_decode(raw) when is_binary(raw) do
+    case Regex.run(@peek_regex, raw, capture: :all_but_first) do
+      [code] ->
+        if Sample.included?(code), do: Jason.decode!(raw), else: nil
+
+      _ ->
+        Jason.decode!(raw)
+    end
   end
 
   defp extract(%{"ariregistri_kood" => code, "nimi" => name} = record)

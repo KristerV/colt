@@ -7,6 +7,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompaniesImport do
 
   alias Colt.Resources.Company
   alias Colt.Services.Ingest.Progress
+  alias Colt.Services.Ingest.Sample
 
   @batch 500
   @filename "lihtandmed.csv"
@@ -33,9 +34,10 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompaniesImport do
       path
       |> File.stream!()
       |> Stream.drop(1)
+      |> Progress.tick("lihtandmed rows read")
       |> Stream.map(&parse_row(&1, headers))
       |> Stream.reject(&is_nil/1)
-      |> Progress.tick("companies upserted")
+      |> Stream.filter(&Sample.included?(&1.registry_code))
       |> Stream.chunk_every(@batch)
       |> Enum.reduce(0, fn chunk, n ->
         Ash.bulk_create!(chunk, Company, :upsert_basic,

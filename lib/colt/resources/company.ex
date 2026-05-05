@@ -12,7 +12,6 @@ defmodule Colt.Resources.Company do
   code_interface do
     define :upsert_basic
     define :patch_details
-    define :compute_growth
     define :list_by_market, args: [:market]
   end
 
@@ -56,13 +55,6 @@ defmodule Colt.Resources.Company do
       description "Patch fields sourced from yldandmed (website, industry, generic email)."
       accept [:industry_code, :website_url, :website_source, :generic_email]
       require_atomic? false
-    end
-
-    update :compute_growth do
-      description "Recompute revenue_latest / employees_latest / revenue_growth_bucket from annual reports."
-      accept []
-      require_atomic? false
-      change Colt.Resources.Company.Changes.ComputeGrowth
     end
   end
 
