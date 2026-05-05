@@ -32,43 +32,40 @@ Before writing code that calls any external API, follow this procedure. Applies 
 6.  Export modal        — CSV download
 ```
 
-Phases 0, 1 are independent. Phase 2 depends on 0. Phase 3 depends on 1 + 2. Phase 4a depends on 0 (settings for API keys). Phase 4b depends on 3 + 4a. Phase 5 depends on 4b. Phase 6 depends on 5.
+Phases 0, 1 are independent. Phase 2 depends on 0. Phase 3 depends on 1 + 2. Phase 4a depends on 0 (env-config wiring for API keys). Phase 4b depends on 3 + 4a. Phase 5 depends on 4b. Phase 6 depends on 5.
 
 ---
 
-## Phase 0 — Foundation (design system + settings)
+## Phase 0 — Foundation (design system + branded shell)
 
 **Already done in the boilerplate** (don't rebuild): magic-link auth via Ash Authentication, `Colt.Accounts.User`, token resource, magic-link sender, `ColtWeb.AuthController`, `ColtWeb.LiveUserAuth`, router with `ash_authentication_live_session`, `ColtWeb.Layouts` + `core_components.ex`, Oban + Oban.Web mounted.
 
-**Goal**: a logged-in user lands on a Liid-branded shell with the design system in place. Auth flows already work; we wrap them in the Liid look and add a settings store.
+**Goal**: a logged-in user lands on a Liid-branded shell with the design system in place. Auth flows already work; we wrap them — including the sign-in / magic-link screens — in the Liid look. **No user settings, no per-user customisation.** All third-party credentials are global (env / `runtime.exs`).
 
 **Build**:
 - Brand the existing layouts: replace the default Phoenix shell in `ColtWeb.Layouts.app` with the Liid top bar (wordmark + stepper placeholder + campaign chip slot + avatar). Wordmark text = "Liid". Move whatever the boilerplate puts on `/` to a placeholder home that lists the user's campaigns (empty for now).
-- Global CSS in `assets/css/app.css`: oklch tokens (per design §1), `--accent` custom property, three font families (Inter Tight, Instrument Serif, JetBrains Mono via Google Fonts `<link>`), and the four keyframes (`liid-pulse, liid-blink, liid-shimmer, liid-tick`).
-- Tailwind config: extend with token names so utility classes resolve to the oklch values. Don't substitute `gray-*`.
+- **Auth screens** (sign-in, register, magic-link request, confirmation): currently use AshAuthentication's DaisyUI overrides. Replace with Liid styling so the login flow doesn't look like raw DaisyUI. Either ship our own `AshAuthentication.Phoenix.Overrides` module or skip the built-in `sign_in_route` and render our own LiveView. Either way, every screen the user can reach must match the design system.
+- Global CSS in `assets/css/app.css`: oklch tokens (per design §1), `--accent` custom property (single global value: forest `#3d7a3d`), three font families (Inter Tight, Instrument Serif, JetBrains Mono via Google Fonts `<link>`), and the four keyframes (`liid-pulse, liid-blink, liid-shimmer, liid-tick`).
+- Tailwind theme: extend with token names so utility classes resolve to oklch values. Don't substitute `gray-*`. (Project uses Tailwind v4 — extend via `@theme` in `app.css`, not a `tailwind.config.js`.)
 - Reusable function components in `ColtWeb.Components.Liid` (one module, multiple functions): `screen/1`, `top_bar/1`, `btn/1`, `headline/1`, `status_dot/1`, `icon/1` (with the icon path map copied verbatim from `priv/design_prototype/project/liid-shared.jsx`).
-- New resource: `Colt.Accounts.UserSettings`. One-to-one with User. Attributes: `openrouter_api_key`, `google_cse_api_key`, `google_cse_engine_id`, `accent` (string, default `"#3d7a3d"`), `density` (atom `:compact | :comfy`, default `:comfy`), `enrichment_viz` (atom `:pills | :bar | :log`, default `:pills`). Auto-create on user creation (use a relationship + `manage_relationship` or a User after-action change).
-- `/settings` LiveView (auth required) — form with the six fields above. Design polish can wait; correctness here matters.
-- Apply the user's `accent` and `density` settings on the layout: set `--accent` on the body / layout root from `assigns.current_user.settings.accent`.
+- App config for third-party keys (used in later phases, but wire the read sites now): `OPENROUTER_API_KEY`, `GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ENGINE_ID` in `config/runtime.exs`. Prod uses `System.fetch_env!/1`; dev tolerates missing.
 
 **Acceptance**:
-- `mix phx.server` boots; `/` shows the Liid wordmark.
-- Sign up via magic link end-to-end (existing flow) — landing page shows Liid branding, not Phoenix default.
-- `/settings` lets the user save API keys + pick an accent. Reload persists. Changing accent immediately reflects in the wordmark dot color.
+- `mix phx.server` boots; `/` shows the Liid wordmark and Liid-branded shell.
+- Magic-link sign-in flow walked end-to-end uses the Liid design (no DaisyUI button shapes, no Phoenix default layout).
 - All three fonts render. Inspect element: paper/ink colors are oklch, not hex grays.
-- `Colt.Accounts.UserSettings` exists and is auto-created with a user — verified by signing up a new user and checking DB.
+- `--accent` cascades from the body root; status dots / buttons read from it.
 
-**Deferred**: anything from views 0–4. Don't build campaign resources yet.
+**Deferred**: anything from views 0–4. No campaign resources, no settings page (there is none in v1), no Tweaks panel.
 
 **Likely files**:
-- `lib/colt/accounts/user_settings.ex` (new)
-- `lib/colt/accounts/user.ex` (modify — add `has_one :settings`, lifecycle to create settings)
 - `lib/colt_web/components/liid.ex` (new)
-- `lib/colt_web/components/layouts.ex` + `layouts/app.html.heex` (modify)
-- `lib/colt_web/live/settings_live.ex` (new)
-- `assets/css/app.css`, `assets/tailwind.config.js` (modify)
-- `priv/repo/migrations/*_user_settings.exs`
-- Router: add `/settings` to the authenticated live session.
+- `lib/colt_web/components/layouts.ex` + `layouts/app.html.heex`, `root.html.heex` (modify)
+- `lib/colt_web/auth_overrides.ex` (modify — Liid styling)
+- `lib/colt_web/live/home_live.ex` (modify — rebrand)
+- `assets/css/app.css` (modify)
+- `config/runtime.exs` (add OpenRouter / Google CSE env reads)
+- Router: keep as-is (no `/settings`).
 
 ---
 
@@ -177,11 +174,11 @@ Why split this from 4b: each piece below carries a real risk (API auth, lib choi
 - `Colt.AI` — OpenRouter client.
   - `complete(model, prompt_or_messages, opts)` where `model ∈ {:cheap, :smart}`. `:cheap` → GLM 4.7, `:smart` → Claude 4.5 Sonnet via OpenRouter.
   - Supports `system:` (cached across calls when the underlying provider supports prompt caching), `response_format: :json` with a schema, `max_tokens`, `temperature`.
-  - Reads API key from the calling user's `UserSettings`, passed in opts as `actor:` or `api_key:`.
+  - Reads API key from app config (`Application.fetch_env!(:colt, :openrouter)[:api_key]`), sourced from `OPENROUTER_API_KEY`.
   - Single retry with backoff on transient errors (5xx, timeouts).
 - `Colt.Search` — Google Custom Search client.
   - `google(query, opts)` returns up to 10 `%Result{title, url, snippet}` results.
-  - Reads CSE key + engine ID from `UserSettings`.
+  - Reads CSE key + engine ID from app config (`GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ENGINE_ID`).
 - `Colt.Scrape` — fetcher with static-first / Wallaby-fallback strategy.
   - `fetch(url)` returns `{:ok, %{html, fetcher: :static | :wallaby, status, final_url}} | {:error, reason}`.
   - Static path: Req with sensible UA + redirect handling.
@@ -198,9 +195,9 @@ Why split this from 4b: each piece below carries a real risk (API auth, lib choi
 - Resources finalised here: `Colt.Companies.Page`, `Colt.Companies.Person`. `Page` identity on `[:company_id, :path]`.
 
 **Acceptance** — all from `iex -S mix` (or `mix run -e` per project convention):
-- `Colt.AI.complete(:cheap, "Say hi", actor: user) == {:ok, "..."}` round-trips against OpenRouter.
-- `Colt.AI.complete(:smart, messages, response_format: :json, schema: %{...}, actor: user)` returns parsed JSON conforming to the schema.
-- `Colt.Search.google("bolt.eu", actor: user)` returns a list of results with URLs.
+- `Colt.AI.complete(:cheap, "Say hi") == {:ok, "..."}` round-trips against OpenRouter (key from env).
+- `Colt.AI.complete(:smart, messages, response_format: :json, schema: %{...})` returns parsed JSON conforming to the schema.
+- `Colt.Search.google("bolt.eu")` returns a list of results with URLs.
 - `Colt.Scrape.fetch("https://example.com")` returns `:static` fetcher.
 - `Colt.Scrape.fetch("<some SPA URL you know>")` returns `:wallaby` fetcher and includes rendered content not present in the raw HTML.
 - `Colt.Markdown.from_html(html)` on a real landing page produces markdown ≤ 30% the byte size of the input with no obvious garbage.
@@ -242,7 +239,7 @@ Why split this from 4b: each piece below carries a real risk (API auth, lib choi
 - All jobs idempotent — they no-op on already-completed steps. Pattern: read `CampaignCompany`, check stage state, return `:ok` early if past.
 - Each job ends with `Broadcast.stage/3` and either an `Oban.insert` for the next step or a terminal status update.
 - Queues per spec §6 intro: `registry`, `scrape` (10 workers, calls `Locks.with_domain_lock` and `Oban.snooze` if `:locked`), `ai` (1 worker), `export` (1 worker).
-- Settings gate: when view 3 confirms a campaign, refuse to enqueue if the user lacks OpenRouter or Google CSE keys. Return error to the view button.
+- Config gate: on boot (or on first enqueue), assert env-sourced API keys are present. Missing in prod → raise; missing in dev → log and allow enqueue (jobs will fail loudly).
 - Stage-to-job mapping (broadcast stage atoms must match spec §5.5 / design):
   - `web` ← CheckWebsite, GoogleSearch
   - `scrape` ← FetchLanding, ExtractNavigation
@@ -284,15 +281,14 @@ Why split this from 4b: each piece below carries a real risk (API auth, lib choi
   - `{:row, company_id, %{...patch}}` for status, contact name/title, error.
 - Stats strip computed from `CampaignCompany` aggregates (5 buckets). Refresh on broadcast.
 - Pipeline meta strip: `running · N workers · X/s · queue: N · elapsed · eta`. Workers/s = 60-sec rolling rate from Oban telemetry. ETA = `queue / rate`.
-- Three viz styles: `pills` (default), `bar`, `log`. User's `enrichment_viz` setting picks default; per-page toggle persists to settings on change.
+- Pills viz only. (Bar and Log alternates from the prototype are not built; no toggle.)
 - Row expansion: click row → inline two-column expand. Pipeline log on the left (timestamped from job records), contact card on the right.
 - Mark Export button as enabled when ≥1 enriched company has a validated, title-matching Person. The button does nothing yet (Phase 6 wires the modal).
 
 **Acceptance**:
 - Run a Phase-4 enrichment on a small campaign, watch view 4 update live.
 - Stats strip totals match DB counts at any point in time.
-- All three viz styles render without breaking row width.
-- Toggling viz style persists across refresh (pulls from settings).
+- Pills viz renders without breaking row width.
 - Expanded row shows real timestamps from the job log.
 - Pipeline meta numbers update at least every 5s.
 

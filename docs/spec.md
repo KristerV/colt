@@ -54,19 +54,14 @@ Authoritative list of every external service Colt talks to. Procedure for adding
 | Service | Phase | Docs | Credentials | Contract status |
 |---|---|---|---|---|
 | **rik.ee Avaandmed** | 1 | https://avaandmed.ariregister.rik.ee/et/ariregistri-avaandmete-api/api-teenuste-tutvustus | env / app config | **In place** — API access agreement signed. Don't regenerate without asking. |
-| **OpenRouter** | 4a | https://openrouter.ai/docs | `UserSettings.openrouter_api_key` (per-user) | Self-serve; user provides their own key. Pay-as-you-go. |
-| **Google Custom Search API** | 4a | https://developers.google.com/custom-search/v1/overview | `UserSettings.google_cse_api_key` + `google_cse_engine_id` | Self-serve; free tier 100 queries/day, then $5/1000. |
+| **OpenRouter** | 4a | https://openrouter.ai/docs | env / app config (`OPENROUTER_API_KEY`) | App-level account. Pay-as-you-go. |
+| **Google Custom Search API** | 4a | https://developers.google.com/custom-search/v1/overview | env / app config (`GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ENGINE_ID`) | App-level account. Free tier 100 queries/day, then $5/1000. |
 
 ## 4. Domain (Ash resources)
 
 ```
 User
   has_many :campaigns
-  has_one  :user_settings
-
-UserSettings
-  belongs_to :user
-  attrs: openrouter_api_key, google_cse_api_key, google_cse_engine_id
 
 Campaign
   belongs_to :owner, User
@@ -181,10 +176,7 @@ Workers/s computed as a 60-second rolling rate from Oban telemetry. ETA = `queue
 | `contact` | Contacts | §6.7 PickContactPages, §6.8 ScrapeContactPage |
 | `verify` | Verified | §6.9 ExtractContacts validation |
 
-Each stage is in one state: `idle | work | done | skip | fall | fail`. UI offers three viz styles via user setting (default `pills`):
-- **pills** — labelled chips with status dot and hairline tick separators
-- **bar** — 6 segments, 6px tall, with abbreviated labels below
-- **log** — single mono line showing the current action, e.g. `scraping /careers /team /about · 4p found`
+Each stage is in one state: `idle | work | done | skip | fall | fail`. Visualised as **pills** — labelled chips with status dot and hairline tick separators. (The prototype shows two alternates — bar and log — but v1 ships pills only; no per-user toggle.)
 
 **Real-time updates**: `Phoenix.PubSub` topic `"campaign:#{id}"`. Pipeline jobs broadcast `{:stage, company_id, stage, state}` (using the 6 stage names above) and `{:row, company_id, %{...row patch}}` for status/contact field changes.
 
@@ -281,13 +273,15 @@ Retries: scrape 3× exponential, ai 2×, registry 0.
 - ICP-match: re-run per campaign (different ICP per campaign).
 - Contacts extraction: cached extracted Person rows are reused; only `matches_target_title` is recomputed per campaign (different target title).
 
-## 8. Settings
+## 8. Configuration
 
-Per-user settings page (`/settings`):
-- OpenRouter API key
-- Google Custom Search API key + engine ID
+All third-party credentials live in app config (`runtime.exs`), read from env. There is **no settings page** and no per-user customisation in v1 — accent, density, and funnel viz are global constants. Required env:
 
-Keys are required to start enrichment. View 4 shows a banner with link to settings if missing.
+- `OPENROUTER_API_KEY`
+- `GOOGLE_CSE_API_KEY`
+- `GOOGLE_CSE_ENGINE_ID`
+
+In prod, missing keys raise on boot via `System.fetch_env!/1`. In dev, missing keys cause enrichment jobs to fail loudly — no UI banner.
 
 ## 9. Export
 

@@ -31,7 +31,7 @@ fail       oklch(58% 0.18 28)         /* red — hard errors */
 ok         oklch(55% 0.12 145)        /* same family as accent */
 ```
 
-Accent presets the user can pick from: forest `#3d7a3d`, ink `#1f2937`, rust `#b85c3a`, cobalt `#2a52be`. Accent is set as a CSS custom property `--accent` on the screen root and consumed by status dots, primary buttons, progress bars, etc. Plan for runtime theming.
+Accent is a single global value: forest `#3d7a3d`. Set as a CSS custom property `--accent` on the screen root and consumed by status dots, primary buttons, progress bars, etc. (The prototype's accent picker — ink / rust / cobalt — is not built; v1 has no theming UI.)
 
 ### Type
 
@@ -62,7 +62,7 @@ Always use `font-variant-numeric: tabular-nums` on counters and table data.
 
 - **Border radius**: 2px on cards, inputs, buttons, pills. Sharp by intent.
 - **Borders**: 1px solid `ink20` for default, 1px solid `ink` for selected, 1px solid `accent` for active.
-- **Density**: prototype has a `density` token (`compact` | `comfy`). Comfy uses screen padding `40px / 56px` (y/x), compact `28px / 32px`. Inside cards, padding shrinks proportionally. Implement as a user-toggleable setting.
+- **Density**: ship `comfy` only — screen padding `40px / 56px` (y/x). The prototype's compact mode is not built; no user toggle in v1.
 
 ### Animation
 
@@ -186,10 +186,7 @@ Open file: `priv/design_prototype/project/view-4.jsx`. This is the most importan
 - Contact cell when done: name (12/500) + mono 10 title sub-line. When `no-contact`: mono `hallucinated` in fail color. When `skip-icp`: mono `—`. When loading: shimmer placeholder.
 - Status cell: mono right-aligned, dot + label, dot pulses while working/fallback.
 
-**Enrichment cell — three viz options** (user picks via a setting; ship Pills as default):
-- **Pills (default)**: 6 labelled chips with status dots, separated by 4px hairline ticks. Border colors by state. Done: accent14 fill. Working: accent1f fill + pulse.
-- **Bar**: 6 segments, 6px tall, 2px gap, full-width flex. Color by state, pulse the working segment. Below: 6 short mono labels (`webs scra pars icp  cont veri`).
-- **Log**: single mono line with accent dot if live. Message rendered from row state — examples: `scraping /careers /team /about · 4p found`, `minimising html → markdown · 14kb → 2.1kb`, `asking gpt-4o · "does this match ICP?"`, `verifying email exists in markdown…`. Use `text-overflow: ellipsis`.
+**Enrichment cell — Pills only**: 6 labelled chips with status dots, separated by 4px hairline ticks. Border colors by state. Done: accent14 fill. Working: accent1f fill + pulse. (The prototype's Bar and Log alternates are not built in v1 — no per-user toggle.)
 
 **Expanded detail row** (when a row is opened): paperAlt bg, top hairline rule, 20/24/24/56 padding. Two-column grid (1.4fr / 1fr, 32px gap):
 - Left: timestamped mono pipeline log (`HH:MM:SS  ✓  message`), 70px / 14px / 1fr grid per line.
@@ -216,6 +213,8 @@ All conflicts between the original spec and the prototype have been resolved. Bu
 | **Markets** | **EE only** in v1. FI, LV, LT, SE, NO render as disabled cards with a "soon" badge (opacity 0.45, cursor not-allowed, not selectable). EE pre-selected since it's the only option. |
 | **Growth buckets** | 5 buckets per design: `:declining, :stagnant, :slow, :growing_2x, :growing_10x`. UI labels: Shrinking / Stagnant / Growing · slow / Growing · 2× / Growing · 10×. |
 | **Enrichment stages (visible row)** | 6 visible stages — `web → scrape → parse → icp → contact → verify`. 9 internal Oban jobs map onto these per the table in spec §5.5. |
+| **Funnel viz styles** | Pills only. The prototype's Bar and Log alternates are not built; no user toggle. |
+| **Theming / accent** | Single global accent (forest). No accent picker, no density toggle, no settings page in v1. |
 | **Export modal** | Modal as designed. CSV enabled. JSON / HubSpot / Pipedrive / Apollo / Webhook cards render but are disabled with "soon" badge. |
 | **View 0 recent sidebar** | Built. Shows the user's 4 most recent campaigns with `done / total` ratio and relative time. |
 | **View 3 cost estimator** | **Not built.** Don't show the `~ €0.18 / company · est. €152.46` line from the prototype. Pricing comes later. |
@@ -223,7 +222,7 @@ All conflicts between the original spec and the prototype have been resolved. Bu
 
 ## 6. Implementing Liid.html
 
-`Liid.html` itself is a **canvas viewer** — a React harness that lays out all 5 views as artboards on a `#f0eee9` paper background with a Tweaks panel. **Do not port the canvas/tweaks scaffold.** Port the artboard contents (Views 0–4) into LiveViews under `LiidWeb`. The Tweaks panel maps to a real user settings page (`accent`, `density`, `viz` style for the funnel row).
+`Liid.html` itself is a **canvas viewer** — a React harness that lays out all 5 views as artboards on a `#f0eee9` paper background with a Tweaks panel. **Do not port the canvas/tweaks scaffold.** Port the artboard contents (Views 0–4) into LiveViews under `LiidWeb`. The Tweaks panel is design-time only — it doesn't map to anything in the shipped product (no settings page, single global accent, comfy density, pills viz).
 
 Order of implementation (low risk first):
 1. Tokens + global styles + `LiidScreen` + `LiidTopBar` + `LiidBtn` + `LiidH` (used everywhere)
