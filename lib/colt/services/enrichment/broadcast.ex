@@ -1,7 +1,7 @@
-defmodule Colt.Enrichment.Broadcast do
+defmodule Colt.Services.Enrichment.Broadcast do
   @moduledoc """
   PubSub helpers for the enrichment pipeline. Phase 5 (funnel view) subscribes;
-  Phase 4b jobs publish via these helpers.
+  Phase 4b workers publish via these helpers.
 
   Topic: `"campaign:" <> campaign_id`. Messages:
 

@@ -1,20 +1,19 @@
-defmodule Colt.Enrichment do
+defmodule Colt.Services.Enrichment.Start do
   @moduledoc """
-  Confirm-time orchestrator for Phase 3.
-
-  `run/3` samples up to 1000 companies for the campaign's filters, creates
-  `CampaignCompany` join rows, locks the campaign at `:enriching` with
-  `finalized_at`, and enqueues a `Stub` job per row. Phase 4 swaps the stub.
+  Confirm-time orchestrator. Samples up to 1000 companies for the campaign's
+  filters, creates `CampaignCompany` join rows, locks the campaign at
+  `:enriching` with `finalized_at`, and enqueues the first pipeline job
+  (CheckWebsite) per row.
   """
 
-  alias Colt.Enrichment.Stub
   alias Colt.Filters
+  alias Colt.Jobs.Enrichment.CheckWebsite
   alias Colt.Resources.{Campaign, CampaignCompany}
 
   def run(%Campaign{} = campaign, filters, actor) when is_map(filters) do
     with {:ok, companies} <- Filters.sample(filters),
          {:ok, ccs} <- bulk_create_ccs(campaign, companies),
-         {:ok, _} <- enqueue_stubs(ccs),
+         {:ok, _} <- enqueue_first_jobs(ccs),
          {:ok, campaign} <- finalize_campaign(campaign, filters, actor) do
       {:ok, %{count: length(ccs), campaign: campaign}}
     end
@@ -38,9 +37,9 @@ defmodule Colt.Enrichment do
     end
   end
 
-  defp enqueue_stubs(ccs) do
+  defp enqueue_first_jobs(ccs) do
     Enum.each(ccs, fn cc ->
-      %{campaign_company_id: cc.id} |> Stub.new() |> Oban.insert!()
+      %{campaign_company_id: cc.id} |> CheckWebsite.new() |> Oban.insert!()
     end)
 
     {:ok, length(ccs)}

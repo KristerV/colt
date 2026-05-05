@@ -20,7 +20,12 @@ defmodule Colt.Resources.CampaignCompany do
 
   code_interface do
     define :get, action: :read, get_by: [:id]
-    define :mark_enriched, action: :mark_enriched
+    define :mark_scraping
+    define :mark_enriched
+    define :mark_no_website
+    define :mark_rejected, args: [:rejection_reason]
+    define :mark_failed
+    define :list_for_campaign, args: [:campaign_id]
   end
 
   actions do
@@ -31,9 +36,32 @@ defmodule Colt.Resources.CampaignCompany do
       accept [:campaign_id, :company_id]
     end
 
+    read :list_for_campaign do
+      argument :campaign_id, :uuid, allow_nil?: false
+      filter expr(campaign_id == ^arg(:campaign_id))
+    end
+
+    update :mark_scraping do
+      change set_attribute(:status, :scraping)
+    end
+
     update :mark_enriched do
-      description "Stub-pipeline terminal: mark a campaign company enriched."
       change set_attribute(:status, :enriched)
+    end
+
+    update :mark_no_website do
+      change set_attribute(:status, :no_website)
+    end
+
+    update :mark_rejected do
+      argument :rejection_reason, :string, allow_nil?: true
+
+      change set_attribute(:status, :rejected)
+      change set_attribute(:rejection_reason, arg(:rejection_reason))
+    end
+
+    update :mark_failed do
+      change set_attribute(:status, :failed)
     end
   end
 

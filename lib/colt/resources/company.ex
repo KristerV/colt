@@ -10,6 +10,7 @@ defmodule Colt.Resources.Company do
   end
 
   code_interface do
+    define :get, action: :read, get_by: [:id]
     define :upsert_basic
     define :patch_details
     define :list_by_market, args: [:market]
@@ -18,6 +19,10 @@ defmodule Colt.Resources.Company do
     define :by_market, args: [:market]
     define :active
     define :filtered
+    define :set_website, args: [:website_url, :website_source]
+    define :set_generic_email, args: [:generic_email]
+    define :set_ai_summary, args: [:ai_summary]
+    define :touch_enriched
   end
 
   actions do
@@ -76,6 +81,40 @@ defmodule Colt.Resources.Company do
     update :patch_details do
       description "Patch fields sourced from yldandmed (website, industry, generic email)."
       accept [:industry_code, :website_url, :website_source, :generic_email]
+      require_atomic? false
+    end
+
+    update :set_website do
+      description "Persist a website URL discovered or confirmed during enrichment."
+      accept [:website_url, :website_source]
+      argument :website_url, :string, allow_nil?: false
+      argument :website_source, :atom, allow_nil?: false
+      change set_attribute(:website_url, arg(:website_url))
+      change set_attribute(:website_source, arg(:website_source))
+      require_atomic? false
+    end
+
+    update :set_generic_email do
+      accept [:generic_email]
+      argument :generic_email, :string, allow_nil?: true
+      change set_attribute(:generic_email, arg(:generic_email))
+      require_atomic? false
+    end
+
+    update :set_ai_summary do
+      accept [:ai_summary]
+      argument :ai_summary, :string, allow_nil?: false
+      change set_attribute(:ai_summary, arg(:ai_summary))
+      require_atomic? false
+    end
+
+    update :touch_enriched do
+      description "Stamp last_enriched_at when the full pipeline completes."
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :last_enriched_at, DateTime.utc_now())
+      end
+
       require_atomic? false
     end
 
@@ -159,6 +198,8 @@ defmodule Colt.Resources.Company do
 
   relationships do
     has_many :annual_reports, Colt.Resources.AnnualReport
+    has_many :persons, Colt.Resources.Person
+    has_many :pages, Colt.Resources.Page
   end
 
   calculations do

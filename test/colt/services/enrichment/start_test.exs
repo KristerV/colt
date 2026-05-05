@@ -1,10 +1,10 @@
-defmodule Colt.EnrichmentTest do
+defmodule Colt.Services.Enrichment.StartTest do
   use Colt.DataCase, async: false
   use Oban.Testing, repo: Colt.Repo
 
   alias Colt.Accounts.User
-  alias Colt.Enrichment
   alias Colt.Resources.{Campaign, CampaignCompany, Company}
+  alias Colt.Services.Enrichment.Start
 
   defp seed_user do
     User
@@ -32,12 +32,11 @@ defmodule Colt.EnrichmentTest do
     %{user: user, campaign: c}
   end
 
-  test "run/3 creates CampaignCompany rows, finalizes campaign, enqueues stubs",
+  test "run/3 creates CC rows, finalizes campaign, enqueues CheckWebsite",
        %{user: user, campaign: c} do
     seed_companies(5)
 
-    {:ok, %{count: count, campaign: c2}} =
-      Enrichment.run(c, %{market: :ee}, user)
+    {:ok, %{count: count, campaign: c2}} = Start.run(c, %{market: :ee}, user)
 
     assert count == 5
     assert c2.status == :enriching
@@ -47,28 +46,14 @@ defmodule Colt.EnrichmentTest do
     assert length(ccs) == 5
     assert Enum.all?(ccs, &(&1.status == :pending))
 
-    assert_enqueued(worker: Colt.Enrichment.Stub)
+    assert_enqueued(worker: Colt.Jobs.Enrichment.CheckWebsite)
   end
 
   test "run/3 caps at 1000 even when filter matches more", %{user: user, campaign: c} do
     seed_companies(1010)
 
-    {:ok, %{count: count}} = Enrichment.run(c, %{market: :ee}, user)
+    {:ok, %{count: count}} = Start.run(c, %{market: :ee}, user)
 
     assert count == 1000
-  end
-
-  test "Stub.perform marks the row :enriched", %{user: user, campaign: c} do
-    seed_companies(1)
-    {:ok, _} = Enrichment.run(c, %{market: :ee}, user)
-
-    [job] = all_enqueued(worker: Colt.Enrichment.Stub)
-    [cc_id] = [job.args["campaign_company_id"]]
-
-    # bypass the 2s sleep by short-circuiting the stub call
-    cc = CampaignCompany.get!(cc_id)
-    {:ok, cc2} = CampaignCompany.mark_enriched(cc)
-
-    assert cc2.status == :enriched
   end
 end

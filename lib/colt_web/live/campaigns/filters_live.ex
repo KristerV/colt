@@ -4,8 +4,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   """
   use ColtWeb, :live_view
 
-  alias Colt.Enrichment
   alias Colt.Filters
+  alias Colt.Services.Enrichment.Start, as: EnrichmentStart
   alias Colt.Resources.Campaign
   alias ColtWeb.Components.Liid
 
@@ -121,7 +121,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     socket = assign(socket, confirming?: true)
     filters = filter_args(socket.assigns.form, socket.assigns.campaign.market)
 
-    case Enrichment.run(socket.assigns.campaign, filters, socket.assigns.current_user) do
+    case EnrichmentStart.run(socket.assigns.campaign, filters, socket.assigns.current_user) do
       {:ok, %{campaign: campaign}} ->
         {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/funnel")}
 

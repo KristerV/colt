@@ -65,13 +65,32 @@
 
 # ── 9. Broadcast · publish + receive ────────────────────────────────────────
 # campaign_id = "test-campaign"
-# :ok = Colt.Enrichment.Broadcast.subscribe(campaign_id)
-# Colt.Enrichment.Broadcast.stage(campaign_id, "cc-id", :web, :work)
+# :ok = Colt.Services.Enrichment.Broadcast.subscribe(campaign_id)
+# Colt.Services.Enrichment.Broadcast.stage(campaign_id, "cc-id", :web, :work)
 # receive do
 #   msg -> IO.inspect(msg, label: "broadcast")
 # after
 #   1_000 -> IO.puts("broadcast: nothing received")
 # end
+
+# ── 11. Enrichment · kick a single CC end-to-end ────────────────────────────
+# Pick a CC id from your DB:
+#   docker exec -ti postgres psql -U postgres -d colt_dev -c \
+#     "select id, status from campaign_companies limit 5;"
+# cc_id = "<paste here>"
+# %{campaign_company_id: cc_id} |> Colt.Jobs.Enrichment.CheckWebsite.new() |> Oban.insert!()
+
+# ── 12. Enrichment · subscribe to a campaign and print every message ────────
+# campaign_id = "<paste campaign id>"
+# :ok = Colt.Services.Enrichment.Broadcast.subscribe(campaign_id)
+# Stream.repeatedly(fn ->
+#   receive do
+#     msg -> IO.inspect(msg, label: "evt")
+#   after
+#     30_000 -> :timeout
+#   end
+# end)
+# |> Enum.take(50)
 
 # ── 10. Costs · monthly summary ─────────────────────────────────────────────
 # Colt.Services.Costs.MonthlySummary.run(3) |> IO.inspect(label: "monthly")

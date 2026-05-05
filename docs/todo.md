@@ -54,6 +54,32 @@ blocking the phase that surfaced them.
   worth re-checking after model swaps: the `:cheap`/`:smart` aliases hide
   the underlying provider, and the reasoning toggle is provider-specific.
 
+## From Phase 5 — funnel
+
+- **Route campaigns to the right view by status.** Today the Recent sidebar on
+  `/campaigns/new` always links to whatever the row's last URL was, and the
+  wizard views (`/icp`, `/market`, `/filters`) don't redirect when the
+  campaign has already moved past them. The visible failure: clicking Confirm
+  on `/campaigns/:id/filters` for an already-`:enriching` campaign re-runs
+  `Services.Enrichment.Start.run/3`, which tries to bulk-create
+  `CampaignCompany` rows that already exist and crashes with
+  `campaign_companies_campaign_company_index` "has already been taken".
+
+  Fix in two places:
+    1. **Recent sidebar (NewLive)** — route by `campaign.status`:
+       - `:draft` + no `icp_description` → `/campaigns/:id/icp`
+       - `:draft` + `icp_description` set → `/campaigns/:id/market`
+       - `:collecting` (market set, filters not finalized) → `/campaigns/:id/filters`
+       - `:enriching | :complete | :archived` → `/campaigns/:id/funnel`
+    2. **Defensive redirects in IcpLive / MarketLive / FiltersLive** —
+       on mount, if the campaign's status is past this view, `push_navigate`
+       to the right one (probably funnel for anything `>= :enriching`).
+       Closes the deep-link footgun.
+
+  Spec §5.1 already prescribes the sidebar behaviour ("Clicking a row
+  navigates to that campaign's view 4"); the wizard-redirect part is implied
+  by §5.5 "Read-only: no edits to filters or ICP after this view".
+
 ## From other phases
 
 (Add as you go — keep the format above: what, why deferred, what it would take

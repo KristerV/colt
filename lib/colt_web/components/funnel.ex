@@ -1,0 +1,391 @@
+defmodule ColtWeb.Components.Funnel do
+  @moduledoc """
+  View 4 building blocks: StatsStrip, MetaStrip, FunnelRow, EnrichmentPills,
+  ExpandedDetail.
+
+  Visual source of truth: `priv/design_prototype/project/view-4.jsx`.
+  """
+  use Phoenix.Component
+
+  alias ColtWeb.Components.Liid
+
+  @stage_labels %{
+    web: "Website",
+    scrape: "Pages",
+    parse: "Parse",
+    icp: "ICP fit",
+    contact: "Contacts",
+    verify: "Verified"
+  }
+
+  @stage_keys ~w(web scrape parse icp contact verify)a
+
+  def stage_keys, do: @stage_keys
+  def stage_labels, do: @stage_labels
+
+  attr :stats, :map, required: true
+  attr :total, :integer, required: true
+
+  def stats_strip(assigns) do
+    tiles = [
+      %{key: :queued, label: "Queued", color: "var(--ink40)", pulse?: false},
+      %{key: :working, label: "Working", color: "var(--accent)", pulse?: true},
+      %{key: :enriched, label: "Enriched", color: "var(--accent)", pulse?: false},
+      %{key: :rejected, label: "ICP miss", color: "var(--ink40)", pulse?: false},
+      %{key: :failed, label: "Failed", color: "var(--fail)", pulse?: false}
+    ]
+
+    assigns = assign(assigns, tiles: tiles)
+
+    ~H"""
+    <div class="flex border border-rule rounded-sharp">
+      <%= for {tile, i} <- Enum.with_index(@tiles) do %>
+        <% n = Map.get(@stats, tile.key, 0) %>
+        <% pct = if @total > 0, do: n / @total * 100, else: 0 %>
+        <div class={[
+          "flex-1 px-[18px] py-[14px] relative",
+          i < length(@tiles) - 1 && "border-r border-rule"
+        ]}>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 flex items-center gap-1.5">
+              <span
+                :if={tile.pulse? and n > 0}
+                class="w-[5px] h-[5px] rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+                style={"background: #{tile.color};"}
+              />
+              {tile.label}
+            </span>
+            <span class="font-mono text-[10px] text-ink40">{Float.round(pct, 1)}%</span>
+          </div>
+          <div class="font-serif text-[36px] font-normal leading-none tracking-[-0.02em] text-ink tnum">
+            {n}
+          </div>
+          <div class="mt-3 h-[2px] bg-ink10 relative">
+            <div
+              class="absolute left-0 top-0 bottom-0"
+              style={"width: #{min(pct * 2, 100)}%; background: #{tile.color};"}
+            />
+          </div>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :meta, :map, required: true
+  attr :visible, :integer, required: true
+  attr :total, :integer, required: true
+
+  def meta_strip(assigns) do
+    ~H"""
+    <div class="flex items-center gap-6 font-mono text-[11px] text-ink55 tracking-[0.04em] py-2">
+      <span class="flex items-center gap-2">
+        <span
+          class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+          style="background: var(--accent);"
+        /> running · {@meta.workers} workers · {@meta.rate}/s
+      </span>
+      <span>queue: {@meta.queue}</span>
+      <span>elapsed: {fmt_hms(@meta.elapsed_s)}</span>
+      <span>eta: {fmt_hms(@meta.eta_s)}</span>
+      <span class="ml-auto">{@visible} of {@total} visible</span>
+    </div>
+    """
+  end
+
+  def funnel_header(assigns) do
+    ~H"""
+    <div
+      class="grid items-center gap-3 px-4 border-b border-rule bg-paperAlt"
+      style="grid-template-columns: 24px 1.5fr 1fr 70px 60px 2fr 100px 1fr;"
+    >
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+        <span class="inline-block w-3 h-3 border border-ink40 rounded-[2px]" />
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+        Company
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+        Industry
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
+        Size
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-center">
+        Growth
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+        Enrichment
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+        Contact
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
+        Status
+      </span>
+    </div>
+    """
+  end
+
+  attr :id, :string, required: true
+  attr :row, :map, required: true
+  attr :expanded?, :boolean, default: false
+  attr :log, :list, default: []
+
+  def funnel_row(assigns) do
+    ~H"""
+    <div class="border-b border-rule" id={@id}>
+      <div
+        class={[
+          "grid items-center gap-3 px-4 py-3 cursor-pointer",
+          @row.status == :scraping && "bg-[color-mix(in_oklch,var(--accent)_4%,transparent)]",
+          @expanded? && "bg-paperAlt"
+        ]}
+        style="grid-template-columns: 24px 1.5fr 1fr 70px 60px 2fr 100px 1fr;"
+        phx-click="toggle_row"
+        phx-value-id={@row.cc_id}
+      >
+        <span class="inline-block w-3 h-3 border border-ink40 rounded-[2px]" />
+        <div class="min-w-0">
+          <div class="text-[13px] text-ink font-medium truncate">{@row.name}</div>
+          <div class="font-mono text-[10px] text-ink40 mt-0.5 tracking-[0.04em] truncate">
+            <%= if @row.domain do %>
+              {@row.domain}
+            <% else %>
+              <span class="italic">resolving...</span>
+            <% end %>
+            · {@row.registry_code}
+          </div>
+        </div>
+        <span class="text-[12px] text-ink55 truncate">{@row.industry}</span>
+        <span class="font-mono text-[11px] text-ink55 text-right tnum">
+          {fmt_int(@row.size)}
+        </span>
+        <span class="flex justify-center">
+          <.growth_glyph bucket={@row.growth} />
+        </span>
+        <.enrichment_pills stages={@row.stages} />
+        <.contact_cell row={@row} />
+        <.status_cell status={@row.status} />
+      </div>
+
+      <.expanded_detail :if={@expanded?} row={@row} log={@log} />
+    </div>
+    """
+  end
+
+  attr :stages, :map, required: true
+
+  def enrichment_pills(assigns) do
+    assigns = assign(assigns, keys: @stage_keys, labels: @stage_labels)
+
+    ~H"""
+    <div class="flex items-center gap-1.5">
+      <%= for {key, i} <- Enum.with_index(@keys) do %>
+        <% st = Map.get(@stages, key, :idle) %>
+        <span
+          class="inline-flex items-center gap-1 px-1.5 py-[3px] font-mono text-[10px] tracking-[0.04em] rounded-[2px] border"
+          style={pill_style(st)}
+        >
+          <Liid.status_dot state={st} size={6} />
+          {Map.fetch!(@labels, key)}
+        </span>
+        <span :if={i < 5} class="w-1 h-px bg-ink20" />
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :row, :map, required: true
+
+  def contact_cell(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @row.status == :enriched and @row.contact -> %>
+        <div class="min-w-0">
+          <div class="text-[12px] text-ink font-medium truncate">{@row.contact.name}</div>
+          <div class="font-mono text-[10px] text-ink40 mt-0.5 truncate">
+            {@row.contact.title || "—"}
+          </div>
+        </div>
+      <% @row.status == :enriched -> %>
+        <span class="font-mono text-[11px] text-fail">no contact</span>
+      <% @row.status == :rejected -> %>
+        <span class="font-mono text-[11px] text-ink40">—</span>
+      <% @row.status in [:no_website, :failed] -> %>
+        <span class="font-mono text-[11px] text-ink40">—</span>
+      <% true -> %>
+        <span
+          class="inline-block h-2 w-[70%] bg-ink10 rounded-[1px]"
+          style="background-image: linear-gradient(90deg, transparent, var(--ink20), transparent); background-size: 200% 100%; animation: liid-shimmer 1.6s ease-in-out infinite;"
+        />
+    <% end %>
+    """
+  end
+
+  attr :status, :atom, required: true
+
+  def status_cell(assigns) do
+    {label, color, pulse?} = status_view(assigns.status)
+    assigns = assign(assigns, label: label, color: color, pulse?: pulse?)
+
+    ~H"""
+    <div
+      class="flex items-center gap-2 justify-end font-mono text-[11px] tracking-[0.04em]"
+      style={"color: #{@color};"}
+    >
+      <span
+        class={[
+          "w-1.5 h-1.5 rounded-full",
+          @pulse? && "animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+        ]}
+        style={"background: #{@color};"}
+      /> {@label}
+    </div>
+    """
+  end
+
+  attr :bucket, :atom, default: nil
+
+  def growth_glyph(assigns) do
+    {heights, color} = growth_style(assigns.bucket)
+    assigns = assign(assigns, heights: heights, color: color)
+
+    ~H"""
+    <span class="flex items-end gap-[1.5px] h-3">
+      <%= for h <- @heights do %>
+        <span
+          class="w-[3px]"
+          style={"height: #{h}px; background: #{@color}; opacity: 0.85;"}
+        />
+      <% end %>
+    </span>
+    """
+  end
+
+  attr :row, :map, required: true
+  attr :log, :list, default: []
+
+  def expanded_detail(assigns) do
+    ~H"""
+    <div
+      class="grid gap-8 bg-paperAlt border-t border-rule"
+      style="grid-template-columns: 1.4fr 1fr; padding: 20px 24px 24px 56px;"
+    >
+      <div>
+        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+          Pipeline
+        </div>
+        <div class="font-mono text-[11px] leading-[1.7] text-ink70">
+          <%= if @log == [] do %>
+            <span class="text-ink40">no pipeline events yet</span>
+          <% else %>
+            <%= for entry <- @log do %>
+              <div class="grid gap-2" style="grid-template-columns: 70px 14px 1fr;">
+                <span class="text-ink40">{entry.t}</span>
+                <span class={(entry.ok? && "text-[var(--accent)]") || "text-fail"}>
+                  {entry.symbol}
+                </span>
+                <span>{entry.msg}</span>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <div>
+        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+          Extracted contact
+        </div>
+        <%= if @row.contact do %>
+          <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
+            <div class="font-serif text-[24px] tracking-[-0.02em] mb-1">
+              {@row.contact.name}
+            </div>
+            <div class="text-[13px] text-ink55 mb-4">
+              {@row.contact.title || "—"} · {@row.name}
+            </div>
+            <div class="flex flex-col gap-2 font-mono text-[11px]">
+              <div :if={@row.contact.email} class="flex items-center gap-2">
+                <Liid.icon name="mail" size={11} class="text-ink55" />
+                <span class="text-ink">{@row.contact.email}</span>
+                <span class="ml-auto text-[10px]" style="color: var(--accent);">verified</span>
+              </div>
+              <div :if={@row.domain} class="flex items-center gap-2">
+                <Liid.icon name="link" size={11} class="text-ink55" />
+                <span class="text-ink truncate">{@row.domain}</span>
+              </div>
+            </div>
+            <div
+              :if={@row.summary}
+              class="mt-4 pt-3.5 border-t border-rule text-[12px] text-ink70 leading-[1.5]"
+            >
+              "{@row.summary}"
+            </div>
+          </div>
+        <% else %>
+          <div class="text-[12px] text-ink40 italic">no contact extracted</div>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  defp pill_style(:idle),
+    do: "border-color: var(--ink20); color: var(--ink40); opacity: 0.55;"
+
+  defp pill_style(:work),
+    do:
+      "border-color: var(--accent); color: var(--ink); background: color-mix(in oklch, var(--accent) 12%, transparent);"
+
+  defp pill_style(:done),
+    do:
+      "border-color: var(--ink20); color: var(--ink); background: color-mix(in oklch, var(--accent) 8%, transparent);"
+
+  defp pill_style(:skip),
+    do: "border-color: var(--ink20); color: var(--ink40);"
+
+  defp pill_style(:fall),
+    do: "border-color: var(--warn); color: var(--warn);"
+
+  defp pill_style(:fail),
+    do: "border-color: var(--fail); color: var(--fail);"
+
+  defp status_view(:pending), do: {"queued", "var(--ink40)", false}
+  defp status_view(:scraping), do: {"working", "var(--accent)", true}
+  defp status_view(:enriched), do: {"enriched", "var(--accent)", false}
+  defp status_view(:rejected), do: {"icp miss", "var(--ink40)", false}
+  defp status_view(:no_website), do: {"no website", "var(--warn)", false}
+  defp status_view(:failed), do: {"failed", "var(--fail)", false}
+  defp status_view(_), do: {"queued", "var(--ink40)", false}
+
+  defp growth_style(:declining), do: {[4, 3, 2, 1], "var(--warn)"}
+  defp growth_style(:stagnant), do: {[3, 3, 3, 3], "var(--ink40)"}
+  defp growth_style(:slow), do: {[2, 3, 4, 5], "var(--ink70)"}
+  defp growth_style(:growing_2x), do: {[2, 4, 6, 8], "var(--accent)"}
+  defp growth_style(:growing_10x), do: {[2, 5, 8, 11], "var(--accent)"}
+  defp growth_style(_), do: {[1, 1, 1, 1], "var(--ink20)"}
+
+  defp fmt_int(nil), do: "—"
+
+  defp fmt_int(n) when is_integer(n) do
+    n
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.codepoints()
+    |> Enum.chunk_every(3)
+    |> Enum.map_join(",", &Enum.join/1)
+    |> String.reverse()
+  end
+
+  defp fmt_hms(nil), do: "—"
+
+  defp fmt_hms(s) when is_integer(s) and s >= 0 do
+    h = div(s, 3600)
+    m = div(rem(s, 3600), 60)
+    sec = rem(s, 60)
+    :io_lib.format("~2..0B:~2..0B:~2..0B", [h, m, sec]) |> IO.iodata_to_binary()
+  end
+
+  defp fmt_hms(_), do: "—"
+end
