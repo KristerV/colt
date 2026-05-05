@@ -6,6 +6,10 @@ config :ash, policies: [show_policy_breakdowns?: true]
 # Unset / 0 in prod = ingest everything.
 config :colt, ingest_sample_rate: 0.03
 
+# Cap rik.ee elemendid imports to the most recent fiscal year in dev to keep
+# the ingest under a minute. Prod uses 3.
+config :colt, ingest_max_years: 1
+
 # Configure your database
 config :colt, Colt.Repo,
   username: "postgres",

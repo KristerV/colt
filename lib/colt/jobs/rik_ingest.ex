@@ -6,9 +6,15 @@ defmodule Colt.Jobs.RikIngest do
   Sunday 03:00 UTC on the `:registry` queue (concurrency 1).
   """
 
-  use Oban.Worker, queue: :registry, max_attempts: 1
+  use Oban.Worker,
+    queue: :registry,
+    max_attempts: 1,
+    unique: [period: :infinity, states: [:available, :scheduled, :executing, :retryable]]
 
   alias Colt.Services.Ingest.Ee.Rik
+
+  @impl true
+  def timeout(_job), do: :infinity
 
   @impl true
   def perform(_job) do

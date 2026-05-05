@@ -68,6 +68,7 @@ config :colt,
   generators: [timestamp_type: :utc_datetime],
   ash_domains: [Colt.Accounts, Colt.Domain],
   rik_ee_cache_dir: "priv/ingest_cache",
+  ingest_max_years: 3,
   ash_authentication: [return_error_on_invalid_magic_link_token?: true]
 
 # Configure the endpoint
