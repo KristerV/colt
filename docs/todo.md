@@ -38,6 +38,22 @@ blocking the phase that surfaced them.
   endpoint, rate-limited) or scrape teatmik.ee. Whichever, add a
   `vat_registered :boolean` attribute, an ingest path, and the checkbox.
 
+## From Phase 4a — enrichment infra
+
+- **GLM 4.7 reasoning forced off for `:cheap`.** GLM 4.7 on OpenRouter is a
+  reasoning model: with reasoning enabled it returns `message.content` as a
+  list of typed parts (`reasoning.text` + `text`) and burns the token budget
+  on chain-of-thought before emitting any answer. Smoke test with
+  `max_tokens: 20` came back with `content: nil` while still billing for 20
+  reasoning tokens. Workaround in `Colt.Services.Ai.Complete`: pass
+  `reasoning: %{effort: "none"}` for `:cheap`, plus a defensive
+  `extract_text/1` that handles list-of-parts. Revisit if any `:cheap`
+  callsite (SummarizeCompany, PickContactPages, GoogleSearch result-pick,
+  batched title-match) actually benefits from reasoning — in that case let
+  the caller opt back in via an option, don't flip the global default. Also
+  worth re-checking after model swaps: the `:cheap`/`:smart` aliases hide
+  the underlying provider, and the reasoning toggle is provider-specific.
+
 ## From other phases
 
 (Add as you go — keep the format above: what, why deferred, what it would take

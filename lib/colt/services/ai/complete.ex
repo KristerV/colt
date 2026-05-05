@@ -63,6 +63,7 @@ defmodule Colt.Services.Ai.Complete do
       |> maybe_put(:max_tokens, opts[:max_tokens])
       |> maybe_put(:temperature, opts[:temperature])
       |> maybe_put_response_format(opts[:response_format], opts[:schema])
+      |> maybe_put_reasoning(model_alias)
 
     started = System.monotonic_time(:millisecond)
     result = post(body)
@@ -117,6 +118,11 @@ defmodule Colt.Services.Ai.Complete do
     })
   end
 
+  # GLM 4.7 is a reasoning model. For `:cheap` we use it as a classifier — turn
+  # reasoning fully off so we don't burn tokens on chain-of-thought.
+  defp maybe_put_reasoning(map, :cheap), do: Map.put(map, :reasoning, %{effort: "none"})
+  defp maybe_put_reasoning(map, _), do: map
+
   defp post(body) do
     api_key = Application.fetch_env!(:colt, :openrouter)[:api_key]
 
@@ -140,7 +146,7 @@ defmodule Colt.Services.Ai.Complete do
 
   defp handle_result({:ok, %Req.Response{status: 200, body: body}}, ctx) do
     choice = body |> Map.fetch!("choices") |> List.first()
-    raw = choice |> Map.fetch!("message") |> Map.fetch!("content")
+    raw = choice |> Map.fetch!("message") |> Map.fetch!("content") |> extract_text()
 
     content =
       case ctx.response_format do
@@ -199,6 +205,18 @@ defmodule Colt.Services.Ai.Complete do
       campaign_id: ctx.campaign_id
     })
   end
+
+  # Some providers return `content` as a list of typed parts (reasoning, text).
+  # Concat the textual parts; ignore reasoning blocks.
+  defp extract_text(content) when is_binary(content), do: content
+
+  defp extract_text(parts) when is_list(parts) do
+    parts
+    |> Enum.filter(fn p -> Map.get(p, "type") == "text" end)
+    |> Enum.map_join("", &Map.get(&1, "text", ""))
+  end
+
+  defp extract_text(nil), do: ""
 
   defp to_decimal(n) when is_integer(n), do: Decimal.new(n)
   defp to_decimal(n) when is_float(n), do: Decimal.from_float(n)

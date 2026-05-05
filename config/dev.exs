@@ -105,3 +105,8 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Local-only API credentials (gitignored). Copy from dev.secrets.exs.example.
+if File.exists?(Path.expand("dev.secrets.exs", __DIR__)) do
+  import_config "dev.secrets.exs"
+end

@@ -37,5 +37,8 @@ npm-debug.log
 
 .claude/
 
+# Local-only API credentials. Template: config/dev.secrets.exs.example
+/config/dev.secrets.exs
+
 # Cached rik.ee zip dumps — only the small fixtures under priv/fixtures/ are tracked.
 /priv/ingest_cache/
