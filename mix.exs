@@ -42,6 +42,8 @@ defmodule Colt.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:html2markdown, "~> 0.3"},
+      {:wallaby, "~> 0.30", runtime: false},
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:oban, "~> 2.0"},

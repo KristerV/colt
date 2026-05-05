@@ -35,6 +35,7 @@ defmodule ColtWeb.Router do
       live "/admin", AdminLive
       live "/admin/companies", Admin.CompaniesLive
       live "/admin/storage", Admin.StorageLive
+      live "/admin/costs", Admin.CostsLive
     end
   end
 

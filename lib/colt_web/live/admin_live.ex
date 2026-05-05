@@ -44,10 +44,34 @@ defmodule ColtWeb.AdminLive do
         title: "Storage",
         value: ColtWeb.Admin.StorageLive.total_size(),
         path: "/admin/storage"
+      },
+      %{
+        kicker: "Spend",
+        title: "Costs",
+        value: format_money(current_month_cost()),
+        path: "/admin/costs"
       }
     ]
   end
 
   defp format_int(n),
     do: n |> Integer.to_string() |> String.replace(~r/\B(?=(\d{3})+(?!\d))/, " ")
+
+  defp current_month_cost do
+    {:ok, rows} = Colt.Services.Costs.MonthlySummary.run(1)
+    ym = current_ym()
+
+    rows
+    |> Enum.filter(&(&1.month == ym))
+    |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.cost_usd))
+  end
+
+  defp current_ym do
+    %{year: y, month: m} = DateTime.utc_now()
+    "#{y}-#{m |> Integer.to_string() |> String.pad_leading(2, "0")}"
+  end
+
+  defp format_money(%Decimal{} = d) do
+    "$" <> (d |> Decimal.round(2) |> Decimal.to_string(:normal))
+  end
 end
