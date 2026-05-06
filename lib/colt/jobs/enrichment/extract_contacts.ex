@@ -17,6 +17,16 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
+    if scrapes_pending?(id) do
+      # ScrapeContactPage siblings are still working (incl. recursive children).
+      # Wait for them so the haystack is complete.
+      {:snooze, 5}
+    else
+      do_perform(id)
+    end
+  end
+
+  defp do_perform(id) do
     with {:ok, cc} <- CampaignCompany.get(id),
          {:ok, company} <- Company.get(cc.company_id),
          {:ok, campaign} <- Campaign.get(cc.campaign_id, authorize?: false),
@@ -143,5 +153,19 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
   defp broadcast_contact(cc, patch) do
     Colt.Services.Enrichment.Broadcast.row(cc.campaign_id, cc.id, patch)
+  end
+
+  defp scrapes_pending?(cc_id) do
+    import Ecto.Query
+
+    cc_id_str = to_string(cc_id)
+
+    q =
+      from j in Oban.Job,
+        where: j.worker == "Colt.Jobs.Enrichment.ScrapeContactPage",
+        where: j.state in ["available", "scheduled", "executing", "retryable"],
+        where: fragment("?->>'campaign_company_id' = ?", j.args, ^cc_id_str)
+
+    Colt.Repo.aggregate(q, :count, :id) > 0
   end
 end

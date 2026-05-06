@@ -28,7 +28,10 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
       case PickContactPaths.run(links, campaign_id: cc.campaign_id) do
         {:ok, []} ->
           # No contact-bearing pages — fall back to extracting from landing.
-          %{campaign_company_id: cc.id} |> ExtractContacts.new() |> Oban.insert!()
+          %{campaign_company_id: cc.id}
+          |> ExtractContacts.new(unique: [period: :infinity, keys: [:campaign_company_id]])
+          |> Oban.insert!()
+
           :ok
 
         {:ok, paths} ->

@@ -174,10 +174,40 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         load: [company: [:persons, :pages]]
       )
 
-    Enum.map(ccs, &row_for/1)
+    completed = completed_stage_workers(Enum.map(ccs, & &1.id))
+    Enum.map(ccs, &row_for(&1, Map.get(completed, &1.id, MapSet.new())))
   end
 
-  defp row_for(cc) do
+  # Map of cc_id → MapSet of stages whose terminal worker has completed.
+  # Lets snapshot_stages paint the right pills on page reload for rows
+  # still in :scraping (otherwise they'd all show gray idle).
+  @stage_workers %{
+    "Colt.Jobs.Enrichment.SummarizeCompany" => :website,
+    "Colt.Jobs.Enrichment.MatchICP" => :icp,
+    "Colt.Jobs.Enrichment.ExtractContacts" => :contact
+  }
+
+  defp completed_stage_workers([]), do: %{}
+
+  defp completed_stage_workers(cc_ids) do
+    cc_id_strs = Enum.map(cc_ids, &to_string/1)
+    workers = Map.keys(@stage_workers)
+
+    q =
+      from j in Oban.Job,
+        where: j.worker in ^workers,
+        where: j.state == "completed",
+        where: fragment("?->>'campaign_company_id' = ANY(?)", j.args, ^cc_id_strs),
+        select: {fragment("(?->>'campaign_company_id')::uuid", j.args), j.worker}
+
+    Colt.Repo.all(q)
+    |> Enum.reduce(%{}, fn {cc_id, worker}, acc ->
+      stage = Map.fetch!(@stage_workers, worker)
+      Map.update(acc, cc_id, MapSet.new([stage]), &MapSet.put(&1, stage))
+    end)
+  end
+
+  defp row_for(cc, completed_stages) do
     company = cc.company
     person = pick_person(company.persons)
     extras = others(company.persons, person)
@@ -194,7 +224,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       growth: company.revenue_growth_bucket,
       status: cc.status,
       failed_stage: cc.failed_stage,
-      stages: snapshot_stages(cc.status, cc.failed_stage),
+      stages: snapshot_stages(cc.status, cc.failed_stage, completed_stages),
       contact: contact_for(person),
       extra_contacts: Enum.map(extras, &contact_for/1) |> Enum.take(3),
       total_contacts: length(company.persons),
@@ -258,20 +288,46 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     |> elem(0)
   end
 
-  defp snapshot_stages(:pending, _), do: idle_stages()
-  defp snapshot_stages(:scraping, _), do: idle_stages()
-  defp snapshot_stages(:no_website, _), do: stages_up_to(:website, :fall)
-  defp snapshot_stages(:rejected, _), do: stages_up_to(:icp, :fall)
-  defp snapshot_stages(:no_contacts, _), do: stages_up_to(:contact, :fall)
+  defp snapshot_stages(status, failed_stage, completed \\ MapSet.new())
 
-  defp snapshot_stages(:enriched, _),
+  defp snapshot_stages(:pending, _, _), do: idle_stages()
+
+  # For in-flight rows, derive pills from which terminal-stage workers have
+  # completed. The next stage after the last :done becomes :work (pulsing),
+  # the rest stay idle.
+  defp snapshot_stages(:scraping, _, completed),
+    do: scraping_stages(completed)
+
+  defp snapshot_stages(:no_website, _, _), do: stages_up_to(:website, :fall)
+  defp snapshot_stages(:rejected, _, _), do: stages_up_to(:icp, :fall)
+  defp snapshot_stages(:no_contacts, _, _), do: stages_up_to(:contact, :fall)
+
+  defp snapshot_stages(:enriched, _, _),
     do: %{website: :done, icp: :done, contact: :done}
 
-  defp snapshot_stages(:failed, stage) when stage in @stage_keys,
+  defp snapshot_stages(:failed, stage, _) when stage in @stage_keys,
     do: stages_up_to(stage, :fail)
 
-  defp snapshot_stages(:failed, _), do: idle_stages()
-  defp snapshot_stages(_, _), do: idle_stages()
+  defp snapshot_stages(:failed, _, _), do: idle_stages()
+  defp snapshot_stages(_, _, _), do: idle_stages()
+
+  defp scraping_stages(completed) do
+    {map, _} =
+      Enum.reduce(@stage_keys, {%{}, false}, fn key, {acc, work_marked?} ->
+        cond do
+          MapSet.member?(completed, key) ->
+            {Map.put(acc, key, :done), work_marked?}
+
+          not work_marked? ->
+            {Map.put(acc, key, :work), true}
+
+          true ->
+            {Map.put(acc, key, :idle), work_marked?}
+        end
+      end)
+
+    map
+  end
 
   defp idle_stages, do: Map.new(@stage_keys, &{&1, :idle})
 

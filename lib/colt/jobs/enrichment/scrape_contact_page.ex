@@ -28,7 +28,8 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
 
       cond do
         match?(%Page{}, page) and Freshness.page_fresh?(page) ->
-          maybe_finish(cc, company)
+          enqueue_extract(cc)
+          :ok
 
         true ->
           do_fetch(cc, company, path, hop)
@@ -60,16 +61,26 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
           })
 
         maybe_recurse(cc, company, html, hop)
-        maybe_finish(cc, company)
+        enqueue_extract(cc)
+        :ok
 
       {:ok, {:error, reason}} ->
         # Don't terminate the CC — other pages may still bring contacts.
-        maybe_finish(cc, company)
+        enqueue_extract(cc)
         {:error, inspect(reason)}
 
       {:error, reason} ->
         {:error, inspect(reason)}
     end
+  end
+
+  # Always enqueue ExtractContacts on completion. Oban dedupes via unique,
+  # and ExtractContacts itself snoozes if any sibling ScrapeContactPage is
+  # still pending — race-free, no "am I last?" check needed.
+  defp enqueue_extract(cc) do
+    %{campaign_company_id: cc.id}
+    |> ExtractContacts.new(unique: [period: :infinity, keys: [:campaign_company_id]])
+    |> Oban.insert!()
   end
 
   # When a contact page is itself a hub (e.g. /kontorid → /kontorid/tallinn),
@@ -118,32 +129,6 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
       end
 
     Enum.reject(links, &MapSet.member?(fetched, &1.path))
-  end
-
-  # Enqueue ExtractContacts once when no other ScrapeContactPage jobs are
-  # still queued or running for this CC. Cheap query: count non-completed
-  # ScrapeContactPage rows for this campaign_company_id.
-  defp maybe_finish(cc, _company) do
-    if last_pending?(cc.id) do
-      Transition.stage(cc, :contact, :done)
-      %{campaign_company_id: cc.id} |> ExtractContacts.new() |> Oban.insert!()
-    end
-
-    :ok
-  end
-
-  defp last_pending?(cc_id) do
-    import Ecto.Query
-
-    cc_id_str = to_string(cc_id)
-
-    q =
-      from j in Oban.Job,
-        where: j.worker == "Colt.Jobs.Enrichment.ScrapeContactPage",
-        where: j.state in ["available", "scheduled", "executing", "retryable"],
-        where: fragment("?->>'campaign_company_id' = ?", j.args, ^cc_id_str)
-
-    Colt.Repo.aggregate(q, :count, :id) <= 1
   end
 
   defp existing(company, path) do
