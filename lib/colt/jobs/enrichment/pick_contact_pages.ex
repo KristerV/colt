@@ -10,7 +10,7 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
 
   alias Colt.Jobs.Enrichment.{ExtractContacts, ScrapeContactPage}
   alias Colt.Resources.{CampaignCompany, Company, Page}
-  alias Colt.Services.Enrichment.{PickContactPaths, Transition}
+  alias Colt.Services.Enrichment.{FailureMessage, PickContactPaths, Transition}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -41,15 +41,20 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
           :ok
 
         {:error, reason} ->
+          {user_msg, detail} = FailureMessage.run(:contact, reason)
           Transition.stage(cc, :contact, :fail)
-          {:ok, _} = Transition.terminate(cc, :failed, stage: :contact, reason: short(reason))
-          {:error, inspect(reason)}
+
+          {:ok, _} =
+            Transition.terminate(cc, :failed,
+              stage: :contact,
+              reason: user_msg,
+              detail: detail
+            )
+
+          {:error, detail}
       end
     end
   end
-
-  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
-  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp nav_pages_for(company) do
     case Page.for_company(company.id) do

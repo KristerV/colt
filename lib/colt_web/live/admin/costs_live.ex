@@ -15,13 +15,15 @@ defmodule ColtWeb.Admin.CostsLive do
       Enum.find(months, &(&1.month == current_month)) ||
         %{month: current_month, total: Decimal.new(0), calls: 0, providers: []}
 
-    recent = ApiCall.recent!(50)
+    openrouter = ApiCall.recent_by_provider!(:openrouter, 50)
+    google = ApiCall.recent_by_provider!(:google_cse, 50)
 
     {:ok,
      socket
      |> assign(:months, months)
      |> assign(:current, current)
-     |> assign(:recent, recent)}
+     |> assign(:openrouter, openrouter)
+     |> assign(:google, google)}
   end
 
   def render(assigns) do
@@ -72,13 +74,12 @@ defmodule ColtWeb.Admin.CostsLive do
 
         <div>
           <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
-            recent 50 calls
+            openrouter · recent 50
           </div>
           <table class="text-xs font-mono w-full">
             <thead class="opacity-60">
               <tr class="border-b border-base-300">
                 <th class="text-left py-1 pr-3">time</th>
-                <th class="text-left py-1 pr-3">provider</th>
                 <th class="text-left py-1 pr-3">model</th>
                 <th class="text-right py-1 pr-3">in</th>
                 <th class="text-right py-1 pr-3">out</th>
@@ -88,12 +89,39 @@ defmodule ColtWeb.Admin.CostsLive do
               </tr>
             </thead>
             <tbody>
-              <tr :for={c <- @recent} class="border-b border-base-300/40">
+              <tr :for={c <- @openrouter} class="border-b border-base-300/40">
                 <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
-                <td class="py-1 pr-3">{c.provider}</td>
-                <td class="py-1 pr-3 truncate max-w-[14rem]">{c.model || c.query}</td>
+                <td class="py-1 pr-3 truncate max-w-[14rem]">{c.model}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{c.input_tokens}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{c.output_tokens}</td>
+                <td class="py-1 pr-3 text-right tabular-nums">{format_money(c.cost_usd)}</td>
+                <td class="py-1 pr-3 text-right tabular-nums">{c.latency_ms}</td>
+                <td class={["py-1 pr-3", c.status == :error && "text-error"]}>{c.status}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+            google cse · recent 50
+          </div>
+          <table class="text-xs font-mono w-full">
+            <thead class="opacity-60">
+              <tr class="border-b border-base-300">
+                <th class="text-left py-1 pr-3">time</th>
+                <th class="text-left py-1 pr-3">query</th>
+                <th class="text-right py-1 pr-3">results</th>
+                <th class="text-right py-1 pr-3">$</th>
+                <th class="text-right py-1 pr-3">ms</th>
+                <th class="text-left py-1 pr-3">status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={c <- @google} class="border-b border-base-300/40">
+                <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
+                <td class="py-1 pr-3 truncate max-w-[24rem]">{c.query}</td>
+                <td class="py-1 pr-3 text-right tabular-nums">{c.results_count}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{format_money(c.cost_usd)}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{c.latency_ms}</td>
                 <td class={["py-1 pr-3", c.status == :error && "text-error"]}>{c.status}</td>

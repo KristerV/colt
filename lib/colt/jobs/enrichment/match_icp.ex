@@ -10,7 +10,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
   alias Colt.Jobs.Enrichment.PickContactPages
   alias Colt.Resources.{Campaign, CampaignCompany, Company}
-  alias Colt.Services.Enrichment.{ClassifyIcp, Transition}
+  alias Colt.Services.Enrichment.{ClassifyIcp, FailureMessage, Transition}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -43,16 +43,21 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
               :ok
 
             {:error, reason} ->
+              {user_msg, detail} = FailureMessage.run(:icp, reason)
               Transition.stage(cc, :icp, :fail)
-              {:ok, _} = Transition.terminate(cc, :failed, stage: :icp, reason: short(reason))
-              {:error, inspect(reason)}
+
+              {:ok, _} =
+                Transition.terminate(cc, :failed,
+                  stage: :icp,
+                  reason: user_msg,
+                  detail: detail
+                )
+
+              {:error, detail}
           end
       end
     end
   end
-
-  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
-  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp enqueue_next(cc) do
     %{campaign_company_id: cc.id} |> PickContactPages.new() |> Oban.insert!()

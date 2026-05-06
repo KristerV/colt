@@ -13,7 +13,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   alias Colt.Resources.{Campaign, CampaignCompany, Company, Page, Person}
 
   alias Colt.Services.Enrichment, as: Svc
-  alias Colt.Services.Enrichment.{MatchTitles, Transition, ValidateInMarkdown}
+  alias Colt.Services.Enrichment.{FailureMessage, MatchTitles, Transition, ValidateInMarkdown}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -70,9 +70,17 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
         end
 
       {:error, reason} ->
+        {user_msg, detail} = FailureMessage.run(:contact, reason)
         Transition.stage(cc, :contact, :fail)
-        {:ok, _} = Transition.terminate(cc, :failed, stage: :contact, reason: short(reason))
-        {:error, inspect(reason)}
+
+        {:ok, _} =
+          Transition.terminate(cc, :failed,
+            stage: :contact,
+            reason: user_msg,
+            detail: detail
+          )
+
+        {:error, detail}
     end
   end
 
@@ -104,9 +112,6 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
     :ok
   end
-
-  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
-  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp validate_all(candidates, haystack) do
     Enum.filter(candidates, fn p ->

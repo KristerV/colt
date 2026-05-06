@@ -128,6 +128,7 @@ defmodule ColtWeb.Components.Funnel do
   attr :row, :map, required: true
   attr :expanded?, :boolean, default: false
   attr :log, :list, default: []
+  attr :admin?, :boolean, default: false
 
   def funnel_row(assigns) do
     ~H"""
@@ -166,7 +167,7 @@ defmodule ColtWeb.Components.Funnel do
         <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
       </div>
 
-      <.expanded_detail :if={@expanded?} row={@row} log={@log} />
+      <.expanded_detail :if={@expanded?} row={@row} log={@log} admin?={@admin?} />
     </div>
     """
   end
@@ -287,6 +288,7 @@ defmodule ColtWeb.Components.Funnel do
 
   attr :row, :map, required: true
   attr :log, :list, default: []
+  attr :admin?, :boolean, default: false
 
   def expanded_detail(assigns) do
     ~H"""
@@ -294,24 +296,35 @@ defmodule ColtWeb.Components.Funnel do
       class="grid gap-8 bg-paperAlt border-t border-rule"
       style="grid-template-columns: 1.4fr 1fr; padding: 20px 24px 24px 56px;"
     >
-      <div>
-        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-          Pipeline
-        </div>
-        <div class="font-mono text-[11px] leading-[1.7] text-ink70">
-          <%= if @log == [] do %>
-            <span class="text-ink40">no pipeline events yet</span>
-          <% else %>
-            <%= for entry <- @log do %>
-              <div class="grid gap-2" style="grid-template-columns: 70px 14px 1fr;">
-                <span class="text-ink40">{entry.t}</span>
-                <span class={(entry.ok? && "text-[var(--accent)]") || "text-fail"}>
-                  {entry.symbol}
-                </span>
-                <span>{entry.msg}</span>
-              </div>
+      <div class="flex flex-col gap-6">
+        <div>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+            Pipeline
+          </div>
+          <div class="font-mono text-[11px] leading-[1.7] text-ink70">
+            <%= if @log == [] do %>
+              <span class="text-ink40">no pipeline events yet</span>
+            <% else %>
+              <%= for entry <- @log do %>
+                <div class="grid gap-2" style="grid-template-columns: 70px 14px 1fr;">
+                  <span class="text-ink40">{entry.t}</span>
+                  <span class={(entry.ok? && "text-[var(--accent)]") || "text-fail"}>
+                    {entry.symbol}
+                  </span>
+                  <span class="break-words whitespace-pre-wrap">{entry.msg}</span>
+                </div>
+              <% end %>
             <% end %>
-          <% end %>
+          </div>
+        </div>
+
+        <div :if={@row.summary}>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+            Company summary
+          </div>
+          <div class="text-[12px] text-ink70 leading-[1.6]">
+            {@row.summary}
+          </div>
         </div>
       </div>
 
@@ -333,6 +346,16 @@ defmodule ColtWeb.Components.Funnel do
             <div :if={!@row.rejection_reason} class="text-[12px] text-ink40 italic">
               no reason recorded
             </div>
+
+            <details
+              :if={@admin? and Map.get(@row, :failure_detail)}
+              class="mt-3 pt-3 border-t border-rule"
+            >
+              <summary class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 cursor-pointer">
+                Technical detail (admin)
+              </summary>
+              <pre class="mt-2 text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all max-h-64 overflow-auto bg-paperAlt p-3 rounded-sharp"><%= @row.failure_detail %></pre>
+            </details>
           </div>
         <% else %>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
@@ -356,12 +379,6 @@ defmodule ColtWeb.Components.Funnel do
                   <Liid.icon name="link" size={11} class="text-ink55" />
                   <span class="text-ink truncate">{@row.domain}</span>
                 </div>
-              </div>
-              <div
-                :if={@row.summary}
-                class="mt-4 pt-3.5 border-t border-rule text-[12px] text-ink70 leading-[1.5]"
-              >
-                "{@row.summary}"
               </div>
             </div>
           <% else %>

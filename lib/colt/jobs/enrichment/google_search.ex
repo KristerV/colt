@@ -10,7 +10,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
 
   alias Colt.Jobs.Enrichment.FetchLanding
   alias Colt.Resources.{CampaignCompany, Company}
-  alias Colt.Services.Enrichment.{PickBestResult, Transition}
+  alias Colt.Services.Enrichment.{FailureMessage, PickBestResult, Transition}
   alias Colt.Services.Search.Google
 
   @impl Oban.Worker
@@ -18,9 +18,13 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
     with {:ok, cc} <- CampaignCompany.get(id),
          {:ok, company} <- Company.get(cc.company_id) do
       Transition.stage(cc, :website, :work)
-      query = "\"#{company.name}\" #{company.region || ""}" |> String.trim()
+      # No quotes: exact-phrase matching can miss companies whose names appear
+      # with punctuation/casing variants on the web (e.g. "osaühing Reta Puit").
+      # No region either — it biases Google toward local business registries
+      # (teatmik.ee, infoturg.ee, …) and buries the real company site.
+      query = company.name
 
-      case Google.run(query, num: 5, campaign_id: cc.campaign_id) do
+      case Google.run(query, num: 10, campaign_id: cc.campaign_id) do
         {:ok, []} ->
           mark_no_website(cc)
 
@@ -56,11 +60,12 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   end
 
   defp fail(cc, reason) do
+    {user_msg, detail} = FailureMessage.run(:website, reason)
     Transition.stage(cc, :website, :fail)
-    {:ok, _} = Transition.terminate(cc, :failed, stage: :website, reason: short(reason))
-    {:error, inspect(reason)}
-  end
 
-  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
-  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
+    {:ok, _} =
+      Transition.terminate(cc, :failed, stage: :website, reason: user_msg, detail: detail)
+
+    {:error, detail}
+  end
 end

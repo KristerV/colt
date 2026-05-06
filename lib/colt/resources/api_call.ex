@@ -21,6 +21,7 @@ defmodule Colt.Resources.ApiCall do
   code_interface do
     define :record
     define :recent, args: [:limit]
+    define :recent_by_provider, args: [:provider, :limit]
   end
 
   actions do
@@ -46,6 +47,14 @@ defmodule Colt.Resources.ApiCall do
 
     read :recent do
       argument :limit, :integer, allow_nil?: false
+      prepare build(sort: [inserted_at: :desc])
+      prepare fn query, _ -> Ash.Query.limit(query, query.arguments.limit) end
+    end
+
+    read :recent_by_provider do
+      argument :provider, :atom, allow_nil?: false
+      argument :limit, :integer, allow_nil?: false
+      filter expr(provider == ^arg(:provider))
       prepare build(sort: [inserted_at: :desc])
       prepare fn query, _ -> Ash.Query.limit(query, query.arguments.limit) end
     end

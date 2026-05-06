@@ -67,10 +67,12 @@ defmodule Colt.Resources.CampaignCompany do
         allow_nil?: true
 
       argument :reason, :string, allow_nil?: true
+      argument :detail, :string, allow_nil?: true
 
       change set_attribute(:status, :failed)
       change set_attribute(:failed_stage, arg(:failed_stage))
       change set_attribute(:rejection_reason, arg(:reason))
+      change set_attribute(:failure_detail, arg(:detail))
     end
 
     update :mark_no_contacts do
@@ -102,6 +104,7 @@ defmodule Colt.Resources.CampaignCompany do
       public?: true
 
     attribute :rejection_reason, :string, public?: true
+    attribute :failure_detail, :string, public?: true
 
     attribute :failed_stage, :atom,
       constraints: [one_of: [:website, :icp, :contact]],

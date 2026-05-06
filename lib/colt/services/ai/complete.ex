@@ -123,7 +123,9 @@ defmodule Colt.Services.Ai.Complete do
   # to the lowest tier so we don't burn tokens on chain-of-thought. We used to
   # pass "none" but Google's surface only accepts {high|low|medium|minimal};
   # "minimal" is the closest equivalent.
-  defp maybe_put_reasoning(map, :cheap), do: Map.put(map, :reasoning, %{effort: "minimal"})
+  defp maybe_put_reasoning(map, :cheap),
+    do: Map.put(map, :reasoning, %{effort: "medium"})
+
   defp maybe_put_reasoning(map, _), do: map
 
   defp post(body) do
@@ -151,13 +153,41 @@ defmodule Colt.Services.Ai.Complete do
     choice = body |> Map.fetch!("choices") |> List.first()
     raw = choice |> Map.fetch!("message") |> Map.fetch!("content") |> extract_text()
 
-    content =
-      case ctx.response_format do
-        :json -> Jason.decode!(raw)
-        _ -> raw
-      end
+    with {:ok, content} <- parse_content(raw, ctx.response_format) do
+      usage = Map.get(body, "usage", %{})
+      finish_ok(content, usage, ctx)
+    else
+      {:error, err} ->
+        track_error(ctx, err)
+        {:error, err}
+    end
+  end
 
-    usage = Map.get(body, "usage", %{})
+  defp handle_result({:ok, %Req.Response{status: status, body: body}}, ctx) do
+    err = "openrouter http #{status}: #{inspect(body)}"
+    track_error(ctx, err)
+    {:error, err}
+  end
+
+  defp handle_result({:error, exception}, ctx) do
+    err = Exception.message(exception)
+    track_error(ctx, err)
+    {:error, err}
+  end
+
+  defp parse_content(raw, _format) when raw in [nil, ""],
+    do: {:error, "model returned empty response (likely exhausted reasoning budget)"}
+
+  defp parse_content(raw, :json) do
+    case Jason.decode(raw) do
+      {:ok, decoded} -> {:ok, decoded}
+      {:error, _} -> {:error, "model returned non-JSON content: #{String.slice(raw, 0, 500)}"}
+    end
+  end
+
+  defp parse_content(raw, _), do: {:ok, raw}
+
+  defp finish_ok(content, usage, ctx) do
     input_tokens = Map.get(usage, "prompt_tokens")
     output_tokens = Map.get(usage, "completion_tokens")
     cost_usd = Map.get(usage, "cost") || Map.get(usage, "total_cost") || 0
@@ -184,18 +214,6 @@ defmodule Colt.Services.Ai.Complete do
        cached: cached,
        model: ctx.model
      }}
-  end
-
-  defp handle_result({:ok, %Req.Response{status: status, body: body}}, ctx) do
-    err = "openrouter http #{status}: #{inspect(body)}"
-    track_error(ctx, err)
-    {:error, err}
-  end
-
-  defp handle_result({:error, exception}, ctx) do
-    err = Exception.message(exception)
-    track_error(ctx, err)
-    {:error, err}
   end
 
   defp track_error(ctx, err) do

@@ -135,16 +135,31 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   end
 
   defp apply_patch(row, patch) do
-    Enum.reduce(patch, row, fn
-      {:status, v}, acc -> %{acc | status: v}
-      {"status", v}, acc -> %{acc | status: v}
-      {:failed_stage, v}, acc -> %{acc | failed_stage: v}
-      {:rejection_reason, v}, acc -> %{acc | rejection_reason: v}
-      {:contact_name, v}, acc -> patch_contact(acc, :name, v)
-      {:contact_title, v}, acc -> patch_contact(acc, :title, v)
-      _other, acc -> acc
-    end)
+    new_row =
+      Enum.reduce(patch, row, fn
+        {:status, v}, acc -> %{acc | status: v}
+        {"status", v}, acc -> %{acc | status: v}
+        {:failed_stage, v}, acc -> %{acc | failed_stage: v}
+        {:rejection_reason, v}, acc -> %{acc | rejection_reason: v}
+        {:failure_detail, v}, acc -> Map.put(acc, :failure_detail, v)
+        {:summary, v}, acc -> Map.put(acc, :summary, v)
+        {:contact_name, v}, acc -> patch_contact(acc, :name, v)
+        {:contact_title, v}, acc -> patch_contact(acc, :title, v)
+        _other, acc -> acc
+      end)
+
+    # When the row reaches a terminal status, re-derive `stages` so the pills
+    # always match the outcome — guards against missed/out-of-order :stage
+    # broadcasts (e.g. worker crashes before emitting :fail).
+    if terminal?(new_row.status) and not terminal?(row.status) do
+      %{new_row | stages: snapshot_stages(new_row.status, new_row.failed_stage)}
+    else
+      new_row
+    end
   end
+
+  defp terminal?(s),
+    do: s in [:enriched, :rejected, :no_website, :no_contacts, :failed]
 
   defp patch_contact(row, key, value) do
     contact = row.contact || %{name: nil, title: nil, email: nil}
@@ -181,6 +196,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       contact: contact_for(person),
       summary: company.ai_summary,
       rejection_reason: cc.rejection_reason,
+      failure_detail: cc.failure_detail,
       expanded?: false,
       log: []
     }
@@ -294,7 +310,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     }
   end
 
-  defp first_error([%{"error" => err} | _]), do: String.slice(err || "", 0, 120)
+  defp first_error([%{"error" => err} | _]) when is_binary(err), do: err
   defp first_error(_), do: ""
 
   defp format_time(nil), do: "--:--:--"
@@ -354,6 +370,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               row={row}
               expanded?={row.expanded?}
               log={row.log}
+              admin?={@current_user.is_admin}
             />
           </div>
         </div>

@@ -48,7 +48,7 @@ defmodule Colt.Services.Enrichment.MatchTitles do
            response_format: :json,
            schema: schema,
            campaign_id: opts[:campaign_id],
-           max_tokens: 200
+           max_tokens: 1500
          ) do
       {:ok, %{content: %{"matches" => bs}}} when is_list(bs) and length(bs) == length(titles) ->
         {:ok, Enum.map(bs, &(!!&1))}

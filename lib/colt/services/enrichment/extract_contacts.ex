@@ -35,7 +35,7 @@ defmodule Colt.Services.Enrichment.ExtractContacts do
     }
   }
 
-  @max_input 30_000
+  @max_input 100_000
 
   def run(markdown, opts \\ []) when is_binary(markdown) do
     trimmed = String.slice(markdown, 0, @max_input)
@@ -45,7 +45,7 @@ defmodule Colt.Services.Enrichment.ExtractContacts do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
-           max_tokens: 1500,
+           max_tokens: 16_000,
            temperature: 0.0
          ) do
       {:ok, %{content: %{"people" => people}}} when is_list(people) ->

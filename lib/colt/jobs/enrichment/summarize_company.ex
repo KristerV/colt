@@ -8,7 +8,14 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
 
   alias Colt.Jobs.Enrichment.MatchICP
   alias Colt.Resources.{CampaignCompany, Company, Page}
-  alias Colt.Services.Enrichment.{Freshness, SummarizeLanding, Transition}
+
+  alias Colt.Services.Enrichment.{
+    Broadcast,
+    FailureMessage,
+    Freshness,
+    SummarizeLanding,
+    Transition
+  }
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -31,12 +38,14 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
 
     case landing_markdown(company) do
       "" ->
+        {user_msg, detail} = FailureMessage.run(:website, "no landing markdown to summarise")
         Transition.stage(cc, :website, :fall)
 
         {:ok, _} =
           Transition.terminate(cc, :failed,
             stage: :website,
-            reason: "no landing markdown to summarise"
+            reason: user_msg,
+            detail: detail
           )
 
         :ok
@@ -45,20 +54,26 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
         case SummarizeLanding.run(md, campaign_id: cc.campaign_id) do
           {:ok, summary} ->
             {:ok, _} = Company.set_ai_summary(company, summary)
+            Broadcast.row(cc.campaign_id, cc.id, %{summary: summary})
             Transition.stage(cc, :website, :done)
             enqueue_next(cc)
             :ok
 
           {:error, reason} ->
+            {user_msg, detail} = FailureMessage.run(:website, reason)
             Transition.stage(cc, :website, :fail)
-            {:ok, _} = Transition.terminate(cc, :failed, stage: :website, reason: short(reason))
-            {:error, inspect(reason)}
+
+            {:ok, _} =
+              Transition.terminate(cc, :failed,
+                stage: :website,
+                reason: user_msg,
+                detail: detail
+              )
+
+            {:error, detail}
         end
     end
   end
-
-  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
-  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp enqueue_next(cc) do
     %{campaign_company_id: cc.id} |> MatchICP.new() |> Oban.insert!()

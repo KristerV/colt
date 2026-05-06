@@ -14,7 +14,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   alias Colt.Jobs.Enrichment.{ExtractNavigation, GoogleSearch, SummarizeCompany}
   alias Colt.Locks
   alias Colt.Resources.{CampaignCompany, Company, Page}
-  alias Colt.Services.Enrichment.{ExtractGenericEmail, Freshness, Transition}
+  alias Colt.Services.Enrichment.{ExtractGenericEmail, FailureMessage, Freshness, Transition}
   alias Colt.Services.Markdown.FromHtml
   alias Colt.Services.Scrape.Fetch
 
@@ -62,7 +62,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
         finish_fetch(cc, company, html, fetcher, final)
 
       {:ok, {:error, reason}} ->
-        fallback_to_google(cc, company, short(reason))
+        fallback_to_google(cc, company, reason)
 
       {:error, reason} ->
         {:error, inspect(reason)}
@@ -73,17 +73,18 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   # this company, retry via search. Otherwise terminate.
   defp fallback_to_google(cc, company, reason) do
     if company.website_source == :google do
+      {user_msg, detail} = FailureMessage.run(:website, reason)
       Transition.stage(cc, :website, :fail)
-      {:ok, _} = Transition.terminate(cc, :failed, stage: :website, reason: reason)
+
+      {:ok, _} =
+        Transition.terminate(cc, :failed, stage: :website, reason: user_msg, detail: detail)
+
       :ok
     else
       %{campaign_company_id: cc.id} |> GoogleSearch.new() |> Oban.insert!()
       :ok
     end
   end
-
-  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
-  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp finish_fetch(cc, company, html, fetcher, final_url) do
     {:ok, generic_email} = ExtractGenericEmail.run(html, uri_host(final_url))

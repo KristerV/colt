@@ -31,6 +31,7 @@ defmodule Colt.Services.Enrichment.Transition do
   """
   def terminate(%CampaignCompany{} = cc, terminal, opts \\ []) do
     reason = Keyword.get(opts, :reason)
+    detail = Keyword.get(opts, :detail)
     stage = Keyword.get(opts, :stage)
 
     {:ok, cc} =
@@ -48,12 +49,17 @@ defmodule Colt.Services.Enrichment.Transition do
           CampaignCompany.mark_no_contacts(cc, %{reason: reason})
 
         :failed ->
-          CampaignCompany.mark_failed(cc, %{failed_stage: stage, reason: reason})
+          CampaignCompany.mark_failed(cc, %{
+            failed_stage: stage,
+            reason: reason,
+            detail: detail
+          })
       end
 
     patch =
       %{status: terminal}
       |> maybe_put(:rejection_reason, reason)
+      |> maybe_put(:failure_detail, detail)
       |> maybe_put(:failed_stage, stage)
 
     Broadcast.row(cc.campaign_id, cc.id, patch)
