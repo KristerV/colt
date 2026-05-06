@@ -118,9 +118,12 @@ defmodule Colt.Services.Ai.Complete do
     })
   end
 
-  # GLM 4.7 is a reasoning model. For `:cheap` we use it as a classifier — turn
-  # reasoning fully off so we don't burn tokens on chain-of-thought.
-  defp maybe_put_reasoning(map, :cheap), do: Map.put(map, :reasoning, %{effort: "none"})
+  # GLM 4.7 (and the Google Gemini route OpenRouter sometimes picks for it) is
+  # a reasoning model. For `:cheap` we use it as a classifier — pin reasoning
+  # to the lowest tier so we don't burn tokens on chain-of-thought. We used to
+  # pass "none" but Google's surface only accepts {high|low|medium|minimal};
+  # "minimal" is the closest equivalent.
+  defp maybe_put_reasoning(map, :cheap), do: Map.put(map, :reasoning, %{effort: "minimal"})
   defp maybe_put_reasoning(map, _), do: map
 
   defp post(body) do

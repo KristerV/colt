@@ -44,11 +44,15 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
             {:error, reason} ->
               Transition.stage(cc, :icp, :fail)
+              {:ok, _} = Transition.terminate(cc, :failed, stage: :icp, reason: short(reason))
               {:error, inspect(reason)}
           end
       end
     end
   end
+
+  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
+  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp enqueue_next(cc) do
     %{campaign_company_id: cc.id} |> PickContactPages.new() |> Oban.insert!()

@@ -123,6 +123,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     Enum.reduce(patch, row, fn
       {:status, v}, acc -> %{acc | status: v}
       {"status", v}, acc -> %{acc | status: v}
+      {:failed_stage, v}, acc -> %{acc | failed_stage: v}
       {:rejection_reason, v}, acc -> %{acc | rejection_reason: v}
       {:contact_name, v}, acc -> patch_contact(acc, :name, v)
       {:contact_title, v}, acc -> patch_contact(acc, :title, v)
@@ -160,7 +161,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       size: company.employees_latest,
       growth: company.revenue_growth_bucket,
       status: cc.status,
-      stages: snapshot_stages(cc.status),
+      failed_stage: cc.failed_stage,
+      stages: snapshot_stages(cc.status, cc.failed_stage),
       contact: contact_for(person),
       summary: company.ai_summary,
       rejection_reason: cc.rejection_reason
@@ -190,21 +192,38 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  defp snapshot_stages(:pending), do: idle_stages()
-  defp snapshot_stages(:scraping), do: idle_stages()
+  # Mark every stage *before* the given one as :done, the stage itself as
+  # `state`, and everything after as :idle. Used for terminal snapshots on
+  # page reload so the user sees where the run stopped.
+  defp stages_up_to(stage, state) do
+    Enum.reduce(@stage_keys, {%{}, :before}, fn k, {acc, mode} ->
+      {label, next_mode} =
+        cond do
+          k == stage -> {state, :after}
+          mode == :before -> {:done, :before}
+          true -> {:idle, :after}
+        end
 
-  defp snapshot_stages(:no_website),
-    do: %{web: :fall, scrape: :idle, parse: :idle, icp: :idle, contact: :idle, verify: :idle}
+      {Map.put(acc, k, label), next_mode}
+    end)
+    |> elem(0)
+  end
 
-  defp snapshot_stages(:rejected),
-    do: %{web: :done, scrape: :done, parse: :done, icp: :fall, contact: :idle, verify: :idle}
+  defp snapshot_stages(:pending, _), do: idle_stages()
+  defp snapshot_stages(:scraping, _), do: idle_stages()
+  defp snapshot_stages(:no_website, _), do: stages_up_to(:web, :fall)
+  defp snapshot_stages(:rejected, _), do: stages_up_to(:icp, :fall)
+  defp snapshot_stages(:no_contacts, _), do: stages_up_to(:contact, :fall)
+  defp snapshot_stages(:unverified, _), do: stages_up_to(:verify, :fall)
 
-  defp snapshot_stages(:enriched),
+  defp snapshot_stages(:enriched, _),
     do: %{web: :done, scrape: :done, parse: :done, icp: :done, contact: :done, verify: :done}
 
-  defp snapshot_stages(:failed), do: idle_stages()
+  defp snapshot_stages(:failed, stage) when stage in @stage_keys,
+    do: stages_up_to(stage, :fail)
 
-  defp snapshot_stages(_), do: idle_stages()
+  defp snapshot_stages(:failed, _), do: idle_stages()
+  defp snapshot_stages(_, _), do: idle_stages()
 
   defp idle_stages, do: Map.new(@stage_keys, &{&1, :idle})
 
@@ -221,6 +240,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket(:enriched), do: :enriched
   defp bucket(:rejected), do: :rejected
   defp bucket(:no_website), do: :failed
+  defp bucket(:no_contacts), do: :failed
+  defp bucket(:unverified), do: :failed
   defp bucket(:failed), do: :failed
   defp bucket(_), do: :queued
 

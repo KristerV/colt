@@ -22,20 +22,43 @@ defmodule Colt.Services.Enrichment.Transition do
   @doc """
   Move CC to a terminal status and broadcast the row patch.
 
-  `terminal` is one of `:enriched | :rejected | :no_website | :failed`.
+  `terminal` is one of
+    `:enriched | :rejected | :no_website | :no_contacts | :unverified | :failed`.
+
+  Pass `stage:` (one of the 6 stage atoms) when terminating with `:failed` so
+  the funnel can paint the right pill red on reload. `reason:` is a string
+  shown to the user.
   """
   def terminate(%CampaignCompany{} = cc, terminal, opts \\ []) do
     reason = Keyword.get(opts, :reason)
+    stage = Keyword.get(opts, :stage)
 
     {:ok, cc} =
       case terminal do
-        :enriched -> CampaignCompany.mark_enriched(cc)
-        :no_website -> CampaignCompany.mark_no_website(cc)
-        :rejected -> CampaignCompany.mark_rejected(cc, reason)
-        :failed -> CampaignCompany.mark_failed(cc)
+        :enriched ->
+          CampaignCompany.mark_enriched(cc)
+
+        :no_website ->
+          CampaignCompany.mark_no_website(cc)
+
+        :rejected ->
+          CampaignCompany.mark_rejected(cc, reason)
+
+        :no_contacts ->
+          CampaignCompany.mark_no_contacts(cc, %{reason: reason})
+
+        :unverified ->
+          CampaignCompany.mark_unverified(cc, %{reason: reason})
+
+        :failed ->
+          CampaignCompany.mark_failed(cc, %{failed_stage: stage, reason: reason})
       end
 
-    patch = %{status: terminal} |> maybe_put(:rejection_reason, reason)
+    patch =
+      %{status: terminal}
+      |> maybe_put(:rejection_reason, reason)
+      |> maybe_put(:failed_stage, stage)
+
     Broadcast.row(cc.campaign_id, cc.id, patch)
     {:ok, cc}
   end

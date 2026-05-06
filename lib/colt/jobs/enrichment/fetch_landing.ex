@@ -26,7 +26,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
          {:ok, company} <- Company.get(cc.company_id) do
       cond do
         not is_binary(company.website_url) ->
-          Transition.stage(cc, :scrape, :fall)
+          Transition.stage(cc, :web, :fall)
           {:ok, _} = Transition.terminate(cc, :no_website)
           :ok
 
@@ -66,13 +66,16 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
 
       {:ok, {:error, reason}} ->
         Transition.stage(cc, :scrape, :fail)
-        {:ok, _} = Transition.terminate(cc, :failed)
+        {:ok, _} = Transition.terminate(cc, :failed, stage: :scrape, reason: short(reason))
         {:error, inspect(reason)}
 
       {:error, reason} ->
         {:error, inspect(reason)}
     end
   end
+
+  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
+  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp finish_fetch(cc, company, html, fetcher, final_url) do
     {:ok, generic_email} = ExtractGenericEmail.run(html, uri_host(final_url))

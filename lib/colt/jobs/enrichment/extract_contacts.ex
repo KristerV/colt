@@ -31,8 +31,8 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
       cond do
         haystack == "" ->
-          Transition.stage(cc, :verify, :fall)
-          {:ok, _} = Transition.terminate(cc, :failed)
+          Transition.stage(cc, :contact, :fall)
+          {:ok, _} = Transition.terminate(cc, :no_contacts, reason: "no contact-page markdown")
           :ok
 
         true ->
@@ -43,40 +43,70 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
   defp run(cc, company, campaign, pages, haystack) do
     case Svc.ExtractContacts.run(haystack, campaign_id: cc.campaign_id) do
-      {:ok, candidates} ->
-        validated = validate_all(candidates, haystack)
-        title_flags = title_flags_for(campaign.target_job_title, validated, cc.campaign_id)
-        source_page_id = pick_source_page(pages)
+      {:ok, []} ->
+        Transition.stage(cc, :contact, :fall)
 
-        validated
-        |> Enum.zip(title_flags)
-        |> Enum.each(fn {p, matches?} ->
-          Person.create_validated(%{
-            company_id: company.id,
-            source_page_id: source_page_id,
-            name: p.name,
-            title: p.title,
-            email: p.email,
-            phone: p.phone,
-            validated_in_markdown: true,
-            matches_target_title: matches?
-          })
-        end)
-
-        {:ok, _} = Company.touch_enriched(company)
-        Transition.stage(cc, :verify, :done)
-        {:ok, _} = Transition.terminate(cc, :enriched)
-
-        contact_patch = first_contact_patch(validated, title_flags)
-        if contact_patch != %{}, do: broadcast_contact(cc, contact_patch)
+        {:ok, _} =
+          Transition.terminate(cc, :no_contacts, reason: "no named people on contact pages")
 
         :ok
 
+      {:ok, candidates} ->
+        validated = validate_all(candidates, haystack)
+
+        cond do
+          validated == [] ->
+            Transition.stage(cc, :verify, :fall)
+
+            {:ok, _} =
+              Transition.terminate(cc, :unverified,
+                reason: "extracted #{length(candidates)} contact(s); none verified in markdown"
+              )
+
+            :ok
+
+          true ->
+            persist_and_finish(cc, company, campaign, pages, validated)
+        end
+
       {:error, reason} ->
         Transition.stage(cc, :verify, :fail)
+        {:ok, _} = Transition.terminate(cc, :failed, stage: :verify, reason: short(reason))
         {:error, inspect(reason)}
     end
   end
+
+  defp persist_and_finish(cc, company, campaign, pages, validated) do
+    title_flags = title_flags_for(campaign.target_job_title, validated, cc.campaign_id)
+    source_page_id = pick_source_page(pages)
+
+    validated
+    |> Enum.zip(title_flags)
+    |> Enum.each(fn {p, matches?} ->
+      Person.create_validated(%{
+        company_id: company.id,
+        source_page_id: source_page_id,
+        name: p.name,
+        title: p.title,
+        email: p.email,
+        phone: p.phone,
+        validated_in_markdown: true,
+        matches_target_title: matches?
+      })
+    end)
+
+    {:ok, _} = Company.touch_enriched(company)
+    Transition.stage(cc, :verify, :done)
+    {:ok, _} = Transition.terminate(cc, :enriched)
+
+    contact_patch = first_contact_patch(validated, title_flags)
+    if contact_patch != %{}, do: broadcast_contact(cc, contact_patch)
+
+    :ok
+  end
+
+  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
+  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp validate_all(candidates, haystack) do
     Enum.filter(candidates, fn p ->

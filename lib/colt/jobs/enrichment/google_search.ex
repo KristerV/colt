@@ -57,7 +57,10 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
 
   defp fail(cc, reason) do
     Transition.stage(cc, :web, :fail)
-    {:ok, _} = Transition.terminate(cc, :failed)
+    {:ok, _} = Transition.terminate(cc, :failed, stage: :web, reason: short(reason))
     {:error, inspect(reason)}
   end
+
+  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
+  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 end

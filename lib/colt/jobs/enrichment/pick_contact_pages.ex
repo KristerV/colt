@@ -42,10 +42,14 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
 
         {:error, reason} ->
           Transition.stage(cc, :contact, :fail)
+          {:ok, _} = Transition.terminate(cc, :failed, stage: :contact, reason: short(reason))
           {:error, inspect(reason)}
       end
     end
   end
+
+  defp short(reason) when is_binary(reason), do: String.slice(reason, 0, 240)
+  defp short(reason), do: reason |> inspect() |> String.slice(0, 240)
 
   defp nav_pages_for(company) do
     case Page.for_company(company.id) do

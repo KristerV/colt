@@ -166,7 +166,7 @@ defmodule ColtWeb.Components.Funnel do
         </span>
         <.enrichment_pills stages={@row.stages} />
         <.contact_cell row={@row} />
-        <.status_cell status={@row.status} />
+        <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
       </div>
 
       <.expanded_detail :if={@expanded?} row={@row} log={@log} />
@@ -187,12 +187,36 @@ defmodule ColtWeb.Components.Funnel do
           class="inline-flex items-center gap-1 px-1.5 py-[3px] font-mono text-[10px] tracking-[0.04em] rounded-[2px] border"
           style={pill_style(st)}
         >
-          <Liid.status_dot state={st} size={6} />
+          <.pill_dot state={st} />
           {Map.fetch!(@labels, key)}
         </span>
         <span :if={i < 5} class="w-1 h-px bg-ink20" />
       <% end %>
     </div>
+    """
+  end
+
+  attr :state, :atom, required: true
+
+  defp pill_dot(assigns) do
+    ~H"""
+    <%= case @state do %>
+      <% :work -> %>
+        <span
+          class="w-[6px] h-[6px] rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+          style="background: var(--ink);"
+        />
+      <% :done -> %>
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--accent);" />
+      <% :fail -> %>
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--fail);" />
+      <% :fall -> %>
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--warn);" />
+      <% :skip -> %>
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--ink40);" />
+      <% _ -> %>
+        <span class="w-[6px] h-[6px] rounded-full border" style="border-color: var(--ink20);" />
+    <% end %>
     """
   end
 
@@ -224,9 +248,10 @@ defmodule ColtWeb.Components.Funnel do
   end
 
   attr :status, :atom, required: true
+  attr :failed_stage, :atom, default: nil
 
   def status_cell(assigns) do
-    {label, color, pulse?} = status_view(assigns.status)
+    {label, color, pulse?} = status_view(assigns.status, assigns.failed_stage)
     assigns = assign(assigns, label: label, color: color, pulse?: pulse?)
 
     ~H"""
@@ -294,70 +319,114 @@ defmodule ColtWeb.Components.Funnel do
       </div>
 
       <div>
-        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-          Extracted contact
-        </div>
-        <%= if @row.contact do %>
+        <%= if @row.status in [:rejected, :no_website, :no_contacts, :unverified, :failed] do %>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+            Outcome
+          </div>
           <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
-            <div class="font-serif text-[24px] tracking-[-0.02em] mb-1">
-              {@row.contact.name}
-            </div>
-            <div class="text-[13px] text-ink55 mb-4">
-              {@row.contact.title || "—"} · {@row.name}
-            </div>
-            <div class="flex flex-col gap-2 font-mono text-[11px]">
-              <div :if={@row.contact.email} class="flex items-center gap-2">
-                <Liid.icon name="mail" size={11} class="text-ink55" />
-                <span class="text-ink">{@row.contact.email}</span>
-                <span class="ml-auto text-[10px]" style="color: var(--accent);">verified</span>
-              </div>
-              <div :if={@row.domain} class="flex items-center gap-2">
-                <Liid.icon name="link" size={11} class="text-ink55" />
-                <span class="text-ink truncate">{@row.domain}</span>
-              </div>
-            </div>
             <div
-              :if={@row.summary}
-              class="mt-4 pt-3.5 border-t border-rule text-[12px] text-ink70 leading-[1.5]"
+              class="font-mono text-[11px] tracking-[0.04em] uppercase mb-2"
+              style="color: var(--fail);"
             >
-              "{@row.summary}"
+              {outcome_label(@row.status, Map.get(@row, :failed_stage))}
+            </div>
+            <div :if={@row.rejection_reason} class="text-[12px] text-ink70 leading-[1.5]">
+              {@row.rejection_reason}
+            </div>
+            <div :if={!@row.rejection_reason} class="text-[12px] text-ink40 italic">
+              no reason recorded
             </div>
           </div>
         <% else %>
-          <div class="text-[12px] text-ink40 italic">no contact extracted</div>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+            Extracted contact
+          </div>
+          <%= if @row.contact do %>
+            <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
+              <div class="font-serif text-[24px] tracking-[-0.02em] mb-1">
+                {@row.contact.name}
+              </div>
+              <div class="text-[13px] text-ink55 mb-4">
+                {@row.contact.title || "—"} · {@row.name}
+              </div>
+              <div class="flex flex-col gap-2 font-mono text-[11px]">
+                <div :if={@row.contact.email} class="flex items-center gap-2">
+                  <Liid.icon name="mail" size={11} class="text-ink55" />
+                  <span class="text-ink">{@row.contact.email}</span>
+                  <span class="ml-auto text-[10px]" style="color: var(--accent);">verified</span>
+                </div>
+                <div :if={@row.domain} class="flex items-center gap-2">
+                  <Liid.icon name="link" size={11} class="text-ink55" />
+                  <span class="text-ink truncate">{@row.domain}</span>
+                </div>
+              </div>
+              <div
+                :if={@row.summary}
+                class="mt-4 pt-3.5 border-t border-rule text-[12px] text-ink70 leading-[1.5]"
+              >
+                "{@row.summary}"
+              </div>
+            </div>
+          <% else %>
+            <div class="text-[12px] text-ink40 italic">no contact extracted</div>
+          <% end %>
         <% end %>
       </div>
     </div>
     """
   end
 
+  defp outcome_label(:rejected, _), do: "icp miss"
+  defp outcome_label(:no_website, _), do: "no website"
+  defp outcome_label(:no_contacts, _), do: "no contacts"
+  defp outcome_label(:unverified, _), do: "unverified"
+  defp outcome_label(:failed, :web), do: "search failed"
+  defp outcome_label(:failed, :scrape), do: "scrape failed"
+  defp outcome_label(:failed, :parse), do: "parse failed"
+  defp outcome_label(:failed, :icp), do: "icp failed"
+  defp outcome_label(:failed, :contact), do: "contact failed"
+  defp outcome_label(:failed, :verify), do: "verify failed"
+  defp outcome_label(:failed, _), do: "failed"
+  defp outcome_label(_, _), do: ""
+
   defp pill_style(:idle),
     do: "border-color: var(--ink20); color: var(--ink40); opacity: 0.55;"
 
+  # Working stage: black border + ink fill, dot pulses (the dot animation
+  # comes from <.status_dot state={:work}>). Distinct from done's green tint.
   defp pill_style(:work),
-    do:
-      "border-color: var(--accent); color: var(--ink); background: color-mix(in oklch, var(--accent) 12%, transparent);"
+    do: "border-color: var(--ink); color: var(--ink); background: transparent;"
 
   defp pill_style(:done),
     do:
-      "border-color: var(--ink20); color: var(--ink); background: color-mix(in oklch, var(--accent) 8%, transparent);"
+      "border-color: var(--ink20); color: var(--ink); background: color-mix(in oklch, var(--accent) 14%, transparent);"
 
   defp pill_style(:skip),
     do: "border-color: var(--ink20); color: var(--ink40);"
 
   defp pill_style(:fall),
-    do: "border-color: var(--warn); color: var(--warn);"
+    do:
+      "border-color: var(--warn); color: var(--warn); background: color-mix(in oklch, var(--warn) 10%, transparent);"
 
   defp pill_style(:fail),
-    do: "border-color: var(--fail); color: var(--fail);"
+    do:
+      "border-color: var(--fail); color: var(--fail); background: color-mix(in oklch, var(--fail) 10%, transparent);"
 
-  defp status_view(:pending), do: {"queued", "var(--ink40)", false}
-  defp status_view(:scraping), do: {"working", "var(--accent)", true}
-  defp status_view(:enriched), do: {"enriched", "var(--accent)", false}
-  defp status_view(:rejected), do: {"icp miss", "var(--ink40)", false}
-  defp status_view(:no_website), do: {"no website", "var(--warn)", false}
-  defp status_view(:failed), do: {"failed", "var(--fail)", false}
-  defp status_view(_), do: {"queued", "var(--ink40)", false}
+  defp status_view(:pending, _), do: {"queued", "var(--ink40)", false}
+  defp status_view(:scraping, _), do: {"working", "var(--ink)", true}
+  defp status_view(:enriched, _), do: {"enriched", "var(--accent)", false}
+  defp status_view(:rejected, _), do: {"icp miss", "var(--ink40)", false}
+  defp status_view(:no_website, _), do: {"no website", "var(--warn)", false}
+  defp status_view(:no_contacts, _), do: {"no contacts", "var(--warn)", false}
+  defp status_view(:unverified, _), do: {"unverified", "var(--warn)", false}
+  defp status_view(:failed, :web), do: {"search failed", "var(--fail)", false}
+  defp status_view(:failed, :scrape), do: {"scrape failed", "var(--fail)", false}
+  defp status_view(:failed, :parse), do: {"parse failed", "var(--fail)", false}
+  defp status_view(:failed, :icp), do: {"icp failed", "var(--fail)", false}
+  defp status_view(:failed, :contact), do: {"contact failed", "var(--fail)", false}
+  defp status_view(:failed, :verify), do: {"verify failed", "var(--fail)", false}
+  defp status_view(:failed, _), do: {"failed", "var(--fail)", false}
+  defp status_view(_, _), do: {"queued", "var(--ink40)", false}
 
   defp growth_style(:declining), do: {[4, 3, 2, 1], "var(--warn)"}
   defp growth_style(:stagnant), do: {[3, 3, 3, 3], "var(--ink40)"}

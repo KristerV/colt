@@ -25,6 +25,8 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_no_website
     define :mark_rejected, args: [:rejection_reason]
     define :mark_failed
+    define :mark_no_contacts
+    define :mark_unverified
     define :list_for_campaign, args: [:campaign_id]
   end
 
@@ -61,7 +63,31 @@ defmodule Colt.Resources.CampaignCompany do
     end
 
     update :mark_failed do
+      argument :failed_stage, :atom,
+        constraints: [one_of: [:web, :scrape, :parse, :icp, :contact, :verify]],
+        allow_nil?: true
+
+      argument :reason, :string, allow_nil?: true
+
       change set_attribute(:status, :failed)
+      change set_attribute(:failed_stage, arg(:failed_stage))
+      change set_attribute(:rejection_reason, arg(:reason))
+    end
+
+    update :mark_no_contacts do
+      argument :reason, :string, allow_nil?: true
+
+      change set_attribute(:status, :no_contacts)
+      change set_attribute(:failed_stage, :contact)
+      change set_attribute(:rejection_reason, arg(:reason))
+    end
+
+    update :mark_unverified do
+      argument :reason, :string, allow_nil?: true
+
+      change set_attribute(:status, :unverified)
+      change set_attribute(:failed_stage, :verify)
+      change set_attribute(:rejection_reason, arg(:reason))
     end
   end
 
@@ -70,13 +96,27 @@ defmodule Colt.Resources.CampaignCompany do
 
     attribute :status, :atom,
       constraints: [
-        one_of: [:pending, :scraping, :rejected, :no_website, :enriched, :failed]
+        one_of: [
+          :pending,
+          :scraping,
+          :rejected,
+          :no_website,
+          :no_contacts,
+          :unverified,
+          :enriched,
+          :failed
+        ]
       ],
       allow_nil?: false,
       default: :pending,
       public?: true
 
     attribute :rejection_reason, :string, public?: true
+
+    attribute :failed_stage, :atom,
+      constraints: [one_of: [:web, :scrape, :parse, :icp, :contact, :verify]],
+      public?: true
+
     attribute :included_in_export, :boolean, allow_nil?: false, default: true, public?: true
 
     create_timestamp :inserted_at
