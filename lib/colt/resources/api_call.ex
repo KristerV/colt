@@ -32,6 +32,7 @@ defmodule Colt.Resources.ApiCall do
       accept [
         :provider,
         :model,
+        :task,
         :status,
         :input_tokens,
         :output_tokens,
@@ -69,6 +70,7 @@ defmodule Colt.Resources.ApiCall do
       public?: true
 
     attribute :model, :string, public?: true
+    attribute :task, :string, public?: true
 
     attribute :status, :atom,
       constraints: [one_of: [:ok, :error]],

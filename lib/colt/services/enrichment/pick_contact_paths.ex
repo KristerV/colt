@@ -64,6 +64,7 @@ defmodule Colt.Services.Enrichment.PickContactPaths do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
+           task: "pick_contact_paths",
            max_tokens: 4000
          ) do
       {:ok, %{content: %{"paths" => paths}}} when is_list(paths) ->

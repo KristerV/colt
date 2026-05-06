@@ -24,7 +24,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
       # (teatmik.ee, infoturg.ee, …) and buries the real company site.
       query = company.name
 
-      case Google.run(query, num: 10, campaign_id: cc.campaign_id) do
+      case Google.run(query, num: 10, campaign_id: cc.campaign_id, task: "google_search") do
         {:ok, []} ->
           mark_no_website(cc)
 

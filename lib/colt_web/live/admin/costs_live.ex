@@ -1,6 +1,9 @@
 defmodule ColtWeb.Admin.CostsLive do
   use ColtWeb, :live_view
 
+  import Ecto.Query
+
+  alias Colt.Repo
   alias Colt.Resources.ApiCall
   alias Colt.Services.Costs.MonthlySummary
 
@@ -17,13 +20,37 @@ defmodule ColtWeb.Admin.CostsLive do
 
     openrouter = ApiCall.recent_by_provider!(:openrouter, 50)
     google = ApiCall.recent_by_provider!(:google_cse, 50)
+    by_task = task_breakdown(current_month)
 
     {:ok,
      socket
      |> assign(:months, months)
      |> assign(:current, current)
      |> assign(:openrouter, openrouter)
-     |> assign(:google, google)}
+     |> assign(:google, google)
+     |> assign(:by_task, by_task)}
+  end
+
+  # Current-month spend + call count grouped by task, sorted by cost desc.
+  defp task_breakdown(month) do
+    [yyyy, mm] = String.split(month, "-")
+    {y, _} = Integer.parse(yyyy)
+    {m, _} = Integer.parse(mm)
+    {:ok, from_dt} = NaiveDateTime.new(y, m, 1, 0, 0, 0)
+    to_dt = NaiveDateTime.add(from_dt, 31 * 24 * 3600, :second)
+
+    from(c in "api_calls",
+      where: c.inserted_at >= ^from_dt and c.inserted_at < ^to_dt,
+      group_by: [c.task, c.provider],
+      select: %{
+        task: c.task,
+        provider: c.provider,
+        calls: count(c.id),
+        cost_usd: sum(c.cost_usd)
+      },
+      order_by: [desc: sum(c.cost_usd)]
+    )
+    |> Repo.all()
   end
 
   def render(assigns) do
@@ -74,12 +101,40 @@ defmodule ColtWeb.Admin.CostsLive do
 
         <div>
           <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+            this month · by task
+          </div>
+          <table class="text-xs font-mono w-full">
+            <thead class="opacity-60">
+              <tr class="border-b border-base-300">
+                <th class="text-left py-1 pr-3">task</th>
+                <th class="text-left py-1 pr-3">provider</th>
+                <th class="text-right py-1 pr-3">calls</th>
+                <th class="text-right py-1 pr-3">$</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={t <- @by_task} class="border-b border-base-300/40">
+                <td class="py-1 pr-3">{t.task || "—"}</td>
+                <td class="py-1 pr-3 opacity-70">{t.provider}</td>
+                <td class="py-1 pr-3 text-right tabular-nums">{t.calls}</td>
+                <td class="py-1 pr-3 text-right tabular-nums">${format_money(t.cost_usd)}</td>
+              </tr>
+              <tr :if={@by_task == []}>
+                <td colspan="4" class="py-2 opacity-60">no calls this month yet</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
             openrouter · recent 50
           </div>
           <table class="text-xs font-mono w-full">
             <thead class="opacity-60">
               <tr class="border-b border-base-300">
                 <th class="text-left py-1 pr-3">time</th>
+                <th class="text-left py-1 pr-3">task</th>
                 <th class="text-left py-1 pr-3">model</th>
                 <th class="text-right py-1 pr-3">in</th>
                 <th class="text-right py-1 pr-3">out</th>
@@ -91,6 +146,7 @@ defmodule ColtWeb.Admin.CostsLive do
             <tbody>
               <tr :for={c <- @openrouter} class="border-b border-base-300/40">
                 <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
+                <td class="py-1 pr-3">{c.task || "—"}</td>
                 <td class="py-1 pr-3 truncate max-w-[14rem]">{c.model}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{c.input_tokens}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{c.output_tokens}</td>
@@ -110,6 +166,7 @@ defmodule ColtWeb.Admin.CostsLive do
             <thead class="opacity-60">
               <tr class="border-b border-base-300">
                 <th class="text-left py-1 pr-3">time</th>
+                <th class="text-left py-1 pr-3">task</th>
                 <th class="text-left py-1 pr-3">query</th>
                 <th class="text-right py-1 pr-3">results</th>
                 <th class="text-right py-1 pr-3">$</th>
@@ -120,6 +177,7 @@ defmodule ColtWeb.Admin.CostsLive do
             <tbody>
               <tr :for={c <- @google} class="border-b border-base-300/40">
                 <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
+                <td class="py-1 pr-3">{c.task || "—"}</td>
                 <td class="py-1 pr-3 truncate max-w-[24rem]">{c.query}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{c.results_count}</td>
                 <td class="py-1 pr-3 text-right tabular-nums">{format_money(c.cost_usd)}</td>

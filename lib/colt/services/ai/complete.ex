@@ -73,6 +73,7 @@ defmodule Colt.Services.Ai.Complete do
       model: model,
       response_format: opts[:response_format],
       campaign_id: opts[:campaign_id],
+      task: opts[:task],
       latency_ms: latency_ms
     })
   end
@@ -196,6 +197,7 @@ defmodule Colt.Services.Ai.Complete do
     Track.run(%{
       provider: :openrouter,
       model: ctx.model,
+      task: ctx.task,
       status: :ok,
       input_tokens: input_tokens,
       output_tokens: output_tokens,
@@ -220,6 +222,7 @@ defmodule Colt.Services.Ai.Complete do
     Track.run(%{
       provider: :openrouter,
       model: ctx.model,
+      task: ctx.task,
       status: :error,
       latency_ms: ctx.latency_ms,
       error: String.slice(err, 0, 500),

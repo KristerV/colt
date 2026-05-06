@@ -52,6 +52,7 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
+           task: "classify_icp",
            max_tokens: 1500,
            temperature: 0.0
          ) do

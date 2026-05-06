@@ -32,10 +32,17 @@ defmodule Colt.Services.Search.Google do
     result = Req.get(@endpoint, params: params, receive_timeout: 30_000)
     latency_ms = System.monotonic_time(:millisecond) - started
 
-    handle(result, query, latency_ms, opts[:campaign_id])
+    ctx = %{
+      query: query,
+      latency_ms: latency_ms,
+      campaign_id: opts[:campaign_id],
+      task: opts[:task]
+    }
+
+    handle(result, ctx)
   end
 
-  defp handle({:ok, %Req.Response{status: 200, body: body}}, query, latency_ms, campaign_id) do
+  defp handle({:ok, %Req.Response{status: 200, body: body}}, ctx) do
     items = Map.get(body, "items", [])
 
     results =
@@ -49,36 +56,38 @@ defmodule Colt.Services.Search.Google do
 
     Track.run(%{
       provider: :google_cse,
+      task: ctx.task,
       status: :ok,
-      query: query,
+      query: ctx.query,
       results_count: length(results),
       cost_usd: @cost_per_query,
-      latency_ms: latency_ms,
-      campaign_id: campaign_id
+      latency_ms: ctx.latency_ms,
+      campaign_id: ctx.campaign_id
     })
 
     {:ok, results}
   end
 
-  defp handle({:ok, %Req.Response{status: status, body: body}}, query, latency_ms, campaign_id) do
+  defp handle({:ok, %Req.Response{status: status, body: body}}, ctx) do
     err = "google_cse http #{status}: #{inspect(body)}"
-    track_error(query, latency_ms, campaign_id, err)
+    track_error(ctx, err)
     {:error, err}
   end
 
-  defp handle({:error, exception}, query, latency_ms, campaign_id) do
+  defp handle({:error, exception}, ctx) do
     err = Exception.message(exception)
-    track_error(query, latency_ms, campaign_id, err)
+    track_error(ctx, err)
     {:error, err}
   end
 
-  defp track_error(query, latency_ms, campaign_id, err) do
+  defp track_error(ctx, err) do
     Track.run(%{
       provider: :google_cse,
+      task: ctx.task,
       status: :error,
-      query: query,
-      latency_ms: latency_ms,
-      campaign_id: campaign_id,
+      query: ctx.query,
+      latency_ms: ctx.latency_ms,
+      campaign_id: ctx.campaign_id,
       error: String.slice(err, 0, 500)
     })
   end

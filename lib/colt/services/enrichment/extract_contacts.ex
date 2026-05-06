@@ -45,6 +45,7 @@ defmodule Colt.Services.Enrichment.ExtractContacts do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
+           task: "extract_contacts",
            max_tokens: 16_000,
            temperature: 0.0
          ) do
