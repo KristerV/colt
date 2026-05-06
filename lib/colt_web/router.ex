@@ -22,6 +22,10 @@ defmodule ColtWeb.Router do
     plug :set_actor, :user
   end
 
+  pipeline :require_admin do
+    plug :require_admin
+  end
+
   scope "/", ColtWeb do
     pipe_through :browser
 
@@ -40,6 +44,12 @@ defmodule ColtWeb.Router do
     end
 
     get "/campaigns/:id/export.csv", ExportController, :csv
+  end
+
+  scope "/" do
+    pipe_through [:browser, :require_admin]
+
+    oban_dashboard("/admin/oban")
   end
 
   scope "/", ColtWeb do
@@ -97,11 +107,23 @@ defmodule ColtWeb.Router do
       live_dashboard "/dashboard", metrics: ColtWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
 
-    scope "/" do
-      pipe_through :browser
+  defp require_admin(conn, _opts) do
+    case conn.assigns[:current_user] do
+      %{is_admin: true} ->
+        conn
 
-      oban_dashboard("/admin/oban")
+      %{} ->
+        conn
+        |> Phoenix.Controller.put_flash(:error, "Admins only.")
+        |> Phoenix.Controller.redirect(to: "/")
+        |> Plug.Conn.halt()
+
+      _ ->
+        conn
+        |> Phoenix.Controller.redirect(to: "/sign-in")
+        |> Plug.Conn.halt()
     end
   end
 end
