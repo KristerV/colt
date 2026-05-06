@@ -27,6 +27,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_failed
     define :mark_no_contacts
     define :list_for_campaign, args: [:campaign_id]
+    define :list_for_export, args: [:campaign_id]
   end
 
   actions do
@@ -40,6 +41,16 @@ defmodule Colt.Resources.CampaignCompany do
     read :list_for_campaign do
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id))
+    end
+
+    read :list_for_export do
+      argument :campaign_id, :uuid, allow_nil?: false
+
+      filter expr(
+               campaign_id == ^arg(:campaign_id) and
+                 status == :enriched and
+                 included_in_export == true
+             )
     end
 
     update :mark_scraping do

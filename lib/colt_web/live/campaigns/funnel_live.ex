@@ -11,6 +11,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   alias Colt.Filters.IndustryLabels
   alias Colt.Resources.{Campaign, CampaignCompany}
   alias Colt.Services.Enrichment.{Broadcast, Stats}
+  alias Colt.Services.Export.Csv, as: ExportCsv
   alias ColtWeb.Components.{Funnel, Liid}
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
@@ -40,7 +41,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             expanded_id: nil,
             stats: stats,
             total: length(rows),
-            meta: Stats.run(campaign.finalized_at)
+            meta: Stats.run(campaign.finalized_at),
+            show_export?: false,
+            export_preview: nil,
+            export_count: 0
           )
           |> stream(:rows, rows)
 
@@ -92,6 +96,16 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   # parent assign changes, so the expanded flag has to live *on the row* and
   # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
   # previous row when opening a new one.
+  def handle_event("open_export", _params, socket) do
+    {:ok, %{rows: rows, row_count: count}} = ExportCsv.run(socket.assigns.campaign)
+    preview = Enum.take(rows, 2)
+    {:noreply, assign(socket, show_export?: true, export_preview: preview, export_count: count)}
+  end
+
+  def handle_event("close_export", _params, socket) do
+    {:noreply, assign(socket, show_export?: false)}
+  end
+
   def handle_event("toggle_row", %{"id" => id}, socket) do
     case socket.assigns.expanded_id do
       ^id ->
@@ -251,10 +265,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     |> Enum.sort()
   end
 
-  defp pick_person([]), do: nil
-
   defp pick_person(persons),
-    do: Enum.find(persons, & &1.matches_target_title) || List.first(persons)
+    do: Enum.find(persons, &(&1.validated_in_markdown and &1.matches_target_title))
 
   defp contact_for(nil), do: nil
 
@@ -417,13 +429,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             </h1>
           </div>
           <div class="flex items-center gap-3">
-            <Liid.btn size={:small}>
-              <Liid.icon name="filter" size={11} /> Filter
-            </Liid.btn>
-            <Liid.btn size={:small}>
-              <Liid.icon name="grid" size={11} /> Columns
-            </Liid.btn>
-            <Liid.btn size={:small} variant={:primary} mono disabled={@stats.enriched == 0}>
+            <Liid.btn
+              size={:small}
+              variant={:primary}
+              mono
+              disabled={@stats.enriched == 0}
+              phx-click="open_export"
+            >
               <Liid.icon name="download" size={11} /> Export
             </Liid.btn>
           </div>
@@ -447,7 +459,139 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           </div>
         </div>
       </div>
+
+      <.export_modal
+        :if={@show_export?}
+        campaign={@campaign}
+        count={@export_count}
+        preview={@export_preview}
+      />
     </Layouts.app>
     """
+  end
+
+  attr :campaign, :map, required: true
+  attr :count, :integer, required: true
+  attr :preview, :list, required: true
+
+  defp export_modal(assigns) do
+    ~H"""
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center"
+      style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
+      phx-click="close_export"
+    >
+      <div
+        class="bg-paper border border-ink20 rounded-sharp"
+        style="width: 640px; box-shadow: 0 24px 80px rgba(0,0,0,0.18); padding: 32px 36px 28px;"
+        phx-click-away="close_export"
+        phx-window-keydown="close_export"
+        phx-key="escape"
+        onclick="event.stopPropagation()"
+      >
+        <div class="flex justify-between items-start mb-6">
+          <div>
+            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5">
+              Export · {@campaign.name}
+            </div>
+            <h2 class="font-serif font-normal text-[32px] leading-none tracking-[-0.02em] m-0">
+              Take <span style="color: var(--accent);">{@count}</span> enriched
+              <%= if @count == 1, do: "contact", else: "contacts" %> somewhere.
+            </h2>
+          </div>
+          <button
+            type="button"
+            class="w-6 h-6 flex items-center justify-center cursor-pointer"
+            phx-click="close_export"
+          >
+            <Liid.icon name="x" size={14} />
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <.format_card name="CSV" desc="Flat sheet · companies + primary contact" note={"#{@count} rows"} enabled />
+          <.format_card name="JSON" desc="Nested · companies → people → pages" note="soon" />
+          <.format_card name="HubSpot" desc="Push directly · de-dupe by domain" note="soon" />
+          <.format_card name="Pipedrive" desc="Push directly · org + person + deal" note="soon" />
+          <.format_card name="Apollo" desc="Add to sequence" note="soon" />
+          <.format_card name="Webhook" desc="POST to your URL" note="soon" />
+        </div>
+
+        <div
+          class="mt-5 bg-paperAlt rounded-sharp font-mono text-[11px] text-ink55"
+          style="padding: 14px 16px; line-height: 1.6;"
+        >
+          <div class="text-ink70 mb-1">
+            liid-{slug(@campaign.name)}.csv · preview
+          </div>
+          <div>email,first_name,last_name,company_name,website,title,snippet</div>
+          <div :for={row <- @preview} class="truncate">
+            {preview_line(row)}
+          </div>
+          <div :if={@preview == []} class="text-ink40">
+            (no rows yet — preview will appear once a contact is verified)
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <Liid.btn size={:small} phx-click="close_export">Cancel</Liid.btn>
+          <span class="flex-1"></span>
+          <.link
+            href={~p"/campaigns/#{@campaign.id}/export.csv"}
+            class={[
+              "inline-flex items-center gap-2 border rounded-[2px] font-medium cursor-pointer transition-all",
+              "px-[18px] py-[10px] text-[13px] font-mono tracking-[0.04em]",
+              "bg-ink text-paper border-ink",
+              @count == 0 && "opacity-50 pointer-events-none"
+            ]}
+          >
+            <Liid.icon name="download" size={11} /> Download CSV
+          </.link>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :name, :string, required: true
+  attr :desc, :string, required: true
+  attr :note, :string, required: true
+  attr :enabled, :boolean, default: false
+
+  defp format_card(assigns) do
+    ~H"""
+    <div
+      class={[
+        "rounded-sharp",
+        @enabled && "border cursor-pointer",
+        !@enabled && "border border-ink20 opacity-45 cursor-not-allowed"
+      ]}
+      style={
+        if @enabled,
+          do:
+            "padding: 14px 16px; border-color: var(--accent); background: color-mix(in oklch, var(--accent) 5%, transparent);",
+          else: "padding: 14px 16px;"
+      }
+    >
+      <div class="flex justify-between items-baseline">
+        <span class="text-[14px] font-semibold text-ink">{@name}</span>
+        <span class="font-mono text-[10px] text-ink40">{@note}</span>
+      </div>
+      <div class="text-[12px] text-ink55 mt-1">{@desc}</div>
+    </div>
+    """
+  end
+
+  defp preview_line(row) do
+    ~w(email first_name last_name company_name website title snippet)
+    |> Enum.map_join(",", &Map.get(row, &1, ""))
+    |> String.slice(0, 110)
+  end
+
+  defp slug(name) do
+    name
+    |> String.downcase()
+    |> String.replace(~r/[^a-z0-9]+/u, "-")
+    |> String.trim("-")
   end
 end

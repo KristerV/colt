@@ -37,6 +37,8 @@ defmodule ColtWeb.Router do
       live "/admin/storage", Admin.StorageLive
       live "/admin/costs", Admin.CostsLive
     end
+
+    get "/campaigns/:id/export.csv", ExportController, :csv
   end
 
   scope "/", ColtWeb do
