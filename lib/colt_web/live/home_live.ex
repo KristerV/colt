@@ -384,10 +384,18 @@ defmodule ColtWeb.HomeLive do
       </div>
     </section>
 
-    <footer class="py-10 border-t border-rule flex flex-wrap items-center gap-4 font-mono text-[10px] uppercase tracking-[0.12em] text-ink40">
+    <footer class="py-10 border-t border-rule flex flex-wrap items-center gap-x-4 gap-y-2 font-mono text-[10px] uppercase tracking-[0.12em] text-ink40">
       <span>Liid</span>
       <span class="w-px h-3 bg-ink20" />
-      <span>tallinn · {DateTime.utc_now().year}</span>
+      <span>built by Krister Viirsaar</span>
+      <span class="w-px h-3 bg-ink20" />
+      <span>Täp OÜ · Tallinn, Estonia</span>
+      <span class="w-px h-3 bg-ink20" />
+      <a href="mailto:liid@krister.ee" class="hover:text-ink no-underline normal-case tracking-normal">
+        liid@krister.ee
+      </a>
+      <span class="w-px h-3 bg-ink20" />
+      <span>{DateTime.utc_now().year}</span>
       <span class="flex-1" />
       <.link
         :if={is_nil(@current_user)}
