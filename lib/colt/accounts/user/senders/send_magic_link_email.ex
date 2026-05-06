@@ -21,10 +21,9 @@ defmodule Colt.Accounts.User.Senders.SendMagicLinkEmail do
       end
 
     new()
-    # TODO: Replace with your email
-    |> from({"noreply", "noreply@example.com"})
+    |> from(Application.fetch_env!(:colt, :mail_from))
     |> to(to_string(email))
-    |> subject("Your login link")
+    |> subject("Your Liid login link")
     |> html_body(body(token: token, email: email))
     |> Mailer.deliver!()
   end

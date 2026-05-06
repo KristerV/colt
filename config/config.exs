@@ -92,6 +92,8 @@ config :colt, ColtWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :colt, Colt.Mailer, adapter: Swoosh.Adapters.Local
 
+config :colt, :mail_from, {"Liid", "noreply@mg.liid.ee"}
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",

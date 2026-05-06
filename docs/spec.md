@@ -56,6 +56,7 @@ Authoritative list of every external service Colt talks to. Procedure for adding
 | **rik.ee Avaandmed** | 1 | https://avaandmed.ariregister.rik.ee/et/ariregistri-avaandmete-api/api-teenuste-tutvustus | env / app config | **In place** — API access agreement signed. Don't regenerate without asking. |
 | **OpenRouter** | 4a | https://openrouter.ai/docs | env / app config (`OPENROUTER_API_KEY`) | App-level account. Pay-as-you-go. |
 | **Google Custom Search API** | 4a | https://developers.google.com/custom-search/v1/overview | env / app config (`GOOGLE_CSE_API_KEY`, `GOOGLE_CSE_ENGINE_ID`) | App-level account. Free tier 100 queries/day, then $5/1000. |
+| **Mailgun (EU)** | 1 | https://documentation.mailgun.com/ | env / app config (`MAILGUN_API_KEY`, `MAILGUN_DOMAIN`; `MAILGUN_BASE_URL` defaults to `https://api.eu.mailgun.net/v3`). From address hardcoded in `config/config.exs` as `:mail_from`. | App-level account. EU region. Used for magic-link auth and outbound mail. |
 
 ## 4. Domain (Ash resources)
 
