@@ -78,6 +78,7 @@ defmodule Colt.Accounts.User do
               strategy_name: :remember_me}
 
       change Colt.Accounts.User.Changes.MaybePromoteFirstAdmin
+      change Colt.Accounts.User.Changes.NotifyNewUser
 
       metadata :token, :string do
         allow_nil? false

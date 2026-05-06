@@ -79,6 +79,11 @@ if config_env() == :prod do
       System.get_env("OPENROUTER_API_KEY") ||
         raise("Missing environment variable `OPENROUTER_API_KEY`!")
 
+  config :colt,
+    discord_webhook_url:
+      System.get_env("DISCORD_WEBHOOK_URL") ||
+        raise("Missing environment variable `DISCORD_WEBHOOK_URL`!")
+
   config :colt, :google_cse,
     api_key:
       System.get_env("GOOGLE_CSE_API_KEY") ||

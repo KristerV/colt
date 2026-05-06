@@ -69,7 +69,8 @@ config :colt,
   ash_domains: [Colt.Accounts, Colt.Domain],
   rik_ee_cache_dir: "priv/ingest_cache",
   ingest_max_years: 3,
-  ash_authentication: [return_error_on_invalid_magic_link_token?: true]
+  ash_authentication: [return_error_on_invalid_magic_link_token?: true],
+  discord_webhook_url: nil
 
 # Configure the endpoint
 config :colt, ColtWeb.Endpoint,

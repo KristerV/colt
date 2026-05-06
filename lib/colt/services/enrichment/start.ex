@@ -9,12 +9,14 @@ defmodule Colt.Services.Enrichment.Start do
   alias Colt.Filters
   alias Colt.Jobs.Enrichment.CheckWebsite
   alias Colt.Resources.{Campaign, CampaignCompany}
+  alias Colt.Services.Discord
 
   def run(%Campaign{} = campaign, filters, actor) when is_map(filters) do
     with {:ok, companies} <- Filters.sample(filters),
          {:ok, ccs} <- bulk_create_ccs(campaign, companies),
          {:ok, _} <- enqueue_first_jobs(ccs),
-         {:ok, campaign} <- finalize_campaign(campaign, filters, actor) do
+         {:ok, campaign} <- finalize_campaign(campaign, filters, actor),
+         {:ok, _} <- maybe_notify(campaign, actor) do
       {:ok, %{count: length(ccs), campaign: campaign}}
     end
   end
@@ -48,4 +50,11 @@ defmodule Colt.Services.Enrichment.Start do
   defp finalize_campaign(campaign, filters, actor) do
     Campaign.finalize(campaign, filters, actor: actor)
   end
+
+  defp maybe_notify(campaign, %{is_admin: false} = actor) do
+    url = ColtWeb.Endpoint.url() <> "/campaigns/#{campaign.id}/funnel"
+    Discord.Notify.run("New search by #{actor.email}: #{url}")
+  end
+
+  defp maybe_notify(_campaign, _actor), do: {:ok, :skipped}
 end
