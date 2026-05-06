@@ -19,6 +19,19 @@ defmodule ColtWeb.Admin.CompaniesLive do
           <h1 class="text-3xl font-semibold mt-1">Companies</h1>
         </div>
 
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            phx-click="schedule_rik_ingest"
+            class="btn btn-primary btn-sm rounded-none"
+          >
+            Schedule rik.ee ingestion
+          </button>
+          <.link navigate="/admin/oban" class="text-sm opacity-60 hover:opacity-100 font-mono">
+            View Oban &rarr;
+          </.link>
+        </div>
+
         <div :for={m <- @markets} class="space-y-3">
           <div class="text-xs uppercase tracking-wider opacity-60 font-mono">
             {market_label(m.market)}
@@ -30,6 +43,19 @@ defmodule ColtWeb.Admin.CompaniesLive do
       </div>
     </Layouts.app>
     """
+  end
+
+  def handle_event("schedule_rik_ingest", _params, socket) do
+    case Colt.Jobs.RikIngest.new(%{}) |> Oban.insert() do
+      {:ok, %Oban.Job{conflict?: true}} ->
+        {:noreply, put_flash(socket, :info, "rik.ee ingestion already scheduled or running.")}
+
+      {:ok, %Oban.Job{}} ->
+        {:noreply, put_flash(socket, :info, "rik.ee ingestion job scheduled.")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Could not schedule job: #{inspect(reason)}")}
+    end
   end
 
   attr :label, :string, required: true

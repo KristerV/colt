@@ -22,6 +22,10 @@ defmodule ColtWeb.Router do
     plug :set_actor, :user
   end
 
+  pipeline :require_authenticated_user do
+    plug :require_authenticated_user
+  end
+
   scope "/", ColtWeb do
     pipe_through :browser
 
@@ -40,6 +44,12 @@ defmodule ColtWeb.Router do
     end
 
     get "/campaigns/:id/export.csv", ExportController, :csv
+  end
+
+  scope "/" do
+    pipe_through [:browser, :require_authenticated_user]
+
+    oban_dashboard("/admin/oban")
   end
 
   scope "/", ColtWeb do
@@ -97,11 +107,15 @@ defmodule ColtWeb.Router do
       live_dashboard "/dashboard", metrics: ColtWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+  end
 
-    scope "/" do
-      pipe_through :browser
-
-      oban_dashboard("/admin/oban")
+  defp require_authenticated_user(conn, _opts) do
+    if conn.assigns[:current_user] do
+      conn
+    else
+      conn
+      |> Phoenix.Controller.redirect(to: "/sign-in")
+      |> Plug.Conn.halt()
     end
   end
 end
