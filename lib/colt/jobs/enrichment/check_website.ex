@@ -23,7 +23,8 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
 
       cond do
         Freshness.company_fresh?(company) and is_binary(company.website_url) ->
-          Transition.stage(cc, :website, :skip)
+          # Stage stays in :work — FetchLanding/SummarizeCompany downstream
+          # will mark :done when the chain actually finishes.
           enqueue(FetchLanding, cc)
           :ok
 

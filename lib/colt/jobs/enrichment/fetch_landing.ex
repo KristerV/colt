@@ -38,7 +38,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
     case existing_landing(company) do
       %Page{} = page ->
         if Freshness.page_fresh?(page) do
-          Transition.stage(cc, :website, :skip)
+          # No stage broadcast — SummarizeCompany downstream marks :done.
           %{campaign_company_id: cc.id} |> SummarizeCompany.new() |> Oban.insert!()
           :ok
         else

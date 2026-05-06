@@ -25,8 +25,9 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
       cond do
         icp == "" or summary == "" ->
           # No ICP supplied or no summary — treat as soft pass so we don't
-          # gate everything on ICP. Phase 5 will surface this in UI.
-          Transition.stage(cc, :icp, :skip)
+          # gate everything on ICP. Mark :done since the stage is complete
+          # from the user's perspective.
+          Transition.stage(cc, :icp, :done)
           enqueue_next(cc)
           :ok
 

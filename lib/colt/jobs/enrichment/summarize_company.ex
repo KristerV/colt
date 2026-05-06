@@ -23,7 +23,7 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
          {:ok, company} <- Company.get(cc.company_id) do
       cond do
         Freshness.has_summary?(company) and Freshness.company_fresh?(company) ->
-          Transition.stage(cc, :website, :skip)
+          Transition.stage(cc, :website, :done)
           enqueue_next(cc)
           :ok
 
