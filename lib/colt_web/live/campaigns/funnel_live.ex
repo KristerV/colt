@@ -38,7 +38,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             campaign: campaign,
             rows_index: rows_index,
             expanded_id: nil,
-            expanded_log: [],
             stats: stats,
             total: length(rows),
             meta: Stats.run(campaign.finalized_at)
@@ -89,19 +88,35 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     {:noreply, assign(socket, meta: Stats.run(socket.assigns.campaign.finalized_at))}
   end
 
+  # Toggle expand/collapse. Streams don't re-render existing items when a
+  # parent assign changes, so the expanded flag has to live *on the row* and
+  # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
+  # previous row when opening a new one.
   def handle_event("toggle_row", %{"id" => id}, socket) do
-    if socket.assigns.expanded_id == id do
-      {:noreply, assign(socket, expanded_id: nil, expanded_log: [])}
-    else
-      log = pipeline_log(id)
-      {:noreply, assign(socket, expanded_id: id, expanded_log: log)}
+    case socket.assigns.expanded_id do
+      ^id ->
+        {:noreply, socket |> collapse(id) |> assign(expanded_id: nil)}
+
+      nil ->
+        {:noreply, socket |> expand(id) |> assign(expanded_id: id)}
+
+      prev ->
+        {:noreply, socket |> collapse(prev) |> expand(id) |> assign(expanded_id: id)}
     end
   end
 
-  defp replace_row(socket, row) do
+  defp expand(socket, id), do: replace_row(socket, id, expanded?: true, log: pipeline_log(id))
+  defp collapse(socket, id), do: replace_row(socket, id, expanded?: false, log: [])
+
+  defp replace_row(socket, %{} = row) do
     socket
     |> assign(rows_index: Map.put(socket.assigns.rows_index, row.cc_id, row))
     |> stream_insert(:rows, row)
+  end
+
+  defp replace_row(socket, id, fields) when is_binary(id) do
+    row = Map.fetch!(socket.assigns.rows_index, id) |> Map.merge(Map.new(fields))
+    replace_row(socket, row)
   end
 
   defp maybe_recompute_stats(socket, same, same), do: socket
@@ -165,7 +180,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       stages: snapshot_stages(cc.status, cc.failed_stage),
       contact: contact_for(person),
       summary: company.ai_summary,
-      rejection_reason: cc.rejection_reason
+      rejection_reason: cc.rejection_reason,
+      expanded?: false,
+      log: []
     }
   end
 
@@ -337,8 +354,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               :for={{dom_id, row} <- @streams.rows}
               id={dom_id}
               row={row}
-              expanded?={@expanded_id == row.cc_id}
-              log={if @expanded_id == row.cc_id, do: @expanded_log, else: []}
+              expanded?={row.expanded?}
+              log={row.log}
             />
           </div>
         </div>
