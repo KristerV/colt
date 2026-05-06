@@ -297,6 +297,15 @@ defmodule ColtWeb.Components.Funnel do
       style="grid-template-columns: 1.4fr 1fr; padding: 20px 24px 24px 56px;"
     >
       <div class="flex flex-col gap-6">
+        <div :if={@row.summary}>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+            Company summary
+          </div>
+          <div class="text-[12px] text-ink70 leading-[1.6]">
+            {@row.summary}
+          </div>
+        </div>
+
         <div :if={Map.get(@row, :website_url)}>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
             Website
@@ -310,6 +319,26 @@ defmodule ColtWeb.Components.Funnel do
             <Liid.icon name="link" size={11} class="text-ink55" />
             {@row.domain || @row.website_url}
           </a>
+        </div>
+
+        <div :if={Map.get(@row, :scraped_paths, []) != []}>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+            Scraped pages ({length(@row.scraped_paths)})
+          </div>
+          <div class="font-mono text-[11px] leading-[1.7] text-ink70 flex flex-col">
+            <a
+              :for={p <- @row.scraped_paths}
+              href={"#{@row.website_url}#{p}"}
+              target="_blank"
+              rel="noopener"
+              class="text-ink hover:text-[var(--accent)] truncate"
+            >
+              {p}
+            </a>
+          </div>
+          <div class="text-[10px] text-ink40 mt-2 leading-[1.5]">
+            All pages above were combined into one input for the contact-extraction LLM call.
+          </div>
         </div>
 
         <div>
@@ -330,15 +359,6 @@ defmodule ColtWeb.Components.Funnel do
                 </div>
               <% end %>
             <% end %>
-          </div>
-        </div>
-
-        <div :if={@row.summary}>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-            Company summary
-          </div>
-          <div class="text-[12px] text-ink70 leading-[1.6]">
-            {@row.summary}
           </div>
         </div>
       </div>
@@ -373,8 +393,13 @@ defmodule ColtWeb.Components.Funnel do
             </details>
           </div>
         <% else %>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-            Extracted contact
+          <div class="flex items-baseline justify-between mb-3">
+            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
+              Extracted contact
+            </div>
+            <div :if={Map.get(@row, :total_contacts, 0) > 0} class="font-mono text-[10px] text-ink40">
+              {@row.total_contacts} total
+            </div>
           </div>
           <%= if @row.contact do %>
             <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
@@ -400,6 +425,24 @@ defmodule ColtWeb.Components.Funnel do
                   <Liid.icon name="link" size={11} class="text-ink55" />
                   <span class="text-ink truncate">{@row.domain || @row.website_url}</span>
                 </a>
+              </div>
+            </div>
+
+            <div :if={Map.get(@row, :extra_contacts, []) != []} class="mt-4">
+              <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+                Other contacts
+              </div>
+              <div class="flex flex-col gap-2">
+                <div
+                  :for={ec <- @row.extra_contacts}
+                  class="px-3 py-2 bg-paper border border-ink20 rounded-sharp"
+                >
+                  <div class="text-[12px] text-ink font-medium truncate">{ec.name}</div>
+                  <div class="text-[11px] text-ink55 mb-1 truncate">{ec.title || "—"}</div>
+                  <div :if={ec.email} class="font-mono text-[10px] text-ink70 truncate">
+                    {ec.email}
+                  </div>
+                </div>
               </div>
             </div>
           <% else %>

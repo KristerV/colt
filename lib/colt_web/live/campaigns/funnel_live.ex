@@ -171,7 +171,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       CampaignCompany.list_for_campaign(campaign.id,
         actor: nil,
         authorize?: false,
-        load: [company: [:persons]]
+        load: [company: [:persons, :pages]]
       )
 
     Enum.map(ccs, &row_for/1)
@@ -180,6 +180,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp row_for(cc) do
     company = cc.company
     person = pick_person(company.persons)
+    extras = others(company.persons, person)
 
     %{
       id: "row-#{cc.id}",
@@ -195,12 +196,29 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       failed_stage: cc.failed_stage,
       stages: snapshot_stages(cc.status, cc.failed_stage),
       contact: contact_for(person),
+      extra_contacts: Enum.map(extras, &contact_for/1) |> Enum.take(3),
+      total_contacts: length(company.persons),
+      scraped_paths: scraped_paths(company.pages),
       summary: company.ai_summary,
       rejection_reason: cc.rejection_reason,
       failure_detail: cc.failure_detail,
       expanded?: false,
       log: []
     }
+  end
+
+  defp others(persons, picked) do
+    case picked do
+      nil -> persons
+      %{id: pid} -> Enum.reject(persons, &(&1.id == pid))
+    end
+  end
+
+  defp scraped_paths(pages) do
+    pages
+    |> Enum.filter(&is_binary(&1.markdown))
+    |> Enum.map(& &1.path)
+    |> Enum.sort()
   end
 
   defp pick_person([]), do: nil
