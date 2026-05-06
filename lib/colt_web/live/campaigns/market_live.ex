@@ -86,7 +86,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
           Which <em>register</em> do we pull from?
         </Liid.headline>
 
-        <div class="grid grid-cols-3 gap-3.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           <%= for m <- @markets do %>
             <.market_card
               market={m}
@@ -100,7 +100,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
 
         <div class="flex-1" />
 
-        <div class="flex items-center gap-4">
+        <div class="flex flex-wrap items-center gap-4">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/icp"}
             class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
@@ -110,7 +110,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
           <Liid.btn variant={:primary} mono phx-click="continue">
             Continue → filters <Liid.icon name="arrow" />
           </Liid.btn>
-          <span class="ml-auto font-mono text-[11px] text-ink40">
+          <span class="w-full md:w-auto md:ml-auto font-mono text-[11px] text-ink40">
             {format_int(@ee_count)} active companies in rik.ee · last sync {format_sync(@last_sync)}
           </span>
         </div>

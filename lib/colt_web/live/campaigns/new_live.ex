@@ -72,7 +72,7 @@ defmodule ColtWeb.Campaigns.NewLive do
               placeholder="Nordic CTOs Q2"
               phx-debounce="200"
               autofocus
-              class="w-full max-w-[560px] font-serif text-[44px] font-normal tracking-[-0.02em] text-ink py-[12px] pb-[14px] border-0 border-b border-ink bg-transparent outline-none placeholder:text-ink40"
+              class="w-full max-w-[560px] font-serif text-[28px] md:text-[44px] font-normal tracking-[-0.02em] text-ink py-[12px] pb-[14px] border-0 border-b border-ink bg-transparent outline-none placeholder:text-ink40"
             />
 
             <div class="mt-3 font-mono text-[11px] tracking-[0.04em] text-ink55">

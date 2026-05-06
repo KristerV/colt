@@ -259,7 +259,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
-      <div class="flex gap-12 flex-1 min-h-0">
+      <div class="flex flex-col lg:flex-row gap-6 lg:gap-12 flex-1 min-h-0">
         <.filter_panel
           form={@form}
           top_industries={@top_industries}
@@ -310,7 +310,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     assigns = assign(assigns, growth_buckets: @growth_buckets)
 
     ~H"""
-    <div class="basis-[360px] shrink-0 flex flex-col min-h-0 gap-7">
+    <div class="lg:basis-[360px] lg:shrink-0 flex flex-col min-h-0 gap-7">
       <Liid.headline kicker="04 / Filters">
         Narrow the <em>funnel</em>.
       </Liid.headline>
@@ -622,8 +622,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     assigns = assign(assigns, pct: pct, cap_remaining: cap_remaining)
 
     ~H"""
-    <div class="border border-ink20 bg-paperAlt rounded-sharp p-7 relative">
-      <div class="flex items-end justify-between">
+    <div class="border border-ink20 bg-paperAlt rounded-sharp p-5 md:p-7 relative">
+      <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2 flex items-center gap-2">
             Companies match
@@ -635,7 +635,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           </div>
           <div class="flex items-baseline gap-3">
             <div class={[
-              "font-serif text-[76px] font-normal leading-[0.9] tnum tracking-[-0.02em] transition-opacity",
+              "font-serif text-[56px] md:text-[76px] font-normal leading-[0.9] tnum tracking-[-0.02em] transition-opacity",
               @pending? && "opacity-40",
               not @pending? && "text-ink"
             ]}>
@@ -723,9 +723,16 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       </div>
       <div class="flex-1 overflow-auto">
         <%= for c <- @preview do %>
-          <div class="grid grid-cols-[1fr_140px_80px_60px] items-center gap-4 px-4 py-2.5 border-b border-rule text-[13px]">
-            <span class="text-ink font-medium truncate">{c.name}</span>
-            <span class="text-ink55 text-[12px] truncate">{industry_label(c.industry_code)}</span>
+          <div class="grid grid-cols-[1fr_60px_50px] sm:grid-cols-[1fr_140px_80px_60px] items-center gap-3 sm:gap-4 px-4 py-2.5 border-b border-rule text-[13px]">
+            <div class="min-w-0">
+              <div class="text-ink font-medium truncate">{c.name}</div>
+              <div class="text-ink55 text-[11px] truncate sm:hidden">
+                {industry_label(c.industry_code)}
+              </div>
+            </div>
+            <span class="hidden sm:block text-ink55 text-[12px] truncate">
+              {industry_label(c.industry_code)}
+            </span>
             <span class="font-mono text-[11px] text-ink55 text-right tnum">
               {c.employees_latest || "—"}
             </span>

@@ -35,12 +35,12 @@ defmodule ColtWeb.Components.Funnel do
     assigns = assign(assigns, tiles: tiles)
 
     ~H"""
-    <div class="flex border border-rule rounded-sharp">
+    <div class="flex overflow-x-auto md:overflow-visible border border-rule rounded-sharp">
       <%= for {tile, i} <- Enum.with_index(@tiles) do %>
         <% n = Map.get(@stats, tile.key, 0) %>
         <% pct = if @total > 0, do: n / @total * 100, else: 0 %>
         <div class={[
-          "flex-1 px-[18px] py-[14px] relative",
+          "shrink-0 md:shrink min-w-[120px] md:min-w-0 md:flex-1 px-[14px] py-[12px] md:px-[18px] md:py-[14px] relative",
           i < length(@tiles) - 1 && "border-r border-rule"
         ]}>
           <div class="flex items-center justify-between mb-1.5">
@@ -75,7 +75,7 @@ defmodule ColtWeb.Components.Funnel do
 
   def meta_strip(assigns) do
     ~H"""
-    <div class="flex items-center gap-6 font-mono text-[11px] text-ink55 tracking-[0.04em] py-2">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 md:gap-6 font-mono text-[11px] text-ink55 tracking-[0.04em] py-2">
       <span class="flex items-center gap-2">
         <span
           class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
@@ -93,7 +93,7 @@ defmodule ColtWeb.Components.Funnel do
   def funnel_header(assigns) do
     ~H"""
     <div
-      class="grid items-center gap-3 px-4 border-b border-rule bg-paperAlt"
+      class="hidden md:grid items-center gap-3 px-4 border-b border-rule bg-paperAlt"
       style="grid-template-columns: 24px 1.5fr 1fr 70px 60px 2fr 100px 1fr;"
     >
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
@@ -132,10 +132,13 @@ defmodule ColtWeb.Components.Funnel do
 
   def funnel_row(assigns) do
     ~H"""
-    <div class="border-b border-rule" id={@id}>
+    <div
+      class="md:border-b md:border-rule mx-3 my-2 md:mx-0 md:my-0 border border-rule rounded-sharp md:border-x-0 md:border-t-0 md:rounded-none bg-paper"
+      id={@id}
+    >
       <div
         class={[
-          "grid items-center gap-3 px-4 py-3 cursor-pointer",
+          "hidden md:grid items-center gap-3 px-4 py-3 cursor-pointer",
           @row.status == :scraping && "bg-[color-mix(in_oklch,var(--accent)_4%,transparent)]",
           @expanded? && "bg-paperAlt"
         ]}
@@ -165,6 +168,54 @@ defmodule ColtWeb.Components.Funnel do
         <.enrichment_pills stages={@row.stages} />
         <.contact_cell row={@row} />
         <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
+      </div>
+
+      <div
+        class={[
+          "md:hidden flex flex-col gap-2.5 px-4 py-3 cursor-pointer",
+          @row.status == :scraping && "bg-[color-mix(in_oklch,var(--accent)_4%,transparent)]",
+          @expanded? && "bg-paperAlt"
+        ]}
+        phx-click="toggle_row"
+        phx-value-id={@row.cc_id}
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0 flex-1">
+            <div class="text-[14px] text-ink font-medium truncate">{@row.name}</div>
+            <div class="font-mono text-[10px] text-ink40 mt-0.5 tracking-[0.04em] truncate">
+              <%= if @row.domain do %>
+                {@row.domain}
+              <% else %>
+                <span class="italic">resolving...</span>
+              <% end %>
+              · {@row.registry_code}
+            </div>
+          </div>
+          <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
+        </div>
+
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <.enrichment_pills stages={@row.stages} />
+          <div class="flex items-center gap-3 font-mono text-[10px] text-ink55 tracking-[0.04em]">
+            <span class="flex items-center gap-1">
+              <span class="text-ink40 uppercase">size</span>
+              <span class="tnum">{fmt_int(@row.size)}</span>
+            </span>
+            <span class="flex items-center gap-1">
+              <span class="text-ink40 uppercase">growth</span>
+              <.growth_glyph bucket={@row.growth} />
+            </span>
+          </div>
+        </div>
+
+        <div class="text-[12px] text-ink55 truncate">{@row.industry}</div>
+
+        <div :if={@row.status == :enriched and @row.contact} class="pt-2 mt-1 border-t border-rule">
+          <div class="text-[12px] text-ink font-medium truncate">{@row.contact.name}</div>
+          <div class="font-mono text-[10px] text-ink40 mt-0.5 truncate">
+            {@row.contact.title || "—"}
+          </div>
+        </div>
       </div>
 
       <.expanded_detail :if={@expanded?} row={@row} log={@log} admin?={@admin?} />
@@ -292,10 +343,7 @@ defmodule ColtWeb.Components.Funnel do
 
   def expanded_detail(assigns) do
     ~H"""
-    <div
-      class="grid gap-8 bg-paperAlt border-t border-rule"
-      style="grid-template-columns: 1.4fr 1fr; padding: 20px 24px 24px 56px;"
-    >
+    <div class="grid gap-6 md:gap-8 bg-paperAlt border-t border-rule grid-cols-1 md:grid-cols-[1.4fr_1fr] px-4 py-5 md:pl-14 md:pr-6 md:py-6">
       <div class="flex flex-col gap-6">
         <div :if={@row.summary}>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">

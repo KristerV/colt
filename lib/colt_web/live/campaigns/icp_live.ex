@@ -74,8 +74,12 @@ defmodule ColtWeb.Campaigns.IcpLive do
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
-      <form phx-change="validate" phx-submit="save" class="flex gap-16 flex-1 min-h-0">
-        <div class="basis-[320px] shrink-0">
+      <form
+        phx-change="validate"
+        phx-submit="save"
+        class="flex flex-col lg:flex-row gap-8 lg:gap-16 flex-1 min-h-0"
+      >
+        <div class="lg:basis-[320px] lg:shrink-0">
           <Liid.headline
             kicker="02 / ICP"
             sub="Plain English. The model reads this against every company's website to decide if it's a fit. Be specific about what disqualifies."

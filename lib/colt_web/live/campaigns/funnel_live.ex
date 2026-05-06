@@ -419,12 +419,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       campaign_id={@campaign.id}
     >
       <div class="flex flex-col gap-[18px] flex-1 min-h-0">
-        <div class="flex items-end justify-between gap-6">
-          <div>
-            <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-1.5">
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
+          <div class="min-w-0">
+            <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
               05 / Funnel · {@campaign.name}
             </div>
-            <h1 class="font-serif font-normal text-[44px] leading-none tracking-[-0.02em] m-0">
+            <h1 class="font-serif font-normal text-[32px] md:text-[44px] leading-none tracking-[-0.02em] m-0">
               Enriching <span style="color: var(--accent);">{@total}</span> companies.
             </h1>
           </div>
@@ -445,7 +445,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
         <Funnel.meta_strip meta={@meta} visible={@total} total={@total} />
 
-        <div class="flex-1 min-h-0 flex flex-col border border-rule rounded-sharp">
+        <div class="flex-1 min-h-0 flex flex-col md:border md:border-rule md:rounded-sharp -mx-4 md:mx-0">
           <Funnel.funnel_header />
           <div class="flex-1 overflow-auto" id="funnel-body" phx-update="stream">
             <Funnel.funnel_row
@@ -477,24 +477,24 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp export_modal(assigns) do
     ~H"""
     <div
-      class="fixed inset-0 z-50 flex items-center justify-center"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
       phx-click="close_export"
     >
       <div
-        class="bg-paper border border-ink20 rounded-sharp"
-        style="width: 640px; box-shadow: 0 24px 80px rgba(0,0,0,0.18); padding: 32px 36px 28px;"
+        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[640px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
         phx-click-away="close_export"
         phx-window-keydown="close_export"
         phx-key="escape"
         onclick="event.stopPropagation()"
       >
-        <div class="flex justify-between items-start mb-6">
-          <div>
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5">
+        <div class="flex justify-between items-start gap-3 mb-6">
+          <div class="min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
               Export · {@campaign.name}
             </div>
-            <h2 class="font-serif font-normal text-[32px] leading-none tracking-[-0.02em] m-0">
+            <h2 class="font-serif font-normal text-[24px] md:text-[32px] leading-[1.1] tracking-[-0.02em] m-0">
               Take <span style="color: var(--accent);">{@count}</span>
               enriched {if @count == 1, do: "contact", else: "contacts"} somewhere.
             </h2>
@@ -508,7 +508,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           </button>
         </div>
 
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <.format_card
             name="CSV"
             desc="Flat sheet · companies + primary contact"
@@ -530,7 +530,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             liid-{slug(@campaign.name)}.csv · preview
           </div>
           <div>email,first_name,last_name,company_name,website,title,snippet</div>
-          <div :for={row <- @preview} class="truncate">
+          <div :for={row <- @preview} class="truncate hidden sm:block">
+            {preview_line(row)}
+          </div>
+          <div :for={row <- @preview} class="sm:hidden break-all">
             {preview_line(row)}
           </div>
           <div :if={@preview == []} class="text-ink40">

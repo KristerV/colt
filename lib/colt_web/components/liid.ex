@@ -142,7 +142,7 @@ defmodule ColtWeb.Components.Liid do
       <div :if={@kicker} class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-3.5">
         {@kicker}
       </div>
-      <h1 class="font-serif font-normal text-[64px] leading-[1.02] tracking-[-0.04em] m-0 text-pretty">
+      <h1 class="font-serif font-normal text-[40px] md:text-[64px] leading-[1.02] tracking-[-0.04em] m-0 text-pretty">
         {render_slot(@inner_block)}
       </h1>
       <div :if={@sub} class="mt-5 text-[15px] leading-[1.5] text-ink55 max-w-[520px] text-pretty">
@@ -166,8 +166,8 @@ defmodule ColtWeb.Components.Liid do
     assigns = assign(assigns, :steps, @stepper_steps)
 
     ~H"""
-    <header class="flex items-center gap-8 px-8 py-5 border-b border-rule">
-      <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink">
+    <header class="flex items-center gap-3 md:gap-8 px-4 md:px-8 py-4 md:py-5 border-b border-rule">
+      <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink shrink-0">
         <span class="font-serif text-[26px] leading-none tracking-[-0.02em]">Liid</span>
         <span
           class="inline-block w-1.5 h-1.5 rounded-full -translate-y-[3px]"
@@ -175,7 +175,10 @@ defmodule ColtWeb.Components.Liid do
         />
       </.link>
 
-      <nav :if={not is_nil(@step)} class="flex items-center font-mono text-[11px] tracking-[0.04em]">
+      <nav
+        :if={not is_nil(@step)}
+        class="hidden lg:flex items-center font-mono text-[11px] tracking-[0.04em]"
+      >
         <%= for {label, i} <- Enum.with_index(@steps) do %>
           <% state = step_state(i, @step) %>
           <% href = step_href(i, state, @campaign_id) %>
@@ -184,13 +187,25 @@ defmodule ColtWeb.Components.Liid do
         <% end %>
       </nav>
 
+      <nav
+        :if={not is_nil(@step)}
+        class="flex lg:hidden items-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55"
+      >
+        <span class="text-ink tnum">{String.pad_leading(Integer.to_string(@step), 2, "0")}</span>
+        <span>{Enum.at(@steps, @step)}</span>
+        <span class="text-ink40">· {length(@steps)}</span>
+      </nav>
+
       <div class="flex-1" />
 
-      <div class="flex items-center gap-3.5 text-[12px] text-ink55">
-        <span :if={@campaign_name} class="font-mono tracking-[0.04em]">
+      <div class="flex items-center gap-2 md:gap-3.5 text-[12px] text-ink55">
+        <span
+          :if={@campaign_name}
+          class="hidden md:inline font-mono tracking-[0.04em] truncate max-w-[200px]"
+        >
           campaign: <span class="text-ink">{@campaign_name}</span>
         </span>
-        <span :if={@campaign_name} class="w-px h-3.5 bg-ink20" />
+        <span :if={@campaign_name} class="hidden md:inline w-px h-3.5 bg-ink20" />
         <%= if @current_user do %>
           <.link
             href="/admin"
@@ -203,7 +218,8 @@ defmodule ColtWeb.Components.Liid do
             method="get"
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
           >
-            sign out
+            <span class="hidden sm:inline">sign out</span>
+            <span class="sm:hidden">out</span>
           </.link>
           <div
             class="w-6 h-6 rounded-full bg-ink text-paper flex items-center justify-center text-[11px] font-semibold"
@@ -306,7 +322,7 @@ defmodule ColtWeb.Components.Liid do
         campaign_name={@campaign_name}
         campaign_id={@campaign_id}
       />
-      <main class={["flex-1 px-14 py-10", @class]}>
+      <main class={["flex-1 px-4 py-6 md:px-14 md:py-10", @class]}>
         {render_slot(@inner_block)}
       </main>
     </div>
