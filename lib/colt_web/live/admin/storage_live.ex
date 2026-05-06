@@ -1,7 +1,7 @@
 defmodule ColtWeb.Admin.StorageLive do
   use ColtWeb, :live_view
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
 
   def mount(_params, _session, socket) do
     {:ok, socket |> assign(:tables, load_tables()) |> assign(:total, total_size())}

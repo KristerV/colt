@@ -29,6 +29,14 @@ defmodule ColtWeb.LiveUserAuth do
     end
   end
 
+  def on_mount(:live_admin_required, _params, _session, socket) do
+    case socket.assigns[:current_user] do
+      %{is_admin: true} -> {:cont, socket}
+      %{} -> {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}
+      _ -> {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/sign-in")}
+    end
+  end
+
   def on_mount(:live_no_user, _params, _session, socket) do
     if socket.assigns[:current_user] do
       {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/")}

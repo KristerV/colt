@@ -22,8 +22,8 @@ defmodule ColtWeb.Router do
     plug :set_actor, :user
   end
 
-  pipeline :require_authenticated_user do
-    plug :require_authenticated_user
+  pipeline :require_admin do
+    plug :require_admin
   end
 
   scope "/", ColtWeb do
@@ -47,7 +47,7 @@ defmodule ColtWeb.Router do
   end
 
   scope "/" do
-    pipe_through [:browser, :require_authenticated_user]
+    pipe_through [:browser, :require_admin]
 
     oban_dashboard("/admin/oban")
   end
@@ -109,13 +109,21 @@ defmodule ColtWeb.Router do
     end
   end
 
-  defp require_authenticated_user(conn, _opts) do
-    if conn.assigns[:current_user] do
-      conn
-    else
-      conn
-      |> Phoenix.Controller.redirect(to: "/sign-in")
-      |> Plug.Conn.halt()
+  defp require_admin(conn, _opts) do
+    case conn.assigns[:current_user] do
+      %{is_admin: true} ->
+        conn
+
+      %{} ->
+        conn
+        |> Phoenix.Controller.put_flash(:error, "Admins only.")
+        |> Phoenix.Controller.redirect(to: "/")
+        |> Plug.Conn.halt()
+
+      _ ->
+        conn
+        |> Phoenix.Controller.redirect(to: "/sign-in")
+        |> Plug.Conn.halt()
     end
   end
 end

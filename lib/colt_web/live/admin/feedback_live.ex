@@ -3,7 +3,7 @@ defmodule ColtWeb.Admin.FeedbackLive do
 
   alias Colt.Resources.Feedback
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, :items, Feedback.list!(actor: socket.assigns.current_user))}

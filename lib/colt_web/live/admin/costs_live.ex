@@ -7,7 +7,7 @@ defmodule ColtWeb.Admin.CostsLive do
   alias Colt.Resources.ApiCall
   alias Colt.Services.Costs.MonthlySummary
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
 
   def mount(_params, _session, socket) do
     {:ok, summary} = MonthlySummary.run(12)

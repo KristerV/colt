@@ -3,7 +3,7 @@ defmodule ColtWeb.AdminLive do
 
   require Ash.Query
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, :tiles, tiles())}
