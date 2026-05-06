@@ -207,6 +207,13 @@ defmodule ColtWeb.Components.Liid do
         </span>
         <span :if={@campaign_name} class="hidden md:inline w-px h-3.5 bg-ink20" />
         <%= if @current_user do %>
+          <button
+            type="button"
+            onclick="window.openFeedback()"
+            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline cursor-pointer bg-transparent border-0 p-0"
+          >
+            feedback
+          </button>
           <.link
             href="/admin"
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"

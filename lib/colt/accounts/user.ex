@@ -107,6 +107,11 @@ defmodule Colt.Accounts.User do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
     end
+
+    policy action_type(:read) do
+      authorize_if expr(^actor(:is_admin) == true)
+      authorize_if expr(id == ^actor(:id))
+    end
   end
 
   attributes do

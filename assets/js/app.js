@@ -25,11 +25,29 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/colt"
 import topbar from "../vendor/topbar"
 
+const FeedbackModal = {
+  mounted() {
+    this.handleEvent("feedback:sent", () => {
+      this.el.classList.add("hidden")
+      const ta = this.el.querySelector("#feedback-body")
+      if (ta) ta.value = ""
+    })
+  }
+}
+
+window.openFeedback = () => {
+  const el = document.getElementById("feedback-modal")
+  if (!el) return
+  el.classList.remove("hidden")
+  const ta = el.querySelector("#feedback-body")
+  if (ta) setTimeout(() => ta.focus(), 0)
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, FeedbackModal},
 })
 
 // Show progress bar on live navigation and form submits

@@ -1,6 +1,8 @@
 defmodule ColtWeb.AdminLive do
   use ColtWeb, :live_view
 
+  require Ash.Query
+
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
   def mount(_params, _session, socket) do
@@ -54,14 +56,31 @@ defmodule ColtWeb.AdminLive do
       <div class="card-body">
         <div class="text-xs uppercase tracking-wider opacity-60">{@tile.kicker}</div>
         <div class="text-xl font-semibold">{@tile.title}</div>
-        <div class="text-sm font-mono tabular-nums opacity-70">{@tile.value}</div>
+        <div class={[
+          "text-sm font-mono tabular-nums",
+          if(Map.get(@tile, :alert), do: "text-error font-semibold", else: "opacity-70")
+        ]}>
+          {@tile.value}
+        </div>
       </div>
     </.link>
     """
   end
 
   defp tiles do
+    open_feedback =
+      Colt.Resources.Feedback
+      |> Ash.Query.for_read(:count_open)
+      |> Ash.count!()
+
     [
+      %{
+        kicker: "Support",
+        title: "Feedback",
+        value: format_int(open_feedback) <> " open",
+        path: "/admin/feedback",
+        alert: open_feedback > 0
+      },
       %{
         kicker: "Data",
         title: "Companies",

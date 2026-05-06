@@ -10,5 +10,6 @@ defmodule Colt.Domain do
     resource Colt.Resources.ApiCall
     resource Colt.Resources.Page
     resource Colt.Resources.Person
+    resource Colt.Resources.Feedback
   end
 end

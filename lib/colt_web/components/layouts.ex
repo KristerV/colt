@@ -31,6 +31,13 @@ defmodule ColtWeb.Layouts do
       {render_slot(@inner_block)}
     </Liid.screen>
 
+    <.live_component
+      :if={@current_user}
+      module={ColtWeb.FeedbackComponent}
+      id="feedback"
+      current_user={@current_user}
+    />
+
     <.flash_group flash={@flash} />
     """
   end
