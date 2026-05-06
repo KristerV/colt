@@ -103,6 +103,7 @@ html, body {
 em {
   font-family: var(--font-serif);
   font-style: italic;
+  color: var(--accent);
 }
 
 .font-tnum, .tnum, table, .liid-table {

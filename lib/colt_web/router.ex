@@ -26,7 +26,7 @@ defmodule ColtWeb.Router do
     pipe_through :browser
 
     ash_authentication_live_session :authenticated_routes do
-      live "/", HomeLive
+      live "/", Campaigns.NewLive
       live "/campaigns/new", Campaigns.NewLive
       live "/campaigns/:id/icp", Campaigns.IcpLive
       live "/campaigns/:id/market", Campaigns.MarketLive

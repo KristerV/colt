@@ -495,8 +495,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               Export · {@campaign.name}
             </div>
             <h2 class="font-serif font-normal text-[32px] leading-none tracking-[-0.02em] m-0">
-              Take <span style="color: var(--accent);">{@count}</span> enriched
-              <%= if @count == 1, do: "contact", else: "contacts" %> somewhere.
+              Take <span style="color: var(--accent);">{@count}</span>
+              enriched {if @count == 1, do: "contact", else: "contacts"} somewhere.
             </h2>
           </div>
           <button
@@ -509,7 +509,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         </div>
 
         <div class="grid grid-cols-2 gap-2">
-          <.format_card name="CSV" desc="Flat sheet · companies + primary contact" note={"#{@count} rows"} enabled />
+          <.format_card
+            name="CSV"
+            desc="Flat sheet · companies + primary contact"
+            note={"#{@count} rows"}
+            enabled
+          />
           <.format_card name="JSON" desc="Nested · companies → people → pages" note="soon" />
           <.format_card name="HubSpot" desc="Push directly · de-dupe by domain" note="soon" />
           <.format_card name="Pipedrive" desc="Push directly · org + person + deal" note="soon" />
