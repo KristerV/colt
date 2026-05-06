@@ -102,11 +102,19 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
     end
   end
 
+  # Treat a path as "already fetched" only if a Page exists *with markdown*.
+  # Nav-extracted Page stubs (in_navigation: true, markdown: nil) are not
+  # actual fetches — recursing onto them is the whole point.
   defp drop_existing(links, company) do
     fetched =
       case Page.for_company(company.id) do
-        {:ok, pages} -> MapSet.new(pages, & &1.path)
-        _ -> MapSet.new()
+        {:ok, pages} ->
+          pages
+          |> Enum.filter(&is_binary(&1.markdown))
+          |> MapSet.new(& &1.path)
+
+        _ ->
+          MapSet.new()
       end
 
     Enum.reject(links, &MapSet.member?(fetched, &1.path))

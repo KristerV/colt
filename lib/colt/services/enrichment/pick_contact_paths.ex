@@ -1,16 +1,28 @@
 defmodule Colt.Services.Enrichment.PickContactPaths do
   @moduledoc """
-  From the company's nav-extracted paths, pick up to 3 most likely to host
-  named contacts. A heuristic prefilter narrows to plausible paths first;
-  GLM 4.7 ranks the survivors. Returns `{:ok, [path]}`.
+  From a list of paths on a company website, ask GLM 4.7 to pick up to 3
+  most likely to list named contacts (people, offices, "contact us", team).
+  Multilingual — the AI handles language variants better than a keyword list.
+  Returns `{:ok, [path]}`.
   """
 
   alias Colt.Services.Ai.Complete
 
-  @keywords ~w(contact team about people staff kontakt meeskond yhteystiedot henkilosto tietoa)
-
   @system """
-  Given paths from a company website, pick at most 3 most likely to list NAMED human contacts (founders, team, leadership, contact info). Return JSON only.
+  You pick up to 3 paths from a company website that are most likely to list NAMED human contacts.
+
+  Look for paths or anchor text suggesting:
+  - "contact" pages (any language: contact, kontakt, contacto, contatti, võta ühendust, yhteystiedot, …)
+  - "team" / "people" / "staff" / "leadership" / "about us" / "founders"
+  - "offices" / "locations" / "branches" (any language: offices, kontorid, kontor, sucursales, oficinas, toimipisteet, …)
+  - location/city pages under a contact or offices section (these often list per-office staff)
+
+  Skip:
+  - product categories, blog posts, news, careers/jobs (unless clearly leadership-related), legal pages, login/signup, language switchers, wishlists, search.
+
+  If multiple candidates fit, prefer hub pages (e.g. "/contact", "/offices") over individual sub-pages.
+
+  Return JSON only.
   """
 
   @schema %{
@@ -26,32 +38,18 @@ defmodule Colt.Services.Enrichment.PickContactPaths do
     }
   }
 
+  @max_listed 40
+
   def run(nav_links, opts \\ []) when is_list(nav_links) do
-    candidates = prefilter(nav_links)
-
-    cond do
-      candidates == [] ->
-        {:ok, []}
-
-      length(candidates) <= 3 ->
-        {:ok, Enum.map(candidates, & &1.path)}
-
-      true ->
-        rank(candidates, opts)
+    case Enum.take(nav_links, @max_listed) do
+      [] -> {:ok, []}
+      candidates -> rank(candidates, opts)
     end
-  end
-
-  defp prefilter(links) do
-    Enum.filter(links, fn %{path: p, title: t} ->
-      haystack = String.downcase("#{p} #{t || ""}")
-      Enum.any?(@keywords, &String.contains?(haystack, &1))
-    end)
   end
 
   defp rank(candidates, opts) do
     listing =
       candidates
-      |> Enum.take(20)
       |> Enum.map_join("\n", fn %{path: p, title: t} -> "- #{p}  (#{t || ""})" end)
 
     user = """
@@ -66,7 +64,7 @@ defmodule Colt.Services.Enrichment.PickContactPaths do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
-           max_tokens: 1500
+           max_tokens: 4000
          ) do
       {:ok, %{content: %{"paths" => paths}}} when is_list(paths) ->
         {:ok, paths |> Enum.filter(&is_binary/1) |> Enum.take(3)}
