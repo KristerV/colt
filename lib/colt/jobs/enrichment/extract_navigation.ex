@@ -12,7 +12,7 @@ defmodule Colt.Jobs.Enrichment.ExtractNavigation do
   use Oban.Worker, queue: :scrape, max_attempts: 2
 
   alias Colt.Resources.{CampaignCompany, Company, Page}
-  alias Colt.Services.Enrichment.{ExtractNavLinks, Transition}
+  alias Colt.Services.Enrichment.ExtractNavLinks
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id} = args}) do
@@ -20,13 +20,10 @@ defmodule Colt.Jobs.Enrichment.ExtractNavigation do
 
     with {:ok, cc} <- CampaignCompany.get(id),
          {:ok, company} <- Company.get(cc.company_id) do
-      Transition.stage(cc, :parse, :work)
-
       base = company.website_url || ""
 
       case ExtractNavLinks.run(html, base) do
         {:ok, []} ->
-          Transition.stage(cc, :parse, :done)
           :ok
 
         {:ok, links} ->
@@ -44,7 +41,6 @@ defmodule Colt.Jobs.Enrichment.ExtractNavigation do
             end
           end)
 
-          Transition.stage(cc, :parse, :done)
           :ok
       end
     end

@@ -21,7 +21,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
          {:ok, company} <- Company.get(cc.company_id),
          {:ok, campaign} <- Campaign.get(cc.campaign_id, authorize?: false),
          {:ok, pages} <- Page.for_company(company.id) do
-      Transition.stage(cc, :verify, :work)
+      Transition.stage(cc, :contact, :work)
 
       haystack =
         pages
@@ -56,10 +56,10 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
         cond do
           validated == [] ->
-            Transition.stage(cc, :verify, :fall)
+            Transition.stage(cc, :contact, :fall)
 
             {:ok, _} =
-              Transition.terminate(cc, :unverified,
+              Transition.terminate(cc, :no_contacts,
                 reason: "extracted #{length(candidates)} contact(s); none verified in markdown"
               )
 
@@ -70,8 +70,8 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
         end
 
       {:error, reason} ->
-        Transition.stage(cc, :verify, :fail)
-        {:ok, _} = Transition.terminate(cc, :failed, stage: :verify, reason: short(reason))
+        Transition.stage(cc, :contact, :fail)
+        {:ok, _} = Transition.terminate(cc, :failed, stage: :contact, reason: short(reason))
         {:error, inspect(reason)}
     end
   end
@@ -96,7 +96,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     end)
 
     {:ok, _} = Company.touch_enriched(company)
-    Transition.stage(cc, :verify, :done)
+    Transition.stage(cc, :contact, :done)
     {:ok, _} = Transition.terminate(cc, :enriched)
 
     contact_patch = first_contact_patch(validated, title_flags)

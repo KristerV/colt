@@ -17,7 +17,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
          {:ok, company} <- Company.get(cc.company_id) do
-      Transition.stage(cc, :web, :work)
+      Transition.stage(cc, :website, :work)
       query = "\"#{company.name}\" #{company.region || ""}" |> String.trim()
 
       case Google.run(query, num: 5, campaign_id: cc.campaign_id) do
@@ -40,7 +40,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
 
       {:ok, url} ->
         {:ok, _} = Company.set_website(company, url, :google)
-        Transition.stage(cc, :web, :done)
+        Transition.stage(cc, :website, :done)
         %{campaign_company_id: cc.id} |> FetchLanding.new() |> Oban.insert!()
         :ok
 
@@ -50,14 +50,14 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   end
 
   defp mark_no_website(cc) do
-    Transition.stage(cc, :web, :fall)
+    Transition.stage(cc, :website, :fall)
     {:ok, _} = Transition.terminate(cc, :no_website)
     :ok
   end
 
   defp fail(cc, reason) do
-    Transition.stage(cc, :web, :fail)
-    {:ok, _} = Transition.terminate(cc, :failed, stage: :web, reason: short(reason))
+    Transition.stage(cc, :website, :fail)
+    {:ok, _} = Transition.terminate(cc, :failed, stage: :website, reason: short(reason))
     {:error, inspect(reason)}
   end
 

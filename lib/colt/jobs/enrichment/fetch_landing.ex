@@ -11,7 +11,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   """
   use Oban.Worker, queue: :scrape, max_attempts: 3
 
-  alias Colt.Jobs.Enrichment.{ExtractNavigation, SummarizeCompany}
+  alias Colt.Jobs.Enrichment.{ExtractNavigation, GoogleSearch, SummarizeCompany}
   alias Colt.Locks
   alias Colt.Resources.{CampaignCompany, Company, Page}
   alias Colt.Services.Enrichment.{ExtractGenericEmail, Freshness, Transition}
@@ -26,9 +26,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
          {:ok, company} <- Company.get(cc.company_id) do
       cond do
         not is_binary(company.website_url) ->
-          Transition.stage(cc, :web, :fall)
-          {:ok, _} = Transition.terminate(cc, :no_website)
-          :ok
+          fallback_to_google(cc, company, "no website_url on company")
 
         true ->
           maybe_run(cc, company)
@@ -40,8 +38,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
     case existing_landing(company) do
       %Page{} = page ->
         if Freshness.page_fresh?(page) do
-          Transition.stage(cc, :scrape, :skip)
-          Transition.stage(cc, :parse, :skip)
+          Transition.stage(cc, :website, :skip)
           %{campaign_company_id: cc.id} |> SummarizeCompany.new() |> Oban.insert!()
           :ok
         else
@@ -54,7 +51,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   end
 
   defp do_fetch(cc, company) do
-    Transition.stage(cc, :scrape, :work)
+    Transition.stage(cc, :website, :work)
     host = uri_host(company.website_url)
 
     case Locks.with_domain_lock(host, fn -> Fetch.run(company.website_url) end) do
@@ -65,12 +62,23 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
         finish_fetch(cc, company, html, fetcher, final)
 
       {:ok, {:error, reason}} ->
-        Transition.stage(cc, :scrape, :fail)
-        {:ok, _} = Transition.terminate(cc, :failed, stage: :scrape, reason: short(reason))
-        {:error, inspect(reason)}
+        fallback_to_google(cc, company, short(reason))
 
       {:error, reason} ->
         {:error, inspect(reason)}
+    end
+  end
+
+  # Scrape failed (or URL missing). If we haven't already tried Google for
+  # this company, retry via search. Otherwise terminate.
+  defp fallback_to_google(cc, company, reason) do
+    if company.website_source == :google do
+      Transition.stage(cc, :website, :fail)
+      {:ok, _} = Transition.terminate(cc, :failed, stage: :website, reason: reason)
+      :ok
+    else
+      %{campaign_company_id: cc.id} |> GoogleSearch.new() |> Oban.insert!()
+      :ok
     end
   end
 
@@ -96,8 +104,6 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
       {:ok, _} = Company.set_generic_email(company, generic_email)
     end
 
-    Transition.stage(cc, :scrape, :done)
-    Transition.stage(cc, :parse, :work)
     enqueue_next(cc, html)
     :ok
   end

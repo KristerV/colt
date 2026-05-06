@@ -10,15 +10,12 @@ defmodule ColtWeb.Components.Funnel do
   alias ColtWeb.Components.Liid
 
   @stage_labels %{
-    web: "Website",
-    scrape: "Pages",
-    parse: "Parse",
+    website: "Website",
     icp: "ICP fit",
-    contact: "Contacts",
-    verify: "Verified"
+    contact: "Contact"
   }
 
-  @stage_keys ~w(web scrape parse icp contact verify)a
+  @stage_keys ~w(website icp contact)a
 
   def stage_keys, do: @stage_keys
   def stage_labels, do: @stage_labels
@@ -190,7 +187,7 @@ defmodule ColtWeb.Components.Funnel do
           <.pill_dot state={st} />
           {Map.fetch!(@labels, key)}
         </span>
-        <span :if={i < 5} class="w-1 h-px bg-ink20" />
+        <span :if={i < 2} class="w-1 h-px bg-ink20" />
       <% end %>
     </div>
     """
@@ -319,7 +316,7 @@ defmodule ColtWeb.Components.Funnel do
       </div>
 
       <div>
-        <%= if @row.status in [:rejected, :no_website, :no_contacts, :unverified, :failed] do %>
+        <%= if @row.status in [:rejected, :no_website, :no_contacts, :failed] do %>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
             Outcome
           </div>
@@ -379,13 +376,9 @@ defmodule ColtWeb.Components.Funnel do
   defp outcome_label(:rejected, _), do: "icp miss"
   defp outcome_label(:no_website, _), do: "no website"
   defp outcome_label(:no_contacts, _), do: "no contacts"
-  defp outcome_label(:unverified, _), do: "unverified"
-  defp outcome_label(:failed, :web), do: "search failed"
-  defp outcome_label(:failed, :scrape), do: "scrape failed"
-  defp outcome_label(:failed, :parse), do: "parse failed"
+  defp outcome_label(:failed, :website), do: "website failed"
   defp outcome_label(:failed, :icp), do: "icp failed"
   defp outcome_label(:failed, :contact), do: "contact failed"
-  defp outcome_label(:failed, :verify), do: "verify failed"
   defp outcome_label(:failed, _), do: "failed"
   defp outcome_label(_, _), do: ""
 
@@ -418,13 +411,9 @@ defmodule ColtWeb.Components.Funnel do
   defp status_view(:rejected, _), do: {"icp miss", "var(--ink40)", false}
   defp status_view(:no_website, _), do: {"no website", "var(--warn)", false}
   defp status_view(:no_contacts, _), do: {"no contacts", "var(--warn)", false}
-  defp status_view(:unverified, _), do: {"unverified", "var(--warn)", false}
-  defp status_view(:failed, :web), do: {"search failed", "var(--fail)", false}
-  defp status_view(:failed, :scrape), do: {"scrape failed", "var(--fail)", false}
-  defp status_view(:failed, :parse), do: {"parse failed", "var(--fail)", false}
+  defp status_view(:failed, :website), do: {"website failed", "var(--fail)", false}
   defp status_view(:failed, :icp), do: {"icp failed", "var(--fail)", false}
   defp status_view(:failed, :contact), do: {"contact failed", "var(--fail)", false}
-  defp status_view(:failed, :verify), do: {"verify failed", "var(--fail)", false}
   defp status_view(:failed, _), do: {"failed", "var(--fail)", false}
   defp status_view(_, _), do: {"queued", "var(--ink40)", false}
 

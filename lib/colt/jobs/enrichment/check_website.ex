@@ -19,11 +19,11 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
     with {:ok, cc} <- CampaignCompany.get(id),
          {:ok, _cc} <- Transition.begin(cc),
          {:ok, company} <- Company.get(cc.company_id) do
-      Transition.stage(cc, :web, :work)
+      Transition.stage(cc, :website, :work)
 
       cond do
         Freshness.company_fresh?(company) and is_binary(company.website_url) ->
-          Transition.stage(cc, :web, :skip)
+          Transition.stage(cc, :website, :skip)
           enqueue(FetchLanding, cc)
           :ok
 
@@ -31,7 +31,7 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
           run_check(cc, company)
 
         true ->
-          Transition.stage(cc, :web, :fall)
+          Transition.stage(cc, :website, :fall)
           enqueue(GoogleSearch, cc)
           :ok
       end
@@ -41,12 +41,12 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
   defp run_check(cc, company) do
     case CheckAlive.run(company.website_url) do
       {:ok, :alive} ->
-        Transition.stage(cc, :web, :done)
+        Transition.stage(cc, :website, :done)
         enqueue(FetchLanding, cc)
         :ok
 
       {:ok, :dead} ->
-        Transition.stage(cc, :web, :fall)
+        Transition.stage(cc, :website, :fall)
         enqueue(GoogleSearch, cc)
         :ok
     end

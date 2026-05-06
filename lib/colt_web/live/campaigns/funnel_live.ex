@@ -15,7 +15,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
-  @stage_keys ~w(web scrape parse icp contact verify)a
+  @stage_keys ~w(website icp contact)a
 
   @tick_ms 4_000
 
@@ -228,13 +228,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   defp snapshot_stages(:pending, _), do: idle_stages()
   defp snapshot_stages(:scraping, _), do: idle_stages()
-  defp snapshot_stages(:no_website, _), do: stages_up_to(:web, :fall)
+  defp snapshot_stages(:no_website, _), do: stages_up_to(:website, :fall)
   defp snapshot_stages(:rejected, _), do: stages_up_to(:icp, :fall)
   defp snapshot_stages(:no_contacts, _), do: stages_up_to(:contact, :fall)
-  defp snapshot_stages(:unverified, _), do: stages_up_to(:verify, :fall)
 
   defp snapshot_stages(:enriched, _),
-    do: %{web: :done, scrape: :done, parse: :done, icp: :done, contact: :done, verify: :done}
+    do: %{website: :done, icp: :done, contact: :done}
 
   defp snapshot_stages(:failed, stage) when stage in @stage_keys,
     do: stages_up_to(stage, :fail)
@@ -258,7 +257,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket(:rejected), do: :rejected
   defp bucket(:no_website), do: :failed
   defp bucket(:no_contacts), do: :failed
-  defp bucket(:unverified), do: :failed
   defp bucket(:failed), do: :failed
   defp bucket(_), do: :queued
 

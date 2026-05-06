@@ -16,7 +16,7 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
          {:ok, company} <- Company.get(cc.company_id) do
       cond do
         Freshness.has_summary?(company) and Freshness.company_fresh?(company) ->
-          Transition.stage(cc, :parse, :skip)
+          Transition.stage(cc, :website, :skip)
           enqueue_next(cc)
           :ok
 
@@ -27,15 +27,15 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
   end
 
   defp run_summary(cc, company) do
-    Transition.stage(cc, :parse, :work)
+    Transition.stage(cc, :website, :work)
 
     case landing_markdown(company) do
       "" ->
-        Transition.stage(cc, :parse, :fall)
+        Transition.stage(cc, :website, :fall)
 
         {:ok, _} =
           Transition.terminate(cc, :failed,
-            stage: :parse,
+            stage: :website,
             reason: "no landing markdown to summarise"
           )
 
@@ -45,13 +45,13 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
         case SummarizeLanding.run(md, campaign_id: cc.campaign_id) do
           {:ok, summary} ->
             {:ok, _} = Company.set_ai_summary(company, summary)
-            Transition.stage(cc, :parse, :done)
+            Transition.stage(cc, :website, :done)
             enqueue_next(cc)
             :ok
 
           {:error, reason} ->
-            Transition.stage(cc, :parse, :fail)
-            {:ok, _} = Transition.terminate(cc, :failed, stage: :parse, reason: short(reason))
+            Transition.stage(cc, :website, :fail)
+            {:ok, _} = Transition.terminate(cc, :failed, stage: :website, reason: short(reason))
             {:error, inspect(reason)}
         end
     end

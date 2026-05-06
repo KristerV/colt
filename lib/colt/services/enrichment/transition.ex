@@ -23,11 +23,11 @@ defmodule Colt.Services.Enrichment.Transition do
   Move CC to a terminal status and broadcast the row patch.
 
   `terminal` is one of
-    `:enriched | :rejected | :no_website | :no_contacts | :unverified | :failed`.
+    `:enriched | :rejected | :no_website | :no_contacts | :failed`.
 
-  Pass `stage:` (one of the 6 stage atoms) when terminating with `:failed` so
-  the funnel can paint the right pill red on reload. `reason:` is a string
-  shown to the user.
+  Pass `stage:` (one of `:website | :icp | :contact`) when terminating with
+  `:failed` so the funnel can paint the right pill red on reload. `reason:`
+  is a string shown to the user.
   """
   def terminate(%CampaignCompany{} = cc, terminal, opts \\ []) do
     reason = Keyword.get(opts, :reason)
@@ -46,9 +46,6 @@ defmodule Colt.Services.Enrichment.Transition do
 
         :no_contacts ->
           CampaignCompany.mark_no_contacts(cc, %{reason: reason})
-
-        :unverified ->
-          CampaignCompany.mark_unverified(cc, %{reason: reason})
 
         :failed ->
           CampaignCompany.mark_failed(cc, %{failed_stage: stage, reason: reason})
