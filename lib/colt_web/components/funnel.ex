@@ -297,6 +297,21 @@ defmodule ColtWeb.Components.Funnel do
       style="grid-template-columns: 1.4fr 1fr; padding: 20px 24px 24px 56px;"
     >
       <div class="flex flex-col gap-6">
+        <div :if={Map.get(@row, :website_url)}>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+            Website
+          </div>
+          <a
+            href={@row.website_url}
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-1.5 text-[12px] text-ink hover:text-[var(--accent)] underline decoration-ink20 underline-offset-2"
+          >
+            <Liid.icon name="link" size={11} class="text-ink55" />
+            {@row.domain || @row.website_url}
+          </a>
+        </div>
+
         <div>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
             Pipeline
@@ -375,10 +390,16 @@ defmodule ColtWeb.Components.Funnel do
                   <span class="text-ink">{@row.contact.email}</span>
                   <span class="ml-auto text-[10px]" style="color: var(--accent);">verified</span>
                 </div>
-                <div :if={@row.domain} class="flex items-center gap-2">
+                <a
+                  :if={Map.get(@row, :website_url)}
+                  href={@row.website_url}
+                  target="_blank"
+                  rel="noopener"
+                  class="flex items-center gap-2 hover:text-[var(--accent)]"
+                >
                   <Liid.icon name="link" size={11} class="text-ink55" />
-                  <span class="text-ink truncate">{@row.domain}</span>
-                </div>
+                  <span class="text-ink truncate">{@row.domain || @row.website_url}</span>
+                </a>
               </div>
             </div>
           <% else %>

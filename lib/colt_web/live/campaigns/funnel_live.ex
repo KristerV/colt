@@ -186,6 +186,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       cc_id: cc.id,
       name: company.name,
       domain: domain_of(company.website_url),
+      website_url: company.website_url,
       registry_code: company.registry_code,
       industry: IndustryLabels.label(company.industry_code) || "—",
       size: company.employees_latest,
@@ -204,11 +205,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   defp pick_person([]), do: nil
 
-  defp pick_person(persons) do
-    Enum.find(persons, & &1.matches_target_title) ||
-      Enum.find(persons, & &1.validated_in_markdown) ||
-      List.first(persons)
-  end
+  defp pick_person(persons),
+    do: Enum.find(persons, & &1.matches_target_title) || List.first(persons)
 
   defp contact_for(nil), do: nil
 

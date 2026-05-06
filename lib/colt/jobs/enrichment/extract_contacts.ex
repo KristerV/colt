@@ -13,7 +13,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   alias Colt.Resources.{Campaign, CampaignCompany, Company, Page, Person}
 
   alias Colt.Services.Enrichment, as: Svc
-  alias Colt.Services.Enrichment.{FailureMessage, MatchTitles, Transition, ValidateInMarkdown}
+  alias Colt.Services.Enrichment.{FailureMessage, PickBestContact, Transition, ValidateInMarkdown}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -85,12 +85,13 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   end
 
   defp persist_and_finish(cc, company, campaign, pages, validated) do
-    title_flags = title_flags_for(campaign.target_job_title, validated, cc.campaign_id)
+    titles = Enum.map(validated, & &1.title)
+    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id)
     source_page_id = pick_source_page(pages)
 
     validated
-    |> Enum.zip(title_flags)
-    |> Enum.each(fn {p, matches?} ->
+    |> Enum.with_index()
+    |> Enum.each(fn {p, i} ->
       Person.create_validated(%{
         company_id: company.id,
         source_page_id: source_page_id,
@@ -99,7 +100,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
         email: p.email,
         phone: p.phone,
         validated_in_markdown: true,
-        matches_target_title: matches?
+        matches_target_title: i == picked_idx
       })
     end)
 
@@ -107,10 +108,22 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     Transition.stage(cc, :contact, :done)
     {:ok, _} = Transition.terminate(cc, :enriched)
 
-    contact_patch = first_contact_patch(validated, title_flags)
-    if contact_patch != %{}, do: broadcast_contact(cc, contact_patch)
+    if is_integer(picked_idx) do
+      p = Enum.at(validated, picked_idx)
+      broadcast_contact(cc, %{contact_name: p.name, contact_title: p.title})
+    end
 
     :ok
+  end
+
+  # Return a 0-based index into `validated`, or nil if no good match. Falls
+  # back to nil on AI error — UI's `pick_person/1` will still pick the first
+  # validated person.
+  defp pick_index(target, titles, campaign_id) do
+    case PickBestContact.run(target, titles, campaign_id: campaign_id) do
+      {:ok, i} when is_integer(i) -> i
+      _ -> nil
+    end
   end
 
   defp validate_all(candidates, haystack) do
@@ -122,30 +135,10 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     end)
   end
 
-  defp title_flags_for(_target, [], _cid), do: []
-  defp title_flags_for(nil, list, _cid), do: List.duplicate(false, length(list))
-  defp title_flags_for("", list, _cid), do: List.duplicate(false, length(list))
-
-  defp title_flags_for(target, list, campaign_id) do
-    titles = Enum.map(list, & &1.title)
-
-    case MatchTitles.run(target, titles, campaign_id: campaign_id) do
-      {:ok, flags} -> flags
-      _ -> List.duplicate(false, length(list))
-    end
-  end
-
   defp pick_source_page(pages) do
     contact = Enum.find(pages, &(&1.in_navigation and not is_nil(&1.markdown)))
     landing = Enum.find(pages, &(&1.path == "/"))
     (contact || landing || %{id: nil}).id
-  end
-
-  defp first_contact_patch(validated, flags) do
-    case Enum.zip(validated, flags) |> Enum.find(fn {_p, m} -> m end) do
-      {p, _} -> %{contact_name: p.name, contact_title: p.title}
-      _ -> %{}
-    end
   end
 
   defp broadcast_contact(cc, patch) do
