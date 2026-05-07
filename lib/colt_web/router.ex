@@ -5,6 +5,7 @@ defmodule ColtWeb.Router do
   use AshAuthentication.Phoenix.Router
 
   import AshAuthentication.Plug.Helpers
+  import Phoenix.LiveDashboard.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -50,6 +51,7 @@ defmodule ColtWeb.Router do
     pipe_through [:browser, :require_admin]
 
     oban_dashboard("/admin/oban")
+    live_dashboard "/admin/system", metrics: ColtWeb.Telemetry
   end
 
   scope "/", ColtWeb do
@@ -99,12 +101,9 @@ defmodule ColtWeb.Router do
     # If your application does not have an admins-only section yet,
     # you can use Plug.BasicAuth to set up some basic authentication
     # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
-
     scope "/dev" do
       pipe_through :browser
 
-      live_dashboard "/dashboard", metrics: ColtWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
   end

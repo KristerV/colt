@@ -5,8 +5,19 @@ defmodule ColtWeb.AdminLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
 
+  @tick_ms 3000
+
   def mount(_params, _session, socket) do
+    if connected?(socket) do
+      :cpu_sup.util()
+      :timer.send_interval(@tick_ms, :tick)
+    end
+
     {:ok, assign(socket, :tiles, tiles())}
+  end
+
+  def handle_info(:tick, socket) do
+    {:noreply, assign(socket, :tiles, tiles())}
   end
 
   def render(assigns) do
@@ -99,8 +110,42 @@ defmodule ColtWeb.AdminLive do
         value: format_money(current_month_cost()),
         path: "/admin/costs"
       },
-      oban_tile()
+      oban_tile(),
+      system_tile()
     ]
+  end
+
+  defp system_tile do
+    %{
+      kicker: "System",
+      title: "Resources",
+      value: "CPU #{cpu_pct()}% · RAM #{ram_pct()}%",
+      path: "/admin/system"
+    }
+  end
+
+  defp cpu_pct do
+    case :cpu_sup.util() do
+      {:all, busy, _, _} -> round(busy)
+      busy when is_number(busy) -> round(busy)
+      _ -> 0
+    end
+  end
+
+  defp ram_pct do
+    data = :memsup.get_system_memory_data()
+    total = Keyword.get(data, :total_memory) || Keyword.get(data, :system_total_memory)
+    free = Keyword.get(data, :free_memory, 0)
+
+    cached = Keyword.get(data, :cached_memory, 0)
+    buffered = Keyword.get(data, :buffered_memory, 0)
+    available = Keyword.get(data, :available_memory) || free + cached + buffered
+
+    if is_integer(total) and total > 0 do
+      round((total - available) * 100 / total)
+    else
+      0
+    end
   end
 
   defp oban_tile do
