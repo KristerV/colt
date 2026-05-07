@@ -19,6 +19,7 @@ defmodule Colt.Accounts.User do
       signing_secret Colt.Secrets
       store_all_tokens? true
       require_token_presence_for_authentication? true
+      token_lifetime {90, :days}
     end
 
     strategies do

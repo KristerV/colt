@@ -8,7 +8,8 @@ defmodule ColtWeb.Endpoint do
     store: :cookie,
     key: "_colt_key",
     signing_salt: "cAmSKff5",
-    same_site: "Lax"
+    same_site: "Lax",
+    max_age: 60 * 60 * 24 * 90
   ]
 
   socket "/live", Phoenix.LiveView.Socket,
