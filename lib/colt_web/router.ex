@@ -42,6 +42,7 @@ defmodule ColtWeb.Router do
       live "/admin/storage", Admin.StorageLive
       live "/admin/costs", Admin.CostsLive
       live "/admin/feedback", Admin.FeedbackLive
+      live "/admin/system", Admin.SystemLive
     end
 
     get "/campaigns/:id/export.csv", ExportController, :csv
@@ -51,7 +52,7 @@ defmodule ColtWeb.Router do
     pipe_through [:browser, :require_admin]
 
     oban_dashboard("/admin/oban")
-    live_dashboard "/admin/system", metrics: ColtWeb.Telemetry
+    live_dashboard "/admin/phoenix", metrics: ColtWeb.Telemetry
   end
 
   scope "/", ColtWeb do
