@@ -23,7 +23,7 @@ defmodule ColtWeb.Router do
   end
 
   pipeline :require_admin do
-    plug :require_admin
+    plug :ensure_admin
   end
 
   scope "/", ColtWeb do
@@ -109,7 +109,7 @@ defmodule ColtWeb.Router do
     end
   end
 
-  defp require_admin(conn, _opts) do
+  defp ensure_admin(conn, _opts) do
     case conn.assigns[:current_user] do
       %{is_admin: true} ->
         conn
