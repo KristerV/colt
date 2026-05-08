@@ -123,7 +123,13 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   # ---- index existing companies ----
 
   defp index_companies do
-    {:ok, Company.list_by_market!(:ee) |> Map.new(&{&1.registry_code, &1})}
+    companies =
+      Company
+      |> Ash.Query.for_read(:list_by_market, %{market: :ee})
+      |> Ash.Query.select([:id, :registry_code])
+      |> Ash.read!()
+
+    {:ok, Map.new(companies, &{&1.registry_code, &1})}
   end
 
   # ---- read elemendid → upsert AnnualReports ----
