@@ -24,6 +24,20 @@ defmodule Colt.Services.Ingest.Sample do
     end
   end
 
+  @doc """
+  True when sampling is on (dev). Ingest pipelines use this to gate
+  dev-only filters (e.g. active-only) so the small sample isn't
+  dominated by ceased shells. In prod returns false → no extra filtering.
+  """
+  def enabled? do
+    case rate() do
+      nil -> false
+      n when n in [0, 0.0] -> false
+      r when is_number(r) and r > 0 and r < 1 -> true
+      _ -> false
+    end
+  end
+
   defp hash_under?(code, rate) do
     :erlang.phash2(to_string(code), @resolution) < trunc(rate * @resolution)
   end

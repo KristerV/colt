@@ -41,6 +41,7 @@ erl_crash.dump
 
 # Local caches and tooling
 /priv/ingest_cache/
+/priv/ingest_cache_fi/
 /.expert/
 /.dexter/
 /.claude/

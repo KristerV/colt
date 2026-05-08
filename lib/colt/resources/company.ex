@@ -12,6 +12,7 @@ defmodule Colt.Resources.Company do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :upsert_basic
+    define :upsert_full
     define :patch_details
     define :list_by_market, args: [:market]
     define :with_annual_report
@@ -57,6 +58,25 @@ defmodule Colt.Resources.Company do
       upsert? true
       upsert_identity :registry_code_market
       upsert_fields [:name, :region, :status]
+    end
+
+    create :upsert_full do
+      description "Upsert all registry fields in one shot. Used by sources (e.g. PRH/FI) where industry, website, and basics arrive together."
+
+      accept [
+        :registry_code,
+        :market,
+        :name,
+        :region,
+        :status,
+        :industry_code,
+        :website_url,
+        :website_source
+      ]
+
+      upsert? true
+      upsert_identity :registry_code_market
+      upsert_fields [:name, :region, :status, :industry_code, :website_url, :website_source]
     end
 
     create :upsert_details do

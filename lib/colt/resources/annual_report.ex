@@ -44,7 +44,7 @@ defmodule Colt.Resources.AnnualReport do
     attribute :employees, :integer, public?: true
 
     attribute :source, :atom,
-      constraints: [one_of: [:rik]],
+      constraints: [one_of: [:rik, :prh_ixbrl]],
       default: :rik,
       allow_nil?: false,
       public?: true

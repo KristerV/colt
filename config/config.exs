@@ -17,7 +17,8 @@ config :colt, Oban,
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
-       {"0 3 * * 0", Colt.Jobs.RikIngest}
+       {"0 3 * * 0", Colt.Jobs.RikIngest},
+       {"0 4 1 * *", Colt.Jobs.PrhIngest}
      ]}
   ]
 
@@ -68,6 +69,7 @@ config :colt,
   generators: [timestamp_type: :utc_datetime],
   ash_domains: [Colt.Accounts, Colt.Domain],
   rik_ee_cache_dir: "priv/ingest_cache",
+  prh_fi_cache_dir: "priv/ingest_cache_fi",
   ingest_max_years: 3,
   ash_authentication: [return_error_on_invalid_magic_link_token?: true],
   discord_webhook_url: nil

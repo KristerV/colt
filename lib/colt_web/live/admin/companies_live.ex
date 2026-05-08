@@ -27,6 +27,13 @@ defmodule ColtWeb.Admin.CompaniesLive do
           >
             Schedule rik.ee ingestion
           </button>
+          <button
+            type="button"
+            phx-click="schedule_prh_ingest"
+            class="btn btn-primary btn-sm rounded-none"
+          >
+            Schedule PRH (FI) ingestion
+          </button>
           <.link navigate="/admin/oban" class="text-sm opacity-60 hover:opacity-100 font-mono">
             View Oban &rarr;
           </.link>
@@ -46,12 +53,20 @@ defmodule ColtWeb.Admin.CompaniesLive do
   end
 
   def handle_event("schedule_rik_ingest", _params, socket) do
-    case Colt.Jobs.RikIngest.new(%{}) |> Oban.insert() do
+    schedule_job(socket, Colt.Jobs.RikIngest, "rik.ee")
+  end
+
+  def handle_event("schedule_prh_ingest", _params, socket) do
+    schedule_job(socket, Colt.Jobs.PrhIngest, "PRH (FI)")
+  end
+
+  defp schedule_job(socket, worker, label) do
+    case worker.new(%{}) |> Oban.insert() do
       {:ok, %Oban.Job{conflict?: true}} ->
-        {:noreply, put_flash(socket, :info, "rik.ee ingestion already scheduled or running.")}
+        {:noreply, put_flash(socket, :info, "#{label} ingestion already scheduled or running.")}
 
       {:ok, %Oban.Job{}} ->
-        {:noreply, put_flash(socket, :info, "rik.ee ingestion job scheduled.")}
+        {:noreply, put_flash(socket, :info, "#{label} ingestion job scheduled.")}
 
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Could not schedule job: #{inspect(reason)}")}
