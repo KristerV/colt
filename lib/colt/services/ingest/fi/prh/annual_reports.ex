@@ -222,13 +222,18 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
   so we only keep facts dated to the requested fiscal year end.
   """
   def parse_xbrl(xml, target_date \\ nil) when is_binary(xml) do
+    # Regex captures are sub-binaries pointing into `xml`. Anything we
+    # *retain* (ctx_map keys/values) gets copied so the multi-MB source
+    # binary can be released as soon as this function returns. The fact
+    # loop's `cid`/`val` are short-lived (used for lookup / parsed into a
+    # Decimal) so they don't need copying.
     ctx_map =
       Regex.scan(@context_re, xml, capture: :all_but_first)
       |> Enum.reduce(%{}, fn [cid, body], acc ->
         with [member] <- Regex.run(@mcy_re, body, capture: :all_but_first),
              [period_end] <- Regex.run(@period_end_re, body, capture: :all_but_first),
              true <- target_date == nil or period_end == target_date do
-          Map.put(acc, cid, member)
+          Map.put(acc, :binary.copy(cid), :binary.copy(member))
         else
           _ -> acc
         end
