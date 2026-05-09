@@ -46,9 +46,8 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
   @mcy_personnel_total "fi_MC:x5"
 
   def run do
-    with {:ok, by_code} <- index_companies(),
-         {:ok, dates} <- target_dates(),
-         {:ok, count} <- ingest_dates(dates, by_code),
+    with {:ok, dates} <- target_dates(),
+         {:ok, count} <- ingest_dates(dates),
          {:ok, recomputed} <- recompute_growth() do
       {:ok, %{processed: count, dates: dates, growth_recomputed: recomputed}}
     end
@@ -74,20 +73,9 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
     {:ok, dates}
   end
 
-  # ---- companies index (Y-tunnus → company id) ----
-
-  defp index_companies do
-    by_code =
-      Company.list_by_market!(:fi)
-      |> Map.new(&{&1.registry_code, &1})
-
-    Logger.info("Indexed #{map_size(by_code)} FI companies for XBRL join")
-    {:ok, by_code}
-  end
-
   # ---- per-date ingest ----
 
-  defp ingest_dates(dates, by_code) do
+  defp ingest_dates(dates) do
     cap = Application.get_env(:colt, :prh_fi_max_filings)
 
     {total, _remaining} =
@@ -97,7 +85,7 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
             {acc, 0}
 
           _ ->
-            n = ingest_date(date, by_code, cap)
+            n = ingest_date(date, cap)
             new_cap = if cap, do: max(cap - n, 0), else: nil
             {acc + n, new_cap}
         end
@@ -106,24 +94,21 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
     {:ok, total}
   end
 
-  defp ingest_date(date, by_code, cap) do
+  defp ingest_date(date, cap) do
     Logger.info("PRH XBRL: walking financialDate=#{date}")
 
     filings =
-      stream_listing(date)
+      stream_listing_pages(date)
+      |> Stream.flat_map(&resolve_companies/1)
       |> Stream.filter(&Sample.included?(&1.business_id))
-      |> Stream.filter(&Map.has_key?(by_code, &1.business_id))
       |> maybe_take(cap)
 
     count =
       filings
       |> Progress.tick("PRH filings (#{date})")
-      |> Stream.map(&fetch_and_parse(&1, date, date))
+      |> Stream.map(&fetch_and_parse(&1, date))
       |> Stream.reject(&is_nil/1)
-      |> Stream.map(fn parsed ->
-        company = Map.fetch!(by_code, parsed.business_id)
-        build_report(company, parsed, date)
-      end)
+      |> Stream.map(&build_report(&1, date))
       |> Stream.reject(&is_nil/1)
       |> Stream.chunk_every(@batch)
       |> Enum.reduce(0, fn chunk, n ->
@@ -139,12 +124,32 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
     count
   end
 
+  # Per-page registry_code → id lookup. Keeps memory flat regardless of how
+  # many FI companies exist locally — only the ~100 codes from the current
+  # listing page are resolved at a time. Filings whose business_id has no
+  # matching local company are dropped here.
+  defp resolve_companies(filings) do
+    codes = filings |> Enum.map(& &1.business_id) |> Enum.uniq()
+
+    by_code =
+      Company.ids_by_codes!(:fi, codes)
+      |> Map.new(&{&1.registry_code, &1.id})
+
+    filings
+    |> Enum.flat_map(fn f ->
+      case Map.get(by_code, f.business_id) do
+        nil -> []
+        id -> [Map.put(f, :company_id, id)]
+      end
+    end)
+  end
+
   defp maybe_take(stream, nil), do: stream
   defp maybe_take(stream, n) when is_integer(n), do: Stream.take(stream, n)
 
   # ---- listing pagination ----
 
-  defp stream_listing(date) do
+  defp stream_listing_pages(date) do
     Stream.unfold(1, fn
       :done ->
         nil
@@ -159,7 +164,6 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
             nil
         end
     end)
-    |> Stream.flat_map(& &1)
   end
 
   defp fetch_listing_page(date, page) do
@@ -186,13 +190,13 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
 
   # ---- single filing fetch + parse ----
 
-  defp fetch_and_parse(%{business_id: bid}, date, target_date) do
+  defp fetch_and_parse(%{business_id: bid, company_id: cid}, date) do
     url = "#{@filing_url}?businessId=#{bid}&financialDate=#{date}"
 
     case Req.get(url, retry: :transient, receive_timeout: 60_000, decode_body: false) do
       {:ok, %{status: 200, body: body}} when is_binary(body) ->
-        parsed = parse_xbrl(body, target_date)
-        Map.put(parsed, :business_id, bid)
+        parsed = parse_xbrl(body, date)
+        Map.merge(parsed, %{business_id: bid, company_id: cid})
 
       _ ->
         nil
@@ -249,7 +253,7 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
   defp abs_decimal(nil), do: nil
   defp abs_decimal(%Decimal{} = d), do: Decimal.abs(d)
 
-  defp build_report(company, parsed, date) do
+  defp build_report(parsed, date) do
     case parsed.revenue do
       nil ->
         nil
@@ -258,7 +262,7 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
         year = String.to_integer(String.slice(date, 0, 4))
 
         %{
-          company_id: company.id,
+          company_id: parsed.company_id,
           year: year,
           revenue_eur: rev,
           employees: estimate_employees(parsed),

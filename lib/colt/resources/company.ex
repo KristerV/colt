@@ -15,6 +15,7 @@ defmodule Colt.Resources.Company do
     define :upsert_full
     define :patch_details
     define :list_by_market, args: [:market]
+    define :ids_by_codes, args: [:market, :codes]
     define :with_annual_report
     define :with_employees
     define :by_market, args: [:market]
@@ -33,6 +34,14 @@ defmodule Colt.Resources.Company do
     read :list_by_market do
       argument :market, :atom, allow_nil?: false
       filter expr(market == ^arg(:market))
+    end
+
+    read :ids_by_codes do
+      description "Resolve {registry_code → id} for a batch of codes within one market. Used by ingest pipelines that need to join external filings to local company ids without holding the whole company list in memory."
+      argument :market, :atom, allow_nil?: false
+      argument :codes, {:array, :string}, allow_nil?: false
+      filter expr(market == ^arg(:market) and registry_code in ^arg(:codes))
+      prepare build(select: [:id, :registry_code])
     end
 
     read :with_annual_report do
