@@ -112,12 +112,20 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
       |> Stream.reject(&is_nil/1)
       |> Stream.chunk_every(@batch)
       |> Enum.reduce(0, fn chunk, n ->
-        Ash.bulk_create!(chunk, AnnualReport, :upsert,
+        # PRH's listing returns one row per filing, so a company that
+        # amended a previous year's filing shows up twice on the same
+        # financialDate. Postgres rejects an INSERT … ON CONFLICT batch
+        # that contains two rows colliding on the same identity, so we
+        # dedupe inside each chunk by (company_id, year). Cross-chunk
+        # repeats are fine — the upsert just overwrites.
+        deduped = Enum.uniq_by(chunk, &{&1.company_id, &1.year})
+
+        Ash.bulk_create!(deduped, AnnualReport, :upsert,
           return_errors?: true,
           stop_on_error?: true
         )
 
-        n + length(chunk)
+        n + length(deduped)
       end)
 
     Progress.done("PRH annual reports upserted (#{date})", count)
