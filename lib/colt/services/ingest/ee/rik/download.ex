@@ -84,14 +84,21 @@ defmodule Colt.Services.Ingest.Ee.Rik.Download do
   end
 
   defp maybe_download(source, dir) do
-    path = Path.join(dir, source.zip)
+    zip_path = Path.join(dir, source.zip)
+    out_path = Path.join(dir, source.out)
 
-    if fresh?(path) do
-      Logger.debug("Download skipped (fresh): #{source.zip}")
-      {:ok, :ok}
-    else
-      Logger.info("Downloading #{source.url}")
-      do_download(source.url, path)
+    cond do
+      fresh?(out_path) ->
+        Logger.debug("Download skipped (extracted file fresh): #{source.out}")
+        {:ok, :ok}
+
+      fresh?(zip_path) ->
+        Logger.debug("Download skipped (zip fresh): #{source.zip}")
+        {:ok, :ok}
+
+      true ->
+        Logger.info("Downloading #{source.url}")
+        do_download(source.url, zip_path)
     end
   end
 
@@ -130,6 +137,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.Download do
             {:ok, _} ->
               extracted = Path.join(dir, to_string(member))
               if extracted != out, do: File.rename!(extracted, out)
+              _ = File.rm(zip)
               {:ok, :ok}
 
             {:error, reason} ->

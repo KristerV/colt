@@ -34,6 +34,7 @@ defmodule Colt.Services.Ingest.Ee.Rik do
            maybe_stage(3, from, "Patching details (yldandmed.json)", &CompanyDetails.run/0),
          {:ok, reports} <-
            maybe_stage(4, from, "Importing annual reports + growth", &AnnualReports.run/0) do
+      cleanup_cache()
       Logger.info("Ingest finished in #{seconds(started)}s")
 
       {:ok,
@@ -43,6 +44,26 @@ defmodule Colt.Services.Ingest.Ee.Rik do
          details: details,
          reports: reports
        }}
+    end
+  end
+
+  # Wipes the rik.ee cache directory once the full ingest has succeeded. The
+  # downloader's 6-hour fresh check would otherwise keep ~3-4 GB of CSVs
+  # around between runs, which fills the Fly rootfs.
+  defp cleanup_cache do
+    dir = Application.fetch_env!(:colt, :rik_ee_cache_dir)
+    abs_dir = if Path.type(dir) == :absolute, do: dir, else: Application.app_dir(:colt, dir)
+
+    case File.ls(abs_dir) do
+      {:ok, names} ->
+        Enum.each(names, fn name ->
+          _ = File.rm(Path.join(abs_dir, name))
+        end)
+
+        Logger.info("Cache cleared: #{abs_dir} (#{length(names)} files)")
+
+      {:error, reason} ->
+        Logger.warning("Cache cleanup skipped: #{inspect(reason)}")
     end
   end
 

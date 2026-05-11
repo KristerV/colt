@@ -37,6 +37,7 @@ defmodule Colt.Services.Ingest.Fi.Prh do
            maybe_stage(2, from, "Importing companies (PRH NDJSON)", &CompaniesImport.run/0),
          {:ok, reports} <-
            maybe_stage(3, from, "Importing iXBRL annual reports", &AnnualReports.run/0) do
+      cleanup_cache()
       Logger.info("PRH ingest finished in #{seconds(started)}s")
 
       {:ok,
@@ -45,6 +46,25 @@ defmodule Colt.Services.Ingest.Fi.Prh do
          companies: companies,
          reports: reports
        }}
+    end
+  end
+
+  # Wipe the PRH cache (just the all_companies zip today) after a full
+  # successful ingest, so the Fly rootfs doesn't slowly fill up.
+  defp cleanup_cache do
+    dir = Application.fetch_env!(:colt, :prh_fi_cache_dir)
+    abs_dir = if Path.type(dir) == :absolute, do: dir, else: Application.app_dir(:colt, dir)
+
+    case File.ls(abs_dir) do
+      {:ok, names} ->
+        Enum.each(names, fn name ->
+          _ = File.rm(Path.join(abs_dir, name))
+        end)
+
+        Logger.info("PRH cache cleared: #{abs_dir} (#{length(names)} files)")
+
+      {:error, reason} ->
+        Logger.warning("PRH cache cleanup skipped: #{inspect(reason)}")
     end
   end
 
