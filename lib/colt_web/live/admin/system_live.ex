@@ -232,18 +232,20 @@ defmodule ColtWeb.Admin.SystemLive do
     Enum.find(disks, &(&1.mount == "/")) || Enum.max_by(disks, & &1.percent)
   end
 
+  # `:cpu_sup.util/1` reports utilization since the previous call on this node,
+  # so calling it twice per tick makes the second call measure only the
+  # microseconds between the two — yielding bogus 100%/0% per-core readings.
+  # Sample once and derive the aggregate from the per-cpu list.
   defp read_cpu do
-    aggregate = safe_cpu_util([:detailed])
-    per_cpu = safe_cpu_util([:detailed, :per_cpu])
-
-    %{busy: agg, steal: steal, wait: wait, idle: idle} = decode_cpu(aggregate)
+    per_cpu = decode_per_cpu(safe_cpu_util([:detailed, :per_cpu]))
+    agg = aggregate_per_cpu(per_cpu)
 
     %{
-      busy: agg,
-      steal: steal,
-      wait: wait,
-      idle: idle,
-      per_cpu: decode_per_cpu(per_cpu),
+      busy: agg.busy,
+      steal: agg.steal,
+      wait: agg.wait,
+      idle: agg.idle,
+      per_cpu: per_cpu,
       cores: :erlang.system_info(:logical_processors),
       load1: :cpu_sup.avg1() / 256,
       load5: :cpu_sup.avg5() / 256,
@@ -251,22 +253,28 @@ defmodule ColtWeb.Admin.SystemLive do
     }
   end
 
+  defp aggregate_per_cpu([]), do: %{busy: 0.0, steal: 0.0, wait: 0.0, idle: 0.0}
+
+  defp aggregate_per_cpu(list) do
+    n = length(list)
+
+    list
+    |> Enum.reduce(%{busy: 0.0, steal: 0.0, wait: 0.0, idle: 0.0}, fn c, acc ->
+      %{
+        busy: acc.busy + c.busy,
+        steal: acc.steal + c.steal,
+        wait: acc.wait + c.wait,
+        idle: acc.idle + c.idle
+      }
+    end)
+    |> Map.new(fn {k, v} -> {k, v / n} end)
+  end
+
   defp safe_cpu_util(opts) do
     :cpu_sup.util(opts)
   rescue
     _ -> nil
   end
-
-  defp decode_cpu({_cpus, busy, non_busy, _opts}) do
-    %{
-      busy: sum_kw(busy),
-      steal: Keyword.get(non_busy, :steal, 0.0),
-      wait: Keyword.get(non_busy, :wait, 0.0),
-      idle: Keyword.get(non_busy, :idle, 0.0)
-    }
-  end
-
-  defp decode_cpu(_), do: %{busy: 0.0, steal: 0.0, wait: 0.0, idle: 0.0}
 
   defp decode_per_cpu(list) when is_list(list) do
     Enum.map(list, fn {id, busy, non_busy, _opts} ->
