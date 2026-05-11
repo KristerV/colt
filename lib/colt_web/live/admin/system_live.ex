@@ -11,19 +11,27 @@ defmodule ColtWeb.Admin.SystemLive do
       :timer.send_interval(@tick_ms, :tick)
     end
 
-    prev = sample_diskstats()
-    {stats, _} = read_stats(prev, @tick_ms)
+    prev_disk = sample_diskstats()
+    prev_db = sample_db()
+    {stats, _, _} = read_stats(prev_disk, prev_db, @tick_ms)
 
     {:ok,
      socket
      |> assign(:stats, stats)
-     |> assign(:prev_diskstats, prev)
+     |> assign(:prev_diskstats, prev_disk)
+     |> assign(:prev_db, prev_db)
      |> assign(:tick_ms, @tick_ms)}
   end
 
   def handle_info(:tick, socket) do
-    {stats, next_prev} = read_stats(socket.assigns.prev_diskstats, @tick_ms)
-    {:noreply, socket |> assign(:stats, stats) |> assign(:prev_diskstats, next_prev)}
+    {stats, next_disk, next_db} =
+      read_stats(socket.assigns.prev_diskstats, socket.assigns.prev_db, @tick_ms)
+
+    {:noreply,
+     socket
+     |> assign(:stats, stats)
+     |> assign(:prev_diskstats, next_disk)
+     |> assign(:prev_db, next_db)}
   end
 
   def render(assigns) do
@@ -188,6 +196,47 @@ defmodule ColtWeb.Admin.SystemLive do
           </table>
         </section>
 
+        <section :if={@stats.db.ok?} class="space-y-3">
+          <h2 class="text-xs uppercase tracking-wider opacity-60">Database</h2>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <.metric
+              label="Connections"
+              value={"#{@stats.db.numbackends} / #{@stats.db.pool_size}"}
+              accent={pool_accent(@stats.db.numbackends, @stats.db.pool_size)}
+            />
+            <.metric label="Active queries" value={Integer.to_string(@stats.db.active)} />
+            <.metric
+              label="Idle in tx"
+              value={Integer.to_string(@stats.db.idle_in_tx)}
+              accent={idle_in_tx_accent(@stats.db.idle_in_tx)}
+            />
+            <.metric
+              label="Longest active"
+              value={duration_s(@stats.db.longest_active_s)}
+              accent={long_query_accent(@stats.db.longest_active_s)}
+            />
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <.metric label="Commits/s" value={per_sec(@stats.db.commits_per_s)} />
+            <.metric label="Rollbacks/s" value={per_sec(@stats.db.rollbacks_per_s)} />
+            <.metric label="Inserts/s" value={per_sec(@stats.db.inserts_per_s)} />
+            <.metric label="Updates/s" value={per_sec(@stats.db.updates_per_s)} />
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <.metric label="Deletes/s" value={per_sec(@stats.db.deletes_per_s)} />
+            <.metric
+              label="Cache hit"
+              value={pct(@stats.db.cache_hit_pct)}
+              accent={cache_hit_accent(@stats.db.cache_hit_pct)}
+            />
+            <.metric label="Blocks read/s" value={per_sec(@stats.db.blks_read_per_s)} />
+            <.metric label="DB size" value={gb(@stats.db.db_bytes)} />
+          </div>
+        </section>
+
         <section class="space-y-3">
           <h2 class="text-xs uppercase tracking-wider opacity-60">BEAM</h2>
 
@@ -271,6 +320,50 @@ defmodule ColtWeb.Admin.SystemLive do
   defp util_accent(n) when n >= 50, do: "text-warning"
   defp util_accent(_), do: nil
 
+  defp pool_accent(used, total) when is_integer(total) and total > 0 do
+    pct = used * 100 / total
+
+    cond do
+      pct >= 90 -> "text-error"
+      pct >= 70 -> "text-warning"
+      true -> nil
+    end
+  end
+
+  defp pool_accent(_, _), do: nil
+
+  defp idle_in_tx_accent(n) when n >= 3, do: "text-error"
+  defp idle_in_tx_accent(n) when n >= 1, do: "text-warning"
+  defp idle_in_tx_accent(_), do: nil
+
+  defp long_query_accent(s) when s >= 30, do: "text-error"
+  defp long_query_accent(s) when s >= 5, do: "text-warning"
+  defp long_query_accent(_), do: nil
+
+  defp cache_hit_accent(pct) when pct < 90, do: "text-warning"
+  defp cache_hit_accent(_), do: nil
+
+  defp per_sec(n) when is_number(n) do
+    cond do
+      n >= 1_000_000 -> :erlang.float_to_binary(n / 1_000_000, decimals: 1) <> "M"
+      n >= 1_000 -> :erlang.float_to_binary(n / 1_000, decimals: 1) <> "k"
+      true -> :erlang.float_to_binary(n * 1.0, decimals: 1)
+    end
+  end
+
+  defp per_sec(_), do: "—"
+
+  defp duration_s(s) when is_number(s) do
+    cond do
+      s >= 60 -> :erlang.float_to_binary(s / 60, decimals: 1) <> "m"
+      s >= 1 -> :erlang.float_to_binary(s * 1.0, decimals: 1) <> "s"
+      s > 0 -> :erlang.float_to_binary(s * 1000, decimals: 0) <> "ms"
+      true -> "—"
+    end
+  end
+
+  defp duration_s(_), do: "—"
+
   defp mbps(bps) when is_number(bps),
     do: :erlang.float_to_binary(bps / 1024 / 1024, decimals: 1)
 
@@ -281,10 +374,13 @@ defmodule ColtWeb.Admin.SystemLive do
 
   # ---- readers ----
 
-  defp read_stats(prev_diskstats, tick_ms) do
+  defp read_stats(prev_diskstats, prev_db, tick_ms) do
     disks = read_disks()
     next_diskstats = sample_diskstats()
     disk_io = diff_diskstats(prev_diskstats, next_diskstats, tick_ms)
+
+    next_db = sample_db()
+    db = build_db_stats(prev_db, next_db, tick_ms)
 
     stats = %{
       cpu: read_cpu(),
@@ -292,10 +388,11 @@ defmodule ColtWeb.Admin.SystemLive do
       disks: disks,
       disk_io: disk_io,
       summary_disk: pick_summary_disk(disks),
-      beam: read_beam()
+      beam: read_beam(),
+      db: db
     }
 
-    {stats, next_diskstats}
+    {stats, next_diskstats, next_db}
   end
 
   defp pick_summary_disk([]), do: %{mount: "/", percent: 0}
@@ -504,6 +601,158 @@ defmodule ColtWeb.Admin.SystemLive do
       util_pct: min(dbusy / (secs * 1000) * 100, 100.0)
     }
   end
+
+  # ---- database ----
+
+  # Snapshot of cumulative pg_stat counters + current activity. Compared
+  # against the previous tick's snapshot to derive per-second rates.
+  defp sample_db do
+    case Ecto.Adapters.SQL.query(
+           Colt.Repo,
+           """
+           SELECT
+             d.numbackends,
+             d.xact_commit,
+             d.xact_rollback,
+             d.blks_read,
+             d.blks_hit,
+             d.tup_inserted,
+             d.tup_updated,
+             d.tup_deleted,
+             pg_database_size(d.datname) AS db_bytes,
+             COALESCE(a.active, 0),
+             COALESCE(a.idle, 0),
+             COALESCE(a.idle_in_tx, 0),
+             COALESCE(a.longest_active_s, 0)
+           FROM pg_stat_database d
+           LEFT JOIN (
+             SELECT
+               datname,
+               count(*) FILTER (WHERE state = 'active') AS active,
+               count(*) FILTER (WHERE state = 'idle') AS idle,
+               count(*) FILTER (WHERE state = 'idle in transaction') AS idle_in_tx,
+               COALESCE(EXTRACT(EPOCH FROM (now() - min(query_start)))
+                 FILTER (WHERE state = 'active' AND pid <> pg_backend_pid()), 0) AS longest_active_s
+             FROM pg_stat_activity
+             WHERE datname = current_database()
+             GROUP BY datname
+           ) a ON a.datname = d.datname
+           WHERE d.datname = current_database()
+           """,
+           [],
+           timeout: 2_000
+         ) do
+      {:ok, %{rows: [row]}} ->
+        [
+          numbackends,
+          commits,
+          rollbacks,
+          blks_read,
+          blks_hit,
+          tup_ins,
+          tup_upd,
+          tup_del,
+          db_bytes,
+          active,
+          idle,
+          idle_in_tx,
+          longest_s
+        ] = row
+
+        %{
+          ok?: true,
+          at_us: System.monotonic_time(:microsecond),
+          numbackends: numbackends || 0,
+          commits: int(commits),
+          rollbacks: int(rollbacks),
+          blks_read: int(blks_read),
+          blks_hit: int(blks_hit),
+          tup_ins: int(tup_ins),
+          tup_upd: int(tup_upd),
+          tup_del: int(tup_del),
+          db_bytes: int(db_bytes),
+          active: int(active),
+          idle: int(idle),
+          idle_in_tx: int(idle_in_tx),
+          longest_active_s: to_float(longest_s)
+        }
+
+      _ ->
+        %{ok?: false}
+    end
+  rescue
+    _ -> %{ok?: false}
+  end
+
+  defp build_db_stats(prev, next, tick_ms) do
+    base = %{
+      ok?: Map.get(next, :ok?, false),
+      pool_size: pool_size(),
+      numbackends: Map.get(next, :numbackends, 0),
+      active: Map.get(next, :active, 0),
+      idle: Map.get(next, :idle, 0),
+      idle_in_tx: Map.get(next, :idle_in_tx, 0),
+      longest_active_s: Map.get(next, :longest_active_s, 0.0),
+      db_bytes: Map.get(next, :db_bytes, 0),
+      cache_hit_pct: cache_hit_pct(next),
+      commits_per_s: 0.0,
+      rollbacks_per_s: 0.0,
+      inserts_per_s: 0.0,
+      updates_per_s: 0.0,
+      deletes_per_s: 0.0,
+      blks_read_per_s: 0.0,
+      blks_hit_per_s: 0.0
+    }
+
+    if Map.get(prev, :ok?) and Map.get(next, :ok?) do
+      secs =
+        case {Map.get(prev, :at_us), Map.get(next, :at_us)} do
+          {p, n} when is_integer(p) and is_integer(n) and n > p -> (n - p) / 1_000_000
+          _ -> tick_ms / 1000
+        end
+
+      %{
+        base
+        | commits_per_s: rate(next.commits - prev.commits, secs),
+          rollbacks_per_s: rate(next.rollbacks - prev.rollbacks, secs),
+          inserts_per_s: rate(next.tup_ins - prev.tup_ins, secs),
+          updates_per_s: rate(next.tup_upd - prev.tup_upd, secs),
+          deletes_per_s: rate(next.tup_del - prev.tup_del, secs),
+          blks_read_per_s: rate(next.blks_read - prev.blks_read, secs),
+          blks_hit_per_s: rate(next.blks_hit - prev.blks_hit, secs)
+      }
+    else
+      base
+    end
+  end
+
+  defp cache_hit_pct(%{blks_hit: hit, blks_read: read})
+       when is_integer(hit) and is_integer(read) do
+    total = hit + read
+    if total > 0, do: hit * 100 / total, else: 0.0
+  end
+
+  defp cache_hit_pct(_), do: 0.0
+
+  defp pool_size do
+    Colt.Repo.config()
+    |> Keyword.get(:pool_size, 0)
+  rescue
+    _ -> 0
+  end
+
+  defp rate(delta, secs) when is_number(delta) and is_number(secs) and secs > 0,
+    do: max(delta, 0) / secs
+
+  defp rate(_, _), do: 0.0
+
+  defp int(n) when is_integer(n), do: n
+  defp int(%Decimal{} = d), do: Decimal.to_integer(d)
+  defp int(_), do: 0
+
+  defp to_float(n) when is_number(n), do: n * 1.0
+  defp to_float(%Decimal{} = d), do: Decimal.to_float(d)
+  defp to_float(_), do: 0.0
 
   defp read_beam do
     %{
