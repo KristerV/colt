@@ -143,55 +143,56 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   defp upsert_reports(year_files, latest_by_report, by_code) do
     total =
       Enum.reduce(year_files, 0, fn {year, path}, count ->
-        params = build_params(year, path, latest_by_report, by_code)
+        n =
+          path
+          |> stream_reports(latest_by_report)
+          |> Stream.flat_map(&to_params(&1, year, latest_by_report, by_code))
+          |> Stream.chunk_every(500)
+          |> Enum.reduce(0, fn chunk, written ->
+            Ash.bulk_create!(chunk, AnnualReport, :upsert,
+              return_errors?: true,
+              stop_on_error?: true
+            )
 
-        params
-        |> Stream.chunk_every(500)
-        |> Enum.each(fn chunk ->
-          Ash.bulk_create!(chunk, AnnualReport, :upsert,
-            return_errors?: true,
-            stop_on_error?: true
-          )
-        end)
+            written + length(chunk)
+          end)
 
-        Progress.done("annual reports upserted (#{year})", length(params))
-        count + length(params)
+        Progress.done("annual reports upserted (#{year})", n)
+        count + n
       end)
 
     {:ok, total}
   end
 
-  defp build_params(year, path, latest_by_report, by_code) do
-    path
-    |> collect_values(latest_by_report)
-    |> Enum.flat_map(fn {report_id, vals} ->
-      ref = Map.fetch!(latest_by_report, report_id)
-      company = Map.get(by_code, ref.registry_code)
+  defp to_params({report_id, vals}, year, latest_by_report, by_code) do
+    ref = Map.fetch!(latest_by_report, report_id)
+    company = Map.get(by_code, ref.registry_code)
 
-      cond do
-        is_nil(company) ->
-          []
+    cond do
+      is_nil(company) ->
+        []
 
-        is_nil(vals.revenue) ->
-          []
+      is_nil(vals.revenue) ->
+        []
 
-        true ->
-          [
-            %{
-              company_id: company.id,
-              year: year,
-              revenue_eur: vals.revenue,
-              employees: vals.employees,
-              source: :rik
-            }
-          ]
-      end
-    end)
+      true ->
+        [
+          %{
+            company_id: company.id,
+            year: year,
+            revenue_eur: vals.revenue,
+            employees: vals.employees,
+            source: :rik
+          }
+        ]
+    end
   end
 
-  @doc false
-  # Exposed for `bench/elemendid_parse.exs`. Not part of public API.
-  def collect_values(path, latest_by_report) do
+  # Streams `{report_id, %{revenue, employees}}` tuples. elemendid CSVs are
+  # sorted by report_id, so we group contiguous rows and fold each group
+  # in isolation — no global accumulator, so GC stays cheap for the whole
+  # 3.7M-row file.
+  def stream_reports(path, latest_by_report) do
     [header_line] = path |> File.stream!() |> Enum.take(1)
     headers = parse_csv_line(header_line)
 
@@ -204,9 +205,21 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     |> Stream.filter(&relevant_report?(&1, latest_by_report))
     |> Stream.map(&parse_element_row(&1, headers))
     |> Stream.reject(&is_nil/1)
-    |> Enum.reduce(%{}, fn row, acc ->
-      classify(row, acc)
-    end)
+    |> Stream.chunk_by(& &1.report_id)
+    |> Stream.map(&fold_group/1)
+  end
+
+  @doc false
+  # Eager variant for the bench harness. Don't use in the ingest hot path.
+  def collect_values(path, latest_by_report) do
+    path
+    |> stream_reports(latest_by_report)
+    |> Enum.into(%{})
+  end
+
+  defp fold_group([%{report_id: rid} | _] = rows) do
+    vals = Enum.reduce(rows, %{revenue: nil, employees: nil}, &classify_row/2)
+    {rid, vals}
   end
 
   # Cheap-skip rows whose report_id isn't in our latest-per-(code,year) set.
@@ -240,33 +253,26 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     end
   end
 
-  defp classify(%{element: "Revenue", tabel: tabel, value: v, report_id: rid}, acc) do
+  defp classify_row(%{element: "Revenue", tabel: tabel, value: v}, vals) do
     if MapSet.member?(@revenue_tables, tabel) do
-      put_value(acc, rid, :revenue, parse_decimal(v))
+      %{vals | revenue: parse_decimal(v)}
     else
-      acc
+      vals
     end
   end
 
-  defp classify(
+  defp classify_row(
          %{
            element: "AverageNumberOfEmployeesInFullTimeEquivalentUnits",
            tabel: @employee_table,
-           value: v,
-           report_id: rid
+           value: v
          },
-         acc
+         vals
        ) do
-    put_value(acc, rid, :employees, parse_employee_count(v))
+    %{vals | employees: parse_employee_count(v)}
   end
 
-  defp classify(_row, acc), do: acc
-
-  defp put_value(acc, rid, key, value) do
-    Map.update(acc, rid, %{revenue: nil, employees: nil} |> Map.put(key, value), fn vals ->
-      Map.put(vals, key, value)
-    end)
-  end
+  defp classify_row(_row, vals), do: vals
 
   defp parse_decimal(nil), do: nil
   defp parse_decimal(""), do: nil

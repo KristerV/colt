@@ -7,9 +7,12 @@ defmodule Colt.Bench.AnnualReportsParse do
   # In remote iex:
   #
   #   alias Colt.Bench.AnnualReportsParse, as: B
-  #   B.run("priv/ingest_cache/elemendid_2023.csv", 200_000)
-  #   B.run("priv/ingest_cache/elemendid_2023.csv", 800_000,
-  #         fat: "priv/ingest_cache/aruannete_yldandmed.csv")
+  #   B.run(200_000)               # light index, default elemendid_2023.csv
+  #   B.run(800_000, fat: true)    # prod-shaped heap via aruannete overview
+  #
+  # Override paths if needed:
+  #
+  #   B.run(200_000, elemendid: "/some/path/elemendid_2024.csv")
   #
   # Times only the parse + classify + reduce step. DB writes are excluded.
 
@@ -17,8 +20,16 @@ defmodule Colt.Bench.AnnualReportsParse do
 
   @full_elemendid_2023_rows 3_726_716
 
-  def run(elemendid_path, n, opts \\ []) do
-    fat_path = Keyword.get(opts, :fat)
+  def run(n, opts \\ []) when is_integer(n) do
+    cache_dir = default_cache_dir()
+    elemendid_path = Keyword.get(opts, :elemendid, Path.join(cache_dir, "elemendid_2023.csv"))
+
+    fat_path =
+      case Keyword.get(opts, :fat) do
+        true -> Path.join(cache_dir, "aruannete_yldandmed.csv")
+        path when is_binary(path) -> path
+        _ -> nil
+      end
 
     unless File.exists?(elemendid_path) do
       IO.puts(:stderr, "source not found: #{elemendid_path}")
@@ -67,6 +78,15 @@ defmodule Colt.Bench.AnnualReportsParse do
     )
 
     :ok
+  end
+
+  defp default_cache_dir do
+    configured = Application.fetch_env!(:colt, :rik_ee_cache_dir)
+
+    case Path.type(configured) do
+      :absolute -> configured
+      _ -> Application.app_dir(:colt, configured)
+    end
   end
 
   defp slice(src, dst, n) do
