@@ -17,7 +17,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
      a single SQL pass across all companies that have any reports.
   """
 
-  alias Colt.Resources.{AnnualReport, Company}
+  alias Colt.Resources.Company
   alias Colt.Services.Ingest.Ee.Rik.AnnualReports.CSV
   alias Colt.Services.Ingest.Progress
   alias Colt.Services.Ingest.Sample
@@ -143,15 +143,37 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   defp upsert_reports(year_files, latest_by_report, by_code) do
     total =
       Enum.reduce(year_files, 0, fn {year, path}, count ->
+        last_ref = :erlang.make_ref()
+        Process.put({:last_chunk_end, last_ref}, System.monotonic_time(:microsecond))
+
         n =
           path
           |> stream_reports(latest_by_report)
-          |> Stream.flat_map(&to_params(&1, year, latest_by_report, by_code))
-          |> Stream.chunk_every(5_000)
-          |> Enum.reduce(0, fn chunk, written ->
-            Ash.bulk_create!(chunk, AnnualReport, :upsert,
-              return_errors?: true,
-              stop_on_error?: true
+          |> Stream.flat_map(fn report ->
+            t = System.monotonic_time(:microsecond)
+            params = to_params(report, year, latest_by_report, by_code)
+            tick_us(:t_params, System.monotonic_time(:microsecond) - t)
+            params
+          end)
+          |> Stream.chunk_every(500)
+          |> Stream.with_index(1)
+          |> Enum.reduce(0, fn {chunk, idx}, written ->
+            chunk_filled = System.monotonic_time(:microsecond)
+            produce_us = chunk_filled - Process.get({:last_chunk_end, last_ref})
+
+            {db_us, _} = :timer.tc(fn -> bulk_insert_ignore(chunk) end)
+
+            now = System.monotonic_time(:microsecond)
+            Process.put({:last_chunk_end, last_ref}, now)
+
+            require Logger
+
+            Logger.info(
+              "chunk #{idx}/#{year}: #{length(chunk)} rows | " <>
+                "produce #{div(produce_us, 1000)}ms " <>
+                "(filter=#{pop_ms(:t_filter)} parse=#{pop_ms(:t_parse)} " <>
+                "fold=#{pop_ms(:t_fold)} params=#{pop_ms(:t_params)}) | " <>
+                "db #{div(db_us, 1000)}ms"
             )
 
             written + length(chunk)
@@ -162,6 +184,52 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
       end)
 
     {:ok, total}
+  end
+
+  # Raw multi-row INSERT … ON CONFLICT DO NOTHING. Bypasses Ash's per-row
+  # changeset pipeline (validations, identity resolution, action lifecycle)
+  # which dominated wall-clock time in the stage-4 hot path — roughly
+  # 500-1000× slower per row than the underlying SQL. RIK annual reports
+  # never get retroactively updated, so DO NOTHING is the correct semantic
+  # for repeated runs.
+  defp bulk_insert_ignore([]), do: 0
+
+  defp bulk_insert_ignore(rows) do
+    count = length(rows)
+    now = DateTime.utc_now()
+
+    ids = Enum.map(rows, fn _ -> Ecto.UUID.bingenerate() end)
+    company_ids = Enum.map(rows, &Ecto.UUID.dump!(&1.company_id))
+    years = Enum.map(rows, & &1.year)
+    revenues = Enum.map(rows, & &1.revenue_eur)
+    employees = Enum.map(rows, & &1.employees)
+    sources = Enum.map(rows, &Atom.to_string(&1.source))
+    timestamps = List.duplicate(now, count)
+
+    sql = """
+    INSERT INTO annual_reports
+      (id, company_id, year, revenue_eur, employees, source, inserted_at, updated_at)
+    SELECT * FROM unnest(
+      $1::uuid[],
+      $2::uuid[],
+      $3::int[],
+      $4::numeric[],
+      $5::int[],
+      $6::text[],
+      $7::timestamptz[],
+      $8::timestamptz[]
+    )
+    ON CONFLICT (company_id, year) DO NOTHING
+    """
+
+    {:ok, %{num_rows: inserted}} =
+      Ecto.Adapters.SQL.query(
+        Colt.Repo,
+        sql,
+        [ids, company_ids, years, revenues, employees, sources, timestamps, timestamps]
+      )
+
+    inserted
   end
 
   defp to_params({report_id, vals}, year, latest_by_report, by_code) do
@@ -202,11 +270,34 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     |> File.stream!()
     |> Stream.drop(1)
     |> Progress.tick(label)
-    |> Stream.filter(&relevant_report?(&1, latest_by_report))
-    |> Stream.map(&parse_element_row(&1, headers))
+    |> Stream.filter(fn line ->
+      t = System.monotonic_time(:microsecond)
+      ok? = relevant_report?(line, latest_by_report)
+      tick_us(:t_filter, System.monotonic_time(:microsecond) - t)
+      ok?
+    end)
+    |> Stream.map(fn line ->
+      t = System.monotonic_time(:microsecond)
+      row = parse_element_row(line, headers)
+      tick_us(:t_parse, System.monotonic_time(:microsecond) - t)
+      row
+    end)
     |> Stream.reject(&is_nil/1)
     |> Stream.chunk_by(& &1.report_id)
-    |> Stream.map(&fold_group/1)
+    |> Stream.map(fn group ->
+      t = System.monotonic_time(:microsecond)
+      out = fold_group(group)
+      tick_us(:t_fold, System.monotonic_time(:microsecond) - t)
+      out
+    end)
+  end
+
+  defp tick_us(key, us), do: Process.put(key, (Process.get(key) || 0) + us)
+
+  defp pop_ms(key) do
+    us = Process.get(key) || 0
+    Process.put(key, 0)
+    div(us, 1000)
   end
 
   @doc false
