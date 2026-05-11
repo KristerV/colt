@@ -147,7 +147,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
           path
           |> stream_reports(latest_by_report)
           |> Stream.flat_map(&to_params(&1, year, latest_by_report, by_code))
-          |> Stream.chunk_every(500)
+          |> Stream.chunk_every(5_000)
           |> Enum.reduce(0, fn chunk, written ->
             Ash.bulk_create!(chunk, AnnualReport, :upsert,
               return_errors?: true,
