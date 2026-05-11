@@ -11,11 +11,19 @@ defmodule ColtWeb.Admin.SystemLive do
       :timer.send_interval(@tick_ms, :tick)
     end
 
-    {:ok, socket |> assign(:stats, read_stats()) |> assign(:tick_ms, @tick_ms)}
+    prev = sample_diskstats()
+    {stats, _} = read_stats(prev, @tick_ms)
+
+    {:ok,
+     socket
+     |> assign(:stats, stats)
+     |> assign(:prev_diskstats, prev)
+     |> assign(:tick_ms, @tick_ms)}
   end
 
   def handle_info(:tick, socket) do
-    {:noreply, assign(socket, :stats, read_stats())}
+    {stats, next_prev} = read_stats(socket.assigns.prev_diskstats, @tick_ms)
+    {:noreply, socket |> assign(:stats, stats) |> assign(:prev_diskstats, next_prev)}
   end
 
   def render(assigns) do
@@ -133,6 +141,43 @@ defmodule ColtWeb.Admin.SystemLive do
           </table>
         </section>
 
+        <section :if={@stats.disk_io != []} class="space-y-3">
+          <h2 class="text-xs uppercase tracking-wider opacity-60">Disk I/O</h2>
+          <p class="text-[11px] opacity-60 font-mono">
+            %util = fraction of time the device had I/O in flight. ~100% means saturated.
+          </p>
+
+          <table class="text-sm font-mono w-full max-w-4xl">
+            <thead>
+              <tr class="text-xs uppercase tracking-wider opacity-60">
+                <th class="text-left py-1">device</th>
+                <th class="text-right py-1">read MB/s</th>
+                <th class="text-right py-1">write MB/s</th>
+                <th class="text-right py-1">r/s</th>
+                <th class="text-right py-1">w/s</th>
+                <th class="text-right py-1">in-flight</th>
+                <th class="text-right py-1">%util</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={d <- @stats.disk_io} class="border-t border-base-300">
+                <td class="py-1">{d.name}</td>
+                <td class="py-1 tabular-nums text-right">{mbps(d.read_bps)}</td>
+                <td class="py-1 tabular-nums text-right">{mbps(d.write_bps)}</td>
+                <td class="py-1 tabular-nums text-right">{rate(d.read_iops)}</td>
+                <td class="py-1 tabular-nums text-right">{rate(d.write_iops)}</td>
+                <td class="py-1 tabular-nums text-right">{d.in_flight}</td>
+                <td class={[
+                  "py-1 tabular-nums text-right",
+                  util_accent(d.util_pct)
+                ]}>
+                  {pct(d.util_pct)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
         <section class="space-y-3">
           <h2 class="text-xs uppercase tracking-wider opacity-60">BEAM</h2>
 
@@ -212,18 +257,35 @@ defmodule ColtWeb.Admin.SystemLive do
   defp disk_accent(n) when n >= 75, do: "text-warning"
   defp disk_accent(_), do: nil
 
+  defp util_accent(n) when n >= 80, do: "text-error"
+  defp util_accent(n) when n >= 50, do: "text-warning"
+  defp util_accent(_), do: nil
+
+  defp mbps(bps) when is_number(bps),
+    do: :erlang.float_to_binary(bps / 1024 / 1024, decimals: 1)
+
+  defp mbps(_), do: "—"
+
+  defp rate(n) when is_number(n), do: :erlang.float_to_binary(n * 1.0, decimals: 0)
+  defp rate(_), do: "—"
+
   # ---- readers ----
 
-  defp read_stats do
+  defp read_stats(prev_diskstats, tick_ms) do
     disks = read_disks()
+    next_diskstats = sample_diskstats()
+    disk_io = diff_diskstats(prev_diskstats, next_diskstats, tick_ms)
 
-    %{
+    stats = %{
       cpu: read_cpu(),
       ram: read_ram(),
       disks: disks,
+      disk_io: disk_io,
       summary_disk: pick_summary_disk(disks),
       beam: read_beam()
     }
+
+    {stats, next_diskstats}
   end
 
   defp pick_summary_disk([]), do: %{mount: "/", percent: 0}
@@ -325,6 +387,104 @@ defmodule ColtWeb.Admin.SystemLive do
     |> Enum.sort_by(& &1.mount)
   rescue
     _ -> []
+  end
+
+  # /proc/diskstats fields (per `Documentation/admin-guide/iostats.rst`):
+  #   1 major, 2 minor, 3 name,
+  #   4 reads done, 5 reads merged, 6 sectors read, 7 ms reading,
+  #   8 writes done, 9 writes merged, 10 sectors written, 11 ms writing,
+  #   12 ios in flight, 13 ms doing io (busy time), 14 weighted ms doing io
+  # Sectors are 512 bytes.
+  @sector_bytes 512
+
+  defp sample_diskstats do
+    case File.read("/proc/diskstats") do
+      {:ok, body} ->
+        body
+        |> String.split("\n", trim: true)
+        |> Enum.flat_map(&parse_diskstat_line/1)
+        |> Enum.filter(&keep_device?/1)
+        |> Map.new(&{&1.name, &1})
+
+      _ ->
+        %{}
+    end
+  end
+
+  defp parse_diskstat_line(line) do
+    case String.split(line) do
+      [_maj, _min, name, r, _rm, rs, _rt, w, _wm, ws, _wt, inflight, busy_ms | _] ->
+        with {r, ""} <- Integer.parse(r),
+             {rs, ""} <- Integer.parse(rs),
+             {w, ""} <- Integer.parse(w),
+             {ws, ""} <- Integer.parse(ws),
+             {inflight, ""} <- Integer.parse(inflight),
+             {busy_ms, ""} <- Integer.parse(busy_ms) do
+          [
+            %{
+              name: name,
+              reads: r,
+              sectors_read: rs,
+              writes: w,
+              sectors_written: ws,
+              in_flight: inflight,
+              busy_ms: busy_ms
+            }
+          ]
+        else
+          _ -> []
+        end
+
+      _ ->
+        []
+    end
+  end
+
+  # Skip partitions/loop/ram/zram — show physical devices and dm-* volumes only.
+  defp keep_device?(%{name: name}) do
+    cond do
+      String.starts_with?(name, "loop") -> false
+      String.starts_with?(name, "ram") -> false
+      String.starts_with?(name, "zram") -> false
+      # nvme0n1p1 (partition) → skip; nvme0n1 (device) → keep
+      Regex.match?(~r/^nvme\d+n\d+p\d+$/, name) -> false
+      # sda1/sdb2 partitions → skip; sda/sdb → keep
+      Regex.match?(~r/^sd[a-z]+\d+$/, name) -> false
+      true -> true
+    end
+  end
+
+  defp diff_diskstats(prev, _next, _tick_ms) when map_size(prev) == 0, do: []
+
+  defp diff_diskstats(prev, next, tick_ms) do
+    secs = tick_ms / 1000
+
+    next
+    |> Enum.flat_map(fn {name, n} ->
+      case Map.fetch(prev, name) do
+        {:ok, p} -> [compute_disk_rate(name, p, n, secs)]
+        :error -> []
+      end
+    end)
+    |> Enum.sort_by(& &1.name)
+  end
+
+  defp compute_disk_rate(name, prev, next, secs) do
+    dr = max(next.reads - prev.reads, 0)
+    dw = max(next.writes - prev.writes, 0)
+    drs = max(next.sectors_read - prev.sectors_read, 0)
+    dws = max(next.sectors_written - prev.sectors_written, 0)
+    dbusy = max(next.busy_ms - prev.busy_ms, 0)
+
+    %{
+      name: name,
+      read_iops: dr / secs,
+      write_iops: dw / secs,
+      read_bps: drs * @sector_bytes / secs,
+      write_bps: dws * @sector_bytes / secs,
+      in_flight: next.in_flight,
+      util_pct: min(dbusy / (secs * 1000) * 100, 100.0)
+    }
   end
 
   defp read_beam do
