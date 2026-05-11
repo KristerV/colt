@@ -42,6 +42,7 @@ defmodule Colt.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:nimble_csv, "~> 1.0"},
       {:html2markdown, "~> 0.3"},
       {:wallaby, "~> 0.30", runtime: false},
       {:picosat_elixir, "~> 0.2"},

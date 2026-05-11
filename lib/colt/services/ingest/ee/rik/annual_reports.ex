@@ -1,3 +1,8 @@
+NimbleCSV.define(Colt.Services.Ingest.Ee.Rik.AnnualReports.CSV,
+  separator: ";",
+  escape: "\""
+)
+
 defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   @moduledoc """
   Builds `Colt.Resources.AnnualReport` rows for the last three filed fiscal
@@ -13,6 +18,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   """
 
   alias Colt.Resources.{AnnualReport, Company}
+  alias Colt.Services.Ingest.Ee.Rik.AnnualReports.CSV
   alias Colt.Services.Ingest.Progress
   alias Colt.Services.Ingest.Sample
 
@@ -183,7 +189,9 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     end)
   end
 
-  defp collect_values(path, latest_by_report) do
+  @doc false
+  # Exposed for `bench/elemendid_parse.exs`. Not part of public API.
+  def collect_values(path, latest_by_report) do
     [header_line] = path |> File.stream!() |> Enum.take(1)
     headers = parse_csv_line(header_line)
 
@@ -334,25 +342,28 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     {:ok, n}
   end
 
-  # ---- shared CSV helper (handles quoted fields) ----
+  # ---- shared CSV helper (NimbleCSV-backed) ----
 
+  # NimbleCSV needs a newline-terminated string and skips a header by default.
+  # We pass `skip_headers: false` because we hand it single lines.
   defp parse_csv_line(line) do
     line
-    |> String.replace_prefix("﻿", "")
-    |> String.trim_trailing("\n")
-    |> String.trim_trailing("\r")
-    |> do_parse_fields([], "", false)
+    |> strip_bom()
+    |> ensure_trailing_newline()
+    |> CSV.parse_string(skip_headers: false)
+    |> case do
+      [fields] -> fields
+      [] -> []
+    end
   end
 
-  defp do_parse_fields("", acc, current, _in_quote),
-    do: Enum.reverse([current | acc])
+  defp strip_bom(<<"﻿", rest::binary>>), do: rest
+  defp strip_bom(line), do: line
 
-  defp do_parse_fields(<<?", rest::binary>>, acc, current, in_quote),
-    do: do_parse_fields(rest, acc, current, not in_quote)
-
-  defp do_parse_fields(<<?;, rest::binary>>, acc, current, false),
-    do: do_parse_fields(rest, [current | acc], "", false)
-
-  defp do_parse_fields(<<c::utf8, rest::binary>>, acc, current, in_quote),
-    do: do_parse_fields(rest, acc, current <> <<c::utf8>>, in_quote)
+  defp ensure_trailing_newline(line) do
+    case :binary.last(line) do
+      ?\n -> line
+      _ -> line <> "\n"
+    end
+  end
 end

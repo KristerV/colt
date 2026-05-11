@@ -113,6 +113,16 @@ defmodule ColtWeb.Admin.SystemLive do
             <.metric label="Binary" value={mb(@stats.ram.beam_binary)} />
             <.metric label="ETS" value={mb(@stats.ram.beam_ets)} />
           </div>
+
+          <div :if={@stats.ram.swap_total > 0} class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <.metric
+              label="Swap used"
+              value={pct(@stats.ram.swap_used_pct)}
+              accent={ram_accent(@stats.ram.swap_used_pct)}
+            />
+            <.metric label="Swap used (MB)" value={mb(@stats.ram.swap_used)} />
+            <.metric label="Swap total" value={mb(@stats.ram.swap_total)} />
+          </div>
         </section>
 
         <section :if={@stats.disks != []} class="space-y-3">
@@ -365,6 +375,11 @@ defmodule ColtWeb.Admin.SystemLive do
 
     used_pct = if total > 0, do: used * 100 / total, else: 0.0
 
+    swap_total = Keyword.get(data, :total_swap, 0)
+    swap_free = Keyword.get(data, :free_swap, 0)
+    swap_used = max(swap_total - swap_free, 0)
+    swap_used_pct = if swap_total > 0, do: swap_used * 100 / swap_total, else: 0.0
+
     beam = :erlang.memory()
 
     %{
@@ -372,6 +387,9 @@ defmodule ColtWeb.Admin.SystemLive do
       used: used,
       available: available,
       used_pct: used_pct,
+      swap_total: swap_total,
+      swap_used: swap_used,
+      swap_used_pct: swap_used_pct,
       beam_total: Keyword.get(beam, :total, 0),
       beam_processes: Keyword.get(beam, :processes, 0),
       beam_binary: Keyword.get(beam, :binary, 0),
