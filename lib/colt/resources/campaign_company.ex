@@ -28,7 +28,6 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_no_contacts
     define :list_for_campaign, args: [:campaign_id]
     define :list_for_export, args: [:campaign_id]
-    define :list_unpicked_enriched, args: [:campaign_id]
     define :reset
   end
 
@@ -52,18 +51,6 @@ defmodule Colt.Resources.CampaignCompany do
                campaign_id == ^arg(:campaign_id) and
                  status == :enriched and
                  included_in_export == true
-             )
-    end
-
-    read :list_unpicked_enriched do
-      description "Enriched rows whose company has persons but none picked as target match. Used by the RepickContacts repair service."
-      argument :campaign_id, :uuid, allow_nil?: false
-
-      filter expr(
-               campaign_id == ^arg(:campaign_id) and
-                 status == :enriched and
-                 exists(company.persons, true) and
-                 not exists(company.persons, matches_target_title == true)
              )
     end
 

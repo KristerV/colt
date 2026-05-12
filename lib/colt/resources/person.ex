@@ -24,7 +24,6 @@ defmodule Colt.Resources.Person do
     define :get, action: :read, get_by: [:id]
     define :create_validated
     define :for_company, args: [:company_id]
-    define :set_target_match, args: [:matches_target_title]
   end
 
   actions do
@@ -47,11 +46,6 @@ defmodule Colt.Resources.Person do
     read :for_company do
       argument :company_id, :uuid, allow_nil?: false
       filter expr(company_id == ^arg(:company_id))
-    end
-
-    update :set_target_match do
-      argument :matches_target_title, :boolean, allow_nil?: false
-      change set_attribute(:matches_target_title, arg(:matches_target_title))
     end
   end
 
