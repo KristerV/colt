@@ -146,54 +146,13 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   defp upsert_reports(year_files, latest_by_report, by_code) do
     total =
       Enum.reduce(year_files, 0, fn {year, path}, count ->
-        last_ref = :erlang.make_ref()
-        Process.put({:last_chunk_end, last_ref}, System.monotonic_time(:microsecond))
-        Process.put({:last_proc_snapshot, last_ref}, proc_snapshot())
-
         n =
           path
           |> stream_reports(latest_by_report)
-          |> Stream.flat_map(fn report ->
-            t = System.monotonic_time(:microsecond)
-            params = to_params(report, year, latest_by_report, by_code)
-            tick_us(:t_params, System.monotonic_time(:microsecond) - t)
-            params
-          end)
-          |> tap_each(:t_chunk_every)
+          |> Stream.flat_map(&to_params(&1, year, latest_by_report, by_code))
           |> Stream.chunk_every(500)
-          |> Stream.with_index(1)
-          |> Enum.reduce(0, fn {chunk, idx}, written ->
-            chunk_filled = System.monotonic_time(:microsecond)
-            produce_us = chunk_filled - Process.get({:last_chunk_end, last_ref})
-
-            snap_before = Process.get({:last_proc_snapshot, last_ref})
-            snap_after = proc_snapshot()
-
-            {db_us, _} = :timer.tc(fn -> bulk_insert_ignore(chunk) end)
-
-            now = System.monotonic_time(:microsecond)
-            Process.put({:last_chunk_end, last_ref}, now)
-            Process.put({:last_proc_snapshot, last_ref}, proc_snapshot())
-
-            require Logger
-
-            Logger.info(
-              "chunk #{idx}/#{year}: #{length(chunk)} rows | " <>
-                "produce #{div(produce_us, 1000)}ms " <>
-                "(filter=#{pop_ms(:t_filter)} parse=#{pop_ms(:t_parse)} " <>
-                "fold=#{pop_ms(:t_fold)} params=#{pop_ms(:t_params)} " <>
-                "reject=#{pop_ms(:t_reject)} chunk_by=#{pop_ms(:t_chunk_by)} " <>
-                "chunk_every=#{pop_ms(:t_chunk_every)}) | " <>
-                "gc #{snap_after.gc_count - snap_before.gc_count} colls, " <>
-                "#{div((snap_after.gc_words - snap_before.gc_words) * 8, 1024 * 1024)} MB reclaimed | " <>
-                "reds #{div(snap_after.reductions - snap_before.reductions, 1_000_000)} M | " <>
-                "heap #{div(snap_after.total_heap * 8, 1024 * 1024)} MB " <>
-                "(Δ#{div((snap_after.total_heap - snap_before.total_heap) * 8, 1024 * 1024)} MB) | " <>
-                "bin #{div(snap_after.binary, 1024 * 1024)} MB | " <>
-                "msgq #{snap_after.msg_queue} | " <>
-                "db #{div(db_us, 1000)}ms"
-            )
-
+          |> Enum.reduce(0, fn chunk, written ->
+            bulk_insert_ignore(chunk)
             written + length(chunk)
           end)
 
@@ -202,26 +161,6 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
       end)
 
     {:ok, total}
-  end
-
-  # Snapshot of process state useful for diagnosing where time goes between
-  # chunks: GC pressure, work done (reductions), heap pressure, retained
-  # binary heap, mailbox backlog.
-  defp proc_snapshot do
-    {gc_count, gc_words, _} = :erlang.statistics(:garbage_collection)
-    {:reductions, reds} = :erlang.process_info(self(), :reductions)
-    {:total_heap_size, heap} = :erlang.process_info(self(), :total_heap_size)
-    {:message_queue_len, msgq} = :erlang.process_info(self(), :message_queue_len)
-    mem = :erlang.memory()
-
-    %{
-      gc_count: gc_count,
-      gc_words: gc_words,
-      reductions: reds,
-      total_heap: heap,
-      binary: Keyword.get(mem, :binary, 0),
-      msg_queue: msgq
-    }
   end
 
   # Raw multi-row INSERT … ON CONFLICT DO NOTHING. Bypasses Ash's per-row
@@ -298,67 +237,25 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   # sorted by report_id, so we group contiguous rows and fold each group
   # in isolation — no global accumulator, so GC stays cheap for the whole
   # 3.7M-row file.
-  def stream_reports(path, latest_by_report) do
+  defp stream_reports(path, latest_by_report) do
     label = "elemendid rows (#{Path.basename(path)})"
 
     path
     |> raw_line_stream()
     |> Stream.drop(1)
     |> Progress.tick(label)
-    |> Stream.filter(fn line ->
-      t = System.monotonic_time(:microsecond)
-      ok? = relevant_report?(line, latest_by_report)
-      tick_us(:t_filter, System.monotonic_time(:microsecond) - t)
-      ok?
-    end)
-    |> Stream.map(fn line ->
-      t = System.monotonic_time(:microsecond)
-      row = parse_element_row(line)
-      tick_us(:t_parse, System.monotonic_time(:microsecond) - t)
-      row
-    end)
-    |> Stream.reject(fn row ->
-      t = System.monotonic_time(:microsecond)
-      nil? = is_nil(row)
-      tick_us(:t_reject, System.monotonic_time(:microsecond) - t)
-      nil?
-    end)
-    |> Stream.chunk_by(fn row ->
-      t = System.monotonic_time(:microsecond)
-      key = row.report_id
-      tick_us(:t_chunk_by, System.monotonic_time(:microsecond) - t)
-      key
-    end)
-    |> Stream.map(fn group ->
-      t = System.monotonic_time(:microsecond)
-      out = fold_group(group)
-      tick_us(:t_fold, System.monotonic_time(:microsecond) - t)
-      out
-    end)
+    |> Stream.filter(&relevant_report?(&1, latest_by_report))
+    |> Stream.map(&parse_element_row/1)
+    |> Stream.reject(&is_nil/1)
+    |> Stream.chunk_by(& &1.report_id)
+    |> Stream.map(&fold_group/1)
   end
 
-  # Timing tap that measures time spent between successive emits at a point
-  # in the pipeline. Useful for finding stages whose work isn't a function
-  # we can wrap directly (e.g., Stream.chunk_every's list construction).
-  defp tap_each(stream, key) do
-    Stream.transform(
-      stream,
-      fn -> nil end,
-      fn x, _ ->
-        t = System.monotonic_time(:microsecond)
-        tick_us(key, t - (Process.get({:last_tap, key}) || t))
-        Process.put({:last_tap, key}, t)
-        {[x], nil}
-      end,
-      fn _ -> :ok end
-    )
-  end
-
-  # Bypasses Erlang's file_io_server. Each `:file.read/2` is a direct BIF
-  # call into the file driver — no Port message round-trip, no scheduler
-  # context switch per line. Reads in 256 KB chunks and emits all complete
-  # lines from each chunk in a single Stream.resource step. The final
-  # partial line stays in the buffer until the next read or EOF.
+  # Bypasses Erlang's file_io_server. `:file.read/2` is a direct BIF call into
+  # the file driver — no Port message round-trip per read, no scheduler hop.
+  # Reads in 256 KB chunks and emits all complete lines from each chunk in
+  # one Stream.resource step. The trailing partial line carries to the next
+  # read. Saves 30-40× over `File.stream!` on multi-million-row files.
   defp raw_line_stream(path) do
     Stream.resource(
       fn ->
@@ -370,15 +267,13 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
       fn %{fd: fd, buffer: buffer} = state ->
         case :file.read(fd, 256 * 1024) do
           {:ok, chunk} ->
-            data = buffer <> chunk
-
-            case :binary.split(data, "\n", [:global]) do
+            case :binary.split(buffer <> chunk, "\n", [:global]) do
               [only] ->
                 {[], %{state | buffer: only}}
 
               many ->
                 [partial | rev_lines] = Enum.reverse(many)
-                lines = rev_lines |> Enum.reverse() |> Enum.map(&(&1 <> "\n"))
+                lines = Enum.reduce(rev_lines, [], &[&1 <> "\n" | &2])
                 {lines, %{state | buffer: partial}}
             end
 
@@ -391,14 +286,6 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
       end,
       fn %{fd: fd} -> :file.close(fd) end
     )
-  end
-
-  defp tick_us(key, us), do: Process.put(key, (Process.get(key) || 0) + us)
-
-  defp pop_ms(key) do
-    us = Process.get(key) || 0
-    Process.put(key, 0)
-    div(us, 1000)
   end
 
   @doc false
@@ -434,10 +321,10 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
         nil
 
       [report_id, tabel, _label, element, value_nl] ->
-        # Copy each field: with read_ahead enabled on the source stream, the
-        # line is a sub-binary of a 256KB buffer, and every sub-binary we
-        # carry forward keeps that buffer pinned. Without copy, chunk_by +
-        # chunk_every retain ~100MB of read buffers and GC tanks parse 60×.
+        # Copy each field. Lines come from `raw_line_stream` as sub-binaries
+        # of the 256KB read buffer; any sub-binary we carry forward into
+        # chunk_by / chunk_every pins the whole buffer. Without these copies
+        # the parse stage GC-thrashes on retained read buffers.
         %{
           report_id: :binary.copy(report_id),
           tabel: :binary.copy(strip_quotes(tabel)),
@@ -566,8 +453,12 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     {:ok, n}
   end
 
-  # ---- shared CSV helper (NimbleCSV-backed) ----
+  # ---- aruannete row parser (NimbleCSV-backed) ----
 
+  # aruannete_yldandmed has 16+ columns and we extract by header name, so
+  # NimbleCSV (header → fields map) earns its keep here. elemendid uses a
+  # cheaper position-based parser (see `parse_element_row`).
+  #
   # NimbleCSV needs a newline-terminated string and skips a header by default.
   # We pass `skip_headers: false` because we hand it single lines.
   defp parse_csv_line(line) do
