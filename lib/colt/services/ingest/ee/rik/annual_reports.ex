@@ -302,7 +302,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     label = "elemendid rows (#{Path.basename(path)})"
 
     path
-    |> File.stream!()
+    |> raw_line_stream()
     |> Stream.drop(1)
     |> Progress.tick(label)
     |> Stream.filter(fn line ->
@@ -351,6 +351,45 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
         {[x], nil}
       end,
       fn _ -> :ok end
+    )
+  end
+
+  # Bypasses Erlang's file_io_server. Each `:file.read/2` is a direct BIF
+  # call into the file driver — no Port message round-trip, no scheduler
+  # context switch per line. Reads in 256 KB chunks and emits all complete
+  # lines from each chunk in a single Stream.resource step. The final
+  # partial line stays in the buffer until the next read or EOF.
+  defp raw_line_stream(path) do
+    Stream.resource(
+      fn ->
+        {:ok, fd} =
+          :file.open(path, [:read, :raw, :binary, {:read_ahead, 256 * 1024}])
+
+        %{fd: fd, buffer: ""}
+      end,
+      fn %{fd: fd, buffer: buffer} = state ->
+        case :file.read(fd, 256 * 1024) do
+          {:ok, chunk} ->
+            data = buffer <> chunk
+
+            case :binary.split(data, "\n", [:global]) do
+              [only] ->
+                {[], %{state | buffer: only}}
+
+              many ->
+                [partial | rev_lines] = Enum.reverse(many)
+                lines = rev_lines |> Enum.reverse() |> Enum.map(&(&1 <> "\n"))
+                {lines, %{state | buffer: partial}}
+            end
+
+          :eof when byte_size(buffer) == 0 ->
+            {:halt, state}
+
+          :eof ->
+            {[buffer], %{state | buffer: ""}}
+        end
+      end,
+      fn %{fd: fd} -> :file.close(fd) end
     )
   end
 
