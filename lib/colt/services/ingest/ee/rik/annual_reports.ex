@@ -13,8 +13,10 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   2. From each `elemendid_YYYY.csv`, pick out Revenue (under non-liquidation
      `Kasumiaruanne skeem 1/2`) and average employees (under
      `Lisa: Tööjõukulud`). Liquidation-only reports are dropped.
-  3. Upsert one `AnnualReport` per (company, year), then recompute growth in
-     a single SQL pass across all companies that have any reports.
+  3. Upsert one `AnnualReport` per (company, year). The downstream rollup
+     onto `companies.{revenue_latest, employees_latest,
+     revenue_growth_bucket}` lives in `GrowthRollup` (stage 5) so a crash
+     here doesn't strand companies with stale aggregates.
   """
 
   alias Colt.Resources.Company
@@ -31,9 +33,8 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
          years <- year_files |> Enum.map(&elem(&1, 0)),
          {:ok, latest_by_report} <- index_latest_reports(years),
          {:ok, by_code} <- index_companies(),
-         {:ok, count} <- upsert_reports(year_files, latest_by_report, by_code),
-         {:ok, recomputed} <- recompute_growth() do
-      {:ok, %{processed: count, years: years, growth_recomputed: recomputed}}
+         {:ok, count} <- upsert_reports(year_files, latest_by_report, by_code) do
+      {:ok, %{processed: count, years: years}}
     end
   end
 
@@ -394,60 +395,6 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
       {f, _} -> trunc(f)
       :error -> nil
     end
-  end
-
-  # ---- compute growth ----
-
-  # Single-query recompute. Buckets per spec §3.1.
-  defp recompute_growth do
-    sql = """
-    WITH ranked AS (
-      SELECT
-        company_id,
-        revenue_eur,
-        employees,
-        year,
-        ROW_NUMBER() OVER (PARTITION BY company_id ORDER BY year DESC) AS rn
-      FROM annual_reports
-    ),
-    agg AS (
-      SELECT
-        company_id,
-        MAX(revenue_eur) FILTER (WHERE rn = 1) AS revenue_latest,
-        MAX(employees)   FILTER (WHERE rn = 1) AS employees_latest,
-        MAX(revenue_eur) FILTER (WHERE rn = 2) AS revenue_prev
-      FROM ranked
-      GROUP BY company_id
-    ),
-    growth AS (
-      SELECT
-        company_id,
-        revenue_latest,
-        employees_latest,
-        CASE
-          WHEN revenue_prev IS NULL OR revenue_latest IS NULL THEN NULL
-          WHEN revenue_prev <= 0 AND revenue_latest > 0 THEN 'growing_10x'
-          WHEN revenue_prev <= 0 THEN 'stagnant'
-          WHEN revenue_latest < revenue_prev THEN 'declining'
-          WHEN (revenue_latest - revenue_prev) / revenue_prev <= 0.05 THEN 'stagnant'
-          WHEN (revenue_latest - revenue_prev) / revenue_prev <= 1.0  THEN 'slow'
-          WHEN (revenue_latest - revenue_prev) / revenue_prev <= 9.0  THEN 'growing_2x'
-          ELSE 'growing_10x'
-        END AS bucket
-      FROM agg
-    )
-    UPDATE companies c
-    SET
-      revenue_latest = g.revenue_latest,
-      employees_latest = g.employees_latest,
-      revenue_growth_bucket = g.bucket
-    FROM growth g
-    WHERE c.id = g.company_id
-    """
-
-    {:ok, %{num_rows: n}} = Ecto.Adapters.SQL.query(Colt.Repo, sql, [])
-    Progress.done("growth recomputed", n)
-    {:ok, n}
   end
 
   # ---- aruannete row parser (NimbleCSV-backed) ----

@@ -8,8 +8,11 @@ defmodule Colt.Services.Ingest.Ee.Rik do
   2. `CompaniesImport` — upserts every Estonian company from `lihtandmed.csv`.
   3. `CompanyDetails` — patches website / industry / generic email from
      `yldandmed.json` onto the rows imported in step 2.
-  4. `AnnualReports` — upserts the last three filed fiscal years and recomputes
-     `revenue_growth_bucket` per company.
+  4. `AnnualReports` — upserts the last three filed fiscal years.
+  5. `GrowthRollup` — projects each company's two latest reports onto
+     `revenue_latest`, `employees_latest`, and `revenue_growth_bucket`. Kept
+     separate from stage 4 so a crash here can be re-run with
+     `Rik.run(from: 5)` without re-importing reports.
   """
 
   require Logger
@@ -18,10 +21,11 @@ defmodule Colt.Services.Ingest.Ee.Rik do
     AnnualReports,
     CompaniesImport,
     CompanyDetails,
-    Download
+    Download,
+    GrowthRollup
   }
 
-  @stages 4
+  @stages 5
 
   def run(opts \\ []) do
     started = System.monotonic_time(:millisecond)
@@ -33,7 +37,9 @@ defmodule Colt.Services.Ingest.Ee.Rik do
          {:ok, details} <-
            maybe_stage(3, from, "Patching details (yldandmed.json)", &CompanyDetails.run/0),
          {:ok, reports} <-
-           maybe_stage(4, from, "Importing annual reports + growth", &AnnualReports.run/0) do
+           maybe_stage(4, from, "Importing annual reports", &AnnualReports.run/0),
+         {:ok, growth} <-
+           maybe_stage(5, from, "Recomputing growth rollup", &GrowthRollup.run/0) do
       cleanup_cache()
       Logger.info("Ingest finished in #{seconds(started)}s")
 
@@ -42,7 +48,8 @@ defmodule Colt.Services.Ingest.Ee.Rik do
          downloads: downloads,
          companies: companies,
          details: details,
-         reports: reports
+         reports: reports,
+         growth: growth
        }}
     end
   end
