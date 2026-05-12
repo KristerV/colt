@@ -10,9 +10,7 @@ defmodule ColtWeb.AdminLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-6">
-        <h1 class="text-3xl font-semibold">Admin</h1>
-
-        <Summary.tile_grid tiles={@admin_tiles} />
+        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
       </div>
     </Layouts.app>
     """

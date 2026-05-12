@@ -27,7 +27,7 @@ defmodule ColtWeb.Admin.Summary do
       %{
         kicker: "Activity",
         title: "Campaigns",
-        value: format_int(Ash.count!(Colt.Resources.Campaign)) <> " total",
+        value: format_int(Ash.count!(Colt.Resources.Campaign, authorize?: false)) <> " total",
         path: "/admin/campaigns"
       },
       %{
