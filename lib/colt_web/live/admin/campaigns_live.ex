@@ -9,7 +9,7 @@ defmodule ColtWeb.Admin.CampaignsLive do
     campaigns =
       Campaign.list_all_recent!(
         actor: socket.assigns.current_user,
-        load: [:owner, :total_count, :done_count]
+        load: [:owner, :total_count, :done_count, :cost_usd]
       )
 
     {:ok, assign(socket, page_title: "Admin · Campaigns", campaigns: campaigns)}
@@ -30,12 +30,13 @@ defmodule ColtWeb.Admin.CampaignsLive do
         <div class="border border-rule rounded-sharp overflow-hidden">
           <div
             class="hidden md:grid items-center gap-3 px-4 py-2.5 border-b border-rule bg-paperAlt font-mono text-[10px] tracking-[0.12em] uppercase text-ink55"
-            style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 130px;"
+            style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 110px 130px;"
           >
             <span>Name</span>
             <span>Owner</span>
             <span class="text-right">Done</span>
             <span class="text-right">Total</span>
+            <span class="text-right">Cost</span>
             <span>Status</span>
             <span>Created</span>
           </div>
@@ -44,12 +45,13 @@ defmodule ColtWeb.Admin.CampaignsLive do
             <.link
               navigate={~p"/campaigns/#{c.id}/funnel"}
               class="grid grid-cols-2 md:grid-cols-none items-center gap-2 md:gap-3 px-4 py-3 border-b border-rule last:border-b-0 hover:bg-paperAlt no-underline text-ink"
-              style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 130px;"
+              style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 110px 130px;"
             >
               <span class="text-[13px] font-medium truncate">{c.name}</span>
               <span class="text-[12px] text-ink55 truncate">{owner_email(c.owner)}</span>
               <span class="font-mono text-[11px] tnum text-right">{c.done_count}</span>
               <span class="font-mono text-[11px] tnum text-right">{c.total_count}</span>
+              <span class="font-mono text-[11px] tnum text-right">{fmt_cost(c.cost_usd)}</span>
               <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-ink55">
                 {c.status}
               </span>
@@ -72,4 +74,12 @@ defmodule ColtWeb.Admin.CampaignsLive do
   defp fmt_dt(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
   defp fmt_dt(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d %H:%M")
   defp fmt_dt(_), do: "—"
+
+  defp fmt_cost(nil), do: "—"
+
+  defp fmt_cost(%Decimal{} = d) do
+    "$" <> (d |> Decimal.round(4) |> Decimal.to_string(:normal))
+  end
+
+  defp fmt_cost(n) when is_number(n), do: "$" <> :erlang.float_to_binary(n / 1, decimals: 4)
 end

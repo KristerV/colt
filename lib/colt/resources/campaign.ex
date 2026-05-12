@@ -119,10 +119,12 @@ defmodule Colt.Resources.Campaign do
   relationships do
     belongs_to :owner, Colt.Accounts.User, allow_nil?: false, public?: true
     has_many :campaign_companies, Colt.Resources.CampaignCompany
+    has_many :api_calls, Colt.Resources.ApiCall
   end
 
   aggregates do
     count :total_count, :campaign_companies
     count :done_count, :campaign_companies, filter: expr(status == :enriched)
+    sum :cost_usd, :api_calls, :cost_usd
   end
 end
