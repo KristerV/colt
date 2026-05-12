@@ -17,7 +17,7 @@ config :colt, Oban,
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
-       {"0 3 * * 0", Colt.Jobs.RikIngest},
+       {"0 3 1 * *", Colt.Jobs.RikIngest},
        {"0 4 1 * *", Colt.Jobs.PrhIngest}
      ]}
   ]
