@@ -28,6 +28,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_no_contacts
     define :list_for_campaign, args: [:campaign_id]
     define :list_for_export, args: [:campaign_id]
+    define :reset
   end
 
   actions do
@@ -84,6 +85,17 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:failed_stage, arg(:failed_stage))
       change set_attribute(:rejection_reason, arg(:reason))
       change set_attribute(:failure_detail, arg(:detail))
+    end
+
+    update :reset do
+      description "Admin retry — set status back to pending and clear all failure/outcome fields."
+
+      change set_attribute(:status, :pending)
+      change set_attribute(:failed_stage, nil)
+      change set_attribute(:rejection_reason, nil)
+      change set_attribute(:failure_detail, nil)
+
+      require_atomic? false
     end
 
     update :mark_no_contacts do

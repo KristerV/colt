@@ -26,7 +26,7 @@ defmodule Colt.Resources.Page do
   end
 
   actions do
-    defaults [:read]
+    defaults [:read, :destroy]
     default_accept []
 
     create :upsert do

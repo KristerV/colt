@@ -26,7 +26,8 @@ defmodule ColtWeb.Components.Liid do
       "M7 9l2-2M6 10a2.5 2.5 0 0 1 0-3.5l2-2a2.5 2.5 0 0 1 3.5 3.5l-1 1M10 6a2.5 2.5 0 0 1 0 3.5l-2 2A2.5 2.5 0 0 1 4.5 8l1-1",
     "code" => "M5 5L2 8l3 3M11 5l3 3-3 3M9 3l-2 10",
     "filter" => "M2 3h12l-4.5 6v5L7 12V9L2 3z",
-    "grid" => "M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"
+    "grid" => "M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z",
+    "refresh" => "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3"
   }
 
   @stepper_steps ~w(Name ICP Market Filters Funnel)

@@ -27,7 +27,7 @@ defmodule Colt.Resources.Person do
   end
 
   actions do
-    defaults [:read]
+    defaults [:read, :destroy]
     default_accept []
 
     create :create_validated do

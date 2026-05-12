@@ -25,6 +25,7 @@ defmodule Colt.Resources.Company do
     define :set_generic_email, args: [:generic_email]
     define :set_ai_summary, args: [:ai_summary]
     define :touch_enriched
+    define :reset_enrichment
   end
 
   actions do
@@ -134,6 +135,18 @@ defmodule Colt.Resources.Company do
       accept [:ai_summary]
       argument :ai_summary, :string, allow_nil?: false
       change set_attribute(:ai_summary, arg(:ai_summary))
+      require_atomic? false
+    end
+
+    update :reset_enrichment do
+      description "Admin retry — clear all enrichment-derived fields so the pipeline can run from scratch."
+
+      change set_attribute(:website_url, nil)
+      change set_attribute(:website_source, nil)
+      change set_attribute(:ai_summary, nil)
+      change set_attribute(:generic_email, nil)
+      change set_attribute(:last_enriched_at, nil)
+
       require_atomic? false
     end
 

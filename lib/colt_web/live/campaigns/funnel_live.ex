@@ -10,7 +10,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   alias Colt.Filters.IndustryLabels
   alias Colt.Resources.{Campaign, CampaignCompany}
-  alias Colt.Services.Enrichment.{Broadcast, Stats}
+  alias Colt.Services.Enrichment.{Broadcast, Retry, Stats}
   alias Colt.Services.Export.Csv, as: ExportCsv
   alias ColtWeb.Components.{Funnel, Liid}
 
@@ -116,6 +116,40 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
       prev ->
         {:noreply, socket |> collapse(prev) |> expand(id) |> assign(expanded_id: id)}
+    end
+  end
+
+  def handle_event("retry_row", %{"id" => id}, socket) do
+    if socket.assigns.current_user.is_admin do
+      {:ok, _} = Retry.run(id)
+
+      row =
+        socket.assigns.rows_index
+        |> Map.fetch!(id)
+        |> Map.merge(%{
+          status: :pending,
+          failed_stage: nil,
+          rejection_reason: nil,
+          failure_detail: nil,
+          summary: nil,
+          website_url: nil,
+          domain: nil,
+          contact: nil,
+          extra_contacts: [],
+          total_contacts: 0,
+          scraped_paths: [],
+          stages: idle_stages(),
+          log: pipeline_log(id)
+        })
+
+      socket =
+        socket
+        |> replace_row(row)
+        |> maybe_recompute_stats(socket.assigns.rows_index[id].status, :pending)
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
     end
   end
 
