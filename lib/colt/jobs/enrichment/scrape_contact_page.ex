@@ -1,8 +1,7 @@
 defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
   @moduledoc """
   §6.8 — fetch and convert a chosen contact page. Same logic as FetchLanding
-  without the generic-email regex. Per-domain advisory lock; snooze on
-  contention.
+  without the generic-email regex.
 
   When all selected contact pages for the company have been scraped (or are
   fresh), enqueue `ExtractContacts`.
@@ -10,7 +9,6 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
   use Oban.Worker, queue: :scrape, max_attempts: 3
 
   alias Colt.Jobs.Enrichment.ExtractContacts
-  alias Colt.Locks
   alias Colt.Resources.{CampaignCompany, Company, Page}
   alias Colt.Services.Enrichment.{ExtractContentLinks, Freshness, PickContactPaths, Transition}
   alias Colt.Services.Markdown.FromHtml
@@ -40,13 +38,9 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
   defp do_fetch(cc, company, path, hop) do
     Transition.stage(cc, :contact, :work)
     url = absolute(company.website_url, path)
-    host = uri_host(company.website_url)
 
-    case Locks.with_domain_lock(host, fn -> Fetch.run(url) end) do
-      :locked ->
-        {:snooze, 1}
-
-      {:ok, {:ok, %{html: html, fetcher: fetcher}}} ->
+    case Fetch.run(url) do
+      {:ok, %{html: html, fetcher: fetcher}} ->
         {:ok, markdown} = FromHtml.run(html)
 
         {:ok, _} =
@@ -64,12 +58,9 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
         enqueue_extract(cc)
         :ok
 
-      {:ok, {:error, reason}} ->
+      {:error, reason} ->
         # Don't terminate the CC — other pages may still bring contacts.
         enqueue_extract(cc)
-        {:error, inspect(reason)}
-
-      {:error, reason} ->
         {:error, inspect(reason)}
     end
   end
@@ -143,13 +134,4 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
     path = if String.starts_with?(path, "/"), do: path, else: "/" <> path
     base <> path
   end
-
-  defp uri_host(url) when is_binary(url) do
-    case URI.parse(url) do
-      %URI{host: h} when is_binary(h) -> h
-      _ -> ""
-    end
-  end
-
-  defp uri_host(_), do: ""
 end

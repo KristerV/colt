@@ -3,16 +3,12 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   §6.3 — fetch the landing page (static, fall back to Wallaby), extract
   generic email, convert to markdown, persist `Page{path: "/"}`.
 
-  Per-domain advisory lock around the fetch (spec §6 intro). On `:locked`,
-  the job snoozes 1s.
-
   Hands off raw HTML to `ExtractNavigation` via job args (capped) and
   enqueues `SummarizeCompany`.
   """
   use Oban.Worker, queue: :scrape, max_attempts: 3
 
   alias Colt.Jobs.Enrichment.{ExtractNavigation, GoogleSearch, SummarizeCompany}
-  alias Colt.Locks
   alias Colt.Resources.{CampaignCompany, Company, Page}
   alias Colt.Services.Enrichment.{ExtractGenericEmail, FailureMessage, Freshness, Transition}
   alias Colt.Services.Markdown.FromHtml
@@ -55,20 +51,13 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
 
   defp do_fetch(cc, company) do
     Transition.stage(cc, :website, :work)
-    host = uri_host(company.website_url)
 
-    case Locks.with_domain_lock(host, fn -> Fetch.run(company.website_url) end) do
-      :locked ->
-        {:snooze, 1}
-
-      {:ok, {:ok, %{html: html, fetcher: fetcher, final_url: final}}} ->
+    case Fetch.run(company.website_url) do
+      {:ok, %{html: html, fetcher: fetcher, final_url: final}} ->
         finish_fetch(cc, company, html, fetcher, final)
 
-      {:ok, {:error, reason}} ->
-        fallback_to_google(cc, company, reason)
-
       {:error, reason} ->
-        {:error, inspect(reason)}
+        fallback_to_google(cc, company, reason)
     end
   end
 

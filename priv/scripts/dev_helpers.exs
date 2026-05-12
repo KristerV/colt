@@ -50,20 +50,7 @@
 # {:ok, md} = Colt.Services.Markdown.FromHtml.run(html)
 # IO.puts("markdown bytes: #{byte_size(md)} (vs html #{byte_size(html)})")
 
-# ── 8. Locks · serialize 3 concurrent calls on the same host ────────────────
-# host = "example.com"
-# task = fn id ->
-#   Task.async(fn ->
-#     Colt.Locks.with_domain_lock(host, fn ->
-#       IO.puts("[#{id}] enter @ #{System.system_time(:millisecond)}")
-#       Process.sleep(500)
-#       IO.puts("[#{id}] leave @ #{System.system_time(:millisecond)}")
-#     end)
-#   end)
-# end
-# [task.(1), task.(2), task.(3)] |> Enum.each(&Task.await(&1, 5_000))
-
-# ── 9. Broadcast · publish + receive ────────────────────────────────────────
+# ── 8. Broadcast · publish + receive ────────────────────────────────────────
 # campaign_id = "test-campaign"
 # :ok = Colt.Services.Enrichment.Broadcast.subscribe(campaign_id)
 # Colt.Services.Enrichment.Broadcast.stage(campaign_id, "cc-id", :web, :work)
