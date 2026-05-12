@@ -10,7 +10,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
 
   alias Colt.Jobs.Enrichment.FetchLanding
   alias Colt.Resources.{CampaignCompany, Company}
-  alias Colt.Services.Enrichment.{FailureMessage, PickBestResult, Transition}
+  alias Colt.Services.Enrichment.{Broadcast, FailureMessage, PickBestResult, Transition}
   alias Colt.Services.Search.Google
 
   @impl Oban.Worker
@@ -44,6 +44,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
 
       {:ok, url} ->
         {:ok, _} = Company.set_website(company, url, :google)
+        Broadcast.row(cc.campaign_id, cc.id, %{website_url: url})
         Transition.stage(cc, :website, :done)
         %{campaign_company_id: cc.id} |> FetchLanding.new() |> Oban.insert!()
         :ok

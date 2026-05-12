@@ -157,6 +157,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:rejection_reason, v}, acc -> %{acc | rejection_reason: v}
         {:failure_detail, v}, acc -> Map.put(acc, :failure_detail, v)
         {:summary, v}, acc -> Map.put(acc, :summary, v)
+        {:website_url, v}, acc -> %{acc | website_url: v, domain: domain_of(v)}
         {:contact_name, v}, acc -> patch_contact(acc, :name, v)
         {:contact_title, v}, acc -> patch_contact(acc, :title, v)
         _other, acc -> acc
