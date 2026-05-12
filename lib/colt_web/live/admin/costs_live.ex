@@ -6,8 +6,10 @@ defmodule ColtWeb.Admin.CostsLive do
   alias Colt.Repo
   alias Colt.Resources.ApiCall
   alias Colt.Services.Costs.MonthlySummary
+  alias ColtWeb.Admin.Summary
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
+  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     {:ok, summary} = MonthlySummary.run(12)
@@ -57,10 +59,8 @@ defmodule ColtWeb.Admin.CostsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
-        <div>
-          <.link navigate="/admin" class="text-sm opacity-60 hover:opacity-100">&larr; Admin</.link>
-          <h1 class="text-3xl font-semibold mt-1">Costs</h1>
-        </div>
+        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
+        <h1 class="text-3xl font-semibold">Costs</h1>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="card bg-base-200 border border-base-300 md:col-span-2">

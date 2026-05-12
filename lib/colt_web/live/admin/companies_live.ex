@@ -2,9 +2,11 @@ defmodule ColtWeb.Admin.CompaniesLive do
   use ColtWeb, :live_view
 
   alias Colt.Resources.Company
+  alias ColtWeb.Admin.Summary
   require Ash.Query
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
+  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, :markets, load_market_stats())}
@@ -14,10 +16,8 @@ defmodule ColtWeb.Admin.CompaniesLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
-        <div>
-          <.link navigate="/admin" class="text-sm opacity-60 hover:opacity-100">&larr; Admin</.link>
-          <h1 class="text-3xl font-semibold mt-1">Companies</h1>
-        </div>
+        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
+        <h1 class="text-3xl font-semibold">Companies</h1>
 
         <div class="flex flex-wrap items-center gap-3">
           <button

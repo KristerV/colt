@@ -1,7 +1,10 @@
 defmodule ColtWeb.Admin.SystemLive do
   use ColtWeb, :live_view
 
+  alias ColtWeb.Admin.Summary, as: AdminSummary
+
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
+  on_mount ColtWeb.Admin.SummaryHook
 
   @tick_ms 1000
 
@@ -38,9 +41,9 @@ defmodule ColtWeb.Admin.SystemLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-8">
+        <AdminSummary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <div>
-          <.link navigate="/admin" class="text-sm opacity-60 hover:opacity-100">&larr; Admin</.link>
-          <h1 class="text-3xl font-semibold mt-1">System</h1>
+          <h1 class="text-3xl font-semibold">System</h1>
           <p class="text-xs opacity-60 mt-1 font-mono">refreshing every {@tick_ms}ms</p>
         </div>
 
