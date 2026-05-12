@@ -6,8 +6,6 @@ defmodule ColtWeb.Campaigns.IcpLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
-  @max_icp 2000
-
   def mount(%{"id" => id}, _session, socket) do
     case Campaign.get(id, actor: socket.assigns.current_user) do
       {:ok, campaign} ->
@@ -18,7 +16,6 @@ defmodule ColtWeb.Campaigns.IcpLive do
             campaign: campaign,
             icp_description: campaign.icp_description || "",
             target_job_title: campaign.target_job_title || "",
-            max_icp: @max_icp,
             error: nil
           )
 
@@ -48,9 +45,6 @@ defmodule ColtWeb.Campaigns.IcpLive do
     cond do
       title == "" ->
         {:noreply, assign(socket, error: "Add a target job title.")}
-
-      String.length(icp) > @max_icp ->
-        {:noreply, assign(socket, error: "ICP description is over 2000 characters.")}
 
       true ->
         case Campaign.set_icp(socket.assigns.campaign, icp, title,
@@ -90,21 +84,17 @@ defmodule ColtWeb.Campaigns.IcpLive do
 
         <div class="flex-1 max-w-[640px] flex flex-col gap-9">
           <div>
-            <div class="flex justify-between items-baseline mb-3">
+            <div class="mb-3">
               <label
                 for="icp"
                 class="font-mono text-[11px] tracking-[0.08em] uppercase text-ink70"
               >
                 Ideal customer profile
               </label>
-              <span class="font-mono text-[10px] text-ink40 tnum">
-                {String.length(@icp_description)} / 2000
-              </span>
             </div>
             <textarea
               id="icp"
               name="icp_description"
-              maxlength={@max_icp}
               phx-debounce="200"
               class="w-full min-h-[200px] px-[22px] py-5 border border-ink20 bg-paperAlt text-[15px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
             >{@icp_description}</textarea>
