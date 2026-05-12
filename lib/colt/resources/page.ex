@@ -67,7 +67,7 @@ defmodule Colt.Resources.Page do
     attribute :fetched_at, :utc_datetime_usec, public?: true
 
     attribute :fetcher, :atom,
-      constraints: [one_of: [:static, :wallaby]],
+      constraints: [one_of: [:static, :wallaby, :cdp]],
       public?: true
 
     create_timestamp :inserted_at

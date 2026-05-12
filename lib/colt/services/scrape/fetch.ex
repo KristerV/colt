@@ -9,7 +9,7 @@ defmodule Colt.Services.Scrape.Fetch do
       | {:error, reason}
   """
 
-  alias Colt.Services.Scrape.{DetectSpa, Static, Wallaby}
+  alias Colt.Services.Scrape.{Cdp, DetectSpa, Static}
 
   @default_jitter_ms 250
 
@@ -24,8 +24,8 @@ defmodule Colt.Services.Scrape.Fetch do
           {:ok, Map.put(static, :fetcher, :static)}
 
         :needs_wallaby ->
-          case Wallaby.run(url) do
-            {:ok, rendered} -> {:ok, Map.put(rendered, :fetcher, :wallaby)}
+          case Cdp.run(url) do
+            {:ok, rendered} -> {:ok, Map.put(rendered, :fetcher, :cdp)}
             # Fall back to whatever static gave us rather than failing the whole pipeline.
             {:error, _reason} -> {:ok, Map.put(static, :fetcher, :static)}
           end

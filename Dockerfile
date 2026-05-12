@@ -72,9 +72,10 @@ FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
-       libstdc++6 openssl libncurses6 locales ca-certificates unzip \
+       libstdc++6 openssl libncurses6 locales ca-certificates unzip curl \
        chromium chromium-driver fonts-liberation \
        libnss3 libxss1 libasound2 libatk-bridge2.0-0 libgtk-3-0 libgbm1 \
+       dbus dbus-user-session \
   && rm -rf /var/lib/apt/lists/*
 
 # Set the locale
@@ -94,6 +95,7 @@ ENV CHROME_BINARY="/usr/bin/chromium"
 
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/colt ./
+RUN chmod +x /app/bin/entrypoint.sh
 
 USER nobody
 
@@ -102,4 +104,4 @@ USER nobody
 # above and adding an entrypoint. See https://github.com/krallin/tini for details
 # ENTRYPOINT ["/tini", "--"]
 
-CMD ["/app/bin/server"]
+CMD ["/app/bin/entrypoint.sh"]
