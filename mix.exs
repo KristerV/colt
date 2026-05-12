@@ -23,7 +23,7 @@ defmodule Colt.MixProject do
   def application do
     [
       mod: {Colt.Application, []},
-      extra_applications: [:logger, :runtime_tools, :os_mon]
+      extra_applications: [:logger, :runtime_tools, :os_mon, :ex_unit]
     ]
   end
 
