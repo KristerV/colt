@@ -14,15 +14,25 @@ defmodule Colt.Services.Enrichment.PickBestContact do
   @system """
   You pick the single best contact from a list of people at a company.
 
-  If a target title is provided, pick the closest match. Match generously:
-  "Head of Engineering" matches "CTO", "VP Sales" matches "Head of Sales".
-  A junior IC role does not match a leadership target.
+  The target may be a single title or a comma-separated list in order of
+  importance ("Sales Manager, COO, CEO" means try Sales Manager first, fall
+  back to COO, then CEO). Pick the highest-priority match that exists.
 
-  If no target title is provided, pick the most senior decision-maker (CEO,
+  Match generously across synonyms AND languages. Titles may be in any
+  language — Estonian "juhataja" / "Juhatuse liige" = Managing Director ≈ CEO,
+  Finnish "toimitusjohtaja" = CEO, German "Geschäftsführer" = Managing
+  Director, etc. "Head of Engineering" matches "CTO", "VP Sales" matches
+  "Head of Sales". A junior IC role does not match a leadership target.
+
+  If no target is provided, pick the most senior decision-maker (CEO,
   Founder, Managing Director > VP/Head > Director > Manager > IC).
 
   If multiple candidates are equally good, pick the lowest-numbered one.
-  If none are appropriate, return null.
+
+  Almost always pick someone. If you return null, the system falls back to
+  the first listed person — so unless the list is empty or every candidate
+  is clearly wrong (e.g. all interns for a CEO target), your pick will be
+  better than that default. Only return null as a last resort.
 
   Return JSON only.
   """

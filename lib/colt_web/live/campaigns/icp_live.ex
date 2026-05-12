@@ -109,7 +109,9 @@ defmodule ColtWeb.Campaigns.IcpLive do
                 Target job title
               </label>
               <div class="text-[12px] text-ink40 mt-1">
-                The contact we'll try to extract per company.
+                The contact we'll try to extract per company. You can list
+                multiple titles in order of importance — e.g. "Sales Manager,
+                COO, CEO" — and we'll pick the highest-priority match found.
               </div>
             </div>
             <input
@@ -117,7 +119,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
               type="text"
               name="target_job_title"
               value={@target_job_title}
-              placeholder="CTO"
+              placeholder="Sales Manager, COO, CEO"
               phx-debounce="200"
               class="w-full px-[14px] py-3 border border-ink20 bg-paperAlt text-[14px] text-ink rounded-sharp outline-none focus:border-ink"
             />

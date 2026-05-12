@@ -126,13 +126,15 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     :ok
   end
 
-  # Return a 0-based index into `validated`, or nil if no good match. Falls
-  # back to nil on AI error — UI's `pick_person/1` will still pick the first
-  # validated person.
+  # ICP-validated companies must always have a picked contact. If the model
+  # declines or errors, fall back to index 0 so downstream (UI + export)
+  # always has someone to email.
+  defp pick_index(_target, [], _campaign_id), do: nil
+
   defp pick_index(target, titles, campaign_id) do
     case PickBestContact.run(target, titles, campaign_id: campaign_id) do
       {:ok, i} when is_integer(i) -> i
-      _ -> nil
+      _ -> 0
     end
   end
 
