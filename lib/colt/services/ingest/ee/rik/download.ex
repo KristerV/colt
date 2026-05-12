@@ -50,17 +50,26 @@ defmodule Colt.Services.Ingest.Ee.Rik.Download do
     {:ok, dir}
   end
 
+  # RIK publishes one elemendid_YYYY zip per fiscal year. The earliest year
+  # available as of 2026-05 is 2019 — see
+  # https://avaandmed.ariregister.rik.ee/et/avaandmete-allalaadimine.
+  # `@earliest_year` is intentionally permissive: we try a year earlier than
+  # known-available so RIK can add older years without a code change. Any
+  # year whose zip 404s is skipped — failed downloads don't abort the run.
+  @earliest_year 2018
+
   defp expand_sources do
     today = Date.utc_today()
-    last_three = (today.year - 1)..(today.year - 3)//-1 |> Enum.to_list()
+    years = (today.year - 1)..@earliest_year//-1 |> Enum.to_list()
 
     year_sources =
-      Enum.map(last_three, fn year ->
+      Enum.map(years, fn year ->
         %{
           url: "#{@base}/4.#{year}_aruannete_elemendid_kuni_30042026.zip",
           zip: "elemendid_#{year}.zip",
           member_pattern: ~r/^4\.#{year}_aruannete_elemendid_kuni_.*\.csv$/,
-          out: "elemendid_#{year}.csv"
+          out: "elemendid_#{year}.csv",
+          optional?: true
         }
       end)
 
@@ -70,17 +79,33 @@ defmodule Colt.Services.Ingest.Ee.Rik.Download do
   defp fetch_each(sources, dir) do
     results =
       Enum.map(sources, fn source ->
-        with {:ok, :ok} <- maybe_download(source, dir),
-             {:ok, :ok} <- maybe_unzip(source, dir) do
-          {source.out, :ok}
-        else
-          {:error, reason} -> {source.out, {:error, reason}}
+        case do_fetch(source, dir) do
+          {:ok, :ok} ->
+            {source.out, :ok}
+
+          {:error, {:http_status, 404, _}} ->
+            if Map.get(source, :optional?, false) do
+              Logger.info("Skipping #{source.out}: not available from RIK")
+              {source.out, :skipped}
+            else
+              {source.out, {:error, {:http_status, 404, source.url}}}
+            end
+
+          {:error, reason} ->
+            {source.out, {:error, reason}}
         end
       end)
 
     failed = Enum.filter(results, fn {_, status} -> match?({:error, _}, status) end)
 
     if failed == [], do: {:ok, results}, else: {:error, {:downloads_failed, failed}}
+  end
+
+  defp do_fetch(source, dir) do
+    with {:ok, :ok} <- maybe_download(source, dir),
+         {:ok, :ok} <- maybe_unzip(source, dir) do
+      {:ok, :ok}
+    end
   end
 
   defp maybe_download(source, dir) do

@@ -41,7 +41,6 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
 
   defp locate_year_files do
     dir = Application.fetch_env!(:colt, :rik_ee_cache_dir)
-    max_years = Application.fetch_env!(:colt, :ingest_max_years)
 
     files =
       dir
@@ -52,8 +51,6 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
           _ -> []
         end
       end)
-      |> Enum.sort_by(&elem(&1, 0), :desc)
-      |> Enum.take(max_years)
       |> Enum.sort_by(&elem(&1, 0))
 
     case files do

@@ -10,8 +10,9 @@ config :wallaby, otp_app: :colt, driver: Wallaby.Chrome
 # Unset / 0 in prod = ingest everything.
 config :colt, ingest_sample_rate: 0.03
 
-# Cap rik.ee elemendid imports to the most recent fiscal year in dev to keep
-# the ingest under a minute. Prod uses 3.
+# Caps the PRH (FI) iXBRL year sweep in dev. The EE rik.ee ingest ignores
+# this and processes whatever elemendid_YYYY.csv files are in its cache —
+# its downloader controls the year range (see `Ee.Rik.Download.@earliest_year`).
 config :colt, ingest_max_years: 1
 
 # Configure your database
