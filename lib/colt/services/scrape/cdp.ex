@@ -18,7 +18,7 @@ defmodule Colt.Services.Scrape.Cdp do
 
   @default_host "127.0.0.1"
   @default_port 9222
-  @load_timeout 15_000
+  @load_timeout 60_000
 
   def run(url) when is_binary(url) do
     server = Session.new(host: host(), port: port())
