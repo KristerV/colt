@@ -71,7 +71,10 @@ RUN mix release
 FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates unzip \
+  && apt-get install -y --no-install-recommends \
+       libstdc++6 openssl libncurses6 locales ca-certificates unzip \
+       chromium chromium-driver fonts-liberation \
+       libnss3 libxss1 libasound2 libatk-bridge2.0-0 libgtk-3-0 libgbm1 \
   && rm -rf /var/lib/apt/lists/*
 
 # Set the locale
@@ -87,6 +90,7 @@ RUN chown nobody /app
 
 # set runner ENV
 ENV MIX_ENV="prod"
+ENV CHROME_BINARY="/usr/bin/chromium"
 
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/colt ./

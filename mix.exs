@@ -44,7 +44,7 @@ defmodule Colt.MixProject do
     [
       {:nimble_csv, "~> 1.0"},
       {:html2markdown, "~> 0.3"},
-      {:wallaby, "~> 0.30", runtime: false},
+      {:wallaby, "~> 0.30"},
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:oban, "~> 2.0"},

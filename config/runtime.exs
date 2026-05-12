@@ -22,6 +22,11 @@ end
 
 config :colt, ColtWeb.Endpoint, http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+config :wallaby,
+  otp_app: :colt,
+  driver: Wallaby.Chrome,
+  chromedriver: [headless: true]
+
 if config_env() == :prod do
   database_url =
     System.get_env("DATABASE_URL") ||
