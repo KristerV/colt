@@ -105,9 +105,12 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
          code when code not in [nil, ""] <- map["registrikood"],
          year_str when year_str not in [nil, ""] <- map["aruandeaasta"],
          {year, ""} <- Integer.parse(year_str) do
+      # Copy these binaries: they're sub-binaries of the NimbleCSV-parsed
+      # line. Without the copy they keep the whole line alive in the heap,
+      # which on a 2GB Fly box overflows during the 1.5M-row aruannete read.
       %{
-        report_id: report_id,
-        registry_code: code,
+        report_id: :binary.copy(report_id),
+        registry_code: :binary.copy(code),
         year: year,
         esitatud_sortable: parse_eu_date(map["esitatud_kpv"])
       }
@@ -261,9 +264,6 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
   # in isolation — no global accumulator, so GC stays cheap for the whole
   # 3.7M-row file.
   def stream_reports(path, latest_by_report) do
-    [header_line] = path |> File.stream!() |> Enum.take(1)
-    headers = parse_csv_line(header_line)
-
     label = "elemendid rows (#{Path.basename(path)})"
 
     path
@@ -278,7 +278,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     end)
     |> Stream.map(fn line ->
       t = System.monotonic_time(:microsecond)
-      row = parse_element_row(line, headers)
+      row = parse_element_row(line)
       tick_us(:t_parse, System.monotonic_time(:microsecond) - t)
       row
     end)
@@ -323,24 +323,46 @@ defmodule Colt.Services.Ingest.Ee.Rik.AnnualReports do
     end
   end
 
-  defp parse_element_row(line, headers) do
-    fields = parse_csv_line(line)
-    map = headers |> Enum.zip(fields) |> Map.new()
-
-    case map["report_id"] do
-      nil ->
+  # elemendid CSV format is rigid: 5 fields per row, semicolon-separated,
+  # column 1 unquoted (report_id integer), columns 2-5 double-quoted strings.
+  # Verified: no ;-fields outside quotes anywhere in elemendid_2023.csv.
+  # Bypassing NimbleCSV here for a ~10× speedup over header-based map lookup.
+  defp parse_element_row(line) do
+    case :binary.split(line, ";", [:global]) do
+      [<<>>, _, _, _, _] ->
         nil
 
-      "" ->
-        nil
-
-      report_id ->
+      [report_id, tabel, _label, element, value_nl] ->
         %{
           report_id: report_id,
-          tabel: map["tabel"],
-          element: map["elemendi_nimetus"],
-          value: map["vaartus"]
+          tabel: strip_quotes(tabel),
+          element: strip_quotes(element),
+          value: strip_quotes(trim_newline(value_nl))
         }
+
+      _ ->
+        nil
+    end
+  end
+
+  defp strip_quotes(<<?", rest::binary>>) when byte_size(rest) >= 1 do
+    :binary.part(rest, 0, byte_size(rest) - 1)
+  end
+
+  defp strip_quotes(s), do: s
+
+  defp trim_newline(bin) do
+    case :binary.last(bin) do
+      ?\n ->
+        size = byte_size(bin) - 1
+
+        case :binary.at(bin, size - 1) do
+          ?\r -> :binary.part(bin, 0, size - 1)
+          _ -> :binary.part(bin, 0, size)
+        end
+
+      _ ->
+        bin
     end
   end
 
