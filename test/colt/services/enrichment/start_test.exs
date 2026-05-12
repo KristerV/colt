@@ -49,11 +49,11 @@ defmodule Colt.Services.Enrichment.StartTest do
     assert_enqueued(worker: Colt.Jobs.Enrichment.CheckWebsite)
   end
 
-  test "run/3 caps at 1000 even when filter matches more", %{user: user, campaign: c} do
-    seed_companies(1010)
+  test "run/3 caps at 100 even when filter matches more", %{user: user, campaign: c} do
+    seed_companies(110)
 
     {:ok, %{count: count}} = Start.run(c, %{market: :ee}, user)
 
-    assert count == 1000
+    assert count == 100
   end
 end

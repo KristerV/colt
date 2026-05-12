@@ -4,7 +4,7 @@ defmodule Colt.Filters do
 
     * a count query
     * a 100-row random preview
-    * a ≤1000-row random sample (used at confirm time)
+    * a ≤100-row random sample (used at confirm time)
     * the per-bucket totals shown next to trajectory checkboxes
     * the top industries / regions used to populate the chip lists
 
@@ -15,7 +15,7 @@ defmodule Colt.Filters do
   alias Colt.Resources.{AnnualReport, Company}
 
   @preview_limit 100
-  @sample_limit 1000
+  @sample_limit 100
   @top_industries 12
 
   @growth_buckets [:declining, :stagnant, :slow, :growing_2x, :growing_10x]

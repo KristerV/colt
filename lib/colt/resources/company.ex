@@ -151,7 +151,7 @@ defmodule Colt.Resources.Company do
       description """
       View 3 — companies matching the user-selected filter set, in a market.
       Always sorted randomly so the same action serves count, preview (limit 100),
-      and confirm-time sample (limit 1000). Pass `query: [limit: n]` to bound the read.
+      and confirm-time sample (limit 100). Pass `query: [limit: n]` to bound the read.
       """
 
       argument :market, :atom, allow_nil?: false

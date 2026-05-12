@@ -285,7 +285,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               phx-click="confirm"
               disabled={@confirming? or @count == 0}
             >
-              Run enrichment on {min(@count, 1000)} <Liid.icon name="spark" size={13} />
+              Run enrichment on {min(@count, 100)} <Liid.icon name="spark" size={13} />
             </Liid.btn>
             <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
           </div>
