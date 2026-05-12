@@ -36,7 +36,10 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             pending?: false,
             industry_query: "",
             industry_results: [],
-            industry_open: false
+            industry_open: false,
+            exclude_query: "",
+            exclude_results: [],
+            exclude_open: false
           )
           |> reload_filters()
 
@@ -117,6 +120,30 @@ defmodule ColtWeb.Campaigns.FiltersLive do
      |> reload_filters_async()}
   end
 
+  def handle_event("exclude_search", %{"q" => q}, socket) do
+    {:noreply,
+     assign(socket,
+       exclude_query: q,
+       exclude_results: Colt.Filters.IndustryLabels.search(q),
+       exclude_open: true
+     )}
+  end
+
+  def handle_event("exclude_open", _, socket),
+    do: {:noreply, assign(socket, exclude_open: true)}
+
+  def handle_event("exclude_close", _, socket),
+    do: {:noreply, assign(socket, exclude_open: false, exclude_query: "", exclude_results: [])}
+
+  def handle_event("exclude_pick", %{"code" => code}, socket) do
+    form = Map.update!(socket.assigns.form, :industries_exclude, &add_unique(&1, code))
+
+    {:noreply,
+     socket
+     |> assign(form: form, exclude_query: "", exclude_results: [], exclude_open: false)
+     |> reload_filters_async()}
+  end
+
   def handle_event("confirm", _params, socket) do
     socket = assign(socket, confirming?: true)
     filters = filter_args(socket.assigns.form, socket.assigns.campaign.market)
@@ -164,6 +191,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     %{
       industries: Map.get(saved, "industries", []),
+      industries_exclude: Map.get(saved, "industries_exclude", []),
       growth_buckets: Map.get(saved, "growth_buckets", []),
       employees_min: Map.get(saved, "employees_min"),
       employees_max: Map.get(saved, "employees_max"),
@@ -176,6 +204,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     %{
       market: market,
       industries: form.industries,
+      industries_exclude: form.industries_exclude,
       growth_buckets: form.growth_buckets,
       employees_min: form.employees_min,
       employees_max: form.employees_max,
@@ -221,12 +250,18 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   defp toggle_in_form(form, "industries", v), do: Map.update!(form, :industries, &toggle(&1, v))
 
+  defp toggle_in_form(form, "industries_exclude", v),
+    do: Map.update!(form, :industries_exclude, &toggle(&1, v))
+
   defp toggle_in_form(form, "growth_buckets", v) do
     Map.update!(form, :growth_buckets, &toggle(&1, String.to_existing_atom(v)))
   end
 
   defp remove_from_form(form, "industries", v),
     do: Map.update!(form, :industries, &List.delete(&1, v))
+
+  defp remove_from_form(form, "industries_exclude", v),
+    do: Map.update!(form, :industries_exclude, &List.delete(&1, v))
 
   defp remove_from_form(form, "growth_buckets", v) do
     Map.update!(form, :growth_buckets, &List.delete(&1, String.to_existing_atom(v)))
@@ -267,6 +302,9 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           industry_query={@industry_query}
           industry_results={@industry_results}
           industry_open={@industry_open}
+          exclude_query={@exclude_query}
+          exclude_results={@exclude_results}
+          exclude_open={@exclude_open}
         />
 
         <div class="flex-1 flex flex-col min-h-0 gap-5">
@@ -285,7 +323,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               phx-click="confirm"
               disabled={@confirming? or @count == 0}
             >
-              Run enrichment on {min(@count, 100)} <Liid.icon name="spark" size={13} />
+              Run enrichment on {min(@count, 100)}
             </Liid.btn>
             <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
           </div>
@@ -305,6 +343,9 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   attr :industry_query, :string, required: true
   attr :industry_results, :list, required: true
   attr :industry_open, :boolean, required: true
+  attr :exclude_query, :string, required: true
+  attr :exclude_results, :list, required: true
+  attr :exclude_open, :boolean, required: true
 
   defp filter_panel(assigns) do
     assigns = assign(assigns, growth_buckets: @growth_buckets)
@@ -318,11 +359,23 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       <div class="flex flex-col gap-6 overflow-auto pr-2">
         <.fset label="Industry" hint={industry_hint(@form.industries)}>
           <.industry_box
+            mode={:include}
             selected={@form.industries}
             top_industries={@top_industries}
             query={@industry_query}
             results={@industry_results}
             open={@industry_open}
+          />
+        </.fset>
+
+        <.fset label="Exclude industries" hint={industry_hint(@form.industries_exclude)}>
+          <.industry_box
+            mode={:exclude}
+            selected={@form.industries_exclude}
+            top_industries={@top_industries}
+            query={@exclude_query}
+            results={@exclude_results}
+            open={@exclude_open}
           />
         </.fset>
 
@@ -375,6 +428,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     """
   end
 
+  attr :mode, :atom, default: :include, values: [:include, :exclude]
   attr :selected, :list, required: true
   attr :top_industries, :list, required: true
   attr :query, :string, required: true
@@ -384,10 +438,32 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   defp industry_box(assigns) do
     items = if assigns.query == "", do: assigns.top_industries, else: assigns.results
     label = if assigns.query == "", do: "popular", else: "matches"
-    assigns = assign(assigns, items: items, items_label: label)
+
+    {field, search_evt, pick_evt, open_evt, close_evt, placeholder} =
+      case assigns.mode do
+        :include ->
+          {"industries", "industry_search", "industry_pick", "industry_open", "industry_close",
+           "search industries…"}
+
+        :exclude ->
+          {"industries_exclude", "exclude_search", "exclude_pick", "exclude_open",
+           "exclude_close", "search to exclude…"}
+      end
+
+    assigns =
+      assign(assigns,
+        items: items,
+        items_label: label,
+        field: field,
+        search_evt: search_evt,
+        pick_evt: pick_evt,
+        open_evt: open_evt,
+        close_evt: close_evt,
+        placeholder: placeholder
+      )
 
     ~H"""
-    <div class="relative" phx-click-away="industry_close">
+    <div class="relative" phx-click-away={@close_evt}>
       <div class="flex flex-wrap items-center gap-1.5 min-h-[36px] px-2 py-1.5 border border-ink20 bg-paperAlt rounded-sharp focus-within:border-ink">
         <%= for code <- @selected do %>
           <span class="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 text-[11px] bg-paper border border-ink20 rounded-sharp">
@@ -395,7 +471,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             <button
               type="button"
               phx-click="clear_chip"
-              phx-value-field="industries"
+              phx-value-field={@field}
               phx-value-v={code}
               class="text-ink55 hover:text-ink cursor-pointer"
             >
@@ -403,13 +479,13 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             </button>
           </span>
         <% end %>
-        <form phx-change="industry_search" autocomplete="off" class="flex-1 min-w-[80px]">
+        <form phx-change={@search_evt} autocomplete="off" class="flex-1 min-w-[80px]">
           <input
             type="text"
             name="q"
             value={@query}
-            placeholder={if @selected == [], do: "search industries…", else: "+ add"}
-            phx-focus="industry_open"
+            placeholder={if @selected == [], do: @placeholder, else: "+ add"}
+            phx-focus={@open_evt}
             phx-debounce="150"
             class="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-ink40"
           />
@@ -431,7 +507,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           <% disabled = code in @selected %>
           <button
             type="button"
-            phx-click={not disabled && "industry_pick"}
+            phx-click={not disabled && @pick_evt}
             phx-value-code={code}
             disabled={disabled}
             class={[

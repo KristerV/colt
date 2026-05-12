@@ -99,6 +99,12 @@ defmodule ColtWeb.AdminLive do
         path: "/admin/companies"
       },
       %{
+        kicker: "Activity",
+        title: "Campaigns",
+        value: format_int(Ash.count!(Colt.Resources.Campaign)) <> " total",
+        path: "/admin/campaigns"
+      },
+      %{
         kicker: "Database",
         title: "Storage",
         value: ColtWeb.Admin.StorageLive.total_size(),

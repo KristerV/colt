@@ -20,6 +20,7 @@ defmodule Colt.Resources.Campaign do
     define :set_icp, args: [:icp_description, :target_job_title]
     define :set_market, args: [:market]
     define :list_recent_for_user, args: [:user_id]
+    define :list_all_recent
     define :finalize, args: [:filters]
   end
 
@@ -31,6 +32,11 @@ defmodule Colt.Resources.Campaign do
       argument :user_id, :uuid, allow_nil?: false
       filter expr(owner_id == ^arg(:user_id))
       prepare build(sort: [inserted_at: :desc], limit: 4)
+    end
+
+    read :list_all_recent do
+      description "Admin — every campaign across users, newest first."
+      prepare build(sort: [inserted_at: :desc], limit: 200)
     end
 
     create :create_draft do
@@ -68,6 +74,7 @@ defmodule Colt.Resources.Campaign do
 
   policies do
     policy action_type(:read) do
+      authorize_if actor_attribute_equals(:is_admin, true)
       authorize_if expr(owner_id == ^actor(:id))
     end
 

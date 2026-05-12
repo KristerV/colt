@@ -215,6 +215,13 @@ defmodule ColtWeb.Components.Liid do
             feedback
           </button>
           <.link
+            navigate="/campaigns/new"
+            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
+          >
+            campaigns
+          </.link>
+          <.link
+            :if={@current_user.is_admin}
             href="/admin"
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
           >

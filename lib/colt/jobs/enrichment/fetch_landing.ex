@@ -23,7 +23,10 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.begin(cc),
          {:ok, company} <- Company.get(cc.company_id) do
+      Transition.stage(cc, :website, :work)
+
       cond do
         not is_binary(company.website_url) ->
           fallback_to_google(cc, company, "no website_url on company")

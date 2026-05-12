@@ -16,6 +16,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.begin(cc),
          {:ok, company} <- Company.get(cc.company_id) do
       Transition.stage(cc, :website, :work)
       # No quotes: exact-phrase matching can miss companies whose names appear

@@ -159,6 +159,7 @@ defmodule Colt.Resources.Company do
       # a national subclass that doesn't change the wording, so we filter on the
       # NACE class via LEFT(industry_code, 4).
       argument :industries, {:array, :string}, default: []
+      argument :industries_exclude, {:array, :string}, default: []
       argument :growth_buckets, {:array, :atom}, default: []
       argument :employees_min, :integer
       argument :employees_max, :integer
@@ -170,6 +171,8 @@ defmodule Colt.Resources.Company do
                  status == :registered and
                  (^arg(:industries) == [] or
                     fragment("LEFT(?, 4) = ANY(?)", industry_code, ^arg(:industries))) and
+                 (^arg(:industries_exclude) == [] or
+                    not fragment("LEFT(?, 4) = ANY(?)", industry_code, ^arg(:industries_exclude))) and
                  (^arg(:growth_buckets) == [] or
                     revenue_growth_bucket in ^arg(:growth_buckets)) and
                  (is_nil(^arg(:employees_min)) or

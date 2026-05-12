@@ -36,7 +36,7 @@ defmodule Colt.Jobs.Enrichment.CheckWebsiteTest do
     %{user: user, campaign: c, company: company, cc: cc}
   end
 
-  test "no website → enqueues GoogleSearch and stays at :scraping" do
+  test "no website → enqueues GoogleSearch; CC stays :pending until downstream worker begins" do
     %{cc: cc} = setup_cc()
 
     assert :ok = CheckWebsite.perform(%Oban.Job{args: %{"campaign_company_id" => cc.id}})
@@ -44,6 +44,6 @@ defmodule Colt.Jobs.Enrichment.CheckWebsiteTest do
     assert_enqueued(worker: GoogleSearch, args: %{"campaign_company_id" => cc.id})
 
     cc2 = CampaignCompany.get!(cc.id)
-    assert cc2.status == :scraping
+    assert cc2.status == :pending
   end
 end

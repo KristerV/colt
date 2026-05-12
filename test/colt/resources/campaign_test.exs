@@ -59,11 +59,23 @@ defmodule Colt.Resources.CampaignTest do
   end
 
   test "policy: cannot read another user's campaign" do
+    # Seed two users; the first becomes admin via MaybePromoteFirstAdmin, so
+    # seed an admin sentinel first and use the *second* user as `me`.
+    _bootstrap = seed_user("admin@example.com")
     me = seed_user("me@example.com")
     other = seed_user("other@example.com")
 
     {:ok, c} = Campaign.create_draft("Theirs", actor: other)
 
     assert {:error, _} = Campaign.get(c.id, actor: me)
+  end
+
+  test "policy: admin can read any campaign" do
+    admin = seed_user("admin@example.com")
+    other = seed_user("other@example.com")
+
+    {:ok, c} = Campaign.create_draft("Theirs", actor: other)
+
+    assert {:ok, _} = Campaign.get(c.id, actor: admin)
   end
 end

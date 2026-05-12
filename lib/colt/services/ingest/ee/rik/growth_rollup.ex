@@ -44,6 +44,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.GrowthRollup do
         employees_latest,
         CASE
           WHEN revenue_prev IS NULL OR revenue_latest IS NULL THEN NULL
+          WHEN revenue_latest < 100000 THEN NULL
           WHEN revenue_prev <= 0 AND revenue_latest > 0 THEN 'growing_10x'
           WHEN revenue_prev <= 0 THEN 'stagnant'
           WHEN revenue_latest < revenue_prev THEN 'declining'

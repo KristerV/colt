@@ -12,19 +12,14 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
 
   alias Colt.Jobs.Enrichment.{FetchLanding, GoogleSearch}
   alias Colt.Resources.{CampaignCompany, Company}
-  alias Colt.Services.Enrichment.{CheckAlive, Freshness, Transition}
+  alias Colt.Services.Enrichment.{CheckAlive, Freshness}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
-         {:ok, _cc} <- Transition.begin(cc),
          {:ok, company} <- Company.get(cc.company_id) do
-      Transition.stage(cc, :website, :work)
-
       cond do
         Freshness.company_fresh?(company) and is_binary(company.website_url) ->
-          # Stage stays in :work — FetchLanding/SummarizeCompany downstream
-          # will mark :done when the chain actually finishes.
           enqueue(FetchLanding, cc)
           :ok
 
@@ -32,7 +27,6 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
           run_check(cc, company)
 
         true ->
-          Transition.stage(cc, :website, :fall)
           enqueue(GoogleSearch, cc)
           :ok
       end
@@ -42,12 +36,10 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
   defp run_check(cc, company) do
     case CheckAlive.run(company.website_url) do
       {:ok, :alive} ->
-        Transition.stage(cc, :website, :done)
         enqueue(FetchLanding, cc)
         :ok
 
       {:ok, :dead} ->
-        Transition.stage(cc, :website, :fall)
         enqueue(GoogleSearch, cc)
         :ok
     end
