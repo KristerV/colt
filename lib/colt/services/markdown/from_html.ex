@@ -23,7 +23,7 @@ defmodule Colt.Services.Markdown.FromHtml do
           html
       end
 
-    md = Html2Markdown.convert(cleaned) |> normalize()
+    md = Html2Markdown.convert(cleaned) |> scrub_utf8() |> normalize()
     {:ok, md}
   rescue
     e -> {:error, "markdown convert: #{Exception.message(e)}"}
@@ -34,4 +34,14 @@ defmodule Colt.Services.Markdown.FromHtml do
     |> String.replace(~r/\n{3,}/, "\n\n")
     |> String.trim()
   end
+
+  # Drop bytes that aren't valid UTF-8 so Postgres won't reject the insert.
+  # Pages served as Latin-1 (mislabeled or no charset) leak stray bytes through
+  # Html2Markdown.
+  defp scrub_utf8(bin) when is_binary(bin), do: do_scrub(bin, <<>>)
+  defp scrub_utf8(_), do: ""
+
+  defp do_scrub(<<>>, acc), do: acc
+  defp do_scrub(<<c::utf8, rest::binary>>, acc), do: do_scrub(rest, <<acc::binary, c::utf8>>)
+  defp do_scrub(<<_, rest::binary>>, acc), do: do_scrub(rest, acc)
 end

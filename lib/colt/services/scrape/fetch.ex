@@ -17,6 +17,8 @@ defmodule Colt.Services.Scrape.Fetch do
     jitter = Keyword.get(opts, :jitter_ms, @default_jitter_ms)
     if jitter > 0, do: Process.sleep(:rand.uniform(jitter))
 
+    url = normalize_url(url)
+
     with {:ok, static} <- Static.run(url),
          {:ok, verdict} <- DetectSpa.run(static) do
       case verdict do
@@ -31,5 +33,32 @@ defmodule Colt.Services.Scrape.Fetch do
           end
       end
     end
+  end
+
+  # Percent-encode non-ASCII path/query bytes. HTTP clients (Mint) and Chromium's
+  # CDP both reject request targets containing raw UTF-8 (e.g. `/ru/контакты`).
+  defp normalize_url(url) do
+    if ascii?(url) do
+      url
+    else
+      uri = URI.parse(url)
+
+      %{
+        uri
+        | path: uri.path && encode_path(uri.path),
+          query: uri.query && URI.encode(uri.query)
+      }
+      |> URI.to_string()
+    end
+  end
+
+  defp ascii?(<<>>), do: true
+  defp ascii?(<<c, rest::binary>>) when c < 128, do: ascii?(rest)
+  defp ascii?(_), do: false
+
+  defp encode_path(path) do
+    path
+    |> String.split("/")
+    |> Enum.map_join("/", &URI.encode/1)
   end
 end
