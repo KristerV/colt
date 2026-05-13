@@ -91,6 +91,14 @@ defmodule ColtWeb.Campaigns.IcpLive do
               >
                 Ideal customer profile
               </label>
+              <div class="text-[12px] text-ink40 mt-1">
+                Describe the ideal customer in plain English. The AI agent
+                visits each prospect's website and uses this to decide if
+                they're a fit. Spell out what a good customer looks like —
+                industry, size, business model, what they sell or do — and
+                just as importantly, what a <em>bad</em> fit looks like
+                (e.g. "not solo freelancers", "not B2C", "not agencies").
+              </div>
             </div>
             <textarea
               id="icp"

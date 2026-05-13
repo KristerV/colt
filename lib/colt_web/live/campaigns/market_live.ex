@@ -10,7 +10,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
 
   @markets [
     %{code: "EE", name: "Estonia", api: "rik.ee", market: :ee, disabled: false},
-    %{code: "FI", name: "Finland", api: "ytj.fi", market: :fi, disabled: true},
+    %{code: "FI", name: "Finland", api: "ytj.fi", market: :fi, disabled: false},
     %{code: "LV", name: "Latvia", api: "ur.gov.lv", market: :lv, disabled: true},
     %{code: "LT", name: "Lithuania", api: "registrucentras.lt", market: :lt, disabled: true},
     %{code: "SE", name: "Sweden", api: "bolagsverket.se", market: :se, disabled: true},
@@ -27,6 +27,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
             campaign: campaign,
             selected: campaign.market || :ee,
             markets: @markets,
+            counts: active_counts(),
             ee_count: ee_active_count(),
             last_sync: last_sync_at(),
             error: nil
@@ -39,8 +40,9 @@ defmodule ColtWeb.Campaigns.MarketLive do
     end
   end
 
-  def handle_event("select", %{"market" => "ee"}, socket) do
-    {:noreply, assign(socket, selected: :ee)}
+  def handle_event("select", %{"market" => market}, socket)
+      when market in ~w(ee fi) do
+    {:noreply, assign(socket, selected: String.to_existing_atom(market))}
   end
 
   def handle_event("select", %{"market" => _}, socket), do: {:noreply, socket}
@@ -63,6 +65,16 @@ defmodule ColtWeb.Campaigns.MarketLive do
       :count,
       :id
     )
+  end
+
+  defp active_counts do
+    from(c in Company,
+      where: c.status == :registered,
+      group_by: c.market,
+      select: {c.market, count(c.id)}
+    )
+    |> Colt.Repo.all()
+    |> Map.new()
   end
 
   defp last_sync_at do
@@ -91,7 +103,12 @@ defmodule ColtWeb.Campaigns.MarketLive do
             <.market_card
               market={m}
               selected={@selected == m.market}
-              count={if m.market == :ee, do: format_int(@ee_count), else: "—"}
+              count={
+                case Map.get(@counts, m.market) do
+                  nil -> "—"
+                  n -> format_int(n)
+                end
+              }
             />
           <% end %>
         </div>
