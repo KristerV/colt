@@ -13,6 +13,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   @max_companies Application.compile_env!(:colt, :enrichment_max_companies)
 
+  defp max_companies, do: @max_companies
+
   @growth_buckets [
     {:declining, "Shrinking"},
     {:stagnant, "Stagnant"},
@@ -325,7 +327,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               phx-click="confirm"
               disabled={@confirming? or @count == 0}
             >
-              Run enrichment on {min(@count, @max_companies)}
+              Run enrichment on {min(@count, max_companies())}
             </Liid.btn>
             <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
           </div>
