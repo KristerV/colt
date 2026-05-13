@@ -4,7 +4,7 @@ defmodule Colt.Filters do
 
     * a count query
     * a 100-row random preview
-    * a ≤100-row random sample (used at confirm time)
+    * a confirm-time random sample (capped by `:enrichment_max_companies`)
     * the per-bucket totals shown next to trajectory checkboxes
     * the top industries / regions used to populate the chip lists
 
@@ -15,7 +15,7 @@ defmodule Colt.Filters do
   alias Colt.Resources.{AnnualReport, Company}
 
   @preview_limit 100
-  @sample_limit 100
+  @sample_limit Application.compile_env!(:colt, :enrichment_max_companies)
   @top_industries 12
 
   @growth_buckets [:declining, :stagnant, :slow, :growing_2x, :growing_10x]
@@ -43,7 +43,8 @@ defmodule Colt.Filters do
   end
 
   @doc """
-  Returns up to 1000 random `Company` records for the confirmed filter set.
+  Returns random `Company` records for the confirmed filter set, capped by
+  `:enrichment_max_companies`.
   """
   def sample(filters) when is_map(filters) do
     Company.filtered(filters, query: [limit: @sample_limit])

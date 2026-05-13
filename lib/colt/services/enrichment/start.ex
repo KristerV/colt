@@ -1,6 +1,7 @@
 defmodule Colt.Services.Enrichment.Start do
   @moduledoc """
-  Confirm-time orchestrator. Samples up to 100 companies for the campaign's
+  Confirm-time orchestrator. Samples companies (capped by
+  `:enrichment_max_companies`) for the campaign's
   filters, creates `CampaignCompany` join rows, locks the campaign at
   `:enriching` with `finalized_at`, and enqueues the first pipeline job
   (CheckWebsite) per row.

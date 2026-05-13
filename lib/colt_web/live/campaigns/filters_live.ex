@@ -11,6 +11,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
+  @max_companies Application.compile_env!(:colt, :enrichment_max_companies)
+
   @growth_buckets [
     {:declining, "Shrinking"},
     {:stagnant, "Stagnant"},
@@ -323,7 +325,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               phx-click="confirm"
               disabled={@confirming? or @count == 0}
             >
-              Run enrichment on {min(@count, 100)}
+              Run enrichment on {min(@count, @max_companies)}
             </Liid.btn>
             <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
           </div>
@@ -693,8 +695,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   attr :pending?, :boolean, default: false
 
   defp counter_card(assigns) do
-    pct = if assigns.count >= 1000, do: 100, else: assigns.count / 10.0
-    cap_remaining = max(1000 - assigns.count, 0)
+    pct = if assigns.count >= @max_companies, do: 100, else: assigns.count / @max_companies * 100
+    cap_remaining = max(@max_companies - assigns.count, 0)
     assigns = assign(assigns, pct: pct, cap_remaining: cap_remaining)
 
     ~H"""
