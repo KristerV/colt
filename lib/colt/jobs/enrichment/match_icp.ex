@@ -1,15 +1,23 @@
 defmodule Colt.Jobs.Enrichment.MatchICP do
   @moduledoc """
   §6.6 — Claude Sonnet 4.5 decides whether the company matches the
-  campaign's ICP description. Per-campaign — no caching across campaigns.
+  campaign's ICP description, plus any user-added IcpLearning exclusions.
 
   Match  → enqueue PickContactPages.
-  Reject → terminal `:rejected` with reason.
+  Reject → terminal `:rejected` with reason (also nils picked_person_id so
+           a previously :enriched row drops out of the export cleanly).
   """
-  use Oban.Worker, queue: :ai, max_attempts: 2
+  use Oban.Worker,
+    queue: :ai,
+    max_attempts: 2,
+    unique: [
+      fields: [:worker, :args],
+      keys: [:campaign_company_id],
+      states: [:available, :scheduled, :executing, :retryable]
+    ]
 
   alias Colt.Jobs.Enrichment.PickContactPages
-  alias Colt.Resources.{Campaign, CampaignCompany, Company}
+  alias Colt.Resources.{Campaign, CampaignCompany, Company, IcpLearning}
   alias Colt.Services.Enrichment.{ClassifyIcp, FailureMessage, Transition}
 
   @impl Oban.Worker
@@ -21,12 +29,10 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
       icp = campaign.icp_description || ""
       summary = company.ai_summary || ""
+      learnings = load_learning_bodies(cc.campaign_id)
 
       cond do
         icp == "" or summary == "" ->
-          # No ICP supplied or no summary — treat as soft pass so we don't
-          # gate everything on ICP. Mark :done since the stage is complete
-          # from the user's perspective.
           Transition.stage(cc, :icp, :done)
           enqueue_next(cc)
           :ok
@@ -34,7 +40,8 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
         true ->
           case ClassifyIcp.run(icp, summary,
                  campaign_id: cc.campaign_id,
-                 business_model: campaign.business_model
+                 business_model: campaign.business_model,
+                 learnings: learnings
                ) do
             {:ok, %{match: true}} ->
               Transition.stage(cc, :icp, :done)
@@ -43,6 +50,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
             {:ok, %{match: false, reason: reason}} ->
               Transition.stage(cc, :icp, :fall)
+              {:ok, _} = CampaignCompany.set_picked_person(cc, nil, authorize?: false)
               {:ok, _} = Transition.terminate(cc, :rejected, reason: reason)
               :ok
 
@@ -65,5 +73,12 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
   defp enqueue_next(cc) do
     %{campaign_company_id: cc.id} |> PickContactPages.new() |> Oban.insert!()
+  end
+
+  defp load_learning_bodies(campaign_id) do
+    case IcpLearning.list_for_campaign(campaign_id, authorize?: false) do
+      {:ok, learnings} -> Enum.map(learnings, & &1.body)
+      _ -> []
+    end
   end
 end

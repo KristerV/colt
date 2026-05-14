@@ -11,5 +11,6 @@ defmodule Colt.Domain do
     resource Colt.Resources.Page
     resource Colt.Resources.Person
     resource Colt.Resources.Feedback
+    resource Colt.Resources.IcpLearning
   end
 end

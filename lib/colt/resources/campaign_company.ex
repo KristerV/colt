@@ -31,6 +31,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :list_for_campaign, args: [:campaign_id]
     define :list_for_export, args: [:campaign_id]
     define :reset
+    define :reset_for_icp_recheck
   end
 
   actions do
@@ -96,6 +97,22 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:failed_stage, nil)
       change set_attribute(:rejection_reason, nil)
       change set_attribute(:failure_detail, nil)
+
+      require_atomic? false
+    end
+
+    update :reset_for_icp_recheck do
+      description """
+      Light reset before re-running MatchICP. Leaves company-level data
+      (ai_summary, pages, persons) untouched so other campaigns sharing
+      the same Company aren't affected.
+      """
+
+      change set_attribute(:status, :scraping)
+      change set_attribute(:failed_stage, nil)
+      change set_attribute(:rejection_reason, nil)
+      change set_attribute(:failure_detail, nil)
+      change set_attribute(:picked_person_id, nil)
 
       require_atomic? false
     end

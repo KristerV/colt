@@ -39,7 +39,7 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
     user = """
     #{audience_clause(opts[:business_model])}ICP description:
     #{icp_description}
-
+    #{learnings_clause(opts[:learnings])}
     Company summary:
     #{company_summary}
 
@@ -76,6 +76,19 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
       "Audience: B2C only. The company MUST sell primarily to consumers. If the summary describes a business that sells primarily to other businesses (B2B SaaS, wholesale, industrial supplier), REJECT.\n\n"
 
   defp audience_clause(_), do: ""
+
+  defp learnings_clause(nil), do: ""
+  defp learnings_clause([]), do: ""
+
+  defp learnings_clause(learnings) when is_list(learnings) do
+    bullets = Enum.map_join(learnings, "\n", fn body -> "- #{body}" end)
+
+    """
+
+    Additional exclusions (rules the user added after reviewing earlier matches — treat with the same weight as the ICP above):
+    #{bullets}
+    """
+  end
 
   defp audience_tail(:b2b), do: " or the audience constraint above"
   defp audience_tail(:b2c), do: " or the audience constraint above"

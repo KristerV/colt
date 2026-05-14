@@ -374,8 +374,18 @@ defmodule ColtWeb.Components.Funnel do
   def expanded_detail(assigns) do
     ~H"""
     <div class="grid gap-6 md:gap-8 bg-paperAlt border-t border-rule grid-cols-1 md:grid-cols-[1.4fr_1fr] px-4 py-5 md:pl-14 md:pr-6 md:py-6">
-      <div :if={@admin?} class="md:col-span-2 flex justify-end -mb-2">
+      <div class="md:col-span-2 flex justify-end gap-2 -mb-2">
         <button
+          :if={@row.status == :enriched}
+          type="button"
+          phx-click="open_not_a_fit"
+          phx-value-id={@row.cc_id}
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+        >
+          <Liid.icon name="x" size={11} /> Not a good fit
+        </button>
+        <button
+          :if={@admin?}
           type="button"
           phx-click="retry_row"
           phx-value-id={@row.cc_id}

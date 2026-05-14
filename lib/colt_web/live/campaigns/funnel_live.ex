@@ -8,8 +8,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   import Ecto.Query
 
-  alias Colt.Resources.{Campaign, CampaignCompany}
-  alias Colt.Services.Enrichment.{Broadcast, Retry, Stats}
+  alias Colt.Resources.{Campaign, CampaignCompany, IcpLearning}
+  alias Colt.Services.Enrichment.{Broadcast, GenerateIcpLearning, Retry, Stats, SweepRecheckIcp}
   alias Colt.Services.Export.Csv, as: ExportCsv
   alias ColtWeb.Components.{Funnel, Liid}
 
@@ -46,7 +46,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             meta: Stats.run(campaign.finalized_at),
             show_export?: false,
             export_preview: nil,
-            export_count: 0
+            export_count: 0,
+            not_a_fit_row: nil,
+            not_a_fit_error: nil,
+            not_a_fit_saving?: false
           )
           |> stream(:rows, rows)
 
@@ -86,6 +89,36 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
+  def handle_info({:save_not_a_fit, cc_id, reason}, socket) do
+    campaign = socket.assigns.campaign
+    row = Map.get(socket.assigns.rows_index, cc_id)
+
+    with %{} <- row,
+         {:ok, cc} <- CampaignCompany.get(cc_id, authorize?: false, load: [:company]),
+         summary <- cc.company.ai_summary || row.summary || "",
+         {:ok, rule} <-
+           GenerateIcpLearning.run(
+             campaign.icp_description || "",
+             summary,
+             reason,
+             campaign_id: campaign.id
+           ),
+         {:ok, _} <- IcpLearning.create(campaign.id, rule, cc.company_id) do
+      {:noreply,
+       assign(socket, not_a_fit_row: nil, not_a_fit_saving?: false, not_a_fit_error: nil)}
+    else
+      nil ->
+        {:noreply, assign(socket, not_a_fit_saving?: false)}
+
+      {:error, _} ->
+        {:noreply,
+         assign(socket,
+           not_a_fit_saving?: false,
+           not_a_fit_error: "Couldn't generate the learning. Try again."
+         )}
+    end
+  end
+
   def handle_info(:tick, socket) do
     if connected?(socket) do
       Process.send_after(self(), :tick, @tick_ms)
@@ -112,6 +145,44 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   def handle_event("close_export", _params, socket) do
     {:noreply, assign(socket, show_export?: false)}
+  end
+
+  def handle_event("recheck_icp", _params, socket) do
+    if work_in_flight?(socket.assigns.stats) do
+      {:noreply, socket}
+    else
+      {:ok, _} = SweepRecheckIcp.run(socket.assigns.campaign.id)
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("open_not_a_fit", %{"id" => id}, socket) do
+    case Map.get(socket.assigns.rows_index, id) do
+      nil -> {:noreply, socket}
+      row -> {:noreply, assign(socket, not_a_fit_row: row, not_a_fit_error: nil)}
+    end
+  end
+
+  def handle_event("close_not_a_fit", _params, socket) do
+    {:noreply, assign(socket, not_a_fit_row: nil, not_a_fit_error: nil, not_a_fit_saving?: false)}
+  end
+
+  def handle_event("submit_not_a_fit", %{"reason" => reason}, socket) do
+    reason = String.trim(reason || "")
+    row = socket.assigns.not_a_fit_row
+
+    cond do
+      row == nil ->
+        {:noreply, socket}
+
+      reason == "" ->
+        {:noreply, assign(socket, not_a_fit_error: "Tell us why so we can learn the rule.")}
+
+      true ->
+        socket = assign(socket, not_a_fit_saving?: true, not_a_fit_error: nil)
+        send(self(), {:save_not_a_fit, row.cc_id, reason})
+        {:noreply, socket}
+    end
   end
 
   def handle_event("toggle_row", %{"id" => id}, socket) do
@@ -412,6 +483,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket(:failed), do: :failed
   defp bucket(_), do: :queued
 
+  defp work_in_flight?(%{queued: q, working: w}), do: q + w > 0
+  defp work_in_flight?(_), do: false
+
   defp bucket_label(:queued), do: "Queued"
   defp bucket_label(:working), do: "Working"
   defp bucket_label(:enriched), do: "Enriched"
@@ -500,12 +574,22 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               Enriching <span style="color: var(--accent);">{@total}</span> companies.
             </h1>
           </div>
+          <% busy = work_in_flight?(@stats) %>
           <div class="flex items-center gap-3">
+            <Liid.btn
+              size={:small}
+              mono
+              disabled={busy}
+              phx-click="recheck_icp"
+              data-confirm="Re-check ICP fit on all enriched and ICP-rejected companies?"
+            >
+              <Liid.icon name="refresh" size={11} /> Re-check ICP
+            </Liid.btn>
             <Liid.btn
               size={:small}
               variant={:primary}
               mono
-              disabled={@stats.enriched == 0}
+              disabled={busy or @stats.enriched == 0}
               phx-click="open_export"
             >
               <Liid.icon name="download" size={11} /> Export
@@ -553,6 +637,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         campaign={@campaign}
         count={@export_count}
         preview={@export_preview}
+      />
+
+      <.not_a_fit_modal
+        :if={@not_a_fit_row}
+        row={@not_a_fit_row}
+        saving?={@not_a_fit_saving?}
+        error={@not_a_fit_error}
       />
     </Layouts.app>
     """
@@ -674,6 +765,75 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         <span class="font-mono text-[10px] text-ink40">{@note}</span>
       </div>
       <div class="text-[12px] text-ink55 mt-1">{@desc}</div>
+    </div>
+    """
+  end
+
+  attr :row, :map, required: true
+  attr :saving?, :boolean, default: false
+  attr :error, :string, default: nil
+
+  defp not_a_fit_modal(assigns) do
+    ~H"""
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
+      phx-click="close_not_a_fit"
+    >
+      <div
+        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[560px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
+        phx-click-away="close_not_a_fit"
+        phx-window-keydown="close_not_a_fit"
+        phx-key="escape"
+        onclick="event.stopPropagation()"
+      >
+        <div class="flex justify-between items-start gap-3 mb-5">
+          <div class="min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+              Not a good fit · {@row.name}
+            </div>
+            <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
+              What makes this a <em>miss</em>?
+            </h2>
+            <div class="text-[12px] text-ink55 mt-2 leading-[1.55]">
+              Tell us in your own words. We'll save it as a rule and apply it
+              next time you re-check ICP — no other companies move until you do.
+            </div>
+          </div>
+          <button
+            type="button"
+            class="w-6 h-6 flex items-center justify-center cursor-pointer"
+            phx-click="close_not_a_fit"
+          >
+            <Liid.icon name="x" size={14} />
+          </button>
+        </div>
+
+        <form phx-submit="submit_not_a_fit" class="flex flex-col gap-4">
+          <textarea
+            name="reason"
+            autofocus
+            placeholder="e.g. They're a pure reseller — we sell to manufacturers, not distributors."
+            class="w-full min-h-[120px] px-[16px] py-3 border border-ink20 bg-paperAlt text-[14px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
+          ></textarea>
+
+          <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
+
+          <div class="flex items-center gap-3 justify-end">
+            <Liid.btn size={:small} type="button" phx-click="close_not_a_fit">Cancel</Liid.btn>
+            <Liid.btn
+              size={:small}
+              variant={:primary}
+              mono
+              type="submit"
+              disabled={@saving?}
+            >
+              {if @saving?, do: "Saving…", else: "Save learning"}
+            </Liid.btn>
+          </div>
+        </form>
+      </div>
     </div>
     """
   end

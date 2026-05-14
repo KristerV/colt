@@ -1,7 +1,7 @@
 defmodule ColtWeb.Campaigns.IcpLive do
   use ColtWeb, :live_view
 
-  alias Colt.Resources.Campaign
+  alias Colt.Resources.{Campaign, IcpLearning}
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
@@ -17,6 +17,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
             icp_description: campaign.icp_description || "",
             target_job_title: campaign.target_job_title || "",
             business_model: campaign.business_model || :both,
+            learnings: load_learnings(campaign.id),
             error: nil
           )
 
@@ -67,10 +68,28 @@ defmodule ColtWeb.Campaigns.IcpLive do
     end
   end
 
+  def handle_event("delete_learning", %{"id" => id}, socket) do
+    case IcpLearning.get(id) do
+      {:ok, learning} ->
+        :ok = Ash.destroy!(learning, authorize?: false)
+        {:noreply, assign(socket, learnings: load_learnings(socket.assigns.campaign.id))}
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   defp parse_business_model("b2b", _), do: :b2b
   defp parse_business_model("b2c", _), do: :b2c
   defp parse_business_model("both", _), do: :both
   defp parse_business_model(_, fallback), do: fallback
+
+  defp load_learnings(campaign_id) do
+    case IcpLearning.list_for_campaign(campaign_id, authorize?: false) do
+      {:ok, learnings} -> learnings
+      _ -> []
+    end
+  end
 
   def render(assigns) do
     ~H"""
@@ -150,6 +169,34 @@ defmodule ColtWeb.Campaigns.IcpLive do
               phx-debounce="200"
               class="w-full min-h-[200px] px-[22px] py-5 border border-ink20 bg-paperAlt text-[15px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
             >{@icp_description}</textarea>
+
+            <div :if={@learnings != []} class="mt-4">
+              <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+                Learned exclusions ({length(@learnings)})
+              </div>
+              <div class="text-[11px] text-ink40 mb-3 leading-[1.5]">
+                Saved from "not a good fit" feedback on the funnel. Applied on
+                top of the ICP above. Delete any that no longer reflect what
+                you want — then re-check ICP on the funnel.
+              </div>
+              <ul class="flex flex-col gap-1.5">
+                <li
+                  :for={l <- @learnings}
+                  class="flex items-start gap-2 px-3 py-2 border border-ink20 rounded-sharp bg-paperAlt"
+                >
+                  <span class="flex-1 text-[12px] text-ink leading-[1.5]">{l.body}</span>
+                  <button
+                    type="button"
+                    phx-click="delete_learning"
+                    phx-value-id={l.id}
+                    class="w-5 h-5 flex items-center justify-center text-ink40 hover:text-fail cursor-pointer shrink-0"
+                    aria-label="Delete learning"
+                  >
+                    <Liid.icon name="x" size={11} />
+                  </button>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <div>
