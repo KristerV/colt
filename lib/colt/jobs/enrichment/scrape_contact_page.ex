@@ -70,7 +70,13 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
   # still pending — race-free, no "am I last?" check needed.
   defp enqueue_extract(cc) do
     %{campaign_company_id: cc.id}
-    |> ExtractContacts.new(unique: [period: :infinity, keys: [:campaign_company_id]])
+    |> ExtractContacts.new(
+      unique: [
+        period: :infinity,
+        keys: [:campaign_company_id],
+        states: [:available, :scheduled, :executing, :retryable]
+      ]
+    )
     |> Oban.insert!()
   end
 

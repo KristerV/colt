@@ -29,7 +29,13 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
         {:ok, []} ->
           # No contact-bearing pages — fall back to extracting from landing.
           %{campaign_company_id: cc.id}
-          |> ExtractContacts.new(unique: [period: :infinity, keys: [:campaign_company_id]])
+          |> ExtractContacts.new(
+            unique: [
+              period: :infinity,
+              keys: [:campaign_company_id],
+              states: [:available, :scheduled, :executing, :retryable]
+            ]
+          )
           |> Oban.insert!()
 
           :ok
