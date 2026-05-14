@@ -8,7 +8,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   import Ecto.Query
 
-  alias Colt.Filters.IndustryLabels
   alias Colt.Resources.{Campaign, CampaignCompany}
   alias Colt.Services.Enrichment.{Broadcast, Retry, Stats}
   alias Colt.Services.Export.Csv, as: ExportCsv
@@ -230,7 +229,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     do: s in [:enriched, :rejected, :no_website, :no_contacts, :failed]
 
   defp patch_contact(row, key, value) do
-    contact = row.contact || %{name: nil, title: nil, email: nil}
+    contact = row.contact || %{name: nil, title: nil, email: nil, phone: nil}
     %{row | contact: Map.put(contact, key, value)}
   end
 
@@ -287,7 +286,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       domain: domain_of(company.website_url),
       website_url: company.website_url,
       registry_code: company.registry_code,
-      industry: IndustryLabels.label(company.industry_code) || "—",
       size: company.employees_latest,
       growth: company.revenue_growth_bucket,
       status: cc.status,
@@ -325,7 +323,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp contact_for(nil), do: nil
 
   defp contact_for(p),
-    do: %{name: p.name, title: p.title, email: p.email}
+    do: %{name: p.name, title: p.title, email: p.email, phone: p.phone}
 
   defp domain_of(nil), do: nil
   defp domain_of(""), do: nil

@@ -103,16 +103,13 @@ defmodule ColtWeb.Components.Funnel do
     ~H"""
     <div
       class="hidden md:grid items-center gap-3 px-4 border-b border-rule bg-paperAlt"
-      style="grid-template-columns: 24px 1.5fr 1fr 70px 60px 2fr 100px 1fr;"
+      style="grid-template-columns: 24px 1.5fr 70px 60px 1.6fr 1.2fr 1.2fr 1fr;"
     >
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
         <span class="inline-block w-3 h-3 border border-ink40 rounded-[2px]" />
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
         Company
-      </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
-        Industry
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
         Size
@@ -125,6 +122,9 @@ defmodule ColtWeb.Components.Funnel do
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
         Contact
+      </span>
+      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+        Email / Phone
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
         Status
@@ -151,7 +151,7 @@ defmodule ColtWeb.Components.Funnel do
           @row.status == :scraping && "bg-[color-mix(in_oklch,var(--accent)_4%,transparent)]",
           @expanded? && "bg-paperAlt"
         ]}
-        style="grid-template-columns: 24px 1.5fr 1fr 70px 60px 2fr 100px 1fr;"
+        style="grid-template-columns: 24px 1.5fr 70px 60px 1.6fr 1.2fr 1.2fr 1fr;"
         phx-click="toggle_row"
         phx-value-id={@row.cc_id}
       >
@@ -167,7 +167,6 @@ defmodule ColtWeb.Components.Funnel do
             · {@row.registry_code}
           </div>
         </div>
-        <span class="text-[12px] text-ink55 truncate">{@row.industry}</span>
         <span class="font-mono text-[11px] text-ink55 text-right tnum">
           {fmt_int(@row.size)}
         </span>
@@ -176,6 +175,7 @@ defmodule ColtWeb.Components.Funnel do
         </span>
         <.enrichment_pills stages={@row.stages} />
         <.contact_cell row={@row} />
+        <.contact_meta_cell row={@row} />
         <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
       </div>
 
@@ -217,12 +217,16 @@ defmodule ColtWeb.Components.Funnel do
           </div>
         </div>
 
-        <div class="text-[12px] text-ink55 truncate">{@row.industry}</div>
-
         <div :if={@row.status == :enriched and @row.contact} class="pt-2 mt-1 border-t border-rule">
           <div class="text-[12px] text-ink font-medium truncate">{@row.contact.name}</div>
           <div class="font-mono text-[10px] text-ink40 mt-0.5 truncate">
             {@row.contact.title || "—"}
+          </div>
+          <div :if={@row.contact.email} class="font-mono text-[10px] text-ink70 mt-1 truncate">
+            {@row.contact.email}
+          </div>
+          <div :if={@row.contact.phone} class="font-mono text-[10px] text-ink70 mt-0.5 truncate tnum">
+            {@row.contact.phone}
           </div>
         </div>
       </div>
@@ -301,6 +305,23 @@ defmodule ColtWeb.Components.Funnel do
           class="inline-block h-2 w-[70%] bg-ink10 rounded-[1px]"
           style="background-image: linear-gradient(90deg, transparent, var(--ink20), transparent); background-size: 200% 100%; animation: liid-shimmer 1.6s ease-in-out infinite;"
         />
+    <% end %>
+    """
+  end
+
+  attr :row, :map, required: true
+
+  def contact_meta_cell(assigns) do
+    ~H"""
+    <%= cond do %>
+      <% @row.status == :enriched and @row.contact -> %>
+        <div class="min-w-0 flex flex-col gap-0.5 font-mono text-[10px]">
+          <span :if={@row.contact.email} class="text-ink70 truncate">{@row.contact.email}</span>
+          <span :if={@row.contact.phone} class="text-ink70 truncate tnum">{@row.contact.phone}</span>
+          <span :if={!@row.contact.email and !@row.contact.phone} class="text-ink40">—</span>
+        </div>
+      <% true -> %>
+        <span class="font-mono text-[11px] text-ink40">—</span>
     <% end %>
     """
   end
@@ -483,6 +504,10 @@ defmodule ColtWeb.Components.Funnel do
                   <span class="text-ink">{@row.contact.email}</span>
                   <span class="ml-auto text-[10px]" style="color: var(--accent);">verified</span>
                 </div>
+                <div :if={@row.contact.phone} class="flex items-center gap-2">
+                  <Liid.icon name="phone" size={11} class="text-ink55" />
+                  <span class="text-ink tnum">{@row.contact.phone}</span>
+                </div>
                 <a
                   :if={Map.get(@row, :website_url)}
                   href={@row.website_url}
@@ -509,6 +534,9 @@ defmodule ColtWeb.Components.Funnel do
                   <div class="text-[11px] text-ink55 mb-1 truncate">{ec.title || "—"}</div>
                   <div :if={ec.email} class="font-mono text-[10px] text-ink70 truncate">
                     {ec.email}
+                  </div>
+                  <div :if={ec.phone} class="font-mono text-[10px] text-ink70 truncate tnum">
+                    {ec.phone}
                   </div>
                 </div>
               </div>
