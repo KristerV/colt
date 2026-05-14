@@ -298,7 +298,7 @@ defmodule ColtWeb.Components.Funnel do
         <span class="font-mono text-[11px] text-fail">no contact</span>
       <% @row.status == :rejected -> %>
         <span class="font-mono text-[11px] text-ink40">—</span>
-      <% @row.status in [:no_website, :failed] -> %>
+      <% @row.status in [:no_website, :no_contacts, :failed] -> %>
         <span class="font-mono text-[11px] text-ink40">—</span>
       <% true -> %>
         <span
