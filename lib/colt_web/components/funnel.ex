@@ -22,6 +22,7 @@ defmodule ColtWeb.Components.Funnel do
 
   attr :stats, :map, required: true
   attr :total, :integer, required: true
+  attr :selected, :atom, default: :enriched
 
   def stats_strip(assigns) do
     tiles = [
@@ -39,10 +40,18 @@ defmodule ColtWeb.Components.Funnel do
       <%= for {tile, i} <- Enum.with_index(@tiles) do %>
         <% n = Map.get(@stats, tile.key, 0) %>
         <% pct = if @total > 0, do: n / @total * 100, else: 0 %>
-        <div class={[
-          "shrink-0 md:shrink min-w-[120px] md:min-w-0 md:flex-1 px-[14px] py-[12px] md:px-[18px] md:py-[14px] relative",
-          i < length(@tiles) - 1 && "border-r border-rule"
-        ]}>
+        <% active? = @selected == tile.key %>
+        <button
+          type="button"
+          phx-click="select_bucket"
+          phx-value-bucket={tile.key}
+          class={[
+            "shrink-0 md:shrink min-w-[120px] md:min-w-0 md:flex-1 px-[14px] py-[12px] md:px-[18px] md:py-[14px] relative text-left cursor-pointer bg-transparent",
+            i < length(@tiles) - 1 && "border-r border-rule",
+            active? && "bg-paperAlt"
+          ]}
+          style={active? && "box-shadow: inset 0 -2px 0 var(--accent);"}
+        >
           <div class="flex items-center justify-between mb-1.5">
             <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 flex items-center gap-1.5">
               <span
@@ -63,7 +72,7 @@ defmodule ColtWeb.Components.Funnel do
               style={"width: #{min(pct * 2, 100)}%; background: #{tile.color};"}
             />
           </div>
-        </div>
+        </button>
       <% end %>
     </div>
     """

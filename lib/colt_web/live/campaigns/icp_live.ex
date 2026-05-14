@@ -16,6 +16,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
             campaign: campaign,
             icp_description: campaign.icp_description || "",
             target_job_title: campaign.target_job_title || "",
+            business_model: campaign.business_model || :both,
             error: nil
           )
 
@@ -26,28 +27,35 @@ defmodule ColtWeb.Campaigns.IcpLive do
     end
   end
 
-  def handle_event(
-        "validate",
-        %{"icp_description" => icp, "target_job_title" => title},
-        socket
-      ) do
-    {:noreply, assign(socket, icp_description: icp, target_job_title: title)}
+  def handle_event("validate", params, socket) do
+    {:noreply,
+     assign(socket,
+       icp_description: params["icp_description"] || socket.assigns.icp_description,
+       target_job_title: params["target_job_title"] || socket.assigns.target_job_title,
+       business_model:
+         parse_business_model(params["business_model"], socket.assigns.business_model)
+     )}
+  end
+
+  def handle_event("pick_business_model", %{"v" => v}, socket) do
+    {:noreply, assign(socket, business_model: parse_business_model(v, :both))}
   end
 
   def handle_event(
         "save",
-        %{"icp_description" => icp, "target_job_title" => title},
+        %{"icp_description" => icp, "target_job_title" => title} = params,
         socket
       ) do
     icp = String.trim(icp)
     title = String.trim(title)
+    business_model = parse_business_model(params["business_model"], socket.assigns.business_model)
 
     cond do
       title == "" ->
         {:noreply, assign(socket, error: "Add a target job title.")}
 
       true ->
-        case Campaign.set_icp(socket.assigns.campaign, icp, title,
+        case Campaign.set_icp(socket.assigns.campaign, icp, title, business_model,
                actor: socket.assigns.current_user
              ) do
           {:ok, campaign} ->
@@ -59,12 +67,18 @@ defmodule ColtWeb.Campaigns.IcpLive do
     end
   end
 
+  defp parse_business_model("b2b", _), do: :b2b
+  defp parse_business_model("b2c", _), do: :b2c
+  defp parse_business_model("both", _), do: :both
+  defp parse_business_model(_, fallback), do: fallback
+
   def render(assigns) do
     ~H"""
     <Layouts.app
       flash={@flash}
       current_user={@current_user}
       step={1}
+      campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
@@ -83,6 +97,36 @@ defmodule ColtWeb.Campaigns.IcpLive do
         </div>
 
         <div class="flex-1 max-w-[640px] flex flex-col gap-9">
+          <div>
+            <div class="mb-3">
+              <label class="font-mono text-[11px] tracking-[0.08em] uppercase text-ink70">
+                Target audience
+              </label>
+              <div class="text-[12px] text-ink40 mt-1">
+                Sets the buyer side. Used as a hard filter before the model reads your ICP — saves you spelling it out below.
+              </div>
+            </div>
+            <div class="flex gap-1.5">
+              <%= for {v, label} <- [{:b2b, "B2B"}, {:b2c, "B2C"}, {:both, "Both"}] do %>
+                <% on = @business_model == v %>
+                <button
+                  type="button"
+                  phx-click="pick_business_model"
+                  phx-value-v={v}
+                  class={[
+                    "px-3.5 py-2 text-[12px] font-mono tracking-[0.04em] uppercase border rounded-sharp cursor-pointer",
+                    on && "border-[var(--accent)] text-ink",
+                    not on && "border-ink20 text-ink55 hover:text-ink"
+                  ]}
+                  style={on && "background: color-mix(in oklch, var(--accent) 8%, transparent);"}
+                >
+                  {label}
+                </button>
+              <% end %>
+              <input type="hidden" name="business_model" value={@business_model} />
+            </div>
+          </div>
+
           <div>
             <div class="mb-3">
               <label

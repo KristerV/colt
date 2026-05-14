@@ -15,6 +15,7 @@ defmodule Colt.Resources.CampaignCompany do
     references do
       reference :campaign, on_delete: :delete
       reference :company, on_delete: :delete
+      reference :picked_person, on_delete: :nilify
     end
   end
 
@@ -26,6 +27,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_rejected, args: [:rejection_reason]
     define :mark_failed
     define :mark_no_contacts
+    define :set_picked_person, args: [:picked_person_id]
     define :list_for_campaign, args: [:campaign_id]
     define :list_for_export, args: [:campaign_id]
     define :reset
@@ -98,6 +100,13 @@ defmodule Colt.Resources.CampaignCompany do
       require_atomic? false
     end
 
+    update :set_picked_person do
+      accept [:picked_person_id]
+      argument :picked_person_id, :uuid, allow_nil?: true
+      change set_attribute(:picked_person_id, arg(:picked_person_id))
+      require_atomic? false
+    end
+
     update :mark_no_contacts do
       argument :reason, :string, allow_nil?: true
 
@@ -134,6 +143,7 @@ defmodule Colt.Resources.CampaignCompany do
       public?: true
 
     attribute :included_in_export, :boolean, allow_nil?: false, default: true, public?: true
+    attribute :picked_person_id, :uuid, public?: true
 
     create_timestamp :inserted_at
     update_timestamp :updated_at
@@ -142,6 +152,11 @@ defmodule Colt.Resources.CampaignCompany do
   relationships do
     belongs_to :campaign, Colt.Resources.Campaign, allow_nil?: false, public?: true
     belongs_to :company, Colt.Resources.Company, allow_nil?: false, public?: true
+
+    belongs_to :picked_person, Colt.Resources.Person,
+      allow_nil?: true,
+      public?: true,
+      define_attribute?: false
   end
 
   identities do

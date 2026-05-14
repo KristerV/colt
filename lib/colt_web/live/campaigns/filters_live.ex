@@ -148,11 +148,14 @@ defmodule ColtWeb.Campaigns.FiltersLive do
      |> reload_filters_async()}
   end
 
-  def handle_event("confirm", _params, socket) do
+  def handle_event("confirm", params, socket) do
     socket = assign(socket, confirming?: true)
     filters = filter_args(socket.assigns.form, socket.assigns.campaign.market)
+    limit = parse_limit(params["limit"])
 
-    case EnrichmentStart.run(socket.assigns.campaign, filters, socket.assigns.current_user) do
+    case EnrichmentStart.run(socket.assigns.campaign, filters, socket.assigns.current_user,
+           limit: limit
+         ) do
       {:ok, %{campaign: campaign}} ->
         {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/funnel")}
 
@@ -279,6 +282,10 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     if value in list, do: list, else: [value | list]
   end
 
+  defp parse_limit("100"), do: 100
+  defp parse_limit("1000"), do: 1_000
+  defp parse_limit(_), do: 1_000
+
   defp parse_int(nil), do: nil
   defp parse_int(n) when is_integer(n), do: n
 
@@ -295,6 +302,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       flash={@flash}
       current_user={@current_user}
       step={3}
+      campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
@@ -322,12 +330,22 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               <Liid.icon name="chev-l" size={11} /> Back
             </.link>
             <Liid.btn
+              :if={@count > 100}
+              mono
+              phx-click="confirm"
+              phx-value-limit="100"
+              disabled={@confirming?}
+            >
+              Enrich 100 companies
+            </Liid.btn>
+            <Liid.btn
               variant={:primary}
               mono
               phx-click="confirm"
+              phx-value-limit="1000"
               disabled={@confirming? or @count == 0}
             >
-              Run enrichment on {min(@count, max_companies())}
+              Enrich {min(@count, max_companies())} companies
             </Liid.btn>
             <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
           </div>

@@ -32,7 +32,10 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
           :ok
 
         true ->
-          case ClassifyIcp.run(icp, summary, campaign_id: cc.campaign_id) do
+          case ClassifyIcp.run(icp, summary,
+                 campaign_id: cc.campaign_id,
+                 business_model: campaign.business_model
+               ) do
             {:ok, %{match: true}} ->
               Transition.stage(cc, :icp, :done)
               enqueue_next(cc)

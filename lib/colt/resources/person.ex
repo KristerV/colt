@@ -1,9 +1,7 @@
 defmodule Colt.Resources.Person do
   @moduledoc """
-  An extracted human contact. Globally shared (no campaign_id) — the
-  per-campaign `matches_target_title` flag is recomputed in Phase 4b's
-  ExtractContacts step using the campaign's target title, so it's stored
-  here as the latest computed value.
+  An extracted human contact. Globally shared across campaigns; the
+  per-campaign choice lives on `CampaignCompany.picked_person_id`.
   """
   use Ash.Resource,
     otp_app: :colt,
@@ -38,8 +36,7 @@ defmodule Colt.Resources.Person do
         :title,
         :email,
         :phone,
-        :validated_in_markdown,
-        :matches_target_title
+        :validated_in_markdown
       ]
     end
 
@@ -57,7 +54,6 @@ defmodule Colt.Resources.Person do
     attribute :email, :string, public?: true
     attribute :phone, :string, public?: true
     attribute :validated_in_markdown, :boolean, default: false, public?: true
-    attribute :matches_target_title, :boolean, default: false, public?: true
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

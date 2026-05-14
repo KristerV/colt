@@ -24,7 +24,7 @@ defmodule Colt.Resources.CampaignTest do
     user = seed_user()
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
 
-    {:ok, c2} = Campaign.set_icp(c, "B2B SaaS in Estonia, 50–500 emp", "CTO", actor: user)
+    {:ok, c2} = Campaign.set_icp(c, "B2B SaaS in Estonia, 50–500 emp", "CTO", :b2b, actor: user)
 
     assert c2.icp_description == "B2B SaaS in Estonia, 50–500 emp"
     assert c2.target_job_title == "CTO"
@@ -34,7 +34,7 @@ defmodule Colt.Resources.CampaignTest do
   test "set_market advances to :collecting and stores :ee" do
     user = seed_user()
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
-    {:ok, c} = Campaign.set_icp(c, "B2B SaaS", "CTO", actor: user)
+    {:ok, c} = Campaign.set_icp(c, "B2B SaaS", "CTO", :b2b, actor: user)
 
     {:ok, c2} = Campaign.set_market(c, :ee, actor: user)
 

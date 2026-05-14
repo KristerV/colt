@@ -37,13 +37,13 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
   def run(icp_description, company_summary, opts \\ [])
       when is_binary(icp_description) and is_binary(company_summary) do
     user = """
-    ICP description:
+    #{audience_clause(opts[:business_model])}ICP description:
     #{icp_description}
 
     Company summary:
     #{company_summary}
 
-    Match unless the summary actively contradicts the ICP. Return:
+    Match unless the summary actively contradicts the ICP#{audience_tail(opts[:business_model])}. Return:
     {"match": true|false, "reason": "<one-sentence reason>"}.
     """
 
@@ -66,4 +66,18 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
         err
     end
   end
+
+  defp audience_clause(:b2b),
+    do:
+      "Audience: B2B only. The company MUST sell primarily to other businesses. If the summary describes a consumer-facing business (retail to individuals, restaurants, personal services, B2C e-commerce), REJECT.\n\n"
+
+  defp audience_clause(:b2c),
+    do:
+      "Audience: B2C only. The company MUST sell primarily to consumers. If the summary describes a business that sells primarily to other businesses (B2B SaaS, wholesale, industrial supplier), REJECT.\n\n"
+
+  defp audience_clause(_), do: ""
+
+  defp audience_tail(:b2b), do: " or the audience constraint above"
+  defp audience_tail(:b2c), do: " or the audience constraint above"
+  defp audience_tail(_), do: ""
 end

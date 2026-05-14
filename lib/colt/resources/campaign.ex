@@ -17,7 +17,7 @@ defmodule Colt.Resources.Campaign do
   code_interface do
     define :create_draft, args: [:name]
     define :get, action: :read, get_by: [:id]
-    define :set_icp, args: [:icp_description, :target_job_title]
+    define :set_icp, args: [:icp_description, :target_job_title, :business_model]
     define :set_market, args: [:market]
     define :list_recent_for_user, args: [:user_id]
     define :list_all_recent
@@ -47,8 +47,8 @@ defmodule Colt.Resources.Campaign do
     end
 
     update :set_icp do
-      description "View 1 — set ICP description and target job title."
-      accept [:icp_description, :target_job_title]
+      description "View 1 — set ICP description, target job title, and business model."
+      accept [:icp_description, :target_job_title, :business_model]
       require_atomic? false
     end
 
@@ -97,6 +97,12 @@ defmodule Colt.Resources.Campaign do
     attribute :name, :string, allow_nil?: false, public?: true
     attribute :icp_description, :string, public?: true, constraints: [max_length: 2000]
     attribute :target_job_title, :string, public?: true
+
+    attribute :business_model, :atom,
+      constraints: [one_of: [:b2b, :b2c, :both]],
+      default: :both,
+      allow_nil?: false,
+      public?: true
 
     attribute :market, :atom,
       constraints: [one_of: [:ee, :fi, :lv, :lt, :se, :no]],

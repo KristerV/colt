@@ -23,9 +23,11 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   def mount(%{"id" => id}, _session, socket) do
     case Campaign.get(id, actor: socket.assigns.current_user) do
       {:ok, campaign} ->
-        rows = load_rows(campaign)
-        rows_index = Map.new(rows, &{&1.cc_id, &1})
-        stats = compute_stats(rows)
+        all_rows = load_rows(campaign)
+        rows_index = Map.new(all_rows, &{&1.cc_id, &1})
+        stats = compute_stats(all_rows)
+        selected_bucket = :enriched
+        rows = Enum.filter(all_rows, &(bucket(&1.status) == selected_bucket))
 
         if connected?(socket) do
           Broadcast.subscribe(campaign.id)
@@ -40,7 +42,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             rows_index: rows_index,
             expanded_id: nil,
             stats: stats,
-            total: length(rows),
+            selected_bucket: selected_bucket,
+            total: length(all_rows),
             meta: Stats.run(campaign.finalized_at),
             show_export?: false,
             export_preview: nil,
@@ -96,6 +99,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   # parent assign changes, so the expanded flag has to live *on the row* and
   # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
   # previous row when opening a new one.
+  def handle_event("select_bucket", %{"bucket" => bucket}, socket) do
+    bucket_atom = String.to_existing_atom(bucket)
+    rows = filtered_rows(socket.assigns.rows_index, bucket_atom)
+    {:noreply, socket |> assign(selected_bucket: bucket_atom) |> stream(:rows, rows, reset: true)}
+  end
+
   def handle_event("open_export", _params, socket) do
     {:ok, %{rows: rows, row_count: count}} = ExportCsv.run(socket.assigns.campaign)
     preview = Enum.take(rows, 2)
@@ -157,9 +166,19 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp collapse(socket, id), do: replace_row(socket, id, expanded?: false, log: [])
 
   defp replace_row(socket, %{} = row) do
-    socket
-    |> assign(rows_index: Map.put(socket.assigns.rows_index, row.cc_id, row))
-    |> stream_insert(:rows, row)
+    socket = assign(socket, rows_index: Map.put(socket.assigns.rows_index, row.cc_id, row))
+
+    if bucket(row.status) == socket.assigns.selected_bucket do
+      stream_insert(socket, :rows, row)
+    else
+      stream_delete(socket, :rows, row)
+    end
+  end
+
+  defp filtered_rows(rows_index, bucket_atom) do
+    rows_index
+    |> Map.values()
+    |> Enum.filter(&(bucket(&1.status) == bucket_atom))
   end
 
   defp replace_row(socket, id, fields) when is_binary(id) do
@@ -258,7 +277,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   defp row_for(cc, completed_stages) do
     company = cc.company
-    person = pick_person(company.persons)
+    person = pick_person(company.persons, cc.picked_person_id)
     extras = others(company.persons, person)
 
     %{
@@ -300,8 +319,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     |> Enum.sort()
   end
 
-  defp pick_person(persons),
-    do: Enum.find(persons, &(&1.validated_in_markdown and &1.matches_target_title))
+  defp pick_person(_persons, nil), do: nil
+  defp pick_person(persons, picked_id), do: Enum.find(persons, &(&1.id == picked_id))
 
   defp contact_for(nil), do: nil
 
@@ -395,6 +414,25 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket(:failed), do: :failed
   defp bucket(_), do: :queued
 
+  defp bucket_label(:queued), do: "Queued"
+  defp bucket_label(:working), do: "Working"
+  defp bucket_label(:enriched), do: "Enriched"
+  defp bucket_label(:rejected), do: "ICP miss"
+  defp bucket_label(:failed), do: "Failed"
+  defp bucket_label(_), do: ""
+
+  defp empty_message(:queued), do: "Nothing waiting in line."
+  defp empty_message(:working), do: "No companies currently being processed."
+
+  defp empty_message(:enriched),
+    do: "Nothing has been fully enriched yet. Pick another bucket to watch progress."
+
+  defp empty_message(:rejected),
+    do: "No companies have been rejected on ICP fit yet."
+
+  defp empty_message(:failed), do: "Nothing has failed. Enjoy it."
+  defp empty_message(_), do: ""
+
   defp pipeline_log(cc_id) do
     q =
       from(j in Oban.Job,
@@ -450,6 +488,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       flash={@flash}
       current_user={@current_user}
       step={4}
+      campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
@@ -476,13 +515,29 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           </div>
         </div>
 
-        <Funnel.stats_strip stats={@stats} total={@total} />
+        <Funnel.stats_strip stats={@stats} total={@total} selected={@selected_bucket} />
 
         <Funnel.meta_strip meta={@meta} visible={@total} total={@total} />
 
         <div class="flex-1 min-h-0 flex flex-col md:border md:border-rule md:rounded-sharp -mx-4 md:mx-0">
           <Funnel.funnel_header />
-          <div class="flex-1 overflow-auto" id="funnel-body" phx-update="stream">
+          <% bucket_count = Map.get(@stats, @selected_bucket, 0) %>
+          <div :if={bucket_count == 0} class="flex-1 flex items-center justify-center px-6 py-12">
+            <div class="text-center">
+              <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink40 mb-2">
+                {bucket_label(@selected_bucket)}
+              </div>
+              <div class="text-[14px] text-ink55 max-w-[420px]">
+                {empty_message(@selected_bucket)}
+              </div>
+            </div>
+          </div>
+          <div
+            :if={bucket_count > 0}
+            class="flex-1 overflow-auto"
+            id="funnel-body"
+            phx-update="stream"
+          >
             <Funnel.funnel_row
               :for={{dom_id, row} <- @streams.rows}
               id={dom_id}

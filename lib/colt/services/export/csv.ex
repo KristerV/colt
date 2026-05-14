@@ -30,17 +30,15 @@ defmodule Colt.Services.Export.Csv do
     CampaignCompany.list_for_export(campaign.id,
       actor: nil,
       authorize?: false,
-      load: [company: [:persons]]
+      load: [:picked_person, :company]
     )
   end
 
   defp build_rows(ccs) do
-    Enum.flat_map(ccs, fn cc ->
-      cc.company.persons
-      |> Enum.filter(&(&1.validated_in_markdown and &1.matches_target_title))
-      |> Enum.uniq_by(&dedup_key/1)
-      |> Enum.map(&row_for(&1, cc.company))
-    end)
+    ccs
+    |> Enum.filter(&match?(%{picked_person: %{}}, &1))
+    |> Enum.uniq_by(&dedup_key(&1.picked_person))
+    |> Enum.map(&row_for(&1.picked_person, &1.company))
   end
 
   # Persons table can carry duplicate rows when ExtractContacts ran

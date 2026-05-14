@@ -87,6 +87,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
       flash={@flash}
       current_user={@current_user}
       step={2}
+      campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >

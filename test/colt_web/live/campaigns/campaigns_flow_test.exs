@@ -78,7 +78,7 @@ defmodule ColtWeb.Campaigns.FlowTest do
     user = seed_user()
     conn = log_in(conn, user)
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
-    {:ok, c} = Campaign.set_icp(c, "B2B SaaS", "CTO", actor: user)
+    {:ok, c} = Campaign.set_icp(c, "B2B SaaS", "CTO", :b2b, actor: user)
 
     {:ok, view, html} = live(conn, ~p"/campaigns/#{c.id}/market")
 

@@ -25,6 +25,7 @@ defmodule Colt.Resources.Company do
     define :set_generic_email, args: [:generic_email]
     define :set_ai_summary, args: [:ai_summary]
     define :touch_enriched
+    define :touch_website_searched
     define :reset_enrichment
   end
 
@@ -150,6 +151,20 @@ defmodule Colt.Resources.Company do
       require_atomic? false
     end
 
+    update :touch_website_searched do
+      description "Stamp when a Google search has been attempted (hit or miss) so overlapping campaigns don't re-spend on the same fruitless lookup within the freshness window."
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(
+          changeset,
+          :website_search_attempted_at,
+          DateTime.utc_now()
+        )
+      end
+
+      require_atomic? false
+    end
+
     update :touch_enriched do
       description "Stamp last_enriched_at when the full pipeline completes."
 
@@ -230,6 +245,7 @@ defmodule Colt.Resources.Company do
     attribute :generic_email, :string, public?: true
     attribute :ai_summary, :string, public?: true
     attribute :last_enriched_at, :utc_datetime_usec, public?: true
+    attribute :website_search_attempted_at, :utc_datetime_usec, public?: true
 
     attribute :revenue_latest, :decimal, public?: true
     attribute :employees_latest, :integer, public?: true

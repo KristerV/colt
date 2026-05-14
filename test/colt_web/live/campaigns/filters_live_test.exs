@@ -42,7 +42,7 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
 
   defp setup_campaign(user) do
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
-    {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", actor: user)
+    {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", :b2b, actor: user)
     {:ok, c} = Campaign.set_market(c, :ee, actor: user)
     c
   end

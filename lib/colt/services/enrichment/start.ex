@@ -12,8 +12,12 @@ defmodule Colt.Services.Enrichment.Start do
   alias Colt.Resources.{Campaign, CampaignCompany}
   alias Colt.Services.Discord
 
-  def run(%Campaign{} = campaign, filters, actor) when is_map(filters) do
-    with {:ok, companies} <- Filters.sample(filters),
+  def run(campaign, filters, actor, opts \\ [])
+
+  def run(%Campaign{} = campaign, filters, actor, opts) when is_map(filters) do
+    limit = Keyword.get(opts, :limit, 1_000)
+
+    with {:ok, companies} <- Filters.sample(filters, limit),
          {:ok, ccs} <- bulk_create_ccs(campaign, companies),
          {:ok, _} <- enqueue_first_jobs(ccs),
          {:ok, campaign} <- finalize_campaign(campaign, filters, actor),

@@ -21,6 +21,17 @@ defmodule Colt.Services.Enrichment.Freshness do
   end
 
   @doc """
+  True if we already tried to find this company's website (via Google) recently —
+  whether or not the search hit. Used to skip re-spending on the same lookup
+  when a different campaign picks up the same registry-less company.
+  """
+  def website_search_fresh?(%Company{website_search_attempted_at: nil}), do: false
+
+  def website_search_fresh?(%Company{website_search_attempted_at: ts}) do
+    DateTime.diff(DateTime.utc_now(), ts, :day) < @ttl_days
+  end
+
+  @doc """
   True if the page was fetched within the TTL and has markdown.
   """
   def page_fresh?(%Page{fetched_at: nil}), do: false

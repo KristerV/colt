@@ -12,7 +12,7 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
 
   alias Colt.Jobs.Enrichment.{FetchLanding, GoogleSearch}
   alias Colt.Resources.{CampaignCompany, Company}
-  alias Colt.Services.Enrichment.{CheckAlive, Freshness}
+  alias Colt.Services.Enrichment.{CheckAlive, Freshness, Transition}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -25,6 +25,13 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
 
         is_binary(company.website_url) and company.website_url != "" ->
           run_check(cc, company)
+
+        # We already searched recently and came up empty. Don't burn another
+        # CSE call — short-circuit to :no_website for this campaign.
+        Freshness.website_search_fresh?(company) ->
+          Transition.stage(cc, :website, :fall)
+          {:ok, _} = Transition.terminate(cc, :no_website, reason: "no website found (cached)")
+          :ok
 
         true ->
           enqueue(GoogleSearch, cc)

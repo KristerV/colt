@@ -27,6 +27,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
 
       case Google.run(query, num: 10, campaign_id: cc.campaign_id, task: "google_search") do
         {:ok, []} ->
+          {:ok, _} = Company.touch_website_searched(company)
           mark_no_website(cc)
 
         {:ok, results} ->
@@ -41,10 +42,12 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   defp pick(cc, company, results) do
     case PickBestResult.run(company, results, campaign_id: cc.campaign_id) do
       {:ok, :none} ->
+        {:ok, _} = Company.touch_website_searched(company)
         mark_no_website(cc)
 
       {:ok, url} ->
         {:ok, _} = Company.set_website(company, url, :google)
+        {:ok, _} = Company.touch_website_searched(company)
         Broadcast.row(cc.campaign_id, cc.id, %{website_url: url})
         Transition.stage(cc, :website, :done)
         %{campaign_company_id: cc.id} |> FetchLanding.new() |> Oban.insert!()

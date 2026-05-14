@@ -13,7 +13,14 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   alias Colt.Resources.{Campaign, CampaignCompany, Company, Page, Person}
 
   alias Colt.Services.Enrichment, as: Svc
-  alias Colt.Services.Enrichment.{FailureMessage, PickBestContact, Transition, ValidateInMarkdown}
+
+  alias Colt.Services.Enrichment.{
+    FailureMessage,
+    Freshness,
+    PickBestContact,
+    Transition,
+    ValidateInMarkdown
+  }
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
@@ -33,22 +40,60 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
          {:ok, pages} <- Page.for_company(company.id) do
       Transition.stage(cc, :contact, :work)
 
-      haystack =
-        pages
-        |> Enum.map(& &1.markdown)
-        |> Enum.reject(&(is_nil(&1) or &1 == ""))
-        |> Enum.join("\n\n---\n\n")
+      existing = Freshness.existing_persons(company)
 
       cond do
-        haystack == "" ->
-          Transition.stage(cc, :contact, :fall)
-          {:ok, _} = Transition.terminate(cc, :no_contacts, reason: "no contact-page markdown")
-          :ok
+        Freshness.company_fresh?(company) and existing != [] ->
+          reuse_existing(cc, campaign, existing)
 
         true ->
-          run(cc, company, campaign, pages, haystack)
+          extract_fresh(cc, company, campaign, pages)
       end
     end
+  end
+
+  defp extract_fresh(cc, company, campaign, pages) do
+    haystack =
+      pages
+      |> Enum.map(& &1.markdown)
+      |> Enum.reject(&(is_nil(&1) or &1 == ""))
+      |> Enum.join("\n\n---\n\n")
+
+    cond do
+      haystack == "" ->
+        Transition.stage(cc, :contact, :fall)
+        {:ok, _} = Transition.terminate(cc, :no_contacts, reason: "no contact-page markdown")
+        :ok
+
+      true ->
+        run(cc, company, campaign, pages, haystack)
+    end
+  end
+
+  defp reuse_existing(cc, campaign, persons) do
+    titles = Enum.map(persons, & &1.title)
+    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id)
+
+    picked_person =
+      case picked_idx do
+        i when is_integer(i) -> Enum.at(persons, i)
+        _ -> List.first(persons)
+      end
+
+    {:ok, _} =
+      CampaignCompany.set_picked_person(cc, (picked_person || %{id: nil}).id)
+
+    Transition.stage(cc, :contact, :done)
+    {:ok, _} = Transition.terminate(cc, :enriched)
+
+    if picked_person do
+      broadcast_contact(cc, %{
+        contact_name: picked_person.name,
+        contact_title: picked_person.title
+      })
+    end
+
+    :ok
   end
 
   defp run(cc, company, campaign, pages, haystack) do
@@ -99,28 +144,41 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id)
     source_page_id = pick_source_page(pages)
 
-    validated
-    |> Enum.with_index()
-    |> Enum.each(fn {p, i} ->
-      Person.create_validated(%{
-        company_id: company.id,
-        source_page_id: source_page_id,
-        name: p.name,
-        title: p.title,
-        email: p.email,
-        phone: p.phone,
-        validated_in_markdown: true,
-        matches_target_title: i == picked_idx
-      })
-    end)
+    persisted =
+      Enum.map(validated, fn p ->
+        {:ok, person} =
+          Person.create_validated(%{
+            company_id: company.id,
+            source_page_id: source_page_id,
+            name: p.name,
+            title: p.title,
+            email: p.email,
+            phone: p.phone,
+            validated_in_markdown: true
+          })
+
+        person
+      end)
+
+    picked_person =
+      case picked_idx do
+        i when is_integer(i) -> Enum.at(persisted, i)
+        _ -> nil
+      end
+
+    if picked_person do
+      {:ok, _} = CampaignCompany.set_picked_person(cc, picked_person.id)
+    end
 
     {:ok, _} = Company.touch_enriched(company)
     Transition.stage(cc, :contact, :done)
     {:ok, _} = Transition.terminate(cc, :enriched)
 
-    if is_integer(picked_idx) do
-      p = Enum.at(validated, picked_idx)
-      broadcast_contact(cc, %{contact_name: p.name, contact_title: p.title})
+    if picked_person do
+      broadcast_contact(cc, %{
+        contact_name: picked_person.name,
+        contact_title: picked_person.title
+      })
     end
 
     :ok

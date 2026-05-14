@@ -46,8 +46,8 @@ defmodule Colt.Filters do
   Returns random `Company` records for the confirmed filter set, capped by
   `:enrichment_max_companies`.
   """
-  def sample(filters) when is_map(filters) do
-    Company.filtered(filters, query: [limit: @sample_limit])
+  def sample(filters, limit \\ @sample_limit) when is_map(filters) and is_integer(limit) do
+    Company.filtered(filters, query: [limit: min(limit, @sample_limit)])
   end
 
   defp count_filtered(filters) do

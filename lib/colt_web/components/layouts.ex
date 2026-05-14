@@ -16,6 +16,7 @@ defmodule ColtWeb.Layouts do
   attr :step, :any, default: nil
   attr :campaign_name, :string, default: nil
   attr :campaign_id, :any, default: nil
+  attr :campaign, :any, default: nil
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
@@ -26,6 +27,7 @@ defmodule ColtWeb.Layouts do
       current_user={@current_user}
       campaign_name={@campaign_name}
       campaign_id={@campaign_id}
+      campaign={@campaign}
       class={@class}
     >
       {render_slot(@inner_block)}
