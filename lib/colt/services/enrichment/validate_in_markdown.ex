@@ -23,4 +23,24 @@ defmodule Colt.Services.Enrichment.ValidateInMarkdown do
   end
 
   def run(_, _), do: {:ok, false}
+
+  @doc """
+  Phone variant: strip whitespace from both phone and haystack, then substring
+  match. Catches formatting differences like `+372 555 1234` vs `+3725551234`.
+  """
+  def run_phone(phone, _haystack) when not is_binary(phone) or phone == "", do: {:ok, false}
+
+  def run_phone(phone, haystack) when is_binary(haystack) do
+    stripped = normalize_phone(phone)
+
+    if stripped == "" do
+      {:ok, false}
+    else
+      {:ok, String.contains?(normalize_phone(haystack), stripped)}
+    end
+  end
+
+  def run_phone(_, _), do: {:ok, false}
+
+  defp normalize_phone(s), do: String.replace(s, ~r/[\s+]+/, "")
 end

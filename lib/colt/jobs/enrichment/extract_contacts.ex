@@ -197,10 +197,17 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   end
 
   defp validate_all(candidates, haystack) do
-    Enum.filter(candidates, fn p ->
+    candidates
+    |> Enum.filter(fn p ->
       case ValidateInMarkdown.run(p.email, haystack) do
         {:ok, true} -> p.name != nil and p.email != nil
         _ -> false
+      end
+    end)
+    |> Enum.map(fn p ->
+      case ValidateInMarkdown.run_phone(p.phone, haystack) do
+        {:ok, true} -> p
+        _ -> %{p | phone: nil}
       end
     end)
   end
