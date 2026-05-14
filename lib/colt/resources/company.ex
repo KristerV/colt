@@ -144,6 +144,7 @@ defmodule Colt.Resources.Company do
 
       change set_attribute(:website_url, nil)
       change set_attribute(:website_source, nil)
+      change set_attribute(:website_search_attempted_at, nil)
       change set_attribute(:ai_summary, nil)
       change set_attribute(:generic_email, nil)
       change set_attribute(:last_enriched_at, nil)

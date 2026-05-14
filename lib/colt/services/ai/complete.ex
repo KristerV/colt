@@ -47,6 +47,7 @@ defmodule Colt.Services.Ai.Complete do
     smart: "anthropic/claude-sonnet-4.5"
   }
   @retry_statuses [408, 429, 500, 502, 503, 504]
+  @empty_response_retries 3
 
   def run(model_alias, prompt_or_messages, opts \\ []) do
     model = Map.fetch!(@model_map, model_alias)
@@ -65,17 +66,32 @@ defmodule Colt.Services.Ai.Complete do
       |> maybe_put_response_format(opts[:response_format], opts[:schema])
       |> maybe_put_reasoning(model_alias)
 
+    ctx = %{
+      model: model,
+      response_format: opts[:response_format],
+      campaign_id: opts[:campaign_id],
+      task: opts[:task]
+    }
+
+    run_with_retries(body, ctx, @empty_response_retries)
+  end
+
+  defp run_with_retries(body, ctx, attempts_left) do
     started = System.monotonic_time(:millisecond)
     result = post(body)
     latency_ms = System.monotonic_time(:millisecond) - started
 
-    handle_result(result, %{
-      model: model,
-      response_format: opts[:response_format],
-      campaign_id: opts[:campaign_id],
-      task: opts[:task],
-      latency_ms: latency_ms
-    })
+    case handle_result(result, Map.put(ctx, :latency_ms, latency_ms)) do
+      {:error, "model returned empty response" <> _ = err} when attempts_left > 1 ->
+        Logger.warning(
+          "ai.complete: empty response from #{ctx.model}, retrying (#{attempts_left - 1} left)"
+        )
+
+        run_with_retries(body, ctx, attempts_left - 1)
+
+      other ->
+        other
+    end
   end
 
   defp build_messages(prompt_or_messages, opts, model_alias) do
