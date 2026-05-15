@@ -73,8 +73,11 @@ defmodule Colt.Resources.Campaign do
   end
 
   policies do
+    bypass actor_attribute_equals(:is_admin, true) do
+      authorize_if always()
+    end
+
     policy action_type(:read) do
-      authorize_if actor_attribute_equals(:is_admin, true)
       authorize_if expr(owner_id == ^actor(:id))
     end
 
