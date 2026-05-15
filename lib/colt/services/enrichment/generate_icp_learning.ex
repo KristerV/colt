@@ -49,6 +49,7 @@ defmodule Colt.Services.Enrichment.GenerateIcpLearning do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
+           subject: opts[:subject],
            task: "generate_icp_learning",
            max_tokens: 500,
            temperature: 0.2

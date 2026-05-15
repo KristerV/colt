@@ -48,6 +48,7 @@ defmodule Colt.Services.Ai.Complete do
   }
   @retry_statuses [408, 429, 500, 502, 503, 504]
   @empty_response_retries 3
+  @max_message_bytes 50_000
 
   def run(model_alias, prompt_or_messages, opts \\ []) do
     model = Map.fetch!(@model_map, model_alias)
@@ -66,14 +67,60 @@ defmodule Colt.Services.Ai.Complete do
       |> maybe_put_response_format(opts[:response_format], opts[:schema])
       |> maybe_put_reasoning(model_alias)
 
+    {subject_type, subject_id} = subject_pair(opts[:subject])
+
     ctx = %{
       model: model,
       response_format: opts[:response_format],
       campaign_id: opts[:campaign_id],
-      task: opts[:task]
+      task: opts[:task],
+      subject_type: subject_type,
+      subject_id: subject_id,
+      prompt: serialize_prompt(messages)
     }
 
     run_with_retries(body, ctx, @empty_response_retries)
+  end
+
+  defp subject_pair({type, id}) when is_atom(type), do: {type, id}
+  defp subject_pair(_), do: {nil, nil}
+
+  # Build the single string we persist as the audit prompt. Per-message cap
+  # with middle-truncation so the head and tail of long markdown blobs stay
+  # readable in the modal.
+  defp serialize_prompt(messages) do
+    messages
+    |> Enum.map_join("\n\n", fn %{role: role} = m ->
+      "[#{role}]\n" <> (m |> Map.get(:content) |> message_text() |> cap_bytes(@max_message_bytes))
+    end)
+  end
+
+  defp message_text(text) when is_binary(text), do: text
+
+  defp message_text(parts) when is_list(parts) do
+    parts
+    |> Enum.map(fn
+      %{type: "text", text: t} -> t
+      %{"type" => "text", "text" => t} -> t
+      bin when is_binary(bin) -> bin
+      _ -> ""
+    end)
+    |> Enum.join("")
+  end
+
+  defp message_text(_), do: ""
+
+  defp cap_bytes(bin, max) when is_binary(bin) do
+    if byte_size(bin) <= max do
+      bin
+    else
+      head = max |> div(2) |> min(byte_size(bin))
+      tail = max - head
+      head_bin = binary_part(bin, 0, head)
+      tail_bin = binary_part(bin, byte_size(bin) - tail, tail)
+      omitted = byte_size(bin) - head - tail
+      head_bin <> "\n…[truncated #{omitted} bytes]…\n" <> tail_bin
+    end
   end
 
   defp run_with_retries(body, ctx, attempts_left) do
@@ -169,6 +216,7 @@ defmodule Colt.Services.Ai.Complete do
   defp handle_result({:ok, %Req.Response{status: 200, body: body}}, ctx) do
     choice = body |> Map.fetch!("choices") |> List.first()
     raw = choice |> Map.fetch!("message") |> Map.fetch!("content") |> extract_text()
+    ctx = Map.put(ctx, :response, raw)
 
     with {:ok, content} <- parse_content(raw, ctx.response_format) do
       usage = Map.get(body, "usage", %{})
@@ -220,7 +268,11 @@ defmodule Colt.Services.Ai.Complete do
       cost_usd: to_decimal(cost_usd),
       latency_ms: ctx.latency_ms,
       cached: cached,
-      campaign_id: ctx.campaign_id
+      campaign_id: ctx.campaign_id,
+      prompt: ctx.prompt,
+      response: Map.get(ctx, :response),
+      subject_type: ctx.subject_type,
+      subject_id: ctx.subject_id
     })
 
     {:ok,
@@ -242,7 +294,11 @@ defmodule Colt.Services.Ai.Complete do
       status: :error,
       latency_ms: ctx.latency_ms,
       error: String.slice(err, 0, 500),
-      campaign_id: ctx.campaign_id
+      campaign_id: ctx.campaign_id,
+      prompt: ctx.prompt,
+      response: Map.get(ctx, :response),
+      subject_type: ctx.subject_type,
+      subject_id: ctx.subject_id
     })
   end
 

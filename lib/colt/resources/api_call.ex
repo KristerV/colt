@@ -20,8 +20,10 @@ defmodule Colt.Resources.ApiCall do
 
   code_interface do
     define :record
+    define :get_by_id, action: :read, get_by: [:id]
     define :recent, args: [:limit]
     define :recent_by_provider, args: [:provider, :limit]
+    define :list_for_subject, args: [:subject_type, :subject_id]
   end
 
   actions do
@@ -42,7 +44,11 @@ defmodule Colt.Resources.ApiCall do
         :query,
         :results_count,
         :error,
-        :campaign_id
+        :campaign_id,
+        :prompt,
+        :response,
+        :subject_type,
+        :subject_id
       ]
     end
 
@@ -58,6 +64,14 @@ defmodule Colt.Resources.ApiCall do
       filter expr(provider == ^arg(:provider))
       prepare build(sort: [inserted_at: :desc])
       prepare fn query, _ -> Ash.Query.limit(query, query.arguments.limit) end
+    end
+
+    read :list_for_subject do
+      argument :subject_type, :atom, allow_nil?: false
+      argument :subject_id, :uuid, allow_nil?: false
+
+      filter expr(subject_type == ^arg(:subject_type) and subject_id == ^arg(:subject_id))
+      prepare build(sort: [inserted_at: :desc])
     end
   end
 
@@ -89,6 +103,16 @@ defmodule Colt.Resources.ApiCall do
     attribute :results_count, :integer, public?: true
 
     attribute :error, :string, public?: true
+
+    # Full prompt sent to the model (concatenated system + user messages).
+    # Capped per-message at 50KB with middle-truncation.
+    attribute :prompt, :string, public?: true
+    # Raw model response (stringified — JSON responses are encoded back).
+    attribute :response, :string, public?: true
+
+    # Polymorphic link to the record this call was made for. No FK.
+    attribute :subject_type, :atom, public?: true
+    attribute :subject_id, :uuid, public?: true
 
     create_timestamp :inserted_at
   end

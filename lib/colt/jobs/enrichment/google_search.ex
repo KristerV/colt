@@ -25,7 +25,12 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
       # (teatmik.ee, infoturg.ee, …) and buries the real company site.
       query = company.name
 
-      case Google.run(query, num: 10, campaign_id: cc.campaign_id, task: "google_search") do
+      case Google.run(query,
+             num: 10,
+             campaign_id: cc.campaign_id,
+             subject: {:campaign_company, cc.id},
+             task: "google_search"
+           ) do
         {:ok, []} ->
           {:ok, _} = Company.touch_website_searched(company)
           mark_no_website(cc)
@@ -40,7 +45,10 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   end
 
   defp pick(cc, company, results) do
-    case PickBestResult.run(company, results, campaign_id: cc.campaign_id) do
+    case PickBestResult.run(company, results,
+           campaign_id: cc.campaign_id,
+           subject: {:campaign_company, cc.id}
+         ) do
       {:ok, :none} ->
         {:ok, _} = Company.touch_website_searched(company)
         mark_no_website(cc)

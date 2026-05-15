@@ -96,7 +96,10 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
       {:ok, links} ->
         candidates = drop_existing(links, company)
 
-        case PickContactPaths.run(candidates, campaign_id: cc.campaign_id) do
+        case PickContactPaths.run(candidates,
+               campaign_id: cc.campaign_id,
+               subject: {:campaign_company, cc.id}
+             ) do
           {:ok, paths} when paths != [] ->
             Enum.each(paths, fn p ->
               %{campaign_company_id: cc.id, path: p, hop: next_hop}

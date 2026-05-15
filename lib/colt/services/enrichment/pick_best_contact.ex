@@ -70,6 +70,7 @@ defmodule Colt.Services.Enrichment.PickBestContact do
            response_format: :json,
            schema: @schema,
            campaign_id: opts[:campaign_id],
+           subject: opts[:subject],
            task: "pick_best_contact",
            max_tokens: 1500
          ) do

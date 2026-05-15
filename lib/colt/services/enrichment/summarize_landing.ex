@@ -18,6 +18,7 @@ defmodule Colt.Services.Enrichment.SummarizeLanding do
     case Complete.run(:cheap, "Landing page:\n\n#{trimmed}\n\nSummary:",
            system: @system,
            campaign_id: opts[:campaign_id],
+           subject: opts[:subject],
            task: "summarize_landing",
            max_tokens: 2500
          ) do

@@ -27,6 +27,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_rejected, args: [:rejection_reason]
     define :mark_failed
     define :mark_no_contacts
+    define :set_icp_reason, args: [:icp_reason]
     define :set_picked_person, args: [:picked_person_id]
     define :list_for_campaign, args: [:campaign_id]
     define :list_for_export, args: [:campaign_id]
@@ -74,6 +75,12 @@ defmodule Colt.Resources.CampaignCompany do
 
       change set_attribute(:status, :rejected)
       change set_attribute(:rejection_reason, arg(:rejection_reason))
+      change set_attribute(:icp_reason, arg(:rejection_reason))
+    end
+
+    update :set_icp_reason do
+      argument :icp_reason, :string, allow_nil?: true
+      change set_attribute(:icp_reason, arg(:icp_reason))
     end
 
     update :mark_failed do
@@ -96,6 +103,7 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:status, :pending)
       change set_attribute(:failed_stage, nil)
       change set_attribute(:rejection_reason, nil)
+      change set_attribute(:icp_reason, nil)
       change set_attribute(:failure_detail, nil)
 
       require_atomic? false
@@ -111,6 +119,7 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:status, :scraping)
       change set_attribute(:failed_stage, nil)
       change set_attribute(:rejection_reason, nil)
+      change set_attribute(:icp_reason, nil)
       change set_attribute(:failure_detail, nil)
       change set_attribute(:picked_person_id, nil)
 
@@ -153,6 +162,7 @@ defmodule Colt.Resources.CampaignCompany do
       public?: true
 
     attribute :rejection_reason, :string, public?: true
+    attribute :icp_reason, :string, public?: true
     attribute :failure_detail, :string, public?: true
 
     attribute :failed_stage, :atom,

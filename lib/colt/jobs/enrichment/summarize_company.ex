@@ -51,7 +51,10 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
         :ok
 
       md ->
-        case SummarizeLanding.run(md, campaign_id: cc.campaign_id) do
+        case SummarizeLanding.run(md,
+               campaign_id: cc.campaign_id,
+               subject: {:campaign_company, cc.id}
+             ) do
           {:ok, summary} ->
             {:ok, _} = Company.set_ai_summary(company, summary)
             Broadcast.row(cc.campaign_id, cc.id, %{summary: summary})

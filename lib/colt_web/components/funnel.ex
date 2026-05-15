@@ -387,6 +387,15 @@ defmodule ColtWeb.Components.Funnel do
         <button
           :if={@admin?}
           type="button"
+          phx-click="open_api_calls"
+          phx-value-id={@row.cc_id}
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+        >
+          <Liid.icon name="code" size={11} /> LLM calls (admin)
+        </button>
+        <button
+          :if={@admin?}
+          type="button"
           phx-click="retry_row"
           phx-value-id={@row.cc_id}
           data-confirm="Delete all enrichment data for this company and start over?"
@@ -402,6 +411,15 @@ defmodule ColtWeb.Components.Funnel do
           </div>
           <div class="text-[12px] text-ink70 leading-[1.6]">
             {@row.summary}
+          </div>
+        </div>
+
+        <div :if={Map.get(@row, :icp_reason)}>
+          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+            ICP decision · {if @row.status == :rejected, do: "rejected", else: "matched"}
+          </div>
+          <div class="text-[12px] text-ink70 leading-[1.6]">
+            {@row.icp_reason}
           </div>
         </div>
 

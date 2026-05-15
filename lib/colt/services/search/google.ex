@@ -32,11 +32,19 @@ defmodule Colt.Services.Search.Google do
     result = Req.get(@endpoint, params: params, receive_timeout: 30_000)
     latency_ms = System.monotonic_time(:millisecond) - started
 
+    {subject_type, subject_id} =
+      case opts[:subject] do
+        {type, id} when is_atom(type) -> {type, id}
+        _ -> {nil, nil}
+      end
+
     ctx = %{
       query: query,
       latency_ms: latency_ms,
       campaign_id: opts[:campaign_id],
-      task: opts[:task]
+      task: opts[:task],
+      subject_type: subject_type,
+      subject_id: subject_id
     }
 
     handle(result, ctx)
@@ -62,7 +70,9 @@ defmodule Colt.Services.Search.Google do
       results_count: length(results),
       cost_usd: @cost_per_query,
       latency_ms: ctx.latency_ms,
-      campaign_id: ctx.campaign_id
+      campaign_id: ctx.campaign_id,
+      subject_type: ctx.subject_type,
+      subject_id: ctx.subject_id
     })
 
     {:ok, results}
@@ -88,7 +98,9 @@ defmodule Colt.Services.Search.Google do
       query: ctx.query,
       latency_ms: ctx.latency_ms,
       campaign_id: ctx.campaign_id,
-      error: String.slice(err, 0, 500)
+      error: String.slice(err, 0, 500),
+      subject_type: ctx.subject_type,
+      subject_id: ctx.subject_id
     })
   end
 end

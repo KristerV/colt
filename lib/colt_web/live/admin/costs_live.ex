@@ -7,6 +7,7 @@ defmodule ColtWeb.Admin.CostsLive do
   alias Colt.Resources.ApiCall
   alias Colt.Services.Costs.MonthlySummary
   alias ColtWeb.Admin.Summary
+  alias ColtWeb.Components.{ApiCallLog, Liid}
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
   on_mount ColtWeb.Admin.SummaryHook
@@ -30,7 +31,19 @@ defmodule ColtWeb.Admin.CostsLive do
      |> assign(:current, current)
      |> assign(:openrouter, openrouter)
      |> assign(:google, google)
-     |> assign(:by_task, by_task)}
+     |> assign(:by_task, by_task)
+     |> assign(:open_call, nil)}
+  end
+
+  def handle_event("open_call", %{"id" => id}, socket) do
+    case ApiCall.get_by_id(id, authorize?: false) do
+      {:ok, call} -> {:noreply, assign(socket, open_call: call)}
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("close_call", _params, socket) do
+    {:noreply, assign(socket, open_call: nil)}
   end
 
   # Current-month spend + call count grouped by task, sorted by cost desc.
@@ -147,7 +160,12 @@ defmodule ColtWeb.Admin.CostsLive do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={c <- @openrouter} class="border-b border-base-300/40">
+                <tr
+                  :for={c <- @openrouter}
+                  class="border-b border-base-300/40 cursor-pointer hover:bg-base-200"
+                  phx-click="open_call"
+                  phx-value-id={c.id}
+                >
                   <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
                   <td class="py-1 pr-3">{c.task || "—"}</td>
                   <td class="py-1 pr-3 truncate max-w-[14rem]">{c.model}</td>
@@ -180,7 +198,12 @@ defmodule ColtWeb.Admin.CostsLive do
                 </tr>
               </thead>
               <tbody>
-                <tr :for={c <- @google} class="border-b border-base-300/40">
+                <tr
+                  :for={c <- @google}
+                  class="border-b border-base-300/40 cursor-pointer hover:bg-base-200"
+                  phx-click="open_call"
+                  phx-value-id={c.id}
+                >
                   <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
                   <td class="py-1 pr-3">{c.task || "—"}</td>
                   <td class="py-1 pr-3 truncate max-w-[24rem]">{c.query}</td>
@@ -192,6 +215,42 @@ defmodule ColtWeb.Admin.CostsLive do
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <div
+        :if={@open_call}
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
+        phx-click="close_call"
+      >
+        <div
+          class="bg-paper border border-ink20 rounded-sharp w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+          style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
+          phx-click-away="close_call"
+          phx-window-keydown="close_call"
+          phx-key="escape"
+          onclick="event.stopPropagation()"
+        >
+          <div class="flex justify-between items-start gap-3 mb-5">
+            <div class="min-w-0">
+              <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+                API call · {@open_call.task || "—"}
+              </div>
+              <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
+                {@open_call.model || @open_call.provider}
+              </h2>
+            </div>
+            <button
+              type="button"
+              class="w-6 h-6 flex items-center justify-center cursor-pointer"
+              phx-click="close_call"
+            >
+              <Liid.icon name="x" size={14} />
+            </button>
+          </div>
+
+          <ApiCallLog.api_call_detail call={@open_call} />
         </div>
       </div>
     </Layouts.app>

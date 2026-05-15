@@ -25,7 +25,10 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
           %{path: p.path, title: p.title}
         end)
 
-      case PickContactPaths.run(links, campaign_id: cc.campaign_id) do
+      case PickContactPaths.run(links,
+             campaign_id: cc.campaign_id,
+             subject: {:campaign_company, cc.id}
+           ) do
         {:ok, []} ->
           # No contact-bearing pages — fall back to extracting from landing.
           %{campaign_company_id: cc.id}

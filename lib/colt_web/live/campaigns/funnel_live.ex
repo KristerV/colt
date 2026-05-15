@@ -8,10 +8,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   import Ecto.Query
 
-  alias Colt.Resources.{Campaign, CampaignCompany, IcpLearning}
+  alias Colt.Resources.{ApiCall, Campaign, CampaignCompany, IcpLearning}
   alias Colt.Services.Enrichment.{Broadcast, GenerateIcpLearning, Retry, Stats, SweepRecheckIcp}
   alias Colt.Services.Export.Csv, as: ExportCsv
-  alias ColtWeb.Components.{Funnel, Liid}
+  alias ColtWeb.Components.{ApiCallLog, Funnel, Liid}
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
@@ -49,7 +49,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             export_count: 0,
             not_a_fit_row: nil,
             not_a_fit_error: nil,
-            not_a_fit_saving?: false
+            not_a_fit_saving?: false,
+            api_calls_row: nil,
+            api_calls: [],
+            api_call_expanded_id: nil
           )
           |> stream(:rows, rows)
 
@@ -101,7 +104,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
              campaign.icp_description || "",
              summary,
              reason,
-             campaign_id: campaign.id
+             campaign_id: campaign.id,
+             subject: {:campaign_company, cc_id}
            ),
          {:ok, _} <- IcpLearning.create(campaign.id, rule, cc.company_id) do
       {:noreply,
@@ -198,6 +202,26 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
+  def handle_event("open_api_calls", %{"id" => id}, socket) do
+    if socket.assigns.current_user.is_admin do
+      row = Map.get(socket.assigns.rows_index, id)
+      calls = ApiCall.list_for_subject!(:campaign_company, id, authorize?: false)
+
+      {:noreply, assign(socket, api_calls_row: row, api_calls: calls, api_call_expanded_id: nil)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("close_api_calls", _params, socket) do
+    {:noreply, assign(socket, api_calls_row: nil, api_calls: [], api_call_expanded_id: nil)}
+  end
+
+  def handle_event("toggle_api_call", %{"id" => id}, socket) do
+    next = if socket.assigns.api_call_expanded_id == id, do: nil, else: id
+    {:noreply, assign(socket, api_call_expanded_id: next)}
+  end
+
   def handle_event("retry_row", %{"id" => id}, socket) do
     if socket.assigns.current_user.is_admin do
       {:ok, _} = Retry.run(id)
@@ -278,6 +302,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {"status", v}, acc -> %{acc | status: v}
         {:failed_stage, v}, acc -> %{acc | failed_stage: v}
         {:rejection_reason, v}, acc -> %{acc | rejection_reason: v}
+        {:icp_reason, v}, acc -> Map.put(acc, :icp_reason, v)
         {:failure_detail, v}, acc -> Map.put(acc, :failure_detail, v)
         {:summary, v}, acc -> Map.put(acc, :summary, v)
         {:website_url, v}, acc -> %{acc | website_url: v, domain: domain_of(v)}
@@ -368,6 +393,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       scraped_paths: scraped_paths(company.pages),
       summary: company.ai_summary,
       rejection_reason: cc.rejection_reason,
+      icp_reason: cc.icp_reason,
       failure_detail: cc.failure_detail,
       expanded?: false,
       log: []
@@ -645,6 +671,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         saving?={@not_a_fit_saving?}
         error={@not_a_fit_error}
       />
+
+      <.api_calls_modal
+        :if={@api_calls_row}
+        row={@api_calls_row}
+        calls={@api_calls}
+        expanded_id={@api_call_expanded_id}
+      />
     </Layouts.app>
     """
   end
@@ -833,6 +866,49 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             </Liid.btn>
           </div>
         </form>
+      </div>
+    </div>
+    """
+  end
+
+  attr :row, :map, required: true
+  attr :calls, :list, required: true
+  attr :expanded_id, :string, default: nil
+
+  defp api_calls_modal(assigns) do
+    ~H"""
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
+      phx-click="close_api_calls"
+    >
+      <div
+        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
+        phx-click-away="close_api_calls"
+        phx-window-keydown="close_api_calls"
+        phx-key="escape"
+        onclick="event.stopPropagation()"
+      >
+        <div class="flex justify-between items-start gap-3 mb-5">
+          <div class="min-w-0">
+            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+              LLM calls · {@row.name}
+            </div>
+            <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
+              {length(@calls)} recorded calls
+            </h2>
+          </div>
+          <button
+            type="button"
+            class="w-6 h-6 flex items-center justify-center cursor-pointer"
+            phx-click="close_api_calls"
+          >
+            <Liid.icon name="x" size={14} />
+          </button>
+        </div>
+
+        <ApiCallLog.api_call_list calls={@calls} expanded_id={@expanded_id} />
       </div>
     </div>
     """

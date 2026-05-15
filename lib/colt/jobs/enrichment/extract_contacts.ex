@@ -72,7 +72,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
   defp reuse_existing(cc, campaign, persons) do
     titles = Enum.map(persons, & &1.title)
-    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id)
+    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id, cc.id)
 
     picked_person =
       case picked_idx do
@@ -97,7 +97,10 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   end
 
   defp run(cc, company, campaign, pages, haystack) do
-    case Svc.ExtractContacts.run(haystack, campaign_id: cc.campaign_id) do
+    case Svc.ExtractContacts.run(haystack,
+           campaign_id: cc.campaign_id,
+           subject: {:campaign_company, cc.id}
+         ) do
       {:ok, []} ->
         Transition.stage(cc, :contact, :fall)
 
@@ -141,7 +144,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
   defp persist_and_finish(cc, company, campaign, pages, validated) do
     titles = Enum.map(validated, & &1.title)
-    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id)
+    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id, cc.id)
     source_page_id = pick_source_page(pages)
 
     persisted =
@@ -187,10 +190,13 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   # ICP-validated companies must always have a picked contact. If the model
   # declines or errors, fall back to index 0 so downstream (UI + export)
   # always has someone to email.
-  defp pick_index(_target, [], _campaign_id), do: nil
+  defp pick_index(_target, [], _campaign_id, _cc_id), do: nil
 
-  defp pick_index(target, titles, campaign_id) do
-    case PickBestContact.run(target, titles, campaign_id: campaign_id) do
+  defp pick_index(target, titles, campaign_id, cc_id) do
+    case PickBestContact.run(target, titles,
+           campaign_id: campaign_id,
+           subject: {:campaign_company, cc_id}
+         ) do
       {:ok, i} when is_integer(i) -> i
       _ -> 0
     end
