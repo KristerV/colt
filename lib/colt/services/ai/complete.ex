@@ -51,6 +51,20 @@ defmodule Colt.Services.Ai.Complete do
   @max_message_bytes 50_000
 
   def run(model_alias, prompt_or_messages, opts \\ []) do
+    case attempt(model_alias, prompt_or_messages, opts) do
+      {:error, "model returned empty response" <> _} when model_alias == :cheap ->
+        # GLM 4.7 deterministically dead-ends on some inputs (reasoning never
+        # produces visible content). Same-body retries don't help; escalate
+        # to :smart for one final shot before giving up.
+        Logger.warning("ai.complete: :cheap returned empty, escalating to :smart")
+        attempt(:smart, prompt_or_messages, opts)
+
+      other ->
+        other
+    end
+  end
+
+  defp attempt(model_alias, prompt_or_messages, opts) do
     model = Map.fetch!(@model_map, model_alias)
     messages = build_messages(prompt_or_messages, opts, model_alias)
 
