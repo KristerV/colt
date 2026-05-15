@@ -41,7 +41,11 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
 
     case Fetch.run(url) do
       {:ok, %{html: html, fetcher: fetcher}} ->
-        {:ok, markdown} = FromHtml.run(html)
+        markdown =
+          case FromHtml.run(html) do
+            {:ok, md} -> md
+            {:error, _} -> ""
+          end
 
         {:ok, _} =
           Page.upsert(%{
@@ -58,10 +62,12 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
         enqueue_extract(cc)
         :ok
 
-      {:error, reason} ->
-        # Don't terminate the CC — other pages may still bring contacts.
+      {:error, _reason} ->
+        # Fetch failure on a single contact page is expected (non-existing
+        # domain, redirect loops, etc.). Don't retry, don't discard — other
+        # pages may still bring contacts.
         enqueue_extract(cc)
-        {:error, inspect(reason)}
+        :ok
     end
   end
 

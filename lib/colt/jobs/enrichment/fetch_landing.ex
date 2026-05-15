@@ -79,26 +79,39 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   end
 
   defp finish_fetch(cc, company, html, fetcher, final_url) do
-    {:ok, generic_email} = ExtractGenericEmail.run(html, uri_host(final_url))
-    {:ok, markdown} = FromHtml.run(html)
+    case FromHtml.run(html) do
+      {:ok, markdown} ->
+        {:ok, generic_email} = ExtractGenericEmail.run(html, uri_host(final_url))
 
-    {:ok, _page} =
-      Page.upsert(%{
-        company_id: company.id,
-        path: "/",
-        title: nil,
-        in_navigation: false,
-        markdown: markdown,
-        fetched_at: DateTime.utc_now(),
-        fetcher: fetcher
-      })
+        {:ok, _page} =
+          Page.upsert(%{
+            company_id: company.id,
+            path: "/",
+            title: nil,
+            in_navigation: false,
+            markdown: markdown,
+            fetched_at: DateTime.utc_now(),
+            fetcher: fetcher
+          })
 
-    if generic_email && generic_email != company.generic_email do
-      {:ok, _} = Company.set_generic_email(company, generic_email)
+        if generic_email && generic_email != company.generic_email do
+          {:ok, _} = Company.set_generic_email(company, generic_email)
+        end
+
+        enqueue_next(cc, html)
+        :ok
+
+      {:error, reason} ->
+        # Markdown conversion blew up (Html2Markdown NIF on weird input, etc.).
+        # Not worth retrying — fail the website stage and move on.
+        {user_msg, detail} = FailureMessage.run(:website, reason)
+        Transition.stage(cc, :website, :fail)
+
+        {:ok, _} =
+          Transition.terminate(cc, :failed, stage: :website, reason: user_msg, detail: detail)
+
+        :ok
     end
-
-    enqueue_next(cc, html)
-    :ok
   end
 
   defp enqueue_next(cc, html) do
