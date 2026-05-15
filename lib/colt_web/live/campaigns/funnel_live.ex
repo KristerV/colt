@@ -653,7 +653,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
-      phx-click="close_export"
     >
       <div
         class="bg-paper border border-ink20 rounded-sharp w-full max-w-[640px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
@@ -661,7 +660,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         phx-click-away="close_export"
         phx-window-keydown="close_export"
         phx-key="escape"
-        onclick="event.stopPropagation()"
       >
         <div class="flex justify-between items-start gap-3 mb-6">
           <div class="min-w-0">
@@ -773,7 +771,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
-      phx-click="close_not_a_fit"
     >
       <div
         class="bg-paper border border-ink20 rounded-sharp w-full max-w-[560px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
@@ -781,7 +778,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         phx-click-away="close_not_a_fit"
         phx-window-keydown="close_not_a_fit"
         phx-key="escape"
-        onclick="event.stopPropagation()"
       >
         <div class="flex justify-between items-start gap-3 mb-5">
           <div class="min-w-0">
@@ -842,7 +838,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
-      phx-click="close_api_calls"
     >
       <div
         class="bg-paper border border-ink20 rounded-sharp w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
@@ -850,7 +845,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         phx-click-away="close_api_calls"
         phx-window-keydown="close_api_calls"
         phx-key="escape"
-        onclick="event.stopPropagation()"
       >
         <div class="flex justify-between items-start gap-3 mb-5">
           <div class="min-w-0">

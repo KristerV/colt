@@ -17,14 +17,13 @@ defmodule ColtWeb.FeedbackComponent do
       phx-hook="FeedbackModal"
       class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
-      phx-click={close()}
       phx-window-keydown={close()}
       phx-key="escape"
     >
       <div
         class="bg-paper border border-ink20 rounded-sharp w-full max-w-[520px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
         style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
-        onclick="event.stopPropagation()"
+        phx-click-away={close()}
       >
         <div class="flex justify-between items-start gap-3 mb-6">
           <div class="min-w-0">

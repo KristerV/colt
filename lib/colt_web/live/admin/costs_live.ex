@@ -222,7 +222,6 @@ defmodule ColtWeb.Admin.CostsLive do
         :if={@open_call}
         class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
         style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
-        phx-click="close_call"
       >
         <div
           class="bg-paper border border-ink20 rounded-sharp w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
@@ -230,7 +229,6 @@ defmodule ColtWeb.Admin.CostsLive do
           phx-click-away="close_call"
           phx-window-keydown="close_call"
           phx-key="escape"
-          onclick="event.stopPropagation()"
         >
           <div class="flex justify-between items-start gap-3 mb-5">
             <div class="min-w-0">
