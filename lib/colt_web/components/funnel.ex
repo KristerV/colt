@@ -136,7 +136,6 @@ defmodule ColtWeb.Components.Funnel do
   attr :id, :string, required: true
   attr :row, :map, required: true
   attr :expanded?, :boolean, default: false
-  attr :log, :list, default: []
   attr :admin?, :boolean, default: false
 
   def funnel_row(assigns) do
@@ -231,7 +230,7 @@ defmodule ColtWeb.Components.Funnel do
         </div>
       </div>
 
-      <.expanded_detail :if={@expanded?} row={@row} log={@log} admin?={@admin?} />
+      <.expanded_detail :if={@expanded?} row={@row} admin?={@admin?} />
     </div>
     """
   end
@@ -368,7 +367,6 @@ defmodule ColtWeb.Components.Funnel do
   end
 
   attr :row, :map, required: true
-  attr :log, :list, default: []
   attr :admin?, :boolean, default: false
 
   def expanded_detail(assigns) do
@@ -383,6 +381,16 @@ defmodule ColtWeb.Components.Funnel do
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
           <Liid.icon name="x" size={11} /> Not a good fit
+        </button>
+        <button
+          :if={@row.status in [:enriched, :rejected]}
+          type="button"
+          phx-click="recheck_icp_row"
+          phx-value-id={@row.cc_id}
+          data-confirm="Re-check ICP fit for this company?"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+        >
+          <Liid.icon name="refresh" size={11} /> Re-check ICP
         </button>
         <button
           :if={@admin?}
@@ -455,27 +463,6 @@ defmodule ColtWeb.Components.Funnel do
           </div>
           <div class="text-[10px] text-ink40 mt-2 leading-[1.5]">
             All pages above were combined into one input for the contact-extraction LLM call.
-          </div>
-        </div>
-
-        <div>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-            Pipeline
-          </div>
-          <div class="font-mono text-[11px] leading-[1.7] text-ink70">
-            <%= if @log == [] do %>
-              <span class="text-ink40">no pipeline events yet</span>
-            <% else %>
-              <%= for entry <- @log do %>
-                <div class="grid gap-2" style="grid-template-columns: 70px 14px 1fr;">
-                  <span class="text-ink40">{entry.t}</span>
-                  <span class={(entry.ok? && "text-[var(--accent)]") || "text-fail"}>
-                    {entry.symbol}
-                  </span>
-                  <span class="break-words whitespace-pre-wrap">{entry.msg}</span>
-                </div>
-              <% end %>
-            <% end %>
           </div>
         </div>
       </div>

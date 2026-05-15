@@ -9,7 +9,16 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   import Ecto.Query
 
   alias Colt.Resources.{ApiCall, Campaign, CampaignCompany, IcpLearning}
-  alias Colt.Services.Enrichment.{Broadcast, GenerateIcpLearning, Retry, Stats, SweepRecheckIcp}
+
+  alias Colt.Services.Enrichment.{
+    Broadcast,
+    GenerateIcpLearning,
+    RecheckIcp,
+    Retry,
+    Stats,
+    SweepRecheckIcp
+  }
+
   alias Colt.Services.Export.Csv, as: ExportCsv
   alias ColtWeb.Components.{ApiCallLog, Funnel, Liid}
 
@@ -151,6 +160,11 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     {:noreply, assign(socket, show_export?: false)}
   end
 
+  def handle_event("recheck_icp_row", %{"id" => id}, socket) do
+    {:ok, _} = RecheckIcp.run(id)
+    {:noreply, socket}
+  end
+
   def handle_event("recheck_icp", _params, socket) do
     if work_in_flight?(socket.assigns.stats) do
       {:noreply, socket}
@@ -241,8 +255,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           extra_contacts: [],
           total_contacts: 0,
           scraped_paths: [],
-          stages: idle_stages(),
-          log: pipeline_log(id)
+          stages: idle_stages()
         })
 
       socket =
@@ -256,8 +269,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  defp expand(socket, id), do: replace_row(socket, id, expanded?: true, log: pipeline_log(id))
-  defp collapse(socket, id), do: replace_row(socket, id, expanded?: false, log: [])
+  defp expand(socket, id), do: replace_row(socket, id, expanded?: true)
+  defp collapse(socket, id), do: replace_row(socket, id, expanded?: false)
 
   defp replace_row(socket, %{} = row) do
     socket = assign(socket, rows_index: Map.put(socket.assigns.rows_index, row.cc_id, row))
@@ -395,8 +408,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       rejection_reason: cc.rejection_reason,
       icp_reason: cc.icp_reason,
       failure_detail: cc.failure_detail,
-      expanded?: false,
-      log: []
+      expanded?: false
     }
   end
 
@@ -531,55 +543,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp empty_message(:failed), do: "Nothing has failed. Enjoy it."
   defp empty_message(_), do: ""
 
-  defp pipeline_log(cc_id) do
-    q =
-      from(j in Oban.Job,
-        where: like(j.worker, "Colt.Jobs.Enrichment.%"),
-        where: fragment("?->>'campaign_company_id' = ?", j.args, ^cc_id),
-        order_by: [asc: coalesce(j.completed_at, j.attempted_at)]
-      )
-
-    Colt.Repo.all(q)
-    |> Enum.map(&log_line/1)
-  end
-
-  defp log_line(%Oban.Job{worker: w, state: state, completed_at: ct, attempted_at: at} = j) do
-    ts = ct || at
-    label = w |> String.split(".") |> List.last()
-    {symbol, ok?} = if state == "completed", do: {"✓", true}, else: {"·", false}
-
-    msg =
-      case state do
-        "completed" -> "#{label} done"
-        "executing" -> "#{label} running…"
-        "discarded" -> "#{label} failed: #{first_error(j.errors)}"
-        "retryable" -> "#{label} retrying"
-        s -> "#{label} #{s}"
-      end
-
-    %{
-      t: format_time(ts),
-      symbol: symbol,
-      ok?: ok?,
-      msg: msg
-    }
-  end
-
-  defp first_error([%{"error" => err} | _]) when is_binary(err), do: err
-  defp first_error(_), do: ""
-
-  defp format_time(nil), do: "--:--:--"
-
-  defp format_time(%DateTime{} = ts) do
-    Calendar.strftime(ts, "%H:%M:%S")
-  end
-
-  defp format_time(%NaiveDateTime{} = ts) do
-    Calendar.strftime(ts, "%H:%M:%S")
-  end
-
-  defp format_time(_), do: "--:--:--"
-
   def render(assigns) do
     ~H"""
     <Layouts.app
@@ -651,7 +614,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               id={dom_id}
               row={row}
               expanded?={row.expanded?}
-              log={row.log}
               admin?={@current_user.is_admin}
             />
           </div>
