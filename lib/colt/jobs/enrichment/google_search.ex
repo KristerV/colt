@@ -6,7 +6,7 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   Hit  → save `website_url`, source `:google`, enqueue FetchLanding.
   Miss → terminal `:no_website`.
   """
-  use Oban.Worker, queue: :ai, max_attempts: 2
+  use Oban.Worker, queue: :ai, max_attempts: 2, priority: 9
 
   alias Colt.Jobs.Enrichment.FetchLanding
   alias Colt.Resources.{CampaignCompany, Company}

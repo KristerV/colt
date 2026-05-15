@@ -10,6 +10,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
   use Oban.Worker,
     queue: :ai,
     max_attempts: 2,
+    priority: 5,
     unique: [
       fields: [:worker, :args],
       keys: [:campaign_company_id],

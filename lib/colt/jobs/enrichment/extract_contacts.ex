@@ -8,7 +8,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   Persists a `Person` per validated row, then marks the CampaignCompany
   `:enriched`.
   """
-  use Oban.Worker, queue: :ai, max_attempts: 2
+  use Oban.Worker, queue: :ai, max_attempts: 2, priority: 1
 
   alias Colt.Resources.{Campaign, CampaignCompany, Company, Page, Person}
 

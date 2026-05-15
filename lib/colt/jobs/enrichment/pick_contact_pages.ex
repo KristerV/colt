@@ -6,7 +6,7 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
   When no paths qualify (no nav, all stripped) we still enqueue
   `ExtractContacts` against the landing page so we don't lose the run.
   """
-  use Oban.Worker, queue: :ai, max_attempts: 2
+  use Oban.Worker, queue: :ai, max_attempts: 2, priority: 3
 
   alias Colt.Jobs.Enrichment.{ExtractContacts, ScrapeContactPage}
   alias Colt.Resources.{CampaignCompany, Company, Page}

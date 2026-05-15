@@ -6,7 +6,7 @@ defmodule Colt.Jobs.Enrichment.ScrapeContactPage do
   When all selected contact pages for the company have been scraped (or are
   fresh), enqueue `ExtractContacts`.
   """
-  use Oban.Worker, queue: :scrape, max_attempts: 3
+  use Oban.Worker, queue: :scrape, max_attempts: 3, priority: 2
 
   alias Colt.Jobs.Enrichment.ExtractContacts
   alias Colt.Resources.{CampaignCompany, Company, Page}

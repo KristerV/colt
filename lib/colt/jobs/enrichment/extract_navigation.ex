@@ -9,7 +9,7 @@ defmodule Colt.Jobs.Enrichment.ExtractNavigation do
   No downstream enqueue from here — `PickContactPages` is enqueued by
   MatchICP on a successful match.
   """
-  use Oban.Worker, queue: :scrape, max_attempts: 2
+  use Oban.Worker, queue: :scrape, max_attempts: 2, priority: 4
 
   alias Colt.Resources.{CampaignCompany, Company, Page}
   alias Colt.Services.Enrichment.ExtractNavLinks

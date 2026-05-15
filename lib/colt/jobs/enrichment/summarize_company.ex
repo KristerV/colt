@@ -4,7 +4,7 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
   Cached on `Company.ai_summary` and reused across campaigns (spec §7).
   Enqueues `MatchICP` on success.
   """
-  use Oban.Worker, queue: :ai, max_attempts: 2
+  use Oban.Worker, queue: :ai, max_attempts: 2, priority: 6
 
   alias Colt.Jobs.Enrichment.MatchICP
   alias Colt.Resources.{CampaignCompany, Company, Page}

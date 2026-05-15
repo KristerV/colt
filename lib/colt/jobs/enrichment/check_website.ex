@@ -8,7 +8,7 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
            fast-forward to FetchLanding (which will itself short-circuit on
            a fresh page).
   """
-  use Oban.Worker, queue: :scrape, max_attempts: 3
+  use Oban.Worker, queue: :scrape, max_attempts: 3, priority: 9
 
   alias Colt.Jobs.Enrichment.{FetchLanding, GoogleSearch}
   alias Colt.Resources.{CampaignCompany, Company}

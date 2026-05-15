@@ -6,7 +6,7 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   Hands off raw HTML to `ExtractNavigation` via job args (capped) and
   enqueues `SummarizeCompany`.
   """
-  use Oban.Worker, queue: :scrape, max_attempts: 3
+  use Oban.Worker, queue: :scrape, max_attempts: 3, priority: 5
 
   alias Colt.Jobs.Enrichment.{ExtractNavigation, GoogleSearch, SummarizeCompany}
   alias Colt.Resources.{CampaignCompany, Company, Page}
