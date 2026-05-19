@@ -56,9 +56,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             show_export?: false,
             export_preview: nil,
             export_count: 0,
-            not_a_fit_row: nil,
-            not_a_fit_error: nil,
-            not_a_fit_saving?: false,
+            learning_row: nil,
+            learning_mode: :exclude,
+            learning_error: nil,
+            learning_saving?: false,
             api_calls_row: nil,
             api_calls: [],
             api_call_expanded_id: nil
@@ -101,7 +102,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  def handle_info({:save_not_a_fit, cc_id, reason}, socket) do
+  def handle_info({:save_learning, cc_id, mode, reason}, socket) do
     campaign = socket.assigns.campaign
     row = Map.get(socket.assigns.rows_index, cc_id)
 
@@ -113,21 +114,21 @@ defmodule ColtWeb.Campaigns.FunnelLive do
              campaign.icp_description || "",
              summary,
              reason,
+             mode,
              campaign_id: campaign.id,
              subject: {:campaign_company, cc_id}
            ),
-         {:ok, _} <- IcpLearning.create(campaign.id, rule, cc.company_id) do
-      {:noreply,
-       assign(socket, not_a_fit_row: nil, not_a_fit_saving?: false, not_a_fit_error: nil)}
+         {:ok, _} <- IcpLearning.create(campaign.id, rule, mode, cc.company_id) do
+      {:noreply, assign(socket, learning_row: nil, learning_saving?: false, learning_error: nil)}
     else
       nil ->
-        {:noreply, assign(socket, not_a_fit_saving?: false)}
+        {:noreply, assign(socket, learning_saving?: false)}
 
       {:error, _} ->
         {:noreply,
          assign(socket,
-           not_a_fit_saving?: false,
-           not_a_fit_error: "Couldn't generate the learning. Try again."
+           learning_saving?: false,
+           learning_error: "Couldn't generate the learning. Try again."
          )}
     end
   end
@@ -174,34 +175,43 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  def handle_event("open_not_a_fit", %{"id" => id}, socket) do
+  def handle_event("open_learning", %{"id" => id} = params, socket) do
+    mode = parse_mode(params["mode"])
+
     case Map.get(socket.assigns.rows_index, id) do
-      nil -> {:noreply, socket}
-      row -> {:noreply, assign(socket, not_a_fit_row: row, not_a_fit_error: nil)}
+      nil ->
+        {:noreply, socket}
+
+      row ->
+        {:noreply, assign(socket, learning_row: row, learning_mode: mode, learning_error: nil)}
     end
   end
 
-  def handle_event("close_not_a_fit", _params, socket) do
-    {:noreply, assign(socket, not_a_fit_row: nil, not_a_fit_error: nil, not_a_fit_saving?: false)}
+  def handle_event("close_learning", _params, socket) do
+    {:noreply, assign(socket, learning_row: nil, learning_error: nil, learning_saving?: false)}
   end
 
-  def handle_event("submit_not_a_fit", %{"reason" => reason}, socket) do
+  def handle_event("submit_learning", %{"reason" => reason}, socket) do
     reason = String.trim(reason || "")
-    row = socket.assigns.not_a_fit_row
+    row = socket.assigns.learning_row
+    mode = socket.assigns.learning_mode
 
     cond do
       row == nil ->
         {:noreply, socket}
 
       reason == "" ->
-        {:noreply, assign(socket, not_a_fit_error: "Tell us why so we can learn the rule.")}
+        {:noreply, assign(socket, learning_error: "Tell us why so we can learn the rule.")}
 
       true ->
-        socket = assign(socket, not_a_fit_saving?: true, not_a_fit_error: nil)
-        send(self(), {:save_not_a_fit, row.cc_id, reason})
+        socket = assign(socket, learning_saving?: true, learning_error: nil)
+        send(self(), {:save_learning, row.cc_id, mode, reason})
         {:noreply, socket}
     end
   end
+
+  defp parse_mode("include"), do: :include
+  defp parse_mode(_), do: :exclude
 
   def handle_event("toggle_row", %{"id" => id}, socket) do
     case socket.assigns.expanded_id do
@@ -627,11 +637,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         preview={@export_preview}
       />
 
-      <.not_a_fit_modal
-        :if={@not_a_fit_row}
-        row={@not_a_fit_row}
-        saving?={@not_a_fit_saving?}
-        error={@not_a_fit_error}
+      <.learning_modal
+        :if={@learning_row}
+        row={@learning_row}
+        mode={@learning_mode}
+        saving?={@learning_saving?}
+        error={@learning_error}
       />
 
       <.api_calls_modal
@@ -763,10 +774,11 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   end
 
   attr :row, :map, required: true
+  attr :mode, :atom, required: true
   attr :saving?, :boolean, default: false
   attr :error, :string, default: nil
 
-  defp not_a_fit_modal(assigns) do
+  defp learning_modal(assigns) do
     ~H"""
     <div
       class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
@@ -775,17 +787,17 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       <div
         class="bg-paper border border-ink20 rounded-sharp w-full max-w-[560px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
         style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
-        phx-click-away="close_not_a_fit"
-        phx-window-keydown="close_not_a_fit"
+        phx-click-away="close_learning"
+        phx-window-keydown="close_learning"
         phx-key="escape"
       >
         <div class="flex justify-between items-start gap-3 mb-5">
           <div class="min-w-0">
             <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
-              Not a good fit · {@row.name}
+              {learning_eyebrow(@mode)} · {@row.name}
             </div>
             <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
-              What makes this a <em>miss</em>?
+              {Phoenix.HTML.raw(learning_heading(@mode))}
             </h2>
             <div class="text-[12px] text-ink55 mt-2 leading-[1.55]">
               Tell us in your own words. We'll save it as a rule and apply it
@@ -795,24 +807,24 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           <button
             type="button"
             class="w-6 h-6 flex items-center justify-center cursor-pointer"
-            phx-click="close_not_a_fit"
+            phx-click="close_learning"
           >
             <Liid.icon name="x" size={14} />
           </button>
         </div>
 
-        <form phx-submit="submit_not_a_fit" class="flex flex-col gap-4">
+        <form phx-submit="submit_learning" class="flex flex-col gap-4">
           <textarea
             name="reason"
             autofocus
-            placeholder="e.g. They're a pure reseller — we sell to manufacturers, not distributors."
+            placeholder={learning_placeholder(@mode)}
             class="w-full min-h-[120px] px-[16px] py-3 border border-ink20 bg-paperAlt text-[14px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
           ></textarea>
 
           <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
 
           <div class="flex items-center gap-3 justify-end">
-            <Liid.btn size={:small} type="button" phx-click="close_not_a_fit">Cancel</Liid.btn>
+            <Liid.btn size={:small} type="button" phx-click="close_learning">Cancel</Liid.btn>
             <Liid.btn
               size={:small}
               variant={:primary}
@@ -828,6 +840,18 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     </div>
     """
   end
+
+  defp learning_eyebrow(:exclude), do: "Not a good fit"
+  defp learning_eyebrow(:include), do: "Actually a good fit"
+
+  defp learning_heading(:exclude), do: "What makes this a <em>miss</em>?"
+  defp learning_heading(:include), do: "What makes this a <em>match</em>?"
+
+  defp learning_placeholder(:exclude),
+    do: "e.g. They're a pure reseller — we sell to manufacturers, not distributors."
+
+  defp learning_placeholder(:include),
+    do: "e.g. They manufacture in-house — the site just emphasises their distribution arm."
 
   attr :row, :map, required: true
   attr :calls, :list, required: true

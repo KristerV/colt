@@ -172,18 +172,27 @@ defmodule ColtWeb.Campaigns.IcpLive do
 
             <div :if={@learnings != []} class="mt-4">
               <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
-                Learned exclusions ({length(@learnings)})
+                Learned refinements ({length(@learnings)})
               </div>
               <div class="text-[11px] text-ink40 mb-3 leading-[1.5]">
-                Saved from "not a good fit" feedback on the funnel. Applied on
-                top of the ICP above. Delete any that no longer reflect what
-                you want — then re-check ICP on the funnel.
+                Saved from "not a good fit" / "actually a good fit" feedback on
+                the funnel. Applied on top of the ICP above. Delete any that no
+                longer reflect what you want — then re-check ICP on the funnel.
               </div>
               <ul class="flex flex-col gap-1.5">
                 <li
                   :for={l <- @learnings}
                   class="flex items-start gap-2 px-3 py-2 border border-ink20 rounded-sharp bg-paperAlt"
                 >
+                  <span class={[
+                    "font-mono text-[9px] tracking-[0.12em] uppercase px-1.5 py-0.5 border rounded-sharp shrink-0 mt-0.5",
+                    if(l.kind == :include,
+                      do: "text-ink70 border-ink40",
+                      else: "text-ink55 border-ink20"
+                    )
+                  ]}>
+                    {if l.kind == :include, do: "include", else: "exclude"}
+                  </span>
                   <span class="flex-1 text-[12px] text-ink leading-[1.5]">{l.body}</span>
                   <button
                     type="button"

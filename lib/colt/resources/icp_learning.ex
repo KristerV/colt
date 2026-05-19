@@ -21,7 +21,7 @@ defmodule Colt.Resources.IcpLearning do
 
   code_interface do
     define :get, action: :read, get_by: [:id]
-    define :create, args: [:campaign_id, :body, :source_company_id]
+    define :create, args: [:campaign_id, :body, :kind, :source_company_id]
     define :list_for_campaign, args: [:campaign_id]
     define :destroy, action: :destroy
   end
@@ -31,7 +31,7 @@ defmodule Colt.Resources.IcpLearning do
     default_accept []
 
     create :create do
-      accept [:campaign_id, :body, :source_company_id]
+      accept [:campaign_id, :body, :kind, :source_company_id]
     end
 
     read :list_for_campaign do
@@ -45,6 +45,13 @@ defmodule Colt.Resources.IcpLearning do
     uuid_primary_key :id
 
     attribute :body, :string, allow_nil?: false, public?: true
+
+    attribute :kind, :atom do
+      constraints one_of: [:exclude, :include]
+      default :exclude
+      allow_nil? false
+      public? true
+    end
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

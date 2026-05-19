@@ -376,11 +376,22 @@ defmodule ColtWeb.Components.Funnel do
         <button
           :if={@row.status == :enriched}
           type="button"
-          phx-click="open_not_a_fit"
+          phx-click="open_learning"
           phx-value-id={@row.cc_id}
+          phx-value-mode="exclude"
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
           <Liid.icon name="x" size={11} /> Not a good fit
+        </button>
+        <button
+          :if={@row.status == :rejected}
+          type="button"
+          phx-click="open_learning"
+          phx-value-id={@row.cc_id}
+          phx-value-mode="include"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+        >
+          <Liid.icon name="check" size={11} /> Actually a good fit
         </button>
         <button
           :if={@row.status in [:enriched, :rejected]}

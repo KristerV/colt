@@ -82,13 +82,45 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
   defp learnings_clause([]), do: ""
 
   defp learnings_clause(learnings) when is_list(learnings) do
-    bullets = Enum.map_join(learnings, "\n", fn body -> "- #{body}" end)
+    {includes, excludes} =
+      Enum.split_with(learnings, fn
+        %{kind: :include} -> true
+        _ -> false
+      end)
 
-    """
+    sections =
+      [
+        learnings_section(
+          "Inclusions (positive traits — accept companies showing these even if other signals look borderline)",
+          includes
+        ),
+        learnings_section(
+          "Exclusions (disqualifying traits — reject companies showing these)",
+          excludes
+        )
+      ]
+      |> Enum.reject(&(&1 == ""))
 
-    Additional exclusions (rules the user added after reviewing earlier matches — treat with the same weight as the ICP above):
-    #{bullets}
-    """
+    case sections do
+      [] ->
+        ""
+
+      _ ->
+        body = Enum.join(sections, "\n\n")
+
+        """
+
+        Additional ICP refinements (rules the user added after reviewing earlier classifications — treat with the same weight as the ICP above):
+        #{body}
+        """
+    end
+  end
+
+  defp learnings_section(_label, []), do: ""
+
+  defp learnings_section(label, items) do
+    bullets = Enum.map_join(items, "\n", fn %{body: body} -> "- #{body}" end)
+    "#{label}:\n#{bullets}"
   end
 
   defp audience_tail(:b2b), do: " or the audience constraint above"

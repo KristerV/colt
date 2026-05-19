@@ -30,7 +30,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
       icp = campaign.icp_description || ""
       summary = company.ai_summary || ""
-      learnings = load_learning_bodies(cc.campaign_id)
+      learnings = load_learnings(cc.campaign_id)
 
       cond do
         icp == "" or summary == "" ->
@@ -78,9 +78,9 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
     %{campaign_company_id: cc.id} |> PickContactPages.new() |> Oban.insert!()
   end
 
-  defp load_learning_bodies(campaign_id) do
+  defp load_learnings(campaign_id) do
     case IcpLearning.list_for_campaign(campaign_id, authorize?: false) do
-      {:ok, learnings} -> Enum.map(learnings, & &1.body)
+      {:ok, learnings} -> Enum.map(learnings, &%{body: &1.body, kind: &1.kind})
       _ -> []
     end
   end
