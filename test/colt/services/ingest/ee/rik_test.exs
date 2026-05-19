@@ -15,9 +15,21 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
   @fixture_dir Path.join([:code.priv_dir(:colt), "fixtures", "rik_ee"])
 
   setup do
+    # Rik.run deletes cache files it has processed. Point the cache at a
+    # tmp copy of the fixtures so the originals survive.
+    tmp =
+      Path.join(System.tmp_dir!(), "rik_ee_fixtures_#{System.unique_integer([:positive])}")
+
+    File.cp_r!(@fixture_dir, tmp)
+
     prev = Application.get_env(:colt, :rik_ee_cache_dir)
-    Application.put_env(:colt, :rik_ee_cache_dir, @fixture_dir)
-    on_exit(fn -> Application.put_env(:colt, :rik_ee_cache_dir, prev) end)
+    Application.put_env(:colt, :rik_ee_cache_dir, tmp)
+
+    on_exit(fn ->
+      Application.put_env(:colt, :rik_ee_cache_dir, prev)
+      File.rm_rf!(tmp)
+    end)
+
     :ok
   end
 
