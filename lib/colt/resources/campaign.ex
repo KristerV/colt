@@ -53,19 +53,23 @@ defmodule Colt.Resources.Campaign do
     end
 
     update :set_market do
-      description "View 2 — set market and advance to :collecting."
+      description "View 2 — set market and advance to :collecting (never downgrades)."
       accept [:market]
-      change set_attribute(:status, :collecting)
+      change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :collecting}
       require_atomic? false
     end
 
     update :finalize do
-      description "View 3 — save filters, lock the campaign, advance to :enriching."
+      description "View 3 — save filters, lock the campaign, advance to :enriching (never downgrades)."
       accept [:filters]
-      change set_attribute(:status, :enriching)
+      change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :enriching}
 
       change fn changeset, _ ->
-        Ash.Changeset.change_attribute(changeset, :finalized_at, DateTime.utc_now())
+        if Ash.Changeset.get_attribute(changeset, :finalized_at) do
+          changeset
+        else
+          Ash.Changeset.change_attribute(changeset, :finalized_at, DateTime.utc_now())
+        end
       end
 
       require_atomic? false
