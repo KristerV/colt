@@ -30,6 +30,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   def mount(%{"id" => id}, _session, socket) do
     case Campaign.get(id, actor: socket.assigns.current_user) do
+      {:ok, %{status: s} = campaign} when s in [:draft, :collecting] ->
+        {:ok, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
+
       {:ok, campaign} ->
         all_rows = load_rows(campaign)
         rows_index = Map.new(all_rows, &{&1.cc_id, &1})
@@ -71,6 +74,33 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       {:error, _} ->
         {:ok, push_navigate(socket, to: ~p"/")}
     end
+  end
+
+  def handle_info({:rows_added, cc_ids}, socket) do
+    new_rows = load_rows_for_ids(cc_ids)
+
+    rows_index =
+      Enum.reduce(new_rows, socket.assigns.rows_index, fn r, acc ->
+        Map.put(acc, r.cc_id, r)
+      end)
+
+    socket =
+      Enum.reduce(new_rows, socket, fn r, s ->
+        if bucket(r.status) == s.assigns.selected_bucket do
+          stream_insert(s, :rows, r)
+        else
+          s
+        end
+      end)
+
+    new_total = socket.assigns.total + length(new_rows)
+
+    new_stats =
+      Enum.reduce(new_rows, socket.assigns.stats, fn r, acc ->
+        Map.update(acc, bucket(r.status), 1, &(&1 + 1))
+      end)
+
+    {:noreply, assign(socket, rows_index: rows_index, total: new_total, stats: new_stats)}
   end
 
   def handle_info({:stage, cc_id, stage, state}, socket) do
@@ -364,6 +394,19 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     Enum.map(ccs, &row_for(&1, Map.get(completed, &1.id, MapSet.new())))
   end
 
+  defp load_rows_for_ids([]), do: []
+
+  defp load_rows_for_ids(cc_ids) do
+    {:ok, ccs} =
+      CampaignCompany.list_by_ids(cc_ids,
+        authorize?: false,
+        load: [company: [:persons, :pages]]
+      )
+
+    completed = completed_stage_workers(Enum.map(ccs, & &1.id))
+    Enum.map(ccs, &row_for(&1, Map.get(completed, &1.id, MapSet.new())))
+  end
+
   # Map of cc_id → MapSet of stages whose terminal worker has completed.
   # Lets snapshot_stages paint the right pills on page reload for rows
   # still in :scraping (otherwise they'd all show gray idle).
@@ -558,7 +601,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     <Layouts.app
       flash={@flash}
       current_user={@current_user}
-      step={4}
+      step={5}
       campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
@@ -596,7 +639,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           </div>
         </div>
 
-        <Funnel.stats_strip stats={@stats} total={@total} selected={@selected_bucket} />
+        <Funnel.stats_strip
+          stats={@stats}
+          total={@total}
+          selected={@selected_bucket}
+          target={@campaign.target_contact_count}
+        />
 
         <Funnel.meta_strip meta={@meta} visible={@total} total={@total} />
 

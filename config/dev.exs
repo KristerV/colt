@@ -15,6 +15,9 @@ config :colt, ingest_sample_rate: 0.03
 # its downloader controls the year range (see `Ee.Rik.Download.@earliest_year`).
 config :colt, ingest_max_years: 1
 
+# Smaller top-up floor in dev so target=1 doesn't pull 10 companies.
+config :colt, topup_min_batch: 1
+
 # Configure your database
 config :colt, Colt.Repo,
   username: "postgres",

@@ -180,8 +180,9 @@ defmodule Colt.Resources.Company do
       description """
       View 3 — companies matching the user-selected filter set, in a market.
       Always sorted randomly so the same action serves count, preview (limit 100),
-      and confirm-time sample (capped by `:enrichment_max_companies`). Pass
-      `query: [limit: n]` to bound the read.
+      and top-up sample (capped by `:topup_max_sample`). Pass
+      `query: [limit: n]` to bound the read. Pass `exclude_campaign_id:` to
+      omit companies already attached to that campaign.
       """
 
       argument :market, :atom, allow_nil?: false
@@ -195,6 +196,7 @@ defmodule Colt.Resources.Company do
       argument :employees_max, :integer
       argument :revenue_min, :integer
       argument :revenue_max, :integer
+      argument :exclude_campaign_id, :uuid
 
       filter expr(
                market == ^arg(:market) and
@@ -210,7 +212,9 @@ defmodule Colt.Resources.Company do
                  (is_nil(^arg(:employees_max)) or
                     employees_latest <= ^arg(:employees_max)) and
                  (is_nil(^arg(:revenue_min)) or revenue_latest >= ^arg(:revenue_min)) and
-                 (is_nil(^arg(:revenue_max)) or revenue_latest <= ^arg(:revenue_max))
+                 (is_nil(^arg(:revenue_max)) or revenue_latest <= ^arg(:revenue_max)) and
+                 (is_nil(^arg(:exclude_campaign_id)) or
+                    not exists(campaign_companies, campaign_id == ^arg(:exclude_campaign_id)))
              )
 
       prepare build(sort: [random_seed: :asc])
@@ -263,6 +267,7 @@ defmodule Colt.Resources.Company do
     has_many :annual_reports, Colt.Resources.AnnualReport
     has_many :persons, Colt.Resources.Person
     has_many :pages, Colt.Resources.Page
+    has_many :campaign_companies, Colt.Resources.CampaignCompany
   end
 
   calculations do

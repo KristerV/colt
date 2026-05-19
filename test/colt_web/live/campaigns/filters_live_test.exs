@@ -59,7 +59,7 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
     assert html =~ "of 6"
   end
 
-  test "confirm advances to funnel and creates CampaignCompany rows", %{conn: conn} do
+  test "confirm saves filters and redirects to target (status stays :collecting)", %{conn: conn} do
     seed_companies()
     user = seed_user()
     c = setup_campaign(user)
@@ -69,10 +69,10 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
 
     {:error, {:live_redirect, %{to: to}}} = render_click(view, "confirm", %{})
 
-    assert to == "/campaigns/#{c.id}/funnel"
+    assert to == "/campaigns/#{c.id}/target"
 
     {:ok, fresh} = Campaign.get(c.id, actor: user)
-    assert fresh.status == :enriching
-    assert fresh.finalized_at
+    assert fresh.status == :collecting
+    assert is_map(fresh.filters)
   end
 end

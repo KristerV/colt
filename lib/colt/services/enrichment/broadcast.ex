@@ -10,6 +10,8 @@ defmodule Colt.Services.Enrichment.Broadcast do
       `state_atom` ∈ `:idle | :work | :done | :skip | :fall | :fail`.
     * `{:row, campaign_company_id, patch_map}` — row-level field changes
       (status, contact name/title, error).
+    * `{:rows_added, [campaign_company_id]}` — new CCs created by a Topup;
+      the LV loads and inserts them into the stream.
   """
 
   alias Phoenix.PubSub
@@ -26,6 +28,12 @@ defmodule Colt.Services.Enrichment.Broadcast do
 
   def row(campaign_id, campaign_company_id, patch) when is_map(patch) do
     PubSub.broadcast(@pubsub, topic(campaign_id), {:row, campaign_company_id, patch})
+  end
+
+  def rows_added(_campaign_id, []), do: :ok
+
+  def rows_added(campaign_id, cc_ids) when is_list(cc_ids) do
+    PubSub.broadcast(@pubsub, topic(campaign_id), {:rows_added, cc_ids})
   end
 
   def topic(campaign_id), do: "campaign:#{campaign_id}"

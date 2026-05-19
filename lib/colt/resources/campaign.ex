@@ -21,7 +21,9 @@ defmodule Colt.Resources.Campaign do
     define :set_market, args: [:market]
     define :list_recent_for_user, args: [:user_id]
     define :list_all_recent
-    define :finalize, args: [:filters]
+    define :update_filters, args: [:filters]
+    define :update_target, args: [:target_contact_count]
+    define :finalize, args: [:target_contact_count]
   end
 
   actions do
@@ -59,9 +61,21 @@ defmodule Colt.Resources.Campaign do
       require_atomic? false
     end
 
-    update :finalize do
-      description "View 3 — save filters, lock the campaign, advance to :enriching (never downgrades)."
+    update :update_filters do
+      description "Persist filter selection without changing status. Used both before start and for mid-run edits."
       accept [:filters]
+      require_atomic? false
+    end
+
+    update :update_target do
+      description "Change target contact count without advancing status. Used for mid-run target edits."
+      accept [:target_contact_count]
+      require_atomic? false
+    end
+
+    update :finalize do
+      description "Start enrichment — set target contact count, advance to :enriching (never downgrades), stamp finalized_at."
+      accept [:target_contact_count]
       change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :enriching}
 
       change fn changeset, _ ->
@@ -117,8 +131,14 @@ defmodule Colt.Resources.Campaign do
 
     attribute :filters, :map, public?: true, default: %{}
 
+    attribute :target_contact_count, :integer,
+      public?: true,
+      default: 100,
+      allow_nil?: false,
+      constraints: [min: 1]
+
     attribute :status, :atom,
-      constraints: [one_of: [:draft, :collecting, :enriching, :complete, :archived]],
+      constraints: [one_of: [:draft, :collecting, :enriching, :archived]],
       allow_nil?: false,
       default: :draft,
       public?: true

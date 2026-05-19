@@ -32,7 +32,7 @@ defmodule ColtWeb.Components.Liid do
     "refresh" => "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3"
   }
 
-  @stepper_steps ~w(Name ICP Market Filters Funnel)
+  @stepper_steps ~w(Name ICP Market Filters Target Enrichment)
 
   attr :name, :string, required: true
   attr :size, :integer, default: 14
@@ -273,7 +273,8 @@ defmodule ColtWeb.Components.Liid do
   defp step_href_for(1, id), do: "/campaigns/#{id}/icp"
   defp step_href_for(2, id), do: "/campaigns/#{id}/market"
   defp step_href_for(3, id), do: "/campaigns/#{id}/filters"
-  defp step_href_for(4, id), do: "/campaigns/#{id}/funnel"
+  defp step_href_for(4, id), do: "/campaigns/#{id}/target"
+  defp step_href_for(5, id), do: "/campaigns/#{id}/funnel"
   defp step_href_for(_, _), do: nil
 
   # Stages the user can navigate to. Past stages with saved data are always
@@ -282,17 +283,18 @@ defmodule ColtWeb.Components.Liid do
   defp reachable_steps(nil, current), do: List.wrap(current)
 
   defp reachable_steps(campaign, current) do
-    enriching? = Map.get(campaign, :status) in [:enriching, :complete]
+    enriching? = Map.get(campaign, :status) == :enriching
 
     cond do
       enriching? ->
-        [0, 1, 2, 3, 4]
+        [0, 1, 2, 3, 4, 5]
 
       true ->
         base = [0]
         base = if present?(campaign, :icp_description), do: [1 | base], else: base
         base = if present?(campaign, :market), do: [2 | base], else: base
         base = if present_map?(campaign, :filters), do: [3 | base], else: base
+        base = if present_map?(campaign, :filters), do: [4 | base], else: base
         [current | base] |> Enum.uniq() |> Enum.sort()
     end
   end

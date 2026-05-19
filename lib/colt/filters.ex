@@ -4,7 +4,7 @@ defmodule Colt.Filters do
 
     * a count query
     * a 100-row random preview
-    * a confirm-time random sample (capped by `:enrichment_max_companies`)
+    * a top-up random sample (capped by `:topup_max_sample`)
     * the per-bucket totals shown next to trajectory checkboxes
     * the top industries / regions used to populate the chip lists
 
@@ -15,7 +15,7 @@ defmodule Colt.Filters do
   alias Colt.Resources.{AnnualReport, Company}
 
   @preview_limit 100
-  @sample_limit Application.compile_env!(:colt, :enrichment_max_companies)
+  @sample_limit Application.compile_env!(:colt, :topup_max_sample)
   @top_industries 12
 
   @growth_buckets [:declining, :stagnant, :slow, :growing_2x, :growing_10x]
@@ -44,10 +44,18 @@ defmodule Colt.Filters do
 
   @doc """
   Returns random `Company` records for the confirmed filter set, capped by
-  `:enrichment_max_companies`.
+  `:topup_max_sample`. Pass `exclude_campaign_id:` to skip companies already
+  in that campaign (used by Topup to avoid re-picking).
   """
-  def sample(filters, limit \\ @sample_limit) when is_map(filters) and is_integer(limit) do
-    Company.filtered(filters, query: [limit: min(limit, @sample_limit)])
+  def sample(filters, limit \\ @sample_limit, opts \\ [])
+      when is_map(filters) and is_integer(limit) and is_list(opts) do
+    args =
+      case Keyword.get(opts, :exclude_campaign_id) do
+        nil -> filters
+        id -> Map.put(filters, :exclude_campaign_id, id)
+      end
+
+    Company.filtered(args, query: [limit: min(limit, @sample_limit)])
   end
 
   defp count_filtered(filters) do

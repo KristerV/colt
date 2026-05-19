@@ -7,6 +7,7 @@ defmodule Colt.Services.Enrichment.Transition do
   (or vice-versa).
   """
 
+  alias Colt.Jobs.Enrichment.Topup
   alias Colt.Resources.CampaignCompany
   alias Colt.Services.Enrichment.Broadcast
 
@@ -63,6 +64,7 @@ defmodule Colt.Services.Enrichment.Transition do
       |> maybe_put(:failed_stage, stage)
 
     Broadcast.row(cc.campaign_id, cc.id, patch)
+    Topup.schedule(cc.campaign_id)
     {:ok, cc}
   end
 

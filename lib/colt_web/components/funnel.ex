@@ -23,12 +23,18 @@ defmodule ColtWeb.Components.Funnel do
   attr :stats, :map, required: true
   attr :total, :integer, required: true
   attr :selected, :atom, default: :enriched
+  attr :target, :integer, default: nil
 
   def stats_strip(assigns) do
+    enriched_label =
+      if assigns.target,
+        do: "Enriched (target: #{assigns.target})",
+        else: "Enriched"
+
     tiles = [
       %{key: :queued, label: "Queued", color: "var(--ink40)", pulse?: false},
       %{key: :working, label: "Working", color: "var(--accent)", pulse?: true},
-      %{key: :enriched, label: "Enriched", color: "var(--accent)", pulse?: false},
+      %{key: :enriched, label: enriched_label, color: "var(--accent)", pulse?: false},
       %{key: :rejected, label: "ICP miss", color: "var(--ink40)", pulse?: false},
       %{key: :failed, label: "Failed", color: "var(--fail)", pulse?: false}
     ]
@@ -39,7 +45,7 @@ defmodule ColtWeb.Components.Funnel do
     <div class="flex overflow-x-auto md:overflow-visible border border-rule rounded-sharp">
       <%= for {tile, i} <- Enum.with_index(@tiles) do %>
         <% n = Map.get(@stats, tile.key, 0) %>
-        <% pct = if @total > 0, do: n / @total * 100, else: 0 %>
+        <% pct = if @total > 0, do: n / @total * 100, else: 0.0 %>
         <% active? = @selected == tile.key %>
         <button
           type="button"

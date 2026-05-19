@@ -6,7 +6,7 @@ defmodule Colt.Resources.Campaign.Changes.AdvanceStatus do
   """
   use Ash.Resource.Change
 
-  @order [draft: 0, collecting: 1, enriching: 2, complete: 3]
+  @order [draft: 0, collecting: 1, enriching: 2]
 
   @impl true
   def change(changeset, opts, _context) do

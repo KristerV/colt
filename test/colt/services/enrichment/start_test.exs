@@ -3,7 +3,7 @@ defmodule Colt.Services.Enrichment.StartTest do
   use Oban.Testing, repo: Colt.Repo
 
   alias Colt.Accounts.User
-  alias Colt.Resources.{Campaign, CampaignCompany, Company}
+  alias Colt.Resources.Campaign
   alias Colt.Services.Enrichment.Start
 
   defp seed_user do
@@ -12,50 +12,23 @@ defmodule Colt.Services.Enrichment.StartTest do
     |> Ash.create!(authorize?: false)
   end
 
-  defp seed_companies(n) do
-    for i <- 1..n do
-      Company.upsert_basic!(%{
-        registry_code: "TEST#{i}",
-        market: :ee,
-        name: "Co #{i}",
-        region: "Tallinn",
-        status: :registered
-      })
-    end
-  end
-
   setup do
     user = seed_user()
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
     {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", :b2b, actor: user)
     {:ok, c} = Campaign.set_market(c, :ee, actor: user)
+    {:ok, c} = Campaign.update_filters(c, %{market: :ee}, actor: user)
     %{user: user, campaign: c}
   end
 
-  test "run/3 creates CC rows, finalizes campaign, enqueues CheckWebsite",
+  test "run/3 finalizes campaign with target and schedules a Topup",
        %{user: user, campaign: c} do
-    seed_companies(5)
+    {:ok, %{campaign: c2}} = Start.run(c, 50, user)
 
-    {:ok, %{count: count, campaign: c2}} = Start.run(c, %{market: :ee}, user)
-
-    assert count == 5
     assert c2.status == :enriching
+    assert c2.target_contact_count == 50
     assert c2.finalized_at
 
-    ccs = Ash.read!(CampaignCompany)
-    assert length(ccs) == 5
-    assert Enum.all?(ccs, &(&1.status == :pending))
-
-    assert_enqueued(worker: Colt.Jobs.Enrichment.CheckWebsite)
-  end
-
-  test "run/3 caps at :enrichment_max_companies even when filter matches more",
-       %{user: user, campaign: c} do
-    cap = Application.fetch_env!(:colt, :enrichment_max_companies)
-    seed_companies(cap + 10)
-
-    {:ok, %{count: count}} = Start.run(c, %{market: :ee}, user)
-
-    assert count == cap
+    assert_enqueued(worker: Colt.Jobs.Enrichment.Topup, args: %{campaign_id: c2.id})
   end
 end

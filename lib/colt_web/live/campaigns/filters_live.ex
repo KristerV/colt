@@ -5,15 +5,10 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   use ColtWeb, :live_view
 
   alias Colt.Filters
-  alias Colt.Services.Enrichment.Start, as: EnrichmentStart
   alias Colt.Resources.Campaign
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
-
-  @max_companies Application.compile_env!(:colt, :enrichment_max_companies)
-
-  defp max_companies, do: @max_companies
 
   @growth_buckets [
     {:declining, "Shrinking"},
@@ -148,16 +143,23 @@ defmodule ColtWeb.Campaigns.FiltersLive do
      |> reload_filters_async()}
   end
 
-  def handle_event("confirm", params, socket) do
+  def handle_event("confirm", _params, socket) do
     socket = assign(socket, confirming?: true)
-    filters = filter_args(socket.assigns.form, socket.assigns.campaign.market)
-    limit = parse_limit(params["limit"])
+    campaign = socket.assigns.campaign
+    filters = filter_args(socket.assigns.form, campaign.market)
 
-    case EnrichmentStart.run(socket.assigns.campaign, filters, socket.assigns.current_user,
-           limit: limit
-         ) do
-      {:ok, %{campaign: campaign}} ->
-        {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/funnel")}
+    case Campaign.update_filters(campaign, filters, actor: socket.assigns.current_user) do
+      {:ok, campaign} ->
+        if campaign.status == :enriching do
+          {:ok, _} = Colt.Jobs.Enrichment.Topup.schedule(campaign.id, schedule_in: 0)
+
+          {:noreply,
+           socket
+           |> assign(campaign: campaign, confirming?: false)
+           |> put_flash(:info, "Filters updated — top-up scheduled.")}
+        else
+          {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
+        end
 
       {:error, err} ->
         {:noreply, assign(socket, error: inspect(err), confirming?: false)}
@@ -282,10 +284,6 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     if value in list, do: list, else: [value | list]
   end
 
-  defp parse_limit("100"), do: 100
-  defp parse_limit("1000"), do: 1_000
-  defp parse_limit(_), do: 1_000
-
   defp parse_int(nil), do: nil
   defp parse_int(n) when is_integer(n), do: n
 
@@ -330,22 +328,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               <Liid.icon name="chev-l" size={11} /> Back
             </.link>
             <Liid.btn
-              :if={@count > 100}
-              mono
-              phx-click="confirm"
-              phx-value-limit="100"
-              disabled={@confirming?}
-            >
-              Enrich 100 companies
-            </Liid.btn>
-            <Liid.btn
               variant={:primary}
               mono
               phx-click="confirm"
-              phx-value-limit="1000"
               disabled={@confirming? or @count == 0}
             >
-              Enrich {min(@count, max_companies())} companies
+              {confirm_label(@campaign.status)}
             </Liid.btn>
             <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
           </div>
@@ -715,59 +703,36 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   attr :pending?, :boolean, default: false
 
   defp counter_card(assigns) do
-    pct = if assigns.count >= @max_companies, do: 100, else: assigns.count / @max_companies * 100
-    cap_remaining = max(@max_companies - assigns.count, 0)
-    assigns = assign(assigns, pct: pct, cap_remaining: cap_remaining)
-
     ~H"""
     <div class="border border-ink20 bg-paperAlt rounded-sharp p-5 md:p-7 relative">
-      <div class="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2 flex items-center gap-2">
-            Companies match
-            <span
-              :if={@pending?}
-              class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
-              style="background: var(--accent);"
-            />
+      <div>
+        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2 flex items-center gap-2">
+          Companies match
+          <span
+            :if={@pending?}
+            class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+            style="background: var(--accent);"
+          />
+        </div>
+        <div class="flex items-baseline gap-3">
+          <div class={[
+            "font-serif text-[56px] md:text-[76px] font-normal leading-[0.9] tnum tracking-[-0.02em] transition-opacity",
+            @pending? && "opacity-40",
+            not @pending? && "text-ink"
+          ]}>
+            {format_int(@count)}
           </div>
-          <div class="flex items-baseline gap-3">
-            <div class={[
-              "font-serif text-[56px] md:text-[76px] font-normal leading-[0.9] tnum tracking-[-0.02em] transition-opacity",
-              @pending? && "opacity-40",
-              not @pending? && "text-ink"
-            ]}>
-              {format_int(@count)}
-            </div>
-            <div class="font-mono text-[12px] text-ink55 pb-2">
-              of {format_int(@total)}
-            </div>
+          <div class="font-mono text-[12px] text-ink55 pb-2">
+            of {format_int(@total)}
           </div>
         </div>
-        <div class="text-right">
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
-            Funnel cap
-          </div>
-          <div class="font-serif text-[28px] text-ink tracking-[-0.01em]">1,000</div>
-        </div>
-      </div>
-
-      <div class="mt-5 relative h-1.5 bg-ink10 rounded-[1px]">
-        <div
-          class="absolute left-0 top-0 bottom-0"
-          style={"width: #{@pct}%; background: var(--accent);"}
-        />
-        <%= for t <- [25, 50, 75] do %>
-          <div class="absolute -top-[3px] -bottom-[3px] w-px bg-ink20" style={"left: #{t}%;"} />
-        <% end %>
-      </div>
-      <div class="mt-2.5 flex justify-between font-mono text-[11px] text-ink55 tracking-[0.04em]">
-        <span>{round(@pct)}% of cap</span>
-        <span>{format_int(@cap_remaining)} slots remaining</span>
       </div>
     </div>
     """
   end
+
+  defp confirm_label(:enriching), do: "Save filters"
+  defp confirm_label(_), do: "Continue → Target"
 
   attr :form, :map, required: true
 

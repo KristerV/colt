@@ -71,7 +71,8 @@ config :colt,
   rik_ee_cache_dir: "priv/ingest_cache",
   prh_fi_cache_dir: "priv/ingest_cache_fi",
   ingest_max_years: 3,
-  enrichment_max_companies: 1000,
+  topup_max_sample: 1000,
+  topup_min_batch: 10,
   ash_authentication: [return_error_on_invalid_magic_link_token?: true],
   discord_webhook_url: nil
 

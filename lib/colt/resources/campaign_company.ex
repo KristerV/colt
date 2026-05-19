@@ -30,6 +30,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :set_icp_reason, args: [:icp_reason]
     define :set_picked_person, args: [:picked_person_id]
     define :list_for_campaign, args: [:campaign_id]
+    define :list_by_ids, args: [:ids]
     define :list_for_export, args: [:campaign_id]
     define :reset
     define :reset_for_icp_recheck
@@ -46,6 +47,11 @@ defmodule Colt.Resources.CampaignCompany do
     read :list_for_campaign do
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id))
+    end
+
+    read :list_by_ids do
+      argument :ids, {:array, :uuid}, allow_nil?: false
+      filter expr(id in ^arg(:ids))
     end
 
     read :list_for_export do
