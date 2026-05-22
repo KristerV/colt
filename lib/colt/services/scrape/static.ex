@@ -10,7 +10,8 @@ defmodule Colt.Services.Scrape.Static do
     case Req.get(url,
            headers: [{"user-agent", @user_agent}],
            redirect: true,
-           receive_timeout: 60_000
+           receive_timeout: 60_000,
+           retry: false
          ) do
       {:ok, %Req.Response{status: status, body: body} = resp}
       when status in 200..299 and is_binary(body) ->
