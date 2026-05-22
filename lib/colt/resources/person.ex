@@ -22,6 +22,7 @@ defmodule Colt.Resources.Person do
     define :get, action: :read, get_by: [:id]
     define :create_validated
     define :for_company, args: [:company_id]
+    define :set_verification, args: [:email_verification_status]
   end
 
   actions do
@@ -44,6 +45,20 @@ defmodule Colt.Resources.Person do
       argument :company_id, :uuid, allow_nil?: false
       filter expr(company_id == ^arg(:company_id))
     end
+
+    update :set_verification do
+      require_atomic? false
+
+      argument :email_verification_status, :atom,
+        constraints: [one_of: [:valid, :invalid]],
+        allow_nil?: false
+
+      change set_attribute(:email_verification_status, arg(:email_verification_status))
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :email_verified_at, DateTime.utc_now())
+      end
+    end
   end
 
   attributes do
@@ -54,6 +69,12 @@ defmodule Colt.Resources.Person do
     attribute :email, :string, public?: true
     attribute :phone, :string, public?: true
     attribute :validated_in_markdown, :boolean, default: false, public?: true
+
+    attribute :email_verification_status, :atom,
+      constraints: [one_of: [:valid, :invalid]],
+      public?: true
+
+    attribute :email_verified_at, :utc_datetime_usec, public?: true
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

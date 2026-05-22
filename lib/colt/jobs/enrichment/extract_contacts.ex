@@ -10,6 +10,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   """
   use Oban.Worker, queue: :ai, max_attempts: 2, priority: 1
 
+  alias Colt.Jobs.Enrichment.VerifyEmail, as: VerifyEmailJob
   alias Colt.Resources.{Campaign, CampaignCompany, Company, Page, Person}
 
   alias Colt.Services.Enrichment, as: Svc
@@ -84,7 +85,6 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
       CampaignCompany.set_picked_person(cc, (picked_person || %{id: nil}).id)
 
     Transition.stage(cc, :contact, :done)
-    {:ok, _} = Transition.terminate(cc, :enriched)
 
     if picked_person do
       broadcast_contact(cc, %{
@@ -93,6 +93,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
       })
     end
 
+    enqueue_verify(cc)
     :ok
   end
 
@@ -175,7 +176,6 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
     {:ok, _} = Company.touch_enriched(company)
     Transition.stage(cc, :contact, :done)
-    {:ok, _} = Transition.terminate(cc, :enriched)
 
     if picked_person do
       broadcast_contact(cc, %{
@@ -184,7 +184,20 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
       })
     end
 
+    enqueue_verify(cc)
     :ok
+  end
+
+  defp enqueue_verify(cc) do
+    %{campaign_company_id: cc.id}
+    |> VerifyEmailJob.new(
+      unique: [
+        period: :infinity,
+        keys: [:campaign_company_id],
+        states: [:available, :scheduled, :executing, :retryable]
+      ]
+    )
+    |> Oban.insert!()
   end
 
   # ICP-validated companies must always have a picked contact. If the model

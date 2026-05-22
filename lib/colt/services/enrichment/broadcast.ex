@@ -6,7 +6,7 @@ defmodule Colt.Services.Enrichment.Broadcast do
   Topic: `"campaign:" <> campaign_id`. Messages:
 
     * `{:stage, campaign_company_id, stage_atom, state_atom}` — pipeline stage moved.
-      `stage_atom` ∈ `:website | :icp | :contact`.
+      `stage_atom` ∈ `:website | :icp | :contact | :verify`.
       `state_atom` ∈ `:idle | :work | :done | :skip | :fall | :fail`.
     * `{:row, campaign_company_id, patch_map}` — row-level field changes
       (status, contact name/title, error).
@@ -18,7 +18,7 @@ defmodule Colt.Services.Enrichment.Broadcast do
 
   @pubsub Colt.PubSub
 
-  @stages ~w(website icp contact)a
+  @stages ~w(website icp contact verify)a
   @states ~w(idle work done skip fall fail)a
 
   def stage(campaign_id, campaign_company_id, stage, state)

@@ -27,6 +27,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_rejected, args: [:rejection_reason]
     define :mark_failed
     define :mark_no_contacts
+    define :mark_verify_failed, args: [:reason]
     define :set_icp_reason, args: [:icp_reason]
     define :set_picked_person, args: [:picked_person_id]
     define :list_for_campaign, args: [:campaign_id]
@@ -91,7 +92,7 @@ defmodule Colt.Resources.CampaignCompany do
 
     update :mark_failed do
       argument :failed_stage, :atom,
-        constraints: [one_of: [:website, :icp, :contact]],
+        constraints: [one_of: [:website, :icp, :contact, :verify]],
         allow_nil?: true
 
       argument :reason, :string, allow_nil?: true
@@ -146,6 +147,14 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:failed_stage, :contact)
       change set_attribute(:rejection_reason, arg(:reason))
     end
+
+    update :mark_verify_failed do
+      argument :reason, :string, allow_nil?: true
+
+      change set_attribute(:status, :verify_failed)
+      change set_attribute(:failed_stage, :verify)
+      change set_attribute(:rejection_reason, arg(:reason))
+    end
   end
 
   attributes do
@@ -159,6 +168,7 @@ defmodule Colt.Resources.CampaignCompany do
           :rejected,
           :no_website,
           :no_contacts,
+          :verify_failed,
           :enriched,
           :failed
         ]
@@ -172,7 +182,7 @@ defmodule Colt.Resources.CampaignCompany do
     attribute :failure_detail, :string, public?: true
 
     attribute :failed_stage, :atom,
-      constraints: [one_of: [:website, :icp, :contact]],
+      constraints: [one_of: [:website, :icp, :contact, :verify]],
       public?: true
 
     attribute :included_in_export, :boolean, allow_nil?: false, default: true, public?: true

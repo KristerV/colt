@@ -5,7 +5,7 @@ defmodule Colt.Services.Enrichment.FailureMessage do
   string lands in `CampaignCompany.failure_detail` (admin-only in the UI).
   """
 
-  @type stage :: :website | :icp | :contact
+  @type stage :: :website | :icp | :contact | :verify
 
   @doc """
   Build `{user_message, technical_detail}` for the given stage and raw error.
@@ -22,6 +22,7 @@ defmodule Colt.Services.Enrichment.FailureMessage do
   defp prefix(:website), do: "Couldn't analyze website"
   defp prefix(:icp), do: "Couldn't match against ICP"
   defp prefix(:contact), do: "Couldn't extract contact"
+  defp prefix(:verify), do: "Couldn't verify email"
 
   # Heuristic mapping. Order matters — most specific first.
   defp classify(d) do
@@ -34,6 +35,10 @@ defmodule Colt.Services.Enrichment.FailureMessage do
       String.contains?(d, "openrouter http 5") -> "AI service is having trouble"
       String.contains?(d, "no landing markdown") -> "couldn't read website content"
       String.contains?(d, "no contact-page markdown") -> "couldn't read contact page"
+      String.contains?(d, "myemailverifier http 429") -> "email verifier rate-limited us"
+      String.contains?(d, "myemailverifier http 4") -> "email verifier rejected the request"
+      String.contains?(d, "myemailverifier http 5") -> "email verifier is having trouble"
+      String.contains?(d, "myemailverifier") -> "email verifier returned an unexpected response"
       String.contains?(d, "timeout") -> "network timed out"
       String.contains?(d, "TransportError") -> "network error reaching AI service"
       String.contains?(d, "Jason.DecodeError") -> "AI gave an unparseable answer"

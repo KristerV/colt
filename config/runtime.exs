@@ -97,6 +97,11 @@ if config_env() == :prod do
       System.get_env("GOOGLE_CSE_ENGINE_ID") ||
         raise("Missing environment variable `GOOGLE_CSE_ENGINE_ID`!")
 
+  config :colt, :myemailverifier,
+    api_key:
+      System.get_env("MYEMAILVERIFIER_API_KEY") ||
+        raise("Missing environment variable `MYEMAILVERIFIER_API_KEY`!")
+
   config :colt, Colt.Mailer,
     adapter: Swoosh.Adapters.Mailgun,
     api_key:

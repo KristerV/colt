@@ -12,10 +12,11 @@ defmodule ColtWeb.Components.Funnel do
   @stage_labels %{
     website: "Website",
     icp: "ICP fit",
-    contact: "Contact"
+    contact: "Contact",
+    verify: "Verify"
   }
 
-  @stage_keys ~w(website icp contact)a
+  @stage_keys ~w(website icp contact verify)a
 
   def stage_keys, do: @stage_keys
   def stage_labels, do: @stage_labels
@@ -257,7 +258,7 @@ defmodule ColtWeb.Components.Funnel do
           <.pill_dot state={st} />
           {Map.fetch!(@labels, key)}
         </span>
-        <span :if={i < 2} class="w-1 h-px bg-ink20" />
+        <span :if={i < 3} class="w-1 h-px bg-ink20" />
       <% end %>
     </div>
     """
@@ -303,7 +304,7 @@ defmodule ColtWeb.Components.Funnel do
         <span class="font-mono text-[11px] text-fail">no contact</span>
       <% @row.status == :rejected -> %>
         <span class="font-mono text-[11px] text-ink40">—</span>
-      <% @row.status in [:no_website, :no_contacts, :failed] -> %>
+      <% @row.status in [:no_website, :no_contacts, :verify_failed, :failed] -> %>
         <span class="font-mono text-[11px] text-ink40">—</span>
       <% true -> %>
         <span
@@ -485,7 +486,7 @@ defmodule ColtWeb.Components.Funnel do
       </div>
 
       <div>
-        <%= if @row.status in [:rejected, :no_website, :no_contacts, :failed] do %>
+        <%= if @row.status in [:rejected, :no_website, :no_contacts, :verify_failed, :failed] do %>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
             Outcome
           </div>
@@ -585,9 +586,11 @@ defmodule ColtWeb.Components.Funnel do
   defp outcome_label(:rejected, _), do: "icp miss"
   defp outcome_label(:no_website, _), do: "no website"
   defp outcome_label(:no_contacts, _), do: "no contacts"
+  defp outcome_label(:verify_failed, _), do: "email unverified"
   defp outcome_label(:failed, :website), do: "website failed"
   defp outcome_label(:failed, :icp), do: "icp failed"
   defp outcome_label(:failed, :contact), do: "contact failed"
+  defp outcome_label(:failed, :verify), do: "verify failed"
   defp outcome_label(:failed, _), do: "failed"
   defp outcome_label(_, _), do: ""
 
@@ -620,9 +623,11 @@ defmodule ColtWeb.Components.Funnel do
   defp status_view(:rejected, _), do: {"icp miss", "var(--ink40)", false}
   defp status_view(:no_website, _), do: {"no website", "var(--warn)", false}
   defp status_view(:no_contacts, _), do: {"no contacts", "var(--warn)", false}
+  defp status_view(:verify_failed, _), do: {"email unverified", "var(--fail)", false}
   defp status_view(:failed, :website), do: {"website failed", "var(--fail)", false}
   defp status_view(:failed, :icp), do: {"icp failed", "var(--fail)", false}
   defp status_view(:failed, :contact), do: {"contact failed", "var(--fail)", false}
+  defp status_view(:failed, :verify), do: {"verify failed", "var(--fail)", false}
   defp status_view(:failed, _), do: {"failed", "var(--fail)", false}
   defp status_view(_, _), do: {"queued", "var(--ink40)", false}
 

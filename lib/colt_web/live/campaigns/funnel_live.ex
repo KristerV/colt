@@ -24,7 +24,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
-  @stage_keys ~w(website icp contact)a
+  @stage_keys ~w(website icp contact verify)a
 
   @tick_ms 4_000
 
@@ -375,7 +375,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   end
 
   defp terminal?(s),
-    do: s in [:enriched, :rejected, :no_website, :no_contacts, :failed]
+    do: s in [:enriched, :rejected, :no_website, :no_contacts, :verify_failed, :failed]
 
   defp patch_contact(row, key, value) do
     contact = row.contact || %{name: nil, title: nil, email: nil, phone: nil}
@@ -413,7 +413,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   @stage_workers %{
     "Colt.Jobs.Enrichment.SummarizeCompany" => :website,
     "Colt.Jobs.Enrichment.MatchICP" => :icp,
-    "Colt.Jobs.Enrichment.ExtractContacts" => :contact
+    "Colt.Jobs.Enrichment.ExtractContacts" => :contact,
+    "Colt.Jobs.Enrichment.VerifyEmail" => :verify
   }
 
   defp completed_stage_workers([]), do: %{}
@@ -527,9 +528,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp snapshot_stages(:no_website, _, _), do: stages_up_to(:website, :fall)
   defp snapshot_stages(:rejected, _, _), do: stages_up_to(:icp, :fall)
   defp snapshot_stages(:no_contacts, _, _), do: stages_up_to(:contact, :fall)
+  defp snapshot_stages(:verify_failed, _, _), do: stages_up_to(:verify, :fail)
 
   defp snapshot_stages(:enriched, _, _),
-    do: %{website: :done, icp: :done, contact: :done}
+    do: %{website: :done, icp: :done, contact: :done, verify: :done}
 
   defp snapshot_stages(:failed, stage, _) when stage in @stage_keys,
     do: stages_up_to(stage, :fail)
@@ -571,6 +573,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket(:rejected), do: :rejected
   defp bucket(:no_website), do: :failed
   defp bucket(:no_contacts), do: :failed
+  defp bucket(:verify_failed), do: :failed
   defp bucket(:failed), do: :failed
   defp bucket(_), do: :queued
 
