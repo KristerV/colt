@@ -12,10 +12,32 @@ defmodule Colt.Services.Enrichment.CheckAlive do
   def run(""), do: {:ok, :dead}
 
   def run(url) when is_binary(url) do
-    case head(url) do
-      {:ok, status} when status in @alive_statuses -> {:ok, :alive}
-      _ -> get_fallback(url)
+    case normalize(url) do
+      {:ok, normalized} ->
+        case head(normalized) do
+          {:ok, status} when status in @alive_statuses -> {:ok, :alive}
+          _ -> get_fallback(normalized)
+        end
+
+      :error ->
+        {:ok, :dead}
     end
+  end
+
+  defp normalize(url) do
+    case URI.parse(url) do
+      %URI{scheme: scheme, host: host} = uri
+      when scheme in ["http", "https"] and is_binary(host) and host != "" ->
+        encoded = host |> String.to_charlist() |> :idna.encode() |> List.to_string()
+        {:ok, URI.to_string(%{uri | host: encoded})}
+
+      _ ->
+        :error
+    end
+  rescue
+    _ -> :error
+  catch
+    _, _ -> :error
   end
 
   defp head(url) do
@@ -25,6 +47,8 @@ defmodule Colt.Services.Enrichment.CheckAlive do
     end
   rescue
     _ -> :error
+  catch
+    _, _ -> :error
   end
 
   defp get_fallback(url) do
@@ -39,6 +63,8 @@ defmodule Colt.Services.Enrichment.CheckAlive do
     end
   rescue
     _ -> {:ok, :dead}
+  catch
+    _, _ -> {:ok, :dead}
   end
 
   defp ua, do: [{"user-agent", @user_agent}]
