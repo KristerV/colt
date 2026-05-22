@@ -121,7 +121,7 @@ defmodule ColtWeb.Components.Liid do
     assigns =
       assign(assigns,
         classes:
-          "inline-flex items-center gap-2 border rounded-[2px] font-medium cursor-pointer transition-all #{pad} #{family} #{color}"
+          "inline-flex items-center gap-2 border rounded-[2px] font-medium cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none #{pad} #{family} #{color}"
       )
 
     ~H"""
