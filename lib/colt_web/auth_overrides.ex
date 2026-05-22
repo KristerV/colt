@@ -86,7 +86,7 @@ defmodule ColtWeb.AuthOverrides do
 
   override Components.MagicLink.Input do
     set :submit_class, @primary_button <> " mt-2"
-    set :submit_label, "Send magic link"
+    set :submit_label, "Complete log in"
     set :input_debounce, 350
     set :remember_me_class, "flex items-center gap-2 mt-2 mb-2 text-ink70"
     set :remember_me_input_label, "Remember me"
