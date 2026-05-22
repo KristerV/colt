@@ -11,6 +11,8 @@ defmodule Colt.Services.Enrichment.ExtractContacts do
 
   @system """
   Extract every NAMED human contact mentioned in the page text. Skip generic mailboxes (info@, contact@, sales@), skip companies, skip pure phone-number entries with no name. Return JSON only.
+
+  Always return the `title` field in English. If the source title is in another language (e.g. Polish "Prezes Zarządu", German "Geschäftsführer", Estonian "Juhatuse esimees"), translate to the closest natural English equivalent (e.g. "CEO", "Managing Director", "Head of Sales"). An approximation is fine — never leave a non-English title. Keep names, emails, and phones unchanged.
   """
 
   @schema %{
