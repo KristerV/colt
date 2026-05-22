@@ -89,7 +89,9 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     if picked_person do
       broadcast_contact(cc, %{
         contact_name: picked_person.name,
-        contact_title: picked_person.title
+        contact_title: picked_person.title,
+        contact_email: picked_person.email,
+        contact_phone: picked_person.phone
       })
     end
 
@@ -180,7 +182,9 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     if picked_person do
       broadcast_contact(cc, %{
         contact_name: picked_person.name,
-        contact_title: picked_person.title
+        contact_title: picked_person.title,
+        contact_email: picked_person.email,
+        contact_phone: picked_person.phone
       })
     end
 

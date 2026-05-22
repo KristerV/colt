@@ -361,6 +361,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:website_url, v}, acc -> %{acc | website_url: v, domain: domain_of(v)}
         {:contact_name, v}, acc -> patch_contact(acc, :name, v)
         {:contact_title, v}, acc -> patch_contact(acc, :title, v)
+        {:contact_email, v}, acc -> patch_contact(acc, :email, v)
+        {:contact_phone, v}, acc -> patch_contact(acc, :phone, v)
         _other, acc -> acc
       end)
 
