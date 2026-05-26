@@ -19,54 +19,129 @@
   <div id="root"></div>
 
   <script type="text/babel" src="design-canvas.jsx"></script>
-  <script type="text/babel" src="tweaks-panel.jsx"></script>
   <script type="text/babel" src="data.jsx"></script>
   <script type="text/babel" src="liid-shared.jsx"></script>
   <script type="text/babel" src="views-0-2.jsx"></script>
   <script type="text/babel" src="view-3.jsx"></script>
   <script type="text/babel" src="view-4.jsx"></script>
+  <script type="text/babel" src="sending-shared.jsx"></script>
+  <script type="text/babel" src="sending-writing.jsx"></script>
+  <script type="text/babel" src="sending-thread.jsx"></script>
+  <script type="text/babel" src="sending-funnel.jsx"></script>
+  <script type="text/babel" src="sending-sequence.jsx"></script>
+  <script type="text/babel" src="sending-accounts.jsx"></script>
+  <script type="text/babel" src="account-emails.jsx"></script>
 
   <script type="text/babel">
-    const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-      "accent": "#3d7a3d",
-      "density": "comfy",
-      "viz": "pills"
-    }/*EDITMODE-END*/;
-
-    // Convert hex to oklch-ish accent (we just pass through hex for the Tweaks color picker;
-    // shared module accepts any color string).
     function App() {
-      const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
-      const accent = t.accent;
-      const density = t.density;
-      const viz = t.viz;
+      const accent = '#3d7a3d';
+      const density = 'comfy';
 
       // Common artboard size — large to fit dense layouts
       const W = 1280, H = 800;
+      // Sending views are denser — use wider artboards
+      const SW = 1440, SH = 900;
 
       return (
         <>
           <DesignCanvas>
+            {/* SENDING HALF — hero of this batch */}
+            <DCSection id="writing" title="Sending · Writing" subtitle="Single-contact workspace — review and approve one draft at a time">
+              <DCArtboard id="writing-default" label="Drafted · ready to approve" width={SW} height={SH + 600}>
+                <ViewWriting accent={accent} density={density} state="default" />
+              </DCArtboard>
+              <DCArtboard id="writing-drafting" label="Drafting skeleton" width={SW} height={SH + 600}>
+                <ViewWriting accent={accent} density={density} state="drafting" />
+              </DCArtboard>
+              <DCArtboard id="writing-empty" label="Empty · nothing to review" width={SW} height={SH}>
+                <ViewWriting accent={accent} density={density} state="empty" />
+              </DCArtboard>
+              <DCArtboard id="writing-empty-auto" label="Empty · auto-approve on" width={SW} height={SH}>
+                <ViewWriting accent={accent} density={density} state="empty-auto" />
+              </DCArtboard>
+              <DCPostIt top={-30} left={1460}>
+                Hero view of the sending half. Sequence editor left, Mart's inbox preview right — your email lands at row 4.
+              </DCPostIt>
+            </DCSection>
+
+            <DCSection id="sending-funnel" title="Sending · Funnel" subtitle="5-tile stats · bucket strip · contact list + thread split-pane">
+              <DCArtboard id="sf-normal" label="Healthy · bounce 1.8%" width={SW} height={SH + 60}>
+                <ViewSendingFunnel accent={accent} density={density} bounceState="normal" />
+              </DCArtboard>
+              <DCArtboard id="sf-warn" label="Bounce 3.4% · tile turns red" width={SW} height={SH + 60}>
+                <ViewSendingFunnel accent={accent} density={density} bounceState="warn" />
+              </DCArtboard>
+              <DCArtboard id="sf-banner" label="Bounce 6.2% · banner triggers" width={SW} height={SH + 60}>
+                <ViewSendingFunnel accent={accent} density={density} bounceState="banner" />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="thread" title="Sending · Thread" subtitle="Conversation timeline reachable on its own and inside the funnel split-pane">
+              <DCArtboard id="thread-standalone" label="Standalone route" width={SW} height={SH + 600}>
+                <ViewThread accent={accent} density={density} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="sequence" title="Sending · Sequence" subtitle="Block-style vertical editor + tracking + auto-approve gate">
+              <DCArtboard id="seq-locked" label="Auto-approve locked" width={SW} height={SH + 600}>
+                <ViewSequence accent={accent} density={density} autoApproveUnlocked={false} />
+              </DCArtboard>
+              <DCArtboard id="seq-unlocked" label="Auto-approve unlocked" width={SW} height={SH + 600}>
+                <ViewSequence accent={accent} density={density} autoApproveUnlocked={true} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="accounts" title="Sending · Accounts" subtitle="Per-campaign: only the inboxes enrolled in this campaign. Adding accounts is a separate route.">
+              <DCArtboard id="acc-default" label="Enrolled accounts" width={SW} height={SH}>
+                <ViewSendingAccounts accent={accent} density={density} mode="default" />
+              </DCArtboard>
+              <DCArtboard id="acc-picker" label="Add accounts · picker" width={SW} height={SH}>
+                <ViewSendingAccounts accent={accent} density={density} mode="picker" />
+              </DCArtboard>
+              <DCArtboard id="acc-email" label="Email accounts (user level)" width={SW} height={SH + 100}>
+                <ViewEmailAccounts accent={accent} density={density} />
+              </DCArtboard>
+            </DCSection>
+
+            <DCSection id="sidebar" title="Sidebar chrome" subtitle="Expanded · collapsed · panic-on — used across all sending views">
+              <DCArtboard id="sidebar-expanded" label="Expanded" width={280} height={SH}>
+                <div style={{ height: '100%', display: 'flex', background: liidTokens.paperAlt }}>
+                  <LiidSidebar accent={accent} active="writing" />
+                </div>
+              </DCArtboard>
+              <DCArtboard id="sidebar-collapsed" label="Collapsed" width={96} height={SH}>
+                <div style={{ height: '100%', display: 'flex', background: liidTokens.paperAlt }}>
+                  <LiidSidebar accent={accent} active="writing" collapsed />
+                </div>
+              </DCArtboard>
+              <DCArtboard id="sidebar-panic" label="Panic engaged" width={280} height={SH}>
+                <div style={{ height: '100%', display: 'flex', background: liidTokens.paperAlt }}>
+                  <LiidSidebar accent={accent} active="writing" panicOn />
+                </div>
+              </DCArtboard>
+              <DCArtboard id="sf-panic-banner" label="Full view + panic banner" width={SW} height={SH + 60}>
+                <LiidShell accent={accent} active="sf" panicOn>
+                  <PageHead
+                    kicker="Sending · Funnel"
+                    title={<>Where the <em style={{ fontStyle: 'italic', color: accent }}>conversation</em> is going.</>}
+                  />
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: liidTokens.ink40, fontSize: 13 }}>
+                    — sending halted; content greys out —
+                  </div>
+                </LiidShell>
+              </DCArtboard>
+            </DCSection>
             {/* The hero — view 4. First section so the focused view shows funnel by default. */}
             <DCSection id="funnel" title="Funnel & enrichment" subtitle="View 4 — companies list with per-row enrichment progress">
-              <DCArtboard id="funnel-pills" label="A · Pills (default)" width={W} height={H}>
-                <View4Funnel accent={accent} density={density} viz="pills" />
+              <DCArtboard id="funnel-pills" label="Funnel" width={W} height={H}>
+                <View4Funnel accent={accent} density={density} />
               </DCArtboard>
-              <DCArtboard id="funnel-bar" label="B · Segmented bar" width={W} height={H}>
-                <View4Funnel accent={accent} density={density} viz="bar" />
+              <DCArtboard id="funnel-expanded" label="Row expanded · pipeline detail" width={W} height={H + 380}>
+                <View4Funnel accent={accent} density={density} expanded={6} />
               </DCArtboard>
-              <DCArtboard id="funnel-log" label="C · Live log line" width={W} height={H}>
-                <View4Funnel accent={accent} density={density} viz="log" />
+              <DCArtboard id="funnel-export" label="Export modal" width={W} height={H}>
+                <View4Funnel accent={accent} density={density} showExport={true} />
               </DCArtboard>
-              <DCArtboard id="funnel-expanded" label="D · Row expanded · pipeline detail" width={W} height={H + 380}>
-                <View4Funnel accent={accent} density={density} viz="pills" expanded={6} />
-              </DCArtboard>
-              <DCArtboard id="funnel-export" label="E · Export modal" width={W} height={H}>
-                <View4Funnel accent={accent} density={density} viz="pills" showExport={true} />
-              </DCArtboard>
-              <DCPostIt top={-30} left={1300}>
-                Hero view. Toggle viz styles via the Tweaks panel — pills, bar, or log.
-              </DCPostIt>
             </DCSection>
 
             <DCSection id="filters" title="Filters with live preview" subtitle="View 3 — counter + preview list update as you tweak filters">
@@ -87,27 +162,6 @@
               </DCArtboard>
             </DCSection>
           </DesignCanvas>
-
-          <TweaksPanel title="Liid — Tweaks">
-            <TweakSection label="Theme" />
-            <TweakColor label="Accent" value={t.accent} onChange={(v) => setTweak('accent', v)} />
-            <TweakRadio label="Density" value={t.density}
-              options={[{ value: 'compact', label: 'Compact' }, { value: 'comfy', label: 'Comfy' }]}
-              onChange={(v) => setTweak('density', v)} />
-            <TweakSection label="Enrichment row" />
-            <TweakRadio label="Viz" value={t.viz}
-              options={[
-                { value: 'pills', label: 'Pills' },
-                { value: 'bar',   label: 'Bar' },
-                { value: 'log',   label: 'Log' },
-              ]}
-              onChange={(v) => setTweak('viz', v)} />
-            <TweakSection label="Presets" />
-            <TweakButton label="Forest green" onClick={() => setTweak('accent', '#3d7a3d')} secondary />
-            <TweakButton label="Ink only"     onClick={() => setTweak('accent', '#1f2937')} secondary />
-            <TweakButton label="Rust"         onClick={() => setTweak('accent', '#b85c3a')} secondary />
-            <TweakButton label="Cobalt"       onClick={() => setTweak('accent', '#2a52be')} secondary />
-          </TweaksPanel>
         </>
       );
     }
