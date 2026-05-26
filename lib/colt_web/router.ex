@@ -41,7 +41,8 @@ defmodule ColtWeb.Router do
       live "/campaigns/:id/target", Campaigns.TargetLive
       live "/campaigns/:id/funnel", Campaigns.FunnelLive
       live "/campaigns/:id/sequence", Sending.SequenceLive
-      live "/campaigns/:id/sending-accounts", Sending.SendingAccountsLive
+      live "/campaigns/:id/sending-accounts", Sending.SendingAccountsLive, :index
+      live "/campaigns/:id/sending-accounts/add", Sending.SendingAccountsLive, :picker
       live "/campaigns/:id/writing", Sending.WritingLive
       live "/campaigns/:id/sending-funnel", Sending.SendingFunnelLive
       live "/email-accounts", Account.EmailAccountsLive

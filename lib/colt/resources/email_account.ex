@@ -30,6 +30,7 @@ defmodule Colt.Resources.EmailAccount do
     define :mark_status, args: [:status, :paused_reason]
     define :touch_sync, args: [:last_sync_at]
     define :disconnect
+    define :set_quota, args: [:daily_quota]
   end
 
   actions do
@@ -80,6 +81,12 @@ defmodule Colt.Resources.EmailAccount do
       require_atomic? false
       change set_attribute(:status, :disconnected)
     end
+
+    update :set_quota do
+      description "Set the global daily send ceiling for this inbox."
+      accept [:daily_quota]
+      require_atomic? false
+    end
   end
 
   policies do
@@ -122,6 +129,12 @@ defmodule Colt.Resources.EmailAccount do
       default: "Europe/Tallinn",
       public?: true
 
+    attribute :daily_quota, :integer,
+      allow_nil?: false,
+      default: 15,
+      public?: true,
+      constraints: [min: 0]
+
     attribute :status, :atom,
       constraints: [one_of: [:healthy, :paused_bounces, :disconnected, :auth_error]],
       allow_nil?: false,
@@ -137,6 +150,7 @@ defmodule Colt.Resources.EmailAccount do
 
   relationships do
     belongs_to :user, Colt.Accounts.User, allow_nil?: false, public?: true
+    has_many :campaign_email_accounts, Colt.Resources.CampaignEmailAccount
   end
 
   identities do

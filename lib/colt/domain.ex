@@ -13,5 +13,8 @@ defmodule Colt.Domain do
     resource Colt.Resources.Feedback
     resource Colt.Resources.IcpLearning
     resource Colt.Resources.EmailAccount
+    resource Colt.Resources.CampaignEmailAccount
+    resource Colt.Resources.Sequence
+    resource Colt.Resources.SequenceStep
   end
 end

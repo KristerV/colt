@@ -35,6 +35,23 @@ defmodule ColtWeb.Account.EmailAccountsLive do
     end
   end
 
+  def handle_event("set_quota", %{"id" => id, "value" => raw}, socket) do
+    quota =
+      case Integer.parse(to_string(raw)) do
+        {n, _} when n >= 0 -> n
+        _ -> 0
+      end
+
+    user = socket.assigns.current_user
+
+    with {:ok, account} <- EmailAccount.get(id, actor: user),
+         {:ok, _} <- EmailAccount.set_quota(account, quota, actor: user) do
+      {:noreply, load_accounts(socket)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
   defp load_accounts(socket) do
     accounts =
       EmailAccount.list_for_user!(socket.assigns.current_user.id,
@@ -105,6 +122,25 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   <span :if={a.tz}>{a.tz}</span>
                 </div>
               </div>
+              <form
+                :if={a.status != :disconnected}
+                phx-change="set_quota"
+                class="flex items-center gap-2"
+              >
+                <input type="hidden" name="id" value={a.id} />
+                <label class="font-mono text-[10px] tracking-[0.08em] uppercase text-ink55">
+                  quota
+                </label>
+                <input
+                  type="number"
+                  name="value"
+                  value={a.daily_quota}
+                  min="0"
+                  phx-debounce="400"
+                  class="w-[64px] px-2 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] text-center bg-paper text-ink tabular-nums outline-none"
+                />
+                <span class="font-mono text-[10px] text-ink40">/day</span>
+              </form>
               <Liid.btn
                 :if={a.status != :disconnected}
                 size={:small}

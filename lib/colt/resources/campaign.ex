@@ -26,6 +26,9 @@ defmodule Colt.Resources.Campaign do
     define :update_filters, args: [:filters]
     define :update_target, args: [:target_contact_count]
     define :finalize, args: [:target_contact_count]
+    define :mark_sending_initialized
+    define :set_tracking, args: [:tracking_opens?, :tracking_clicks?]
+    define :set_panic, args: [:panic_switch_on]
   end
 
   actions do
@@ -85,6 +88,25 @@ defmodule Colt.Resources.Campaign do
     update :update_target do
       description "Change target contact count without advancing status. Used for mid-run target edits."
       accept [:target_contact_count]
+      require_atomic? false
+    end
+
+    update :mark_sending_initialized do
+      description "Flip sending_initialized? = true. Idempotent."
+      accept []
+      require_atomic? false
+      change set_attribute(:sending_initialized?, true)
+    end
+
+    update :set_tracking do
+      description "Toggle per-campaign open + click tracking."
+      accept [:tracking_opens?, :tracking_clicks?]
+      require_atomic? false
+    end
+
+    update :set_panic do
+      description "Toggle the campaign-level panic switch."
+      accept [:panic_switch_on]
       require_atomic? false
     end
 
@@ -160,6 +182,44 @@ defmodule Colt.Resources.Campaign do
 
     attribute :finalized_at, :utc_datetime_usec, public?: true
 
+    attribute :sending_initialized?, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true
+
+    attribute :panic_switch_on, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true
+
+    attribute :auto_approve_unlocked?, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true
+
+    attribute :auto_approve_on?, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true
+
+    attribute :auto_approve_streak, :integer,
+      allow_nil?: false,
+      default: 0,
+      public?: true,
+      constraints: [min: 0]
+
+    attribute :tracking_opens?, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true
+
+    attribute :tracking_clicks?, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true
+
+    attribute :tracking_domain, :string, public?: true
+
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end
@@ -168,6 +228,8 @@ defmodule Colt.Resources.Campaign do
     belongs_to :owner, Colt.Accounts.User, allow_nil?: false, public?: true
     has_many :campaign_companies, Colt.Resources.CampaignCompany
     has_many :api_calls, Colt.Resources.ApiCall
+    has_many :campaign_email_accounts, Colt.Resources.CampaignEmailAccount
+    has_one :sequence, Colt.Resources.Sequence
   end
 
   aggregates do

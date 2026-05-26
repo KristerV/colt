@@ -13,7 +13,7 @@ These were confirmed before drafting:
 - **Provider**: **Nylas v3, EU region**. Unified API for Google Workspace / Microsoft 365 / generic IMAP+SMTP, native threading (`thread_id`), hosted OAuth, bounce + delivery events, public DPA, SOC 2 Type II, ISO 27001, EU data storage. Base URL `https://api.eu.nylas.com/v3`.
 - **Inbox routing**: sticky per contact. On approval a `CampaignContact` is bound to one `EmailAccount`; every step + followup for that contact ships from that inbox.
 - **Auto-approve**: disabled by default. Becomes *available* (toggle appears in campaign settings) after the user has accepted 10 AI-drafted sequences without modifying any subject or body. Counter is per-campaign, not global. Once unlocked the user flips it on/off manually.
-- **AI language**: per-campaign setting, defaults to Estonian for `:ee` market. Applies to every generated subject + body in the campaign.
+- **AI language**: per-campaign setting, defaults to English in v1. User picks per campaign in the sequence view. Applies to every generated subject + body in the campaign.
 - **Sequence edits after start**: allowed. Applies to *new contacts only* — in-flight contacts continue running on the sequence snapshot they were approved with.
 - **Email accounts in navigation**: global per user. The per-campaign "Sending accounts" view picks from the global library and sets quotas.
 - **Sending hours**: Mon–Fri 09:00–17:00 in the inbox's TZ. Followups that would land outside slide forward to the next open window. No holidays handled in v1.
@@ -27,7 +27,7 @@ Decisions I made without asking. Skim, push back where wrong.
 2. **Sequence is per-campaign**, designed once, applied to every contact in that campaign. On approval of a contact, the current sequence is **snapshotted** onto the `CampaignContact` (jsonb `sequence_steps`) so future sequence edits don't disturb in-flight rows.
 3. **Approval is per contact, all-steps at once** — user reviews subject + body for each step in the contact's sequence and clicks one "Approve" button. No per-step approval.
 4. **Subject is also AI-drafted and also versioned** (`ai_subject`, `user_subject`). The AI-vs-user diff used to gate auto-approve compares both subject and body for *any* difference.
-5. **Daily quota is a ceiling on total sends** (new + followups). The scheduler is FCFS into burst slots — every `Email` getting scheduled (whether a fresh approval or a followup falling due) gets the next available burst slot, and once the day's effective cap for that inbox is reached, further sends roll to tomorrow's first burst. We don't try to prioritize followups over new sends or vice versa; it sorts itself out by scheduling time. UI says: *"X emails/day from this inbox, including followups."*
+5. **Daily quota is a ceiling on total sends** (new + followups), stored **globally on `EmailAccount.daily_quota`** (not per-campaign — confirmed E2). The scheduler is FCFS into burst slots — every `Email` getting scheduled (whether a fresh approval or a followup falling due) gets the next available burst slot, and once the day's effective cap for that inbox is reached, further sends roll to tomorrow's first burst. We don't try to prioritize followups over new sends or vice versa; it sorts itself out by scheduling time. UI says: *"X emails/day from this inbox, including followups."*
 6. **Effective daily send count varies ±**: `effective = round(quota × uniform(0.85, 1.05))`, recomputed daily per inbox.
 7. **24h dedupe** is hardcoded at send-time. Recipient address + campaign id checked against `emails` table for any send in the last 24h. Violation **raises** (Oban job dies, logs, alerts via Sentry-equivalent — whatever the project already has). Never silently skip.
 8. **Threading model**: one `Thread` per `CampaignContact`. `Email belongs_to Thread`, `Note belongs_to Thread`. `Thread` is the polymorphic container; in v1 only emails + notes attach.
@@ -77,6 +77,7 @@ EmailAccount                                      # one per connected inbox, sco
          address, display_name,
          nylas_grant_id,                          # Nylas v3 holds the OAuth tokens; we only store the grant_id
          tz (default "Europe/Tallinn"),
+         daily_quota (int, default 15),            # global per inbox; same ceiling across every campaign this inbox is in
          status (:healthy | :paused_bounces | :disconnected | :auth_error),
          last_sync_at, paused_reason
 
@@ -137,13 +138,13 @@ Note
   belongs_to :author, User
   attrs: body (text), inserted_at
 
-CampaignEmailAccount                              # per-campaign selection + quota
+CampaignEmailAccount                              # per-campaign enrollment of an EmailAccount
   belongs_to :campaign
   belongs_to :email_account
   identity on [:campaign_id, :email_account_id]
-  attrs: daily_quota (int, default 15),
-         paused? (bool, default false),
+  attrs: paused? (bool, default false),
          paused_reason
+  # Quota lives on EmailAccount.daily_quota — global per inbox, not per campaign.
 
 Campaign (additional attrs, inlined — no separate settings resource)
   sending_initialized? (bool, default false)        # flipped when user first lands on /sequence
@@ -225,11 +226,12 @@ Block-style visual editor. Each block is a 2px-radius card on paper background w
 
 ### 4.2 Sending accounts view (`/campaigns/:id/sending-accounts`)
 
-Two-column layout.
+Two modes (per design prototype):
 
-- **Left**: list of user's `EmailAccount`s with checkbox. Disabled accounts (paused or disconnected) show why.
-- **Right** (visible when ≥1 selected): per-account row with daily quota number input (default 15). Helper text: *"We suggest staying around 15. To send more, add more inboxes and domains. Effective daily count varies between {quota×0.85} and {quota×1.05} — bursts of 6–12 with 1–5 min gaps, then an hour pause."*
-- **Footer card**: live-computed *"At full capacity this campaign sends ~N emails/day, ~Nk/month. With current sequence (X steps over Y days), a single contact takes Y days to complete."*
+- **Default** (`/campaigns/:id/sending-accounts`) — table of inboxes currently enrolled for this campaign, with per-row stats (sent, reply%, bounce%, status) and a `remove` button. Header `+ Add accounts` button navigates to picker mode. Below the table: live-computed capacity card — *"At full capacity this campaign sends ~N emails/day, ~Nk/month. A single contact takes Y days to complete."*
+- **Picker** (`/campaigns/:id/sending-accounts/add`) — full list of the user's `EmailAccount`s with checkbox per row. Disabled rows (status `:disconnected` / `:paused_bounces`) show why and aren't selectable. Save persists the selection (delta of `CampaignEmailAccount` rows); Cancel returns without changes.
+
+Per-inbox daily quota is **not** edited here — it lives globally on `EmailAccount` and is set under `/email-accounts`. The capacity card just sums `daily_quota` across enrolled healthy inboxes.
 
 ### 4.3 Writing view (`/campaigns/:id/writing`) — one contact at a time
 
@@ -473,7 +475,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - No webhook subscriptions in v1 — polling is added in E6.
 - **Acceptance**: connect a real Google account through the hosted flow. iex helper `Colt.Nylas.send_message(account, to: "me@…", subject: "test", body: "hi")` delivers a real email and returns `{:ok, %{message_id: _, thread_id: _}}`.
 
-### Phase E2 — Sequence + sending accounts views
+### Phase E2 — Sequence + sending accounts views ✅ done
 - `Sequence`, `SequenceStep`, `CampaignEmailAccount` resources. Add the sending-related attrs to `Campaign` (§3 inline block).
 - Sequence editor LiveView (§4.1) — enforces exactly one terminal step at end. Sending accounts LiveView (§4.2).
 - Visiting `/sequence` for the first time flips `Campaign.sending_initialized? = true` (used by the writing view to render the promotion button properly).
