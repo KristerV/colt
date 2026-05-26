@@ -20,5 +20,6 @@ defmodule Colt.Domain do
     resource Colt.Resources.Thread
     resource Colt.Resources.Email
     resource Colt.Resources.Note
+    resource Colt.Resources.Pitch
   end
 end

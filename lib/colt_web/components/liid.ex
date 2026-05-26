@@ -492,6 +492,7 @@ defmodule ColtWeb.Components.Liid do
   ]
 
   @sending_items [
+    %{id: :pitch, label: "Pitch", icon: "spark"},
     %{id: :sequence, label: "Sequence", icon: "code"},
     %{id: :sending_accounts, label: "Sending accounts", icon: "mail"},
     %{id: :writing, label: "Writing", icon: "spark"},
@@ -611,6 +612,7 @@ defmodule ColtWeb.Components.Liid do
   defp enrichment_href(:target, id), do: "/campaigns/#{id}/target"
   defp enrichment_href(:enrichment_funnel, id), do: "/campaigns/#{id}/funnel"
 
+  defp sending_href(:pitch, id), do: "/campaigns/#{id}/pitch"
   defp sending_href(:sequence, id), do: "/campaigns/#{id}/sequence"
   defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
   defp sending_href(:writing, id), do: "/campaigns/#{id}/writing"

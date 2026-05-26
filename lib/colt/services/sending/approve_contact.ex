@@ -185,6 +185,8 @@ defmodule Colt.Services.Sending.ApproveContact do
 
   defp next_monday_9am(dt) do
     add_days = 8 - Date.day_of_week(DateTime.to_date(dt))
-    DateTime.add(dt, add_days, :day) |> Map.merge(%{hour: 9, minute: 0, second: 0, microsecond: {0, 0}})
+
+    DateTime.add(dt, add_days, :day)
+    |> Map.merge(%{hour: 9, minute: 0, second: 0, microsecond: {0, 0}})
   end
 end

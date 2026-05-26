@@ -12,7 +12,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
   use ColtWeb, :live_view
 
-  alias Colt.Resources.{Campaign, CampaignCompany, CampaignContact, Email}
+  alias Colt.Resources.{Campaign, CampaignCompany, CampaignContact, Email, Sequence}
   alias Colt.Services.Sending.{ApproveContact, IngestEnriched}
   alias Colt.Services.Sending.EmailWriter
   alias Phoenix.PubSub
@@ -39,6 +39,7 @@ defmodule ColtWeb.Sending.WritingLive do
             person: nil,
             company: nil,
             drafts: [],
+            email_steps: [],
             subject: "",
             bodies: %{},
             enriched_available: 0,
@@ -82,7 +83,8 @@ defmodule ColtWeb.Sending.WritingLive do
 
     case ApproveContact.run(contact.id, edits, actor: actor) do
       {:ok, _} ->
-        {:noreply, socket |> put_flash(:info, "Approved — scheduling step 1.") |> load_next_contact()}
+        {:noreply,
+         socket |> put_flash(:info, "Approved — scheduling step 1.") |> load_next_contact()}
 
       {:error, :no_healthy_inbox} ->
         {:noreply,
@@ -145,17 +147,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
       true ->
         case CampaignContact.next_pending(campaign.id, actor: actor) do
-          {:ok, nil} ->
-            assign(socket,
-              state: :empty,
-              contact: nil,
-              drafts: [],
-              subject: "",
-              bodies: %{},
-              enriched_available: count_enriched_available(campaign.id, actor)
-            )
-
-          {:ok, contact} ->
+          {:ok, %_{} = contact} ->
             contact =
               Ash.load!(contact, [person: [:company], thread: []],
                 actor: actor,
@@ -171,6 +163,16 @@ defmodule ColtWeb.Sending.WritingLive do
               bodies: %{}
             )
             |> load_drafts_or_start_writer()
+
+          _ ->
+            assign(socket,
+              state: :empty,
+              contact: nil,
+              drafts: [],
+              subject: "",
+              bodies: %{},
+              enriched_available: count_enriched_available(campaign.id, actor)
+            )
         end
     end
   end
@@ -179,14 +181,54 @@ defmodule ColtWeb.Sending.WritingLive do
     actor = socket.assigns.current_user
     contact = socket.assigns.contact
 
-    drafts = list_outbound_drafts(contact, actor)
+    email_steps = sequence_email_steps(contact.campaign_id, actor)
+    wanted = Enum.map(email_steps, & &1.position)
+    drafts = reconcile_drafts(contact, wanted, actor)
+    missing = wanted -- Enum.map(drafts, & &1.step_position)
+    socket = assign(socket, email_steps: email_steps)
 
-    if drafts == [] do
-      kick_off_writer(contact.id, actor)
-      assign(socket, state: :drafting, drafts: [])
-    else
-      socket |> assign(drafts: drafts, state: :default) |> seed_inputs_from_drafts(drafts)
+    cond do
+      missing == [] and drafts == [] ->
+        kick_off_writer(contact.id, actor)
+        assign(socket, state: :drafting, drafts: [])
+
+      missing != [] ->
+        kick_off_writer(contact.id, actor)
+        socket |> assign(drafts: drafts, state: :drafting) |> seed_inputs_from_drafts(drafts)
+
+      true ->
+        socket |> assign(drafts: drafts, state: :default) |> seed_inputs_from_drafts(drafts)
     end
+  end
+
+  defp sequence_email_steps(campaign_id, actor) do
+    case Sequence.get_for_campaign(campaign_id, load: [:sequence_steps], actor: actor) do
+      {:ok, seq} ->
+        seq.sequence_steps
+        |> Enum.filter(&(&1.kind == :email))
+        |> Enum.sort_by(& &1.position)
+
+      _ ->
+        []
+    end
+  end
+
+  defp reconcile_drafts(contact, wanted_positions, actor) do
+    drafts = list_outbound_drafts(contact, actor)
+    wanted = MapSet.new(wanted_positions)
+
+    {keep, drop} =
+      Enum.split_with(drafts, fn e ->
+        e.status == :drafted and MapSet.member?(wanted, e.step_position)
+      end)
+
+    Enum.each(drop, fn e ->
+      if e.status == :drafted do
+        Ash.destroy!(e, actor: actor, authorize?: actor != nil)
+      end
+    end)
+
+    keep
   end
 
   defp load_drafts(socket) do
@@ -283,6 +325,7 @@ defmodule ColtWeb.Sending.WritingLive do
                 person={@person}
                 company={@company}
                 drafts={@drafts}
+                email_steps={@email_steps}
                 subject={@subject}
                 bodies={@bodies}
                 drafting={s == :drafting}
@@ -346,7 +389,10 @@ defmodule ColtWeb.Sending.WritingLive do
   defp empty_auto_state(assigns) do
     ~H"""
     <div class="flex flex-col items-center text-center gap-6 py-10">
-      <div class="w-14 h-14 rounded-full flex items-center justify-center" style="background: color-mix(in oklch, var(--accent) 12%, transparent);">
+      <div
+        class="w-14 h-14 rounded-full flex items-center justify-center"
+        style="background: color-mix(in oklch, var(--accent) 12%, transparent);"
+      >
         <span
           class="w-3.5 h-3.5 rounded-full"
           style="background: var(--accent); box-shadow: 0 0 0 5px color-mix(in oklch, var(--accent) 15%, transparent);"
@@ -366,12 +412,18 @@ defmodule ColtWeb.Sending.WritingLive do
   attr :person, :map, required: true
   attr :company, :map, default: nil
   attr :drafts, :list, required: true
+  attr :email_steps, :list, default: []
   attr :subject, :string, required: true
   attr :bodies, :map, required: true
   attr :drafting, :boolean, default: false
   attr :saved_at, :any, default: nil
 
   defp editor(assigns) do
+    delay_by_position =
+      Map.new(assigns.email_steps, fn s -> {s.position, s.delay_days} end)
+
+    assigns = assign(assigns, :delay_by_position, delay_by_position)
+
     ~H"""
     <.contact_header person={@person} company={@company} />
 
@@ -394,7 +446,7 @@ defmodule ColtWeb.Sending.WritingLive do
           phx-debounce="400"
           placeholder="subject line"
           disabled={@drafting}
-          class="w-full px-5 py-4 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[17px] font-medium text-ink outline-none placeholder:text-ink40"
+          class="w-full px-5 py-3 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[13.5px] text-ink outline-none placeholder:text-ink40"
           style="border-left-color: var(--accent);"
         />
       </form>
@@ -410,19 +462,24 @@ defmodule ColtWeb.Sending.WritingLive do
         class="font-mono text-[10px] tracking-[0.06em] inline-flex items-center gap-1.5"
         style="color: var(--accent);"
       >
-        <span class="w-[5px] h-[5px] rounded-full" style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;" />
-        drafting…
+        <span
+          class="w-[5px] h-[5px] rounded-full"
+          style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
+        /> drafting…
       </div>
     </div>
 
-    <div class="mt-3 flex flex-col gap-1">
+    <div class="mt-3 flex flex-col gap-5">
       <%= cond do %>
         <% @drafting and @drafts == [] -> %>
           <.step_skeleton position={0} />
+          <.wait_marker days={Map.get(@delay_by_position, 1, 2)} />
           <.step_skeleton position={1} />
+          <.wait_marker days={Map.get(@delay_by_position, 2, 2)} />
           <.step_skeleton position={2} />
         <% true -> %>
           <%= for {email, idx} <- Enum.with_index(@drafts) do %>
+            <.wait_marker :if={idx > 0} days={Map.get(@delay_by_position, email.step_position, 2)} />
             <.step_card
               email={email}
               idx={idx}
@@ -468,15 +525,36 @@ defmodule ColtWeb.Sending.WritingLive do
         <div :if={@company} class="text-right">
           <div class="text-[14px] font-medium text-ink">{@company.name}</div>
           <div class="font-mono text-[10px] tracking-[0.06em] uppercase text-ink40 mt-0.5">
-            {[@company.industry_code, @company.region, @company.employees_latest && "#{@company.employees_latest} emp"]
+            {[
+              @company.industry_code,
+              @company.region,
+              @company.employees_latest && "#{@company.employees_latest} emp"
+            ]
             |> Enum.reject(&(&1 in [nil, ""]))
             |> Enum.join(" · ")}
           </div>
         </div>
       </div>
-      <div :if={@company && @company.ai_summary} class="mt-3 text-[13px] leading-[1.55] text-ink70 border-t border-rule pt-3">
+      <div
+        :if={@company && @company.ai_summary}
+        class="mt-3 text-[13px] leading-[1.55] text-ink70 border-t border-rule pt-3"
+      >
         {@company.ai_summary}
       </div>
+    </div>
+    """
+  end
+
+  attr :days, :integer, required: true
+
+  defp wait_marker(assigns) do
+    ~H"""
+    <div class="relative pl-8 flex items-center -my-1">
+      <span class="absolute left-[14px] top-0 bottom-0 w-px bg-ink20" />
+      <span class="absolute left-[9px] top-[calc(50%-5px)] w-[11px] h-[11px] rounded-full bg-paper border border-ink20" />
+      <span class="font-mono text-[11px] tracking-[0.06em] text-ink55 inline-flex items-center gap-2 uppercase">
+        wait <span class="text-ink tabular-nums">{@days}</span> days
+      </span>
     </div>
     """
   end
@@ -504,10 +582,11 @@ defmodule ColtWeb.Sending.WritingLive do
         <input type="hidden" name="position" value={@email.step_position} />
         <textarea
           name="value"
-          rows="9"
+          rows="6"
           phx-debounce="600"
           disabled={@disabled}
-          class="w-full px-5 py-4 bg-paper text-[13.5px] leading-[1.6] text-ink70 outline-none border-0 resize-y font-sans"
+          class="w-full px-5 py-4 bg-paper text-[13.5px] leading-[1.6] text-ink70 outline-none border-0 resize-none font-sans block"
+          style="field-sizing: content;"
         >{@body}</textarea>
       </form>
     </div>
@@ -523,9 +602,14 @@ defmodule ColtWeb.Sending.WritingLive do
         <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink40">
           Step {@position + 1}
         </span>
-        <span class="inline-flex items-center gap-1.5 font-mono text-[10px]" style="color: var(--accent);">
-          <span class="w-[5px] h-[5px] rounded-full" style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;" />
-          drafting…
+        <span
+          class="inline-flex items-center gap-1.5 font-mono text-[10px]"
+          style="color: var(--accent);"
+        >
+          <span
+            class="w-[5px] h-[5px] rounded-full"
+            style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
+          /> drafting…
         </span>
       </div>
       <div class="h-3 w-[60%] bg-ink10 mb-2" />
@@ -541,14 +625,24 @@ defmodule ColtWeb.Sending.WritingLive do
 
   defp inbox_preview(assigns) do
     fakes = [
-      %{from: "GitHub", subj: "Security alert", preview: "A new sign-in to your account", time: "10:42"},
-      %{from: "Stripe", subj: "Invoice paid", preview: "$199.00 received from Acme Co.", time: "09:18"},
-      %{from: "Linear", subj: "5 issues assigned to you", preview: "Q2 planning · sprint 14", time: "08:55"},
-      %{from: "Notion", subj: "Weekly digest", preview: "12 pages updated in your workspaces", time: "07:30"},
-      %{from: "Slack", subj: "Mentioned in #eng", preview: "@you take a look at the migration", time: "Yesterday"},
-      %{from: "Calendly", subj: "New meeting scheduled", preview: "Tue 14:00 — intro call with...", time: "Mon"},
-      %{from: "Vercel", subj: "Deployment ready", preview: "main.colt.app went live", time: "Mon"},
-      %{from: "1Password", subj: "Travel mode reminder", preview: "Heads up if you're crossing a border", time: "Sun"}
+      %{
+        from: "GitHub",
+        subj: "Security alert",
+        preview: "A new sign-in to your account",
+        time: "10:42"
+      },
+      %{
+        from: "Stripe",
+        subj: "Invoice paid",
+        preview: "$199.00 received from Acme Co.",
+        time: "09:18"
+      },
+      %{
+        from: "Linear",
+        subj: "5 issues assigned to you",
+        preview: "Q2 planning · sprint 14",
+        time: "08:55"
+      }
     ]
 
     assigns = assign(assigns, :fakes, fakes)
@@ -561,8 +655,14 @@ defmodule ColtWeb.Sending.WritingLive do
       </div>
       <div>
         <%= for {m, i} <- Enum.with_index(@fakes) do %>
-          <%= if i == 3 do %>
-            <.gmail_row from={@from} subj={subject_or_placeholder(@subject)} preview="" time="now" highlight={true} />
+          <%= if i == 2 do %>
+            <.gmail_row
+              from={@from}
+              subj={subject_or_placeholder(@subject)}
+              preview=""
+              time="now"
+              highlight={true}
+            />
           <% end %>
           <.gmail_row from={m.from} subj={m.subj} preview={m.preview} time={m.time} highlight={false} />
         <% end %>
@@ -584,10 +684,7 @@ defmodule ColtWeb.Sending.WritingLive do
   defp gmail_row(assigns) do
     ~H"""
     <div
-      class={[
-        "grid items-center gap-3.5 px-5 py-2.5 border-b border-rule",
-        if(@highlight, do: "bg-paper", else: "bg-paperAlt")
-      ]}
+      class="grid items-center gap-3.5 px-5 py-2.5 border-b border-rule bg-paper"
       style={
         "grid-template-columns: 18px 18px 180px 1fr 70px;" <>
           if @highlight, do: " box-shadow: inset 2px 0 0 var(--accent);", else: ""
@@ -595,20 +692,12 @@ defmodule ColtWeb.Sending.WritingLive do
     >
       <div class="w-[14px] h-[14px] rounded-[2px] border border-ink40" />
       <span class="text-ink40">☆</span>
-      <span class={[
-        "text-[13px] truncate",
-        if(@highlight, do: "font-bold text-ink", else: "text-ink")
-      ]}>
-        {@from}
-      </span>
+      <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
-        <span class={if(@highlight, do: "font-bold text-ink", else: "text-ink")}>{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> - {@preview}</span>
+        <span class="font-bold text-ink">{@subj}</span>
+        <span :if={@preview != ""} class="text-ink55"> -  {@preview}</span>
       </span>
-      <span class={[
-        "font-mono text-[11px] text-right whitespace-nowrap tabular-nums",
-        if(@highlight, do: "text-ink font-semibold", else: "text-ink55")
-      ]}>
+      <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
       </span>
     </div>
@@ -620,7 +709,10 @@ defmodule ColtWeb.Sending.WritingLive do
 
   defp action_bar(assigns) do
     ~H"""
-    <div class="fixed left-0 right-0 bottom-0 border-t border-ink20 bg-paper px-8 py-3.5 flex items-center gap-4 z-10" style="box-shadow: 0 -4px 24px rgba(0,0,0,0.04);">
+    <div
+      class="fixed left-0 right-0 bottom-0 border-t border-ink20 bg-paper px-8 py-3.5 flex items-center gap-4 z-10"
+      style="box-shadow: 0 -4px 24px rgba(0,0,0,0.04);"
+    >
       <Liid.btn phx-click="skip" disabled={@drafting} mono>
         Skip
       </Liid.btn>
@@ -630,8 +722,7 @@ defmodule ColtWeb.Sending.WritingLive do
         phx-click="approve"
         disabled={@drafting or not @can_approve}
       >
-        <Liid.icon name="check" size={12} />
-        Approve &amp; next
+        <Liid.icon name="check" size={12} /> Approve &amp; next
       </Liid.btn>
     </div>
     """

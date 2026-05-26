@@ -12,7 +12,7 @@ defmodule Colt.Services.Sending.EmailWriter do
   reference followup timing naturally. Example collection lands in E9.
   """
 
-  alias Colt.Resources.{CampaignContact, Email, Sequence, Thread}
+  alias Colt.Resources.{CampaignContact, Email, Pitch, Sequence, Thread}
   alias Colt.Services.Ai.Complete
 
   @schema %{
@@ -76,6 +76,12 @@ defmodule Colt.Services.Sending.EmailWriter do
       contact.thread ||
         Thread.create_for_contact!(contact.id, actor: actor, authorize?: actor != nil)
 
+    pitch =
+      case Pitch.get_for_campaign(contact.campaign_id, actor: actor, authorize?: actor != nil) do
+        {:ok, p} -> p
+        _ -> nil
+      end
+
     {:ok,
      %{
        contact: contact,
@@ -85,7 +91,8 @@ defmodule Colt.Services.Sending.EmailWriter do
        email_steps: Enum.filter(sequence.sequence_steps, &(&1.kind == :email)),
        all_steps: sequence.sequence_steps,
        thread: thread,
-       language: sequence.language
+       language: sequence.language,
+       pitch: pitch
      }}
   end
 
@@ -111,6 +118,9 @@ defmodule Colt.Services.Sending.EmailWriter do
     """
 
     user = """
+    Sender context (what we sell):
+    #{pitch_block(ctx.pitch)}
+
     Target person:
     - Name: #{ctx.person && ctx.person.name}
     - Title: #{ctx.person && ctx.person.title}
@@ -132,6 +142,22 @@ defmodule Colt.Services.Sending.EmailWriter do
     """
 
     {:ok, %{system: system, user: user}}
+  end
+
+  defp pitch_block(nil),
+    do: "(none — write a generic, polite intro that asks what they're working on)"
+
+  defp pitch_block(%{user_summary: u, ai_summary: a, domain: d}) do
+    text = u || a
+
+    cond do
+      is_binary(text) and String.trim(text) != "" ->
+        domain_line = if is_binary(d) and d != "", do: "Domain: #{d}\n", else: ""
+        domain_line <> text
+
+      true ->
+        "(domain set but no summary yet — write a generic, polite intro)"
+    end
   end
 
   defp skeleton_lines(steps) do
@@ -196,8 +222,15 @@ defmodule Colt.Services.Sending.EmailWriter do
   end
 
   defp persist(ctx, ai_steps, actor) do
+    existing =
+      Email.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
+      |> Enum.filter(&(&1.direction == :outbound and &1.status == :drafted))
+      |> MapSet.new(& &1.step_position)
+
     emails =
-      Enum.map(ai_steps, fn s ->
+      ai_steps
+      |> Enum.reject(&MapSet.member?(existing, &1.position))
+      |> Enum.map(fn s ->
         Email.create_draft!(ctx.thread.id, s.position, s.subject, s.body,
           actor: actor,
           authorize?: actor != nil
