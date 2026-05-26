@@ -91,10 +91,10 @@ defmodule ColtWeb.Sending.SequenceLive do
     email_steps = Enum.filter(steps, &(&1.kind == :email))
     new_position = length(email_steps)
 
+    if terminal, do: shift_position(terminal, new_position + 1, actor)
+
     {:ok, _} =
       SequenceStep.create(socket.assigns.sequence.id, new_position, :email, 2, actor: actor)
-
-    if terminal, do: shift_position(terminal, new_position + 1, actor)
 
     {:ok, sequence} = Sequence.bump_version(socket.assigns.sequence, actor: actor)
 
@@ -139,7 +139,9 @@ defmodule ColtWeb.Sending.SequenceLive do
 
   defp ensure_sequence(campaign, actor) do
     case Sequence.get_for_campaign(campaign.id, actor: actor) do
-      {:ok, %_{} = sequence} -> sequence
+      {:ok, %_{} = sequence} ->
+        sequence
+
       _ ->
         {:ok, sequence} = Sequence.create_default(campaign.id, actor: actor)
         sequence
@@ -163,10 +165,7 @@ defmodule ColtWeb.Sending.SequenceLive do
   end
 
   defp shift_position(step, new_position, actor) do
-    step
-    |> Ash.Changeset.for_update(:update, %{}, actor: actor)
-    |> Ash.Changeset.force_change_attribute(:position, new_position)
-    |> Ash.update!(authorize?: false)
+    SequenceStep.set_position!(step, new_position, actor: actor)
   end
 
   defp reindex_email_steps(sequence_id, actor) do
@@ -224,18 +223,18 @@ defmodule ColtWeb.Sending.SequenceLive do
             <.step_block step={step} idx={idx} />
           <% end %>
 
+          <button
+            type="button"
+            phx-click="add_step"
+            class="mt-3 py-3 border border-dashed border-ink20 text-ink55 font-mono text-[11px] tracking-[0.08em] uppercase rounded-[2px] cursor-pointer hover:border-ink40 hover:text-ink"
+          >
+            + add follow-up
+          </button>
+
           <%= if @terminal do %>
             <.wait days={@terminal.delay_days} id={@terminal.id} terminal={true} />
             <.terminal_block step={@terminal} />
           <% end %>
-
-          <button
-            type="button"
-            phx-click="add_step"
-            class="mt-7 py-3.5 border border-dashed border-ink20 text-ink55 font-mono text-[11px] tracking-[0.08em] uppercase rounded-[2px] cursor-pointer hover:border-ink40 hover:text-ink"
-          >
-            + add step
-          </button>
         </div>
 
         <.section_divider label="Language" />
@@ -306,7 +305,6 @@ defmodule ColtWeb.Sending.SequenceLive do
           phx-value-id={@step.id}
           class="text-ink40 hover:text-fail cursor-pointer"
           aria-label="Remove step"
-          data-confirm="Remove this follow-up?"
         >
           <ColtWeb.Components.Liid.icon name="x" size={12} />
         </button>
@@ -475,8 +473,7 @@ defmodule ColtWeb.Sending.SequenceLive do
         </div>
         <div :if={!@campaign.auto_approve_unlocked?} class="text-[12px] text-ink55 leading-[1.5]">
           Unlocks after you've accepted <span class="text-ink">10 AI drafts</span>
-          unchanged. You've cleanly accepted
-          <span class="text-ink font-mono">{@campaign.auto_approve_streak} / 10</span>.
+          unchanged. You've cleanly accepted <span class="text-ink font-mono">{@campaign.auto_approve_streak} / 10</span>.
         </div>
         <div :if={@campaign.auto_approve_unlocked?} class="text-[12px] text-ink55 leading-[1.5]">
           New contacts go straight to scheduled without landing in the Writing queue.

@@ -25,6 +25,7 @@ defmodule Colt.Resources.SequenceStep do
     define :create, args: [:sequence_id, :position, :kind, :delay_days]
     define :set_delay, args: [:delay_days]
     define :set_terminal_action, args: [:terminal_action]
+    define :set_position, args: [:position]
     define :delete_step
   end
 
@@ -49,6 +50,11 @@ defmodule Colt.Resources.SequenceStep do
 
     update :set_terminal_action do
       accept [:terminal_action]
+      require_atomic? false
+    end
+
+    update :set_position do
+      accept [:position]
       require_atomic? false
     end
 

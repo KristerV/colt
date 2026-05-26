@@ -43,17 +43,26 @@ defmodule Colt.Resources.Sequence do
       change fn changeset, _ ->
         Ash.Changeset.after_action(changeset, fn _cs, sequence ->
           steps = [
-            %{position: 0, kind: :email, delay_days: 0},
-            %{position: 1, kind: :email, delay_days: 2},
-            %{position: 2, kind: :email, delay_days: 2},
-            %{position: 3, kind: :terminal, delay_days: 7, terminal_action: :no_reply}
+            {0, :email, 0, nil},
+            {1, :email, 2, nil},
+            {2, :email, 2, nil},
+            {3, :terminal, 7, :no_reply}
           ]
 
-          Enum.each(steps, fn step ->
-            Colt.Resources.SequenceStep.create!(
-              Map.put(step, :sequence_id, sequence.id),
+          Enum.each(steps, fn {pos, kind, delay, terminal_action} ->
+            Colt.Resources.SequenceStep
+            |> Ash.Changeset.for_create(
+              :create,
+              %{
+                sequence_id: sequence.id,
+                position: pos,
+                kind: kind,
+                delay_days: delay,
+                terminal_action: terminal_action
+              },
               authorize?: false
             )
+            |> Ash.create!(authorize?: false)
           end)
 
           {:ok, sequence}

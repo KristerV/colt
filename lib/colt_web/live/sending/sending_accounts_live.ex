@@ -87,7 +87,8 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
       CampaignEmailAccount.enroll(socket.assigns.campaign.id, email_account_id, actor: actor)
     end)
 
-    {:noreply, push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sending-accounts")}
+    {:noreply,
+     push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sending-accounts")}
   end
 
   defp load_data(socket) do
@@ -119,9 +120,9 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
     end
   end
 
-  defp enrolled_accounts(socket) do
-    Enum.map(socket.assigns.enrollments, fn enrollment ->
-      account = Map.get(socket.assigns.accounts_by_id, enrollment.email_account_id)
+  defp enrolled_accounts(enrollments, accounts_by_id) do
+    Enum.map(enrollments, fn enrollment ->
+      account = Map.get(accounts_by_id, enrollment.email_account_id)
       {enrollment, account}
     end)
     |> Enum.reject(fn {_, account} -> is_nil(account) end)
@@ -146,7 +147,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
 
   # ── default view ────────────────────────────────────────────────────────
   defp default_view(assigns) do
-    enrolled_pairs = enrolled_accounts(assigns)
+    enrolled_pairs = enrolled_accounts(assigns.enrollments, assigns.accounts_by_id)
     cap = capacity(enrolled_pairs)
     steps = assigns.sequence_summary.steps
     cycle_days = assigns.sequence_summary.total_days
@@ -173,10 +174,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
     >
       <div class="w-full max-w-[900px] mx-auto pb-16">
         <div class="flex items-end justify-between gap-6 mb-10">
-          <Liid.headline
-            kicker="Sending · Accounts"
-            sub="Connect, re-auth and quota are managed under Email accounts."
-          >
+          <Liid.headline kicker="Sending · Accounts">
             Which inboxes this campaign <em>sends through</em>.
           </Liid.headline>
 
@@ -211,53 +209,18 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           <% end %>
         </div>
 
-        <div class="mt-3.5 font-mono text-[11px] text-ink55 tracking-[0.04em]">
-          {length(@enrolled_pairs)} of {length(@accounts)} connected accounts in this campaign
-        </div>
-
-        <div class="mt-7 p-7 bg-paperAlt border border-rule rounded-[2px]">
-          <div class="flex items-baseline justify-between mb-5">
-            <div>
-              <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-1">
-                Capacity for this campaign
-              </div>
-              <div class="font-serif text-[26px] leading-none tracking-[-0.02em]">
-                Live-computed from active inboxes.
-              </div>
-            </div>
-            <span
-              class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] uppercase font-semibold rounded-[2px]"
-              style="color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent); border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);"
-            >
-              <span
-                class="w-1.5 h-1.5 rounded-full"
-                style="background: var(--accent);"
-              />
-              {@cap.active_count} sending
-            </span>
-          </div>
-
-          <div class="grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
-            <.capacity_tile label="Daily" big={"~#{@cap.daily}"} sub="emails / day" accent />
-            <.capacity_tile
-              label="Monthly"
-              big={"~#{:erlang.float_to_binary(@cap.monthly / 1000, decimals: 1)}k"}
-              sub="emails / month"
-            />
-            <.capacity_tile
-              label="Throughput"
-              big={"#{@throughput}"}
-              sub={"contacts / day · #{@cycle_days}d each"}
-            />
-          </div>
-
-          <div class="mt-5 flex items-center gap-3 font-mono text-[11px] text-ink55 tracking-[0.04em]">
-            <Liid.icon name="spark" size={11} />
-            <span>
-              Per-inbox quota is set under
-              <.link navigate={~p"/email-accounts"} class="text-ink underline underline-offset-2 hover:text-ink70">Email accounts</.link>. Add more inboxes here to lift the daily ceiling.
-            </span>
-          </div>
+        <div class="mt-7 grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
+          <.capacity_tile label="Daily capacity" big={"~#{@cap.daily}"} sub="emails / day" accent />
+          <.capacity_tile
+            label="Monthly"
+            big={"~#{:erlang.float_to_binary(@cap.monthly / 1000, decimals: 1)}k"}
+            sub="emails / month"
+          />
+          <.capacity_tile
+            label="Throughput"
+            big={"#{@throughput}"}
+            sub={"contacts / day · #{@cycle_days}d each"}
+          />
         </div>
       </div>
     </Layouts.app>
@@ -354,7 +317,12 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           <Liid.icon name="spark" size={11} />
           <span>
             Don't see the inbox you want?
-            <.link navigate={~p"/email-accounts"} class="text-ink underline underline-offset-2 hover:text-ink70">Connect a new one in Email accounts →</.link>
+            <.link
+              navigate={~p"/email-accounts"}
+              class="text-ink underline underline-offset-2 hover:text-ink70"
+            >
+              Connect a new one in Email accounts →
+            </.link>
           </span>
         </div>
       </div>
@@ -422,11 +390,16 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
     assigns = assign(assigns, label: label, class: class, dot_pulse: dot_pulse)
 
     ~H"""
-    <span class={[
-      "inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] uppercase font-semibold rounded-[2px] border",
-      @class
-    ]} style={if @label == "active",
-      do: "color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent);"}>
+    <span
+      class={[
+        "inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] uppercase font-semibold rounded-[2px] border",
+        @class
+      ]}
+      style={
+        if @label == "active",
+          do: "color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent);"
+      }
+    >
       <span
         class={["w-1.5 h-1.5 rounded-full", @dot_pulse && "animate-pulse"]}
         style={
@@ -470,8 +443,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
     assigns =
       assign(assigns,
         selectable: selectable,
-        row_class:
-          if(assigns.selected, do: "bg-[color:var(--accent)]/[0.03]", else: "bg-paper")
+        row_class: if(assigns.selected, do: "bg-[color:var(--accent)]/[0.03]", else: "bg-paper")
       )
 
     ~H"""
@@ -535,10 +507,12 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         "inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] uppercase font-semibold rounded-[2px] border",
         @active? && "border-[color:var(--accent)]/40",
         @label == "paused" && "text-ink55 border-ink20 bg-ink10",
-        (@label in ["disconnected", "auth error"]) && "text-fail border-fail/40 bg-fail/10"
+        @label in ["disconnected", "auth error"] && "text-fail border-fail/40 bg-fail/10"
       ]}
-      style={if @active?,
-        do: "color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent);"}
+      style={
+        if @active?,
+          do: "color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent);"
+      }
     >
       <span
         class={["w-1.5 h-1.5 rounded-full", @active? && "animate-pulse"]}
@@ -551,7 +525,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
 
   attr :label, :string, required: true
   attr :big, :string, required: true
-  attr :sub, :string, required: true
+  attr :sub, :string, default: nil
   attr :accent, :boolean, default: false
 
   defp capacity_tile(assigns) do
@@ -564,7 +538,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
       >
         {@big}
       </div>
-      <div class="mt-2 font-mono text-[11px] text-ink55 tracking-[0.04em]">{@sub}</div>
+      <div :if={@sub} class="mt-2 font-mono text-[11px] text-ink55 tracking-[0.04em]">{@sub}</div>
     </div>
     """
   end
