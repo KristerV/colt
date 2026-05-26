@@ -4,6 +4,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   alias Colt.Resources.Campaign
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.Sending.PanicHook, :default}
 
   def mount(%{"id" => id}, _session, socket) do
     case Campaign.get(id, actor: socket.assigns.current_user) do

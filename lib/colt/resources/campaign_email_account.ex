@@ -22,6 +22,7 @@ defmodule Colt.Resources.CampaignEmailAccount do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :list_for_campaign, args: [:campaign_id]
+    define :get_pairing, args: [:campaign_id, :email_account_id]
     define :enroll, args: [:campaign_id, :email_account_id]
     define :remove
     define :pause, args: [:paused_reason]
@@ -36,6 +37,19 @@ defmodule Colt.Resources.CampaignEmailAccount do
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id))
       prepare build(sort: [inserted_at: :asc])
+    end
+
+    read :get_pairing do
+      description "Lookup the enrollment row for a (campaign, email_account) pair."
+      argument :campaign_id, :uuid, allow_nil?: false
+      argument :email_account_id, :uuid, allow_nil?: false
+
+      filter expr(
+               campaign_id == ^arg(:campaign_id) and
+                 email_account_id == ^arg(:email_account_id)
+             )
+
+      get? true
     end
 
     create :enroll do

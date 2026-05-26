@@ -8,7 +8,7 @@ defmodule Colt.Services.Sending.IngestEnriched do
   alone via the `unique_per_campaign` identity upsert.
   """
 
-  alias Colt.Resources.{CampaignCompany, CampaignContact, Thread}
+  alias Colt.Resources.{CampaignCompany, CampaignContact, Person, Thread}
 
   def run(campaign_id, opts \\ []) when is_binary(campaign_id) do
     actor = Keyword.get(opts, :actor)
@@ -41,7 +41,8 @@ defmodule Colt.Services.Sending.IngestEnriched do
   end
 
   defp promote_one(campaign_id, person_id, actor) do
-    with {:ok, contact} <-
+    with {:ok, _} <- maybe_dev_rewrite_email(person_id, actor),
+         {:ok, contact} <-
            CampaignContact.promote(campaign_id, person_id,
              actor: actor,
              authorize?: actor != nil
@@ -53,5 +54,41 @@ defmodule Colt.Services.Sending.IngestEnriched do
            ) do
       {:ok, contact}
     end
+  end
+
+  # Dev-only: replace person.email with a plus-tagged alias on a personal
+  # inbox so every test send lands in the developer's mailbox instead of
+  # the real prospect. Idempotent — already-rewritten addresses are left
+  # alone. Production no-ops.
+  defp maybe_dev_rewrite_email(person_id, actor) do
+    if Application.get_env(:colt, :dev_recipient_rewrite, false) do
+      with {:ok, person} <- Ash.get(Person, person_id, actor: actor, authorize?: actor != nil),
+           false <- already_rewritten?(person.email),
+           {:ok, rewritten} <- rewrite(person.email) do
+        Person.set_email(person, rewritten, actor: actor, authorize?: actor != nil)
+      else
+        true -> {:ok, :already_rewritten}
+        {:error, _} = err -> err
+        :no_email -> {:ok, :no_email}
+      end
+    else
+      {:ok, :prod}
+    end
+  end
+
+  defp already_rewritten?(nil), do: true
+  defp already_rewritten?(email), do: String.ends_with?(email, "@krister.ee")
+
+  defp rewrite(nil), do: :no_email
+
+  defp rewrite(email) when is_binary(email) do
+    slug =
+      email
+      |> String.downcase()
+      |> String.replace("@", "-at-")
+      |> String.replace(".", "-")
+      |> String.replace(~r/[^a-z0-9\-]/, "")
+
+    {:ok, "test+#{slug}@krister.ee"}
   end
 end

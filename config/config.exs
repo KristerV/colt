@@ -13,16 +13,19 @@ config :ash_oban, pro?: false
 # Override in dev.secrets.exs or via NYLAS_API_URI in prod when on a different region.
 config :colt, :nylas, api_uri: "https://api.eu.nylas.com"
 
+config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+
 config :colt, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10, registry: 1, scrape: 4, ai: 5, export: 1],
+  queues: [default: 10, registry: 1, scrape: 4, ai: 5, export: 1, sending: 4],
   repo: Colt.Repo,
   plugins: [
     {Oban.Plugins.Cron,
      crontab: [
        {"0 3 1 * *", Colt.Jobs.RikIngest},
-       {"0 4 1 * *", Colt.Jobs.PrhIngest}
+       {"0 4 1 * *", Colt.Jobs.PrhIngest},
+       {"* * * * *", Colt.Jobs.SendDueEmails}
      ]}
   ]
 

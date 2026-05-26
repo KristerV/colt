@@ -18,6 +18,11 @@ config :colt, ingest_max_years: 1
 # Smaller top-up floor in dev so target=1 doesn't pull 10 companies.
 config :colt, topup_min_batch: 1
 
+# Dev safety: rewrite recipient addresses to test+<slug>@krister.ee at
+# IngestEnriched time so test sends land in the developer's mailbox.
+# Prod leaves this unset and Person.email is used as-is.
+config :colt, dev_recipient_rewrite: true
+
 # Configure your database
 config :colt, Colt.Repo,
   username: "postgres",

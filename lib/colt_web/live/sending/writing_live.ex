@@ -21,6 +21,7 @@ defmodule ColtWeb.Sending.WritingLive do
   @pubsub Colt.PubSub
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.Sending.PanicHook, :default}
 
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
@@ -97,13 +98,6 @@ defmodule ColtWeb.Sending.WritingLive do
       {:error, reason} ->
         {:noreply, put_flash(socket, :error, "Couldn't approve: #{inspect(reason)}")}
     end
-  end
-
-  def handle_event("skip", _params, socket) do
-    actor = socket.assigns.current_user
-
-    {:ok, _} = CampaignContact.skip(socket.assigns.contact, actor: actor)
-    {:noreply, load_next_contact(socket)}
   end
 
   # ── Async draft generation ─────────────────────────────────────────────
@@ -213,14 +207,17 @@ defmodule ColtWeb.Sending.WritingLive do
     end
   end
 
+  # Any outbound Email at a wanted position counts as "already drafted",
+  # regardless of status — after approve, those rows are :scheduled or
+  # :approved, but they're still the contact's emails and we must not
+  # re-run the writer for them. We only delete *unused* :drafted rows at
+  # positions that no longer exist in the sequence.
   defp reconcile_drafts(contact, wanted_positions, actor) do
     drafts = list_outbound_drafts(contact, actor)
     wanted = MapSet.new(wanted_positions)
 
     {keep, drop} =
-      Enum.split_with(drafts, fn e ->
-        e.status == :drafted and MapSet.member?(wanted, e.step_position)
-      end)
+      Enum.split_with(drafts, fn e -> MapSet.member?(wanted, e.step_position) end)
 
     Enum.each(drop, fn e ->
       if e.status == :drafted do
@@ -303,7 +300,7 @@ defmodule ColtWeb.Sending.WritingLive do
       campaign_id={@campaign.id}
       campaign_name={@campaign.name}
     >
-      <div class="w-full max-w-[760px] mx-auto pb-32">
+      <div class="w-full max-w-[760px] mx-auto">
         <Liid.headline
           kicker="Sending · Writing"
           sub="One contact at a time. Approve to schedule the first step; the rest follows."
@@ -695,7 +692,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -  {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -   {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
@@ -709,14 +706,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
   defp action_bar(assigns) do
     ~H"""
-    <div
-      class="fixed left-0 right-0 bottom-0 border-t border-ink20 bg-paper px-8 py-3.5 flex items-center gap-4 z-10"
-      style="box-shadow: 0 -4px 24px rgba(0,0,0,0.04);"
-    >
-      <Liid.btn phx-click="skip" disabled={@drafting} mono>
-        Skip
-      </Liid.btn>
-      <span class="flex-1" />
+    <div class="mt-8 pt-5 border-t border-ink20 flex items-center justify-end">
       <Liid.btn
         variant={:primary}
         phx-click="approve"

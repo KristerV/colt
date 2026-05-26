@@ -24,6 +24,8 @@ defmodule Colt.Resources.Email do
     define :get, action: :read, get_by: [:id]
     define :list_for_thread, args: [:thread_id]
     define :list_due, args: [:now, :limit]
+    define :list_today_for_account, args: [:email_account_id, :day_start, :day_end]
+    define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
 
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body]
@@ -60,6 +62,47 @@ defmodule Colt.Resources.Email do
 
       prepare build(sort: [scheduled_at: :asc])
       prepare build(limit: arg(:limit))
+    end
+
+    read :list_today_for_account do
+      description """
+      Outbound emails for an account whose scheduled_at falls inside the
+      given window (interpreted as the account's local "today"). Includes
+      both :scheduled and :sent so the burst scheduler accounts for
+      already-fired sends. Returns rows sorted by scheduled_at asc.
+      """
+
+      argument :email_account_id, :uuid, allow_nil?: false
+      argument :day_start, :utc_datetime_usec, allow_nil?: false
+      argument :day_end, :utc_datetime_usec, allow_nil?: false
+
+      filter expr(
+               direction == :outbound and email_account_id == ^arg(:email_account_id) and
+                 status in [:scheduled, :sent] and
+                 scheduled_at >= ^arg(:day_start) and scheduled_at < ^arg(:day_end)
+             )
+
+      prepare build(sort: [scheduled_at: :asc])
+    end
+
+    read :recent_to_recipient do
+      description """
+      Outbound emails sent or scheduled to the same recipient address in
+      the given campaign since `since`. Used by the 24h dedupe guard in
+      the send loop.
+      """
+
+      argument :recipient_email, :string, allow_nil?: false
+      argument :campaign_id, :uuid, allow_nil?: false
+      argument :since, :utc_datetime_usec, allow_nil?: false
+
+      filter expr(
+               direction == :outbound and
+                 status in [:scheduled, :sent] and
+                 thread.campaign_contact.campaign_id == ^arg(:campaign_id) and
+                 thread.campaign_contact.person.email == ^arg(:recipient_email) and
+                 inserted_at >= ^arg(:since)
+             )
     end
 
     create :create_draft do

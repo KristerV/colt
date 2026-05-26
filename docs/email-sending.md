@@ -493,7 +493,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - "Skip" button → contact straight to `:no_reply`.
 - **Acceptance**: bring in enriched contacts; approve one with edits (streak stays 0), approve one without edits (streak goes to 1); verify `assigned_email_account_id` set, snapshot present, step 1 has a `scheduled_at` in the next burst window; subsequent contact's draft includes nothing learned yet (E9 will fix that).
 
-### Phase E5 — Send loop + scheduler
+### Phase E5 — Send loop + scheduler ✅ done
 - `SendDueEmails` Oban cron every 60s.
 - Burst scheduler per §5.2.
 - 24h dedupe with raise.

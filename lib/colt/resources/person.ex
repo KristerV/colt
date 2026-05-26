@@ -23,6 +23,7 @@ defmodule Colt.Resources.Person do
     define :create_validated
     define :for_company, args: [:company_id]
     define :set_verification, args: [:email_verification_status]
+    define :set_email, args: [:email]
   end
 
   actions do
@@ -44,6 +45,11 @@ defmodule Colt.Resources.Person do
     read :for_company do
       argument :company_id, :uuid, allow_nil?: false
       filter expr(company_id == ^arg(:company_id))
+    end
+
+    update :set_email do
+      accept [:email]
+      require_atomic? false
     end
 
     update :set_verification do

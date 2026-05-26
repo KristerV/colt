@@ -389,9 +389,11 @@ defmodule ColtWeb.Components.Liid do
 
   def screen(assigns) do
     assigns =
-      assign_new(assigns, :resolved_active, fn ->
+      assigns
+      |> assign_new(:resolved_active, fn ->
         assigns.active || step_to_active(assigns.step)
       end)
+      |> assign(:panic_on, derive_panic_on(assigns))
 
     ~H"""
     <div class={["min-h-screen bg-paper text-ink", !@landing && "flex"]}>
@@ -467,6 +469,10 @@ defmodule ColtWeb.Components.Liid do
     """
   end
 
+  defp derive_panic_on(%{campaign: %{panic_switch_on: v}}) when is_boolean(v), do: v
+  defp derive_panic_on(%{panic_on: v}) when is_boolean(v), do: v
+  defp derive_panic_on(_), do: false
+
   defp step_to_active(nil), do: nil
   defp step_to_active(0), do: :campaigns
   defp step_to_active(1), do: :icp
@@ -540,7 +546,12 @@ defmodule ColtWeb.Components.Liid do
           active={@active}
         >
           <:header_extra>
-            <.panic_switch on={@panic_on} />
+            <.live_component
+              module={ColtWeb.Components.PanicToggle}
+              id={"panic-toggle-#{@campaign.id}"}
+              campaign={@campaign}
+              current_user={@current_user}
+            />
           </:header_extra>
         </.sidebar_section>
       </div>
@@ -689,23 +700,6 @@ defmodule ColtWeb.Components.Liid do
         {to_string(@campaign.status)}
       </div>
     </div>
-    """
-  end
-
-  attr :on, :boolean, default: false
-
-  defp panic_switch(assigns) do
-    ~H"""
-    <span
-      title={if @on, do: "Sending paused", else: "Sending on"}
-      class="relative inline-block w-6 h-[13px] rounded-full"
-      style={"background: #{if @on, do: "var(--color-ink20)", else: "var(--color-accent)"}; transition: background .12s;"}
-    >
-      <span
-        class="absolute top-px w-[11px] h-[11px] rounded-full bg-paper"
-        style={"left: #{if @on, do: "1px", else: "12px"}; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left .12s;"}
-      />
-    </span>
     """
   end
 end

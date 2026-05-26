@@ -5,6 +5,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.Sending.PanicHook, :default}
 
   @work_days_per_month 22
 

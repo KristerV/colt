@@ -5,6 +5,7 @@ defmodule ColtWeb.Sending.SequenceLive do
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.Sending.PanicHook, :default}
 
   @languages [
     {"en", "English"},
