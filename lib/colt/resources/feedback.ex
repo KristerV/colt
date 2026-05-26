@@ -17,7 +17,7 @@ defmodule Colt.Resources.Feedback do
   end
 
   code_interface do
-    define :submit, args: [:body, :user_id]
+    define :submit, args: [:body, :user_id, :url]
     define :list
     define :get, action: :read, get_by: [:id]
     define :toggle
@@ -29,12 +29,14 @@ defmodule Colt.Resources.Feedback do
     default_accept []
 
     create :submit do
-      accept [:body, :user_id]
+      accept [:body, :user_id, :url]
       argument :body, :string, allow_nil?: false
       argument :user_id, :uuid, allow_nil?: true
+      argument :url, :string, allow_nil?: true
 
       change set_attribute(:body, arg(:body))
       change set_attribute(:user_id, arg(:user_id))
+      change set_attribute(:url, arg(:url))
       change set_attribute(:status, :open)
     end
 
@@ -65,6 +67,7 @@ defmodule Colt.Resources.Feedback do
     uuid_primary_key :id
 
     attribute :body, :string, allow_nil?: false, public?: true
+    attribute :url, :string, public?: true
 
     attribute :status, :atom,
       constraints: [one_of: [:open, :done]],

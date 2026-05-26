@@ -13,21 +13,27 @@ defmodule ColtWeb.Layouts do
 
   attr :flash, :map, required: true
   attr :current_user, :map, default: nil
+  attr :active, :atom, default: nil
   attr :step, :any, default: nil
   attr :campaign_name, :string, default: nil
   attr :campaign_id, :any, default: nil
   attr :campaign, :any, default: nil
+  attr :panic_on, :boolean, default: false
+  attr :landing, :boolean, default: false
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
     <Liid.screen
+      active={@active}
       step={@step}
       current_user={@current_user}
       campaign_name={@campaign_name}
       campaign_id={@campaign_id}
       campaign={@campaign}
+      panic_on={@panic_on}
+      landing={@landing}
       class={@class}
     >
       {render_slot(@inner_block)}

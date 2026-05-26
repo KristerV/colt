@@ -23,18 +23,12 @@ defmodule ColtWeb.Campaigns.TargetLive do
            page_title: "Target — #{campaign.name}",
            campaign: campaign,
            draft: campaign.target_contact_count || 100,
+           saved?: false,
            error: nil
          )}
 
       {:error, _} ->
         {:ok, push_navigate(socket, to: ~p"/")}
-    end
-  end
-
-  def handle_event("pick", %{"target" => target}, socket) do
-    case parse_target(target) do
-      nil -> {:noreply, socket}
-      n -> {:noreply, assign(socket, draft: n)}
     end
   end
 
@@ -56,10 +50,17 @@ defmodule ColtWeb.Campaigns.TargetLive do
         with {:ok, c} <-
                Campaign.update_target(campaign, target, actor: socket.assigns.current_user),
              {:ok, _} <- Topup.schedule(c.id, schedule_in: 0) do
-          {:noreply, push_navigate(socket, to: ~p"/campaigns/#{c.id}/funnel")}
+          {:noreply, assign(socket, campaign: c, saved?: true, error: nil)}
         else
           {:error, err} -> {:noreply, assign(socket, error: inspect(err))}
         end
+    end
+  end
+
+  def handle_event("pick", %{"target" => target}, socket) do
+    case parse_target(target) do
+      nil -> {:noreply, socket}
+      n -> {:noreply, assign(socket, draft: n, saved?: false)}
     end
   end
 
@@ -136,6 +137,7 @@ defmodule ColtWeb.Campaigns.TargetLive do
           <Liid.btn variant={:primary} mono phx-click="confirm">
             {confirm_label(@campaign.status, @draft)}
           </Liid.btn>
+          <span :if={@saved?} class="font-mono text-[11px] text-ink55">saved.</span>
           <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
         </div>
       </div>
@@ -144,5 +146,5 @@ defmodule ColtWeb.Campaigns.TargetLive do
   end
 
   defp confirm_label(s, n) when s in [:draft, :collecting], do: "Start enrichment · #{n} contacts"
-  defp confirm_label(_, n), do: "Update target · #{n} contacts"
+  defp confirm_label(_, n), do: "Save · #{n} contacts"
 end

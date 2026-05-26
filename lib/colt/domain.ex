@@ -12,5 +12,6 @@ defmodule Colt.Domain do
     resource Colt.Resources.Person
     resource Colt.Resources.Feedback
     resource Colt.Resources.IcpLearning
+    resource Colt.Resources.EmailAccount
   end
 end

@@ -63,6 +63,10 @@ defmodule ColtWeb.Admin.FeedbackLive do
         {@item.body}
       </div>
 
+      <div :if={@item.url} class="font-mono text-[10px] text-ink40 truncate">
+        on {@item.url}
+      </div>
+
       <div class="flex justify-end">
         <button
           type="button"

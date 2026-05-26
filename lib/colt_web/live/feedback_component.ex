@@ -44,6 +44,7 @@ defmodule ColtWeb.FeedbackComponent do
         </div>
 
         <form phx-submit="submit" phx-target={@myself} class="flex flex-col gap-4">
+          <input type="hidden" id="feedback-url" name="url" value="" />
           <textarea
             id="feedback-body"
             name="body"
@@ -72,15 +73,19 @@ defmodule ColtWeb.FeedbackComponent do
   end
 
   @impl true
-  def handle_event("submit", %{"body" => body}, socket) do
-    body = String.trim(body)
+  def handle_event("submit", params, socket) do
+    body = params |> Map.get("body", "") |> String.trim()
+    url = params |> Map.get("url", "") |> String.trim() |> nilify()
 
     if body == "" do
       {:noreply, socket}
     else
       user_id = socket.assigns.current_user && socket.assigns.current_user.id
-      {:ok, _} = Feedback.submit(body, user_id)
+      {:ok, _} = Feedback.submit(body, user_id, url)
       {:noreply, push_event(socket, "feedback:sent", %{})}
     end
   end
+
+  defp nilify(""), do: nil
+  defp nilify(s), do: s
 end

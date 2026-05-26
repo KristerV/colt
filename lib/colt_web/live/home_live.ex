@@ -12,7 +12,7 @@ defmodule ColtWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_user={@current_user} step={nil}>
+    <Layouts.app flash={@flash} current_user={@current_user} landing={true}>
       <div class="max-w-[1080px] mx-auto w-full">
         <.hero current_user={@current_user} />
         <.problem />

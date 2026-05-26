@@ -461,7 +461,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 
 **Marking phases done**: when a phase's Acceptance bullets all pass, the implementing agent **edits this doc** and changes the phase heading from `### Phase E3 — …` to `### Phase E3 — … ✅ done`. That way the next agent invoked with "implement next phase" can scan headings and immediately see what's outstanding. Don't mark partial completion; either all Acceptance bullets pass or the phase stays open.
 
-### Phase E0 — Foundations
+### Phase E0 — Foundations ✅ done
 - New left-sidebar layout (replace top stepper for campaign routes). Section labels per §4.
 - `EmailAccount` resource + admin index page. No Nylas yet — manual seed in iex is enough.
 - Empty `/email-accounts` and `/billing` placeholder routes.

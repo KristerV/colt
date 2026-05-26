@@ -27,20 +27,23 @@ import topbar from "../vendor/topbar"
 
 const FeedbackModal = {
   mounted() {
+    this.observer = new MutationObserver(() => {
+      if (!this.el.classList.contains("hidden")) {
+        const u = this.el.querySelector("#feedback-url")
+        if (u) u.value = window.location.pathname + window.location.search
+      }
+    })
+    this.observer.observe(this.el, {attributes: true, attributeFilter: ["class"]})
+
     this.handleEvent("feedback:sent", () => {
       this.el.classList.add("hidden")
       const ta = this.el.querySelector("#feedback-body")
       if (ta) ta.value = ""
     })
+  },
+  destroyed() {
+    if (this.observer) this.observer.disconnect()
   }
-}
-
-window.openFeedback = () => {
-  const el = document.getElementById("feedback-modal")
-  if (!el) return
-  el.classList.remove("hidden")
-  const ta = el.querySelector("#feedback-body")
-  if (ta) setTimeout(() => ta.focus(), 0)
 }
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")

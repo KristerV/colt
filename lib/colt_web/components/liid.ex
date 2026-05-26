@@ -7,6 +7,14 @@ defmodule ColtWeb.Components.Liid do
   """
   use Phoenix.Component
 
+  alias Phoenix.LiveView.JS
+
+  defp open_feedback do
+    %JS{}
+    |> JS.remove_class("hidden", to: "#feedback-modal")
+    |> JS.focus(to: "#feedback-body")
+  end
+
   @icon_paths %{
     "arrow" => "M3 8h10M9 4l4 4-4 4",
     "chev" => "M5 6l3 3 3-3",
@@ -214,7 +222,7 @@ defmodule ColtWeb.Components.Liid do
         <%= if @current_user do %>
           <button
             type="button"
-            onclick="window.openFeedback()"
+            phx-click={open_feedback()}
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline cursor-pointer bg-transparent border-0 p-0"
           >
             feedback
@@ -362,30 +370,340 @@ defmodule ColtWeb.Components.Liid do
   defp avatar_initial(_), do: "·"
 
   @doc """
-  Outer screen wrapper — paper background, comfy density padding, top bar slot.
+  Outer screen wrapper — sidebar shell with paper background.
+
+  `active` is the current sidebar item id (atom). `campaign` puts the sidebar
+  in campaign scope (shows Enrichment + Sending sections). Without a campaign,
+  only the Workspace section is shown.
   """
+  attr :active, :atom, default: nil
   attr :step, :any, default: nil
   attr :current_user, :map, default: nil
   attr :campaign_name, :string, default: nil
   attr :campaign_id, :any, default: nil
   attr :campaign, :any, default: nil
+  attr :panic_on, :boolean, default: false
+  attr :landing, :boolean, default: false
   attr :class, :string, default: nil
   slot :inner_block, required: true
 
   def screen(assigns) do
+    assigns =
+      assign_new(assigns, :resolved_active, fn ->
+        assigns.active || step_to_active(assigns.step)
+      end)
+
     ~H"""
-    <div class="min-h-screen flex flex-col bg-paper text-ink">
-      <.top_bar
-        step={@step}
+    <div class={["min-h-screen bg-paper text-ink", !@landing && "flex"]}>
+      <.sidebar
+        :if={!@landing}
+        active={@resolved_active}
         current_user={@current_user}
-        campaign_name={@campaign_name}
-        campaign_id={@campaign_id}
         campaign={@campaign}
+        campaign_id={@campaign_id}
+        campaign_name={@campaign_name}
+        panic_on={@panic_on}
       />
-      <main class={["flex-1 px-4 py-6 md:px-14 md:py-10", @class]}>
-        {render_slot(@inner_block)}
-      </main>
+      <div class={[
+        !@landing && "flex-1 min-w-0 flex flex-col",
+        @landing && "flex flex-col min-h-screen"
+      ]}>
+        <.landing_top_bar :if={@landing} current_user={@current_user} />
+        <div
+          :if={@panic_on}
+          class="px-6 py-2.5 bg-fail text-paper font-mono text-[11px] tracking-[0.06em] uppercase flex items-center gap-3 border-b border-fail"
+        >
+          <span class="inline-block w-[7px] h-[7px] rounded-full bg-paper animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
+          <span class="font-semibold tracking-[0.12em]">Sending halted</span>
+        </div>
+        <main class={["flex-1 px-4 py-6 md:px-14 md:py-10", @class]}>
+          {render_slot(@inner_block)}
+        </main>
+      </div>
     </div>
+    """
+  end
+
+  attr :current_user, :map, default: nil
+
+  def landing_top_bar(assigns) do
+    ~H"""
+    <header class="flex items-center gap-6 px-4 md:px-8 py-4 md:py-5 border-b border-rule">
+      <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink shrink-0">
+        <span class="font-serif text-[26px] leading-none tracking-[-0.02em]">Liid</span>
+        <span
+          class="inline-block w-1.5 h-1.5 rounded-full -translate-y-[3px]"
+          style="background: var(--color-accent);"
+        />
+      </.link>
+
+      <div class="flex-1" />
+
+      <div class="flex items-center gap-2">
+        <%= if @current_user do %>
+          <.link
+            navigate="/campaigns"
+            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
+          >
+            Campaigns
+          </.link>
+          <.link
+            href="/sign-out"
+            method="get"
+            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
+          >
+            Sign out
+          </.link>
+        <% else %>
+          <.link
+            href="/sign-in"
+            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
+          >
+            Sign in
+          </.link>
+        <% end %>
+      </div>
+    </header>
+    """
+  end
+
+  defp step_to_active(nil), do: nil
+  defp step_to_active(0), do: :campaigns
+  defp step_to_active(1), do: :icp
+  defp step_to_active(2), do: :market
+  defp step_to_active(3), do: :filters
+  defp step_to_active(4), do: :target
+  defp step_to_active(5), do: :enrichment_funnel
+  defp step_to_active(_), do: nil
+
+  @workspace_items [
+    %{id: :campaigns, label: "Campaigns", icon: "grid", href: "/campaigns"},
+    %{id: :email_accounts, label: "Email accounts", icon: "mail", href: "/email-accounts"},
+    %{id: :billing, label: "Billing", icon: "file", href: "/billing"}
+  ]
+
+  @enrichment_items [
+    %{id: :name, label: "Name", icon: "file"},
+    %{id: :icp, label: "ICP", icon: "user"},
+    %{id: :market, label: "Market", icon: "globe"},
+    %{id: :filters, label: "Filters", icon: "filter"},
+    %{id: :target, label: "Target", icon: "spark"},
+    %{id: :enrichment_funnel, label: "Funnel", icon: "grid"}
+  ]
+
+  @sending_items [
+    %{id: :sequence, label: "Sequence", icon: "code"},
+    %{id: :sending_accounts, label: "Sending accounts", icon: "mail"},
+    %{id: :writing, label: "Writing", icon: "spark"},
+    %{id: :sending_funnel, label: "Sending funnel", icon: "grid"}
+  ]
+
+  attr :active, :atom, default: nil
+  attr :current_user, :map, default: nil
+  attr :campaign, :any, default: nil
+  attr :campaign_id, :any, default: nil
+  attr :campaign_name, :string, default: nil
+  attr :panic_on, :boolean, default: false
+
+  def sidebar(assigns) do
+    assigns = assign(assigns, :workspace_items, @workspace_items)
+
+    ~H"""
+    <aside class="w-[240px] shrink-0 sticky top-0 self-start h-screen border-r border-rule bg-paper flex flex-col">
+      <div class="px-[22px] py-5 border-b border-rule flex items-baseline gap-1.5">
+        <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink">
+          <span class="font-serif text-[24px] leading-none tracking-[-0.02em]">Liid</span>
+          <span
+            class="inline-block w-[5px] h-[5px] rounded-full -translate-y-[2px]"
+            style="background: var(--color-accent);"
+          />
+        </.link>
+      </div>
+
+      <div class="flex-1 overflow-auto">
+        <.sidebar_section items={@workspace_items} active={@active} variant={:workspace} />
+
+        <.campaign_scope_header :if={@campaign} campaign={@campaign} />
+
+        <.sidebar_section
+          :if={@campaign}
+          label="Enrichment"
+          items={enrichment_items_with_hrefs(@campaign_id)}
+          active={@active}
+        />
+
+        <.sidebar_section
+          :if={@campaign}
+          label="Sending"
+          items={sending_items_with_hrefs(@campaign_id)}
+          active={@active}
+        >
+          <:header_extra>
+            <.panic_switch on={@panic_on} />
+          </:header_extra>
+        </.sidebar_section>
+      </div>
+
+      <div :if={@current_user} class="border-t border-rule">
+        <button
+          type="button"
+          phx-click={open_feedback()}
+          class="w-full flex items-center gap-2.5 px-[18px] py-[7px] text-left text-ink70 hover:text-ink hover:bg-paperAlt cursor-pointer bg-transparent border-0"
+        >
+          <.icon name="mail" size={13} class="text-ink55" />
+          <span class="text-[13px]">Feedback</span>
+        </button>
+        <.link
+          :if={@current_user.is_admin}
+          href="/admin"
+          class="flex items-center gap-2.5 px-[18px] py-[7px] text-ink70 hover:text-ink hover:bg-paperAlt no-underline"
+        >
+          <.icon name="code" size={13} class="text-ink55" />
+          <span class="text-[13px]">Admin</span>
+        </.link>
+        <.link
+          href="/sign-out"
+          method="get"
+          class="flex items-center gap-2.5 px-[18px] py-[7px] text-ink70 hover:text-ink hover:bg-paperAlt no-underline"
+        >
+          <.icon name="arrow" size={13} class="text-ink55" />
+          <span class="text-[13px]">Sign out</span>
+        </.link>
+
+        <div class="border-t border-rule px-[18px] py-3 flex items-center gap-2.5">
+          <div
+            class="w-[26px] h-[26px] rounded-full bg-ink text-paper flex items-center justify-center text-[11px] font-semibold shrink-0"
+            title={to_string(@current_user.email)}
+          >
+            {avatar_initial(@current_user)}
+          </div>
+          <div class="text-[12px] text-ink truncate">{to_string(@current_user.email)}</div>
+        </div>
+      </div>
+      <div :if={!@current_user} class="border-t border-rule px-[18px] py-3.5">
+        <.link
+          href="/sign-in"
+          class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
+        >
+          sign in
+        </.link>
+      </div>
+    </aside>
+    """
+  end
+
+  defp enrichment_items_with_hrefs(nil), do: @enrichment_items
+
+  defp enrichment_items_with_hrefs(id) do
+    Enum.map(@enrichment_items, fn item -> Map.put(item, :href, enrichment_href(item.id, id)) end)
+  end
+
+  defp sending_items_with_hrefs(nil), do: @sending_items
+
+  defp sending_items_with_hrefs(id) do
+    Enum.map(@sending_items, fn item -> Map.put(item, :href, sending_href(item.id, id)) end)
+  end
+
+  defp enrichment_href(:name, id), do: "/campaigns/#{id}/name"
+  defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
+  defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
+  defp enrichment_href(:filters, id), do: "/campaigns/#{id}/filters"
+  defp enrichment_href(:target, id), do: "/campaigns/#{id}/target"
+  defp enrichment_href(:enrichment_funnel, id), do: "/campaigns/#{id}/funnel"
+
+  defp sending_href(:sequence, id), do: "/campaigns/#{id}/sequence"
+  defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
+  defp sending_href(:writing, id), do: "/campaigns/#{id}/writing"
+  defp sending_href(:sending_funnel, id), do: "/campaigns/#{id}/sending-funnel"
+
+  attr :label, :string, default: nil
+  attr :items, :list, required: true
+  attr :active, :atom, default: nil
+  attr :variant, :atom, default: :default
+  slot :header_extra
+
+  defp sidebar_section(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :wrapper_class,
+        if(assigns.variant == :workspace, do: "pt-3 mb-1.5", else: "mb-3.5")
+      )
+
+    ~H"""
+    <div class={@wrapper_class}>
+      <div
+        :if={@label}
+        class="px-[18px] py-1.5 flex items-center justify-between"
+      >
+        <span class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink40">{@label}</span>
+        <span :if={@header_extra != []}>{render_slot(@header_extra)}</span>
+      </div>
+      <div>
+        <%= for item <- @items do %>
+          <% is_active = item.id == @active %>
+          <.link
+            navigate={item.href}
+            class={[
+              "relative flex items-center gap-2.5 px-[18px] py-[7px] no-underline",
+              is_active && "bg-paperAlt"
+            ]}
+          >
+            <span
+              :if={is_active}
+              class="absolute left-0 top-1 bottom-1 w-[2px]"
+              style="background: var(--color-accent);"
+            />
+            <.icon
+              name={item.icon}
+              size={13}
+              class={if(is_active, do: "text-ink", else: "text-ink55")}
+            />
+            <span class={[
+              "text-[13px]",
+              if(is_active, do: "text-ink font-medium", else: "text-ink70")
+            ]}>
+              {item.label}
+            </span>
+          </.link>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  attr :campaign, :map, required: true
+
+  defp campaign_scope_header(assigns) do
+    ~H"""
+    <div class="px-[18px] pt-4 pb-3 border-t border-b border-rule bg-paperAlt mb-2.5">
+      <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1.5">
+        Campaign
+      </div>
+      <div class="font-serif text-[20px] leading-[1.1] tracking-[-0.015em] text-ink truncate">
+        {@campaign.name}
+      </div>
+      <div class="mt-1.5 font-mono text-[10px] text-ink40 tracking-[0.04em]">
+        {to_string(@campaign.status)}
+      </div>
+    </div>
+    """
+  end
+
+  attr :on, :boolean, default: false
+
+  defp panic_switch(assigns) do
+    ~H"""
+    <span
+      title={if @on, do: "Sending paused", else: "Sending on"}
+      class="relative inline-block w-6 h-[13px] rounded-full"
+      style={"background: #{if @on, do: "var(--color-ink20)", else: "var(--color-accent)"}; transition: background .12s;"}
+    >
+      <span
+        class="absolute top-px w-[11px] h-[11px] rounded-full bg-paper"
+        style={"left: #{if @on, do: "1px", else: "12px"}; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left .12s;"}
+      />
+    </span>
     """
   end
 end

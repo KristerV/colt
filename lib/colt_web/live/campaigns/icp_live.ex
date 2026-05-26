@@ -18,6 +18,8 @@ defmodule ColtWeb.Campaigns.IcpLive do
             target_job_title: campaign.target_job_title || "",
             business_model: campaign.business_model || :both,
             learnings: load_learnings(campaign.id),
+            next_done?: campaign.market != nil,
+            saved?: false,
             error: nil
           )
 
@@ -34,7 +36,8 @@ defmodule ColtWeb.Campaigns.IcpLive do
        icp_description: params["icp_description"] || socket.assigns.icp_description,
        target_job_title: params["target_job_title"] || socket.assigns.target_job_title,
        business_model:
-         parse_business_model(params["business_model"], socket.assigns.business_model)
+         parse_business_model(params["business_model"], socket.assigns.business_model),
+       saved?: false
      )}
   end
 
@@ -60,7 +63,11 @@ defmodule ColtWeb.Campaigns.IcpLive do
                actor: socket.assigns.current_user
              ) do
           {:ok, campaign} ->
-            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/market")}
+            if socket.assigns.next_done? do
+              {:noreply, assign(socket, campaign: campaign, saved?: true, error: nil)}
+            else
+              {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/market")}
+            end
 
           {:error, err} ->
             {:noreply, assign(socket, error: inspect(err))}
@@ -243,8 +250,13 @@ defmodule ColtWeb.Campaigns.IcpLive do
               <Liid.icon name="chev-l" size={11} /> Back
             </.link>
             <Liid.btn variant={:primary} mono type="submit">
-              Continue → market <Liid.icon name="arrow" />
+              <%= if @next_done? do %>
+                Save <Liid.icon name="check" />
+              <% else %>
+                Continue → market <Liid.icon name="arrow" />
+              <% end %>
             </Liid.btn>
+            <span :if={@saved?} class="font-mono text-[11px] text-ink55">saved.</span>
           </div>
         </div>
       </form>

@@ -32,12 +32,20 @@ defmodule ColtWeb.Router do
 
     ash_authentication_live_session :authenticated_routes do
       live "/", HomeLive
+      live "/campaigns", Campaigns.IndexLive
       live "/campaigns/new", Campaigns.NewLive
+      live "/campaigns/:id/name", Campaigns.NameLive
       live "/campaigns/:id/icp", Campaigns.IcpLive
       live "/campaigns/:id/market", Campaigns.MarketLive
       live "/campaigns/:id/filters", Campaigns.FiltersLive
       live "/campaigns/:id/target", Campaigns.TargetLive
       live "/campaigns/:id/funnel", Campaigns.FunnelLive
+      live "/campaigns/:id/sequence", Sending.SequenceLive
+      live "/campaigns/:id/sending-accounts", Sending.SendingAccountsLive
+      live "/campaigns/:id/writing", Sending.WritingLive
+      live "/campaigns/:id/sending-funnel", Sending.SendingFunnelLive
+      live "/email-accounts", Account.EmailAccountsLive
+      live "/billing", Account.BillingLive
       live "/admin", AdminLive
       live "/admin/campaigns", Admin.CampaignsLive
       live "/admin/companies", Admin.CompaniesLive

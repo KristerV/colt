@@ -30,6 +30,8 @@ defmodule ColtWeb.Campaigns.MarketLive do
             counts: active_counts(),
             ee_count: ee_active_count(),
             last_sync: last_sync_at(),
+            next_done?: filters_present?(campaign),
+            saved?: false,
             error: nil
           )
 
@@ -52,12 +54,19 @@ defmodule ColtWeb.Campaigns.MarketLive do
            actor: socket.assigns.current_user
          ) do
       {:ok, campaign} ->
-        {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/filters")}
+        if socket.assigns.next_done? do
+          {:noreply, assign(socket, campaign: campaign, saved?: true, error: nil)}
+        else
+          {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/filters")}
+        end
 
       {:error, err} ->
         {:noreply, assign(socket, error: inspect(err))}
     end
   end
+
+  defp filters_present?(%{filters: f}) when is_map(f), do: map_size(f) > 0
+  defp filters_present?(_), do: false
 
   defp ee_active_count do
     Colt.Repo.aggregate(
@@ -126,8 +135,13 @@ defmodule ColtWeb.Campaigns.MarketLive do
             <Liid.icon name="chev-l" size={11} /> Back
           </.link>
           <Liid.btn variant={:primary} mono phx-click="continue">
-            Continue → filters <Liid.icon name="arrow" />
+            <%= if @next_done? do %>
+              Save <Liid.icon name="check" />
+            <% else %>
+              Continue → filters <Liid.icon name="arrow" />
+            <% end %>
           </Liid.btn>
+          <span :if={@saved?} class="font-mono text-[11px] text-ink55">saved.</span>
           <span class="w-full md:w-auto md:ml-auto font-mono text-[11px] text-ink40">
             {format_int(@ee_count)} active companies in rik.ee · last sync {format_sync(@last_sync)}
           </span>

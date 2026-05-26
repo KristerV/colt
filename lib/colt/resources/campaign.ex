@@ -20,7 +20,9 @@ defmodule Colt.Resources.Campaign do
     define :set_icp, args: [:icp_description, :target_job_title, :business_model]
     define :set_market, args: [:market]
     define :list_recent_for_user, args: [:user_id]
+    define :list_for_user, args: [:user_id]
     define :list_all_recent
+    define :rename, args: [:name]
     define :update_filters, args: [:filters]
     define :update_target, args: [:target_contact_count]
     define :finalize, args: [:target_contact_count]
@@ -34,6 +36,19 @@ defmodule Colt.Resources.Campaign do
       argument :user_id, :uuid, allow_nil?: false
       filter expr(owner_id == ^arg(:user_id))
       prepare build(sort: [inserted_at: :desc], limit: 4)
+    end
+
+    read :list_for_user do
+      description "Every campaign owned by the user, newest first."
+      argument :user_id, :uuid, allow_nil?: false
+      filter expr(owner_id == ^arg(:user_id))
+      prepare build(sort: [inserted_at: :desc])
+    end
+
+    update :rename do
+      description "Rename a campaign — works at any status."
+      accept [:name]
+      require_atomic? false
     end
 
     read :list_all_recent do
