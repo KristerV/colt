@@ -1,0 +1,196 @@
+defmodule Colt.Resources.Email do
+  @moduledoc """
+  One email — outbound (drafted/sent/etc.) or inbound (reply). Attached
+  to a Thread. AI-vs-user fields are kept side-by-side so the writer
+  learning loop can later diff them.
+  """
+  use Ash.Resource,
+    otp_app: :colt,
+    domain: Colt.Domain,
+    data_layer: AshPostgres.DataLayer,
+    authorizers: [Ash.Policy.Authorizer]
+
+  postgres do
+    table "emails"
+    repo Colt.Repo
+
+    references do
+      reference :thread, on_delete: :delete
+      reference :email_account, on_delete: :nilify
+    end
+  end
+
+  code_interface do
+    define :get, action: :read, get_by: [:id]
+    define :list_for_thread, args: [:thread_id]
+    define :list_due, args: [:now, :limit]
+
+    define :create_draft,
+      args: [:thread_id, :step_position, :ai_subject, :ai_body]
+
+    define :update_user_fields, args: [:user_subject, :user_body]
+    define :mark_approved
+    define :schedule, args: [:scheduled_at, :email_account_id]
+    define :mark_sent, args: [:nylas_message_id, :nylas_thread_id, :sent_at]
+    define :mark_bounced, args: [:bounce_reason]
+    define :mark_failed
+    define :mark_skipped
+    define :set_reply_category, args: [:reply_category]
+  end
+
+  actions do
+    defaults [:read, :destroy]
+    default_accept []
+
+    read :list_for_thread do
+      argument :thread_id, :uuid, allow_nil?: false
+      filter expr(thread_id == ^arg(:thread_id))
+      prepare build(sort: [inserted_at: :asc])
+    end
+
+    read :list_due do
+      description "Outbound emails ready to send (status :scheduled, due before :now)."
+      argument :now, :utc_datetime_usec, allow_nil?: false
+      argument :limit, :integer, allow_nil?: false
+
+      filter expr(
+               direction == :outbound and status == :scheduled and
+                 scheduled_at <= ^arg(:now)
+             )
+
+      prepare build(sort: [scheduled_at: :asc])
+      prepare build(limit: arg(:limit))
+    end
+
+    create :create_draft do
+      description """
+      Insert an AI-generated draft. Only ai_* is set; user_* stays nil
+      unless the user edits. Effective subject/body is `user_? || ai_?`.
+      """
+
+      accept [:thread_id, :step_position, :ai_subject, :ai_body]
+
+      change set_attribute(:direction, :outbound)
+      change set_attribute(:status, :drafted)
+      change set_attribute(:is_manual_reply, false)
+    end
+
+    update :update_user_fields do
+      accept [:user_subject, :user_body]
+      require_atomic? false
+    end
+
+    update :mark_approved do
+      require_atomic? false
+      change set_attribute(:status, :approved)
+    end
+
+    update :schedule do
+      accept [:scheduled_at, :email_account_id]
+      require_atomic? false
+      change set_attribute(:status, :scheduled)
+    end
+
+    update :mark_sent do
+      accept [:nylas_message_id, :nylas_thread_id, :sent_at]
+      require_atomic? false
+      change set_attribute(:status, :sent)
+    end
+
+    update :mark_bounced do
+      accept [:bounce_reason]
+      require_atomic? false
+      change set_attribute(:status, :bounced)
+    end
+
+    update :mark_failed do
+      require_atomic? false
+      change set_attribute(:status, :failed)
+    end
+
+    update :mark_skipped do
+      require_atomic? false
+      change set_attribute(:status, :skipped)
+    end
+
+    update :set_reply_category do
+      accept [:reply_category]
+      require_atomic? false
+    end
+  end
+
+  policies do
+    bypass actor_attribute_equals(:is_admin, true) do
+      authorize_if always()
+    end
+
+    policy action_type(:read) do
+      authorize_if expr(thread.campaign_contact.campaign.owner_id == ^actor(:id))
+    end
+
+    policy action_type(:create) do
+      authorize_if actor_present()
+    end
+
+    policy action_type(:update) do
+      authorize_if expr(thread.campaign_contact.campaign.owner_id == ^actor(:id))
+    end
+
+    policy action_type(:destroy) do
+      authorize_if expr(thread.campaign_contact.campaign.owner_id == ^actor(:id))
+    end
+  end
+
+  attributes do
+    uuid_primary_key :id
+
+    attribute :direction, :atom,
+      constraints: [one_of: [:outbound, :inbound]],
+      allow_nil?: false,
+      public?: true
+
+    attribute :step_position, :integer, public?: true
+
+    attribute :ai_subject, :string, public?: true
+    attribute :ai_body, :string, public?: true
+    attribute :user_subject, :string, public?: true
+    attribute :user_body, :string, public?: true
+
+    attribute :is_manual_reply, :boolean, allow_nil?: false, default: false, public?: true
+
+    attribute :status, :atom,
+      constraints: [
+        one_of: [:drafted, :approved, :scheduled, :sent, :bounced, :failed, :skipped]
+      ],
+      allow_nil?: false,
+      default: :drafted,
+      public?: true
+
+    attribute :scheduled_at, :utc_datetime_usec, public?: true
+    attribute :sent_at, :utc_datetime_usec, public?: true
+
+    attribute :nylas_message_id, :string, public?: true
+    attribute :nylas_thread_id, :string, public?: true
+
+    attribute :reply_category, :atom,
+      constraints: [one_of: [:ooo, :interested, :not_interested, :other]],
+      public?: true
+
+    attribute :bounce_reason, :string, public?: true
+
+    create_timestamp :inserted_at
+    update_timestamp :updated_at
+  end
+
+  relationships do
+    belongs_to :thread, Colt.Resources.Thread, allow_nil?: false, public?: true
+
+    belongs_to :email_account, Colt.Resources.EmailAccount,
+      allow_nil?: true,
+      public?: true
+  end
+
+  identities do
+    identity :unique_nylas_message, [:nylas_message_id]
+  end
+end

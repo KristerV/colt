@@ -16,5 +16,9 @@ defmodule Colt.Domain do
     resource Colt.Resources.CampaignEmailAccount
     resource Colt.Resources.Sequence
     resource Colt.Resources.SequenceStep
+    resource Colt.Resources.CampaignContact
+    resource Colt.Resources.Thread
+    resource Colt.Resources.Email
+    resource Colt.Resources.Note
   end
 end

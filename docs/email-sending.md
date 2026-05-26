@@ -26,14 +26,14 @@ Decisions I made without asking. Skim, push back where wrong.
 1. **`CampaignContact` is a new resource** joining `Campaign` ↔ `Person`. Distinct from the existing `CampaignCompany`. A contact in two campaigns has two rows.
 2. **Sequence is per-campaign**, designed once, applied to every contact in that campaign. On approval of a contact, the current sequence is **snapshotted** onto the `CampaignContact` (jsonb `sequence_steps`) so future sequence edits don't disturb in-flight rows.
 3. **Approval is per contact, all-steps at once** — user reviews subject + body for each step in the contact's sequence and clicks one "Approve" button. No per-step approval.
-4. **Subject is also AI-drafted and also versioned** (`ai_subject`, `user_subject`). The AI-vs-user diff used to gate auto-approve compares both subject and body for *any* difference.
+4. **Subject is also AI-drafted and also versioned** (`ai_subject`, `user_subject`). The auto-approve "clean" check is `user_subject == nil and user_body == nil` — the user-fields are only populated when the user actually edits, so a nil pair means they accepted the AI version unchanged.
 5. **Daily quota is a ceiling on total sends** (new + followups), stored **globally on `EmailAccount.daily_quota`** (not per-campaign — confirmed E2). The scheduler is FCFS into burst slots — every `Email` getting scheduled (whether a fresh approval or a followup falling due) gets the next available burst slot, and once the day's effective cap for that inbox is reached, further sends roll to tomorrow's first burst. We don't try to prioritize followups over new sends or vice versa; it sorts itself out by scheduling time. UI says: *"X emails/day from this inbox, including followups."*
 6. **Effective daily send count varies ±**: `effective = round(quota × uniform(0.85, 1.05))`, recomputed daily per inbox.
 7. **24h dedupe** is hardcoded at send-time. Recipient address + campaign id checked against `emails` table for any send in the last 24h. Violation **raises** (Oban job dies, logs, alerts via Sentry-equivalent — whatever the project already has). Never silently skip.
 8. **Threading model**: one `Thread` per `CampaignContact`. `Email belongs_to Thread`, `Note belongs_to Thread`. `Thread` is the polymorphic container; in v1 only emails + notes attach.
 9. **Cross-domain replies**: trust Nylas's `thread_id` first. If a brand-new inbound message arrives with no matching thread but the sender domain == an active contact's email domain in the same inbox, attach it to that contact's most recent thread. UI flags the auto-attached message subtly so the user can detach if wrong.
 10. **Reply categorizer model**: Claude 4.5 Sonnet via the existing OpenRouter pipeline. Categories: `:ooo | :interested | :not_interested | :other`. Any category halts the sequence; "other" surfaces a manual-review badge.
-11. **AI writer model**: Claude 4.5 Sonnet. Few-shot examples drawn from previous `Email` rows in the same campaign where any `final_*` differs from `ai_*`. **No ranking** — all qualifying examples are passed (cap 20 to keep prompt size sane). Each example carries `{before_ai, after_user, company_brief, person_brief}` so the model can match on both company shape and job title. **A/B selection**: the prompt also includes a procedurally generated integer 0–99; the model is instructed to pick which example (if any) to draw on using that integer as a deterministic seed, so multiple distinct example "styles" get sampled across contacts instead of the model always falling onto one.
+11. **AI writer model**: Claude 4.5 Sonnet. Few-shot examples drawn from previous `Email` rows in the same campaign where `user_*` is non-nil (i.e. the user edited the AI draft). **No ranking** — all qualifying examples are passed (cap 20 to keep prompt size sane). Each example carries `{before_ai, after_user, company_brief, person_brief}` so the model can match on both company shape and job title. **A/B selection**: the prompt also includes a procedurally generated integer 0–99; the model is instructed to pick which example (if any) to draw on using that integer as a deterministic seed, so multiple distinct example "styles" get sampled across contacts instead of the model always falling onto one.
 12. **Bounce threshold**: a single campaign-level rule. After ≥50 sends in the campaign, if `bounce_rate > 5%`, flip `panic_switch_on = true`. No per-inbox pause logic in v1; the campaign-wide halt is the only stop.
 13. **Subscription/billing view**: render a placeholder card with "Plans coming soon", a disabled "Choose plan" button, and a link to mailto support. No logic.
 14. **Demo inbox** lives next to the subject field in the writing view. Renders a fake Gmail-style list of 8 surrounding subjects (fixed seeded sample) with the user's subject inserted at row 4. Pure presentational; no interaction.
@@ -123,9 +123,8 @@ Email
   attrs:
     direction (:outbound | :inbound),
     step_position (int, nil for inbound and manual replies),
-    ai_subject, ai_body,
-    user_subject, user_body,                      # outbound only; user_* may equal ai_*
-    final_subject, final_body,                    # what actually got sent
+    ai_subject, ai_body,                          # always set on draft
+    user_subject, user_body,                      # nil unless user edited; effective = user_? || ai_?
     is_manual_reply (bool, default false),        # rich-text manual reply from thread view
     status (:drafted | :approved | :scheduled | :sent | :bounced | :failed | :skipped),
     scheduled_at, sent_at,
@@ -255,12 +254,12 @@ Layout (single column, max ~720px wide):
 
 On "Approve & next":
 - `CampaignContact.status -> :approved`, snapshot the current `Sequence` (steps + delays + terminal) into `sequence_snapshot`, fill `assigned_email_account` (sticky, §5.1), schedule step 1's `Email` (§5.2). Followups stay as `:drafted` rows on the contact's `Thread` and get `scheduled_at` only when their parent sends.
-- `auto_approve_streak += 1` iff *every* `final_*` equals `ai_*` across all email steps in this contact. Any edit at all resets nothing — the streak only counts clean approvals, but a non-clean one just doesn't increment. (The 10-threshold is cumulative, not consecutive.)
+- `auto_approve_streak += 1` iff every email step's `user_subject` and `user_body` are both nil (i.e. the user accepted every AI draft unchanged). Any edit at all resets nothing — the streak only counts clean approvals, but a non-clean one just doesn't increment. (The 10-threshold is cumulative, not consecutive.)
 - View loads the next `:pending_approval` contact. The writer kicks off generation for it on landing (§6).
 
 **Draft generation timing**: when the writing view loads a contact that doesn't yet have draft `Email`s, the view shows a skeleton state with a mono `drafting…` indicator and a pulsing dot, then streams the result in. Generation takes 3–8 s; the view stays responsive.
 
-**Auto-approve mode** (when `auto_approve_on?` is true): new `:pending_approval` contacts never land in this view. A separate Oban worker (`AutoDraftAndApprove`, queue `ai_writer`) runs `EmailWriter` for each, sets `final_* = ai_*`, status `:approved`, schedules step 1. The writing view shows an empty state with a note: *"Auto-approve is on. New contacts go straight to scheduled."*
+**Auto-approve mode** (when `auto_approve_on?` is true): new `:pending_approval` contacts never land in this view. A separate Oban worker (`AutoDraftAndApprove`, queue `ai_writer`) runs `EmailWriter` for each (leaving `user_*` nil), sets contact status `:approved`, schedules step 1. The writing view shows an empty state with a note: *"Auto-approve is on. New contacts go straight to scheduled."*
 
 ### 4.4 Sending funnel (`/campaigns/:id/sending-funnel`)
 
@@ -378,9 +377,9 @@ The action `recent_to` lives on `Email`. Raising kills the job and surfaces in O
 `CampaignSendingSettings.panic_switch_on == true` → `SendDueEmails` skips every email in that campaign, no status change. Flipping it back resumes. Top-bar banner red when on. Located in sidebar's Sending section header (toggle), also reachable from sending-funnel header.
 
 ### 5.6 Auto-approve
-- Counter `auto_approve_streak` increments on every approval where `final_* == ai_*` for every step.
+- Counter `auto_approve_streak` increments on every approval where `user_subject` and `user_body` are both nil for every step (user accepted the AI version unchanged).
 - At `>= 10`, `auto_approve_unlocked? := true`. Banner in writing view: *"You've accepted 10 AI drafts unchanged. You can enable auto-send in Sequence settings."*
-- When `auto_approve_on?` is true, `PromoteToSending` for new contacts goes directly to `:approved` with `final_*` = `ai_*` and `auto_approved? = true`. They never appear in the writing queue.
+- When `auto_approve_on?` is true, `PromoteToSending` for new contacts goes directly to `:approved` with `user_*` left nil and `auto_approved? = true`. They never appear in the writing queue.
 - Any edit by user later in any contact resets `auto_approve_on?` to false (forces re-evaluation). Streak counter is not reset — unlock stays.
 
 ---
@@ -391,12 +390,12 @@ Module: `Colt.Services.EmailWriter`. Service convention: `run(campaign_contact) 
 
 Internal `with` steps:
 1. `load_context/1` — campaign sequence (full step list including delays so the model knows e.g. "followup 1 ships 2 days after the first"), target contact's person (name, title, email) and company (summary, employees, industry, region, generic_email), language.
-2. `collect_examples/1` — query `Email` rows in the campaign where any `final_*` differs from any `ai_*`. **No ranking.** Cap at 20 to keep the prompt bounded. Each example returns `{before_ai, after_user, company_brief, person_brief}` so the model can match on industry, size, AND job title.
+2. `collect_examples/1` — query `Email` rows in the campaign where `user_subject` or `user_body` is non-nil (i.e. the user edited the draft). **No ranking.** Cap at 20 to keep the prompt bounded. Each example returns `{before_ai, after_user, company_brief, person_brief}` so the model can match on industry, size, AND job title.
 3. `build_prompt/1`:
    - System message: role ("cold-outreach writer in {language}, mimicking the user's tone"), sequence rules tied to the actual step shape ("step 1 opens cold; step 2 ships {delay} days later, references step 1 obliquely; final email adds gentle urgency without aggression"), constraints (plain text, tracker-friendly, no markdown, no signatures — the inbox appends those).
    - User message: target company brief + target person brief + sequence skeleton (positions, delays, terminal action) + examples block + a single integer `seed = :rand.uniform(100) - 1`. The instruction: *"If one of the examples closely matches the target's industry or person title, follow its style. If multiple match, use the seed to pick deterministically (seed mod N). If none match, write fresh."*
 4. `call_model/1` — Claude 4.5 Sonnet via OpenRouter, JSON response, schema `{steps: [{position, subject, body}]}`.
-5. `persist/2` — one `Email{status: :drafted, ai_subject, ai_body, user_subject=ai_subject, user_body=ai_body, final_subject=ai_subject, final_body=ai_body}` per step. `final_*` will be overwritten on approval if the user edited.
+5. `persist/2` — one `Email{status: :drafted, ai_subject, ai_body}` per step. `user_subject` / `user_body` stay nil; they are only set when the user edits in the writing view. Effective send content is `user_? || ai_?`.
 
 **Trigger**: not on contact creation. Called from the writing LiveView when a contact is opened *and* its draft emails don't yet exist. Auto-approve mode bypasses the LiveView via the `AutoDraftAndApprove` Oban worker (queue `ai_writer`, concurrency 4) which calls the same `run/1`.
 
@@ -490,7 +489,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 ### Phase E4 — Writing view (one-at-a-time approval)
 - LiveView §4.3. Single-contact workspace. Promotion button when empty. Per-step subject + body editors. Demo inbox panel.
 - On open of a contact with no drafts: call `EmailWriter.run/1` synchronously (in a `Task` so the LiveView stays responsive — show skeleton + drafting state, then stream rows in via PubSub).
-- On "Approve & next": snapshot sequence into `sequence_snapshot`, assign sticky inbox (§5.1), schedule step 1 (`Email.status = :scheduled`), increment `auto_approve_streak` only if all `final_* == ai_*`, load next pending contact.
+- On "Approve & next": snapshot sequence into `sequence_snapshot`, assign sticky inbox (§5.1), schedule step 1 (`Email.status = :scheduled`), increment `auto_approve_streak` only if every step's `user_subject` and `user_body` are both nil, load next pending contact.
 - "Skip" button → contact straight to `:no_reply`.
 - **Acceptance**: bring in enriched contacts; approve one with edits (streak stays 0), approve one without edits (streak goes to 1); verify `assigned_email_account_id` set, snapshot present, step 1 has a `scheduled_at` in the next burst window; subsequent contact's draft includes nothing learned yet (E9 will fix that).
 
@@ -528,7 +527,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 
 ### Phase E10 — Auto-approve unlock
 - Counter wiring, unlock at 10. Toggle appears in sequence view once unlocked.
-- Auto-approve path: new `AutoDraftAndApprove` Oban worker (`ai_writer` queue). Runs when `auto_approve_on?` is true and `IngestEnriched` (or the writing-view promotion) inserts new `:pending_approval` rows. Sets `final_* = ai_*`, status `:approved`, schedules step 1.
+- Auto-approve path: new `AutoDraftAndApprove` Oban worker (`ai_writer` queue). Runs when `auto_approve_on?` is true and `IngestEnriched` (or the writing-view promotion) inserts new `:pending_approval` rows. Leaves `user_*` nil, sets contact status `:approved`, schedules step 1.
 - **Acceptance**: simulate 10 untouched approvals (iex), toggle appears in sequence view; flip on; bring in new contacts — they never enter pending_approval and step-1 emails appear scheduled.
 
 ### Phase E11 — Bounce monitoring + auto-pause
