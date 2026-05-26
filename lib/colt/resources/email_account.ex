@@ -1,6 +1,6 @@
 defmodule Colt.Resources.EmailAccount do
   @moduledoc """
-  One connected inbox per user. In v1 Nylas v3 holds the OAuth tokens; we only
+  One connected inbox per user. Nylas v3 holds the OAuth tokens; we only
   store the `nylas_grant_id`. Sending and polling scope by this row.
   """
   use Ash.Resource,
@@ -20,19 +20,27 @@ defmodule Colt.Resources.EmailAccount do
 
   code_interface do
     define :get, action: :read, get_by: [:id]
+    define :get_by_grant, args: [:nylas_grant_id]
     define :list_for_user, args: [:user_id]
     define :list_all
 
-    define :create_seed,
+    define :create_from_nylas,
       args: [:provider, :address, :display_name, :nylas_grant_id, :tz]
 
     define :mark_status, args: [:status, :paused_reason]
     define :touch_sync, args: [:last_sync_at]
+    define :disconnect
   end
 
   actions do
-    defaults [:read]
+    defaults [:read, :destroy]
     default_accept []
+
+    read :get_by_grant do
+      argument :nylas_grant_id, :string, allow_nil?: false
+      filter expr(nylas_grant_id == ^arg(:nylas_grant_id))
+      get? true
+    end
 
     read :list_for_user do
       argument :user_id, :uuid, allow_nil?: false
@@ -45,11 +53,15 @@ defmodule Colt.Resources.EmailAccount do
       prepare build(sort: [inserted_at: :desc])
     end
 
-    create :create_seed do
-      description "Manual seed (E0). E1 will add a Nylas-callback-driven create."
+    create :create_from_nylas do
+      description "Called from /email-accounts/callback after Nylas hosted auth."
       accept [:provider, :address, :display_name, :nylas_grant_id, :tz]
+      upsert? true
+      upsert_identity :nylas_grant
+      upsert_fields [:provider, :address, :display_name, :tz, :status, :paused_reason]
       change relate_actor(:user)
       change set_attribute(:status, :healthy)
+      change set_attribute(:paused_reason, nil)
     end
 
     update :mark_status do
@@ -60,6 +72,13 @@ defmodule Colt.Resources.EmailAccount do
     update :touch_sync do
       accept [:last_sync_at]
       require_atomic? false
+    end
+
+    update :disconnect do
+      description "Set status :disconnected. Caller is expected to revoke at Nylas first."
+      accept []
+      require_atomic? false
+      change set_attribute(:status, :disconnected)
     end
   end
 

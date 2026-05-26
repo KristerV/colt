@@ -102,6 +102,18 @@ if config_env() == :prod do
       System.get_env("MYEMAILVERIFIER_API_KEY") ||
         raise("Missing environment variable `MYEMAILVERIFIER_API_KEY`!")
 
+  config :colt, :nylas,
+    api_uri: System.get_env("NYLAS_API_URI") || "https://api.eu.nylas.com",
+    client_id:
+      System.get_env("NYLAS_CLIENT_ID") ||
+        raise("Missing environment variable `NYLAS_CLIENT_ID`!"),
+    api_key:
+      System.get_env("NYLAS_API_KEY") ||
+        raise("Missing environment variable `NYLAS_API_KEY`!"),
+    redirect_uri:
+      System.get_env("NYLAS_REDIRECT_URI") ||
+        raise("Missing environment variable `NYLAS_REDIRECT_URI`!")
+
   config :colt, Colt.Mailer,
     adapter: Swoosh.Adapters.Mailgun,
     api_key:

@@ -56,6 +56,9 @@ defmodule ColtWeb.Router do
     end
 
     get "/campaigns/:id/export.csv", ExportController, :csv
+
+    get "/email-accounts/connect/:provider", EmailAccountController, :connect
+    get "/email-accounts/callback", EmailAccountController, :callback
   end
 
   scope "/" do

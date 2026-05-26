@@ -467,7 +467,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Empty `/email-accounts` and `/billing` placeholder routes.
 - **Acceptance**: navigating any campaign route shows the sidebar with both Enrichment and Sending sections; sending links go to "coming soon" stubs.
 
-### Phase E1 — Nylas client + hosted account connect
+### Phase E1 — Nylas client + hosted account connect ✅ done
 - `Colt.Nylas` client (read Nylas docs live before writing; capture base URL, auth, key endpoints at top of module). Functions: `hosted_auth_url/2`, `exchange_callback/1`, `send_message/2`, `list_messages/2`, `get_message/1`, `revoke/1`.
 - `/email-accounts` page: three buttons that `push_redirect` to `Colt.Nylas.hosted_auth_url(:google | :m365 | :imap, state: …)`. Callback controller at `/email-accounts/callback` persists `EmailAccount`.
 - No webhook subscriptions in v1 — polling is added in E6.

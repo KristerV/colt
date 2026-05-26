@@ -9,6 +9,10 @@ import Config
 
 config :ash_oban, pro?: false
 
+# Nylas v3 base URL (default EU per docs/email-sending.md §0).
+# Override in dev.secrets.exs or via NYLAS_API_URI in prod when on a different region.
+config :colt, :nylas, api_uri: "https://api.eu.nylas.com"
+
 config :colt, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
