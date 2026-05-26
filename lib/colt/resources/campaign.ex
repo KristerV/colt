@@ -29,6 +29,7 @@ defmodule Colt.Resources.Campaign do
     define :mark_sending_initialized
     define :set_tracking, args: [:tracking_opens?, :tracking_clicks?]
     define :set_panic, args: [:panic_switch_on]
+    define :bump_auto_approve_streak
   end
 
   actions do
@@ -108,6 +109,29 @@ defmodule Colt.Resources.Campaign do
       description "Toggle the campaign-level panic switch."
       accept [:panic_switch_on]
       require_atomic? false
+    end
+
+    update :bump_auto_approve_streak do
+      description """
+      Increment auto_approve_streak by 1 on a clean approval (user did
+      not edit any draft). At 10, unlock auto-approve.
+      """
+
+      accept []
+      require_atomic? false
+
+      change fn changeset, _ ->
+        current = Ash.Changeset.get_attribute(changeset, :auto_approve_streak) || 0
+        new = current + 1
+
+        changeset
+        |> Ash.Changeset.change_attribute(:auto_approve_streak, new)
+        |> then(fn cs ->
+          if new >= 10,
+            do: Ash.Changeset.change_attribute(cs, :auto_approve_unlocked?, true),
+            else: cs
+        end)
+      end
     end
 
     update :finalize do

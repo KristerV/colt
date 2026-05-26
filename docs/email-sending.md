@@ -486,7 +486,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - `Colt.Services.EmailWriter.run/1` — drafts subject + body per email step using Claude 4.5 Sonnet. **No examples in this phase** (added in E9). Includes the sequence skeleton (positions + delays + terminal action) in the prompt so the model can reference followup timing naturally.
 - **Acceptance**: take an existing campaign with enriched contacts; iex-call `IngestEnriched.run(campaign_id)` — see one `CampaignContact` per `picked_person`. iex-call `EmailWriter.run(contact)` — see one `:drafted` `Email` per email step on the contact's `Thread`, language matching the sequence setting.
 
-### Phase E4 — Writing view (one-at-a-time approval)
+### Phase E4 — Writing view (one-at-a-time approval) ✅ done
 - LiveView §4.3. Single-contact workspace. Promotion button when empty. Per-step subject + body editors. Demo inbox panel.
 - On open of a contact with no drafts: call `EmailWriter.run/1` synchronously (in a `Task` so the LiveView stays responsive — show skeleton + drafting state, then stream rows in via PubSub).
 - On "Approve & next": snapshot sequence into `sequence_snapshot`, assign sticky inbox (§5.1), schedule step 1 (`Email.status = :scheduled`), increment `auto_approve_streak` only if every step's `user_subject` and `user_body` are both nil, load next pending contact.

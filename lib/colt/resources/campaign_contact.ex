@@ -32,6 +32,7 @@ defmodule Colt.Resources.CampaignContact do
     define :mark_bounced
     define :mark_failed
     define :set_status, args: [:status]
+    define :count_assigned_today, args: [:email_account_id]
   end
 
   actions do
@@ -107,6 +108,20 @@ defmodule Colt.Resources.CampaignContact do
     update :set_status do
       accept [:status]
       require_atomic? false
+    end
+
+    read :count_assigned_today do
+      description """
+      Number of CampaignContacts approved-and-assigned to the given inbox
+      today (UTC date). Used by the sticky-inbox picker.
+      """
+
+      argument :email_account_id, :uuid, allow_nil?: false
+
+      filter expr(
+               assigned_email_account_id == ^arg(:email_account_id) and
+                 fragment("(?)::date = (now() at time zone 'utc')::date", approved_at)
+             )
     end
   end
 
