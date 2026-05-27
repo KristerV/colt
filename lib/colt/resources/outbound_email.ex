@@ -28,6 +28,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
     define :list_halt_eligible_for_thread, args: [:thread_id]
+    define :list_user_edited_for_campaign, args: [:campaign_id, :limit]
 
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body]
@@ -122,6 +123,25 @@ defmodule Colt.Resources.OutboundEmail do
       get? true
     end
 
+    read :list_user_edited_for_campaign do
+      description """
+      Few-shot examples for the AI writer (§6.2). Returns outbound rows
+      in the given campaign where the user actually edited the AI draft
+      (user_subject or user_body non-nil), newest first, capped at limit.
+      """
+
+      argument :campaign_id, :uuid, allow_nil?: false
+      argument :limit, :integer, allow_nil?: false
+
+      filter expr(
+               thread.campaign_contact.campaign_id == ^arg(:campaign_id) and
+                 (not is_nil(user_subject) or not is_nil(user_body))
+             )
+
+      prepare build(sort: [inserted_at: :desc])
+      prepare build(limit: arg(:limit))
+    end
+
     read :list_halt_eligible_for_thread do
       description "Outbound rows to cancel on reply/halt: drafted + scheduled."
       argument :thread_id, :uuid, allow_nil?: false
@@ -156,7 +176,7 @@ defmodule Colt.Resources.OutboundEmail do
       unless the user edits. Effective subject/body is `user_? || ai_?`.
       """
 
-      accept [:thread_id, :step_position, :ai_subject, :ai_body]
+      accept [:thread_id, :step_position, :ai_subject, :ai_body, :writer_meta]
 
       change set_attribute(:status, :drafted)
       change set_attribute(:is_manual_reply, false)
@@ -250,6 +270,8 @@ defmodule Colt.Resources.OutboundEmail do
     attribute :nylas_thread_id, :string, public?: true
 
     attribute :bounce_reason, :string, public?: true
+
+    attribute :writer_meta, :map, public?: true, default: %{}
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

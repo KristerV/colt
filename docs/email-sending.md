@@ -521,7 +521,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Writing view becomes the pending-approval bucket's right pane.
 - **Acceptance**: every metric in the strip matches a hand-computed SQL query. Funnel sums to total contacts.
 
-### Phase E9 — Writer learning loop (examples + A/B seed)
+### Phase E9 — Writer learning loop (examples + A/B seed) ✅ done
 - `collect_examples/1` (§6 step 2). No ranking, cap 20, include person details. Add the random seed integer + the "pick by seed mod N" instruction to the prompt.
 - **Acceptance**: edit a draft to add a project-specific phrase. Next contact's draft incorporates that phrase or tone. With two distinct example styles in the campaign, observe over ~10 generated contacts that both styles appear roughly proportionally (a fully deterministic check is hard — eyeball is fine, but log the chosen seed per generation for auditability). Document in the writer module how to inspect the full prompt for one contact via iex.
 
