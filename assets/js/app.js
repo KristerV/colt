@@ -46,11 +46,30 @@ const FeedbackModal = {
   }
 }
 
+// Trix rich-text editor bridge. The hidden input mirrors Trix's HTML
+// output; we push a phx-blur "trix_input" event so LiveView keeps state
+// without forms or live-form noise.
+const TrixEditor = {
+  mounted() {
+    const editor = this.el.querySelector("trix-editor")
+    const input  = this.el.querySelector("input[type=hidden]")
+    if (!editor || !input) return
+    this.onBlur = () => {
+      this.pushEventTo(this.el, "trix_input", { value: input.value })
+    }
+    editor.addEventListener("blur", this.onBlur)
+  },
+  destroyed() {
+    const editor = this.el.querySelector("trix-editor")
+    if (editor && this.onBlur) editor.removeEventListener("blur", this.onBlur)
+  }
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, FeedbackModal},
+  hooks: {...colocatedHooks, FeedbackModal, TrixEditor},
 })
 
 // Show progress bar on live navigation and form submits

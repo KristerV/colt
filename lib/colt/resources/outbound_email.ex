@@ -32,6 +32,8 @@ defmodule Colt.Resources.OutboundEmail do
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body]
 
+    define :create_manual_reply
+
     define :update_user_fields, args: [:user_subject, :user_body]
     define :mark_approved
     define :schedule, args: [:scheduled_at, :email_account_id]
@@ -125,6 +127,27 @@ defmodule Colt.Resources.OutboundEmail do
       argument :thread_id, :uuid, allow_nil?: false
 
       filter expr(thread_id == ^arg(:thread_id) and status in [:drafted, :scheduled])
+    end
+
+    create :create_manual_reply do
+      description """
+      Persist a user-composed reply (rich-text from the thread composer)
+      already sent through Nylas. step_position stays nil; is_manual_reply
+      true; status :sent.
+      """
+
+      accept [
+        :thread_id,
+        :email_account_id,
+        :user_subject,
+        :user_body,
+        :nylas_message_id,
+        :nylas_thread_id,
+        :sent_at
+      ]
+
+      change set_attribute(:status, :sent)
+      change set_attribute(:is_manual_reply, true)
     end
 
     create :create_draft do

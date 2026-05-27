@@ -32,6 +32,8 @@ defmodule Colt.Resources.CampaignContact do
     define :mark_bounced
     define :mark_failed
     define :set_status, args: [:status]
+    define :manual_override, args: [:override]
+    define :stop_sequence
     define :count_assigned_today, args: [:email_account_id]
     define :find_active_in_inbox_by_domain, args: [:email_account_id, :domain_suffix]
   end
@@ -109,6 +111,58 @@ defmodule Colt.Resources.CampaignContact do
     update :set_status do
       accept [:status]
       require_atomic? false
+    end
+
+    update :manual_override do
+      description """
+      Manual status override from the thread view's "Mark as…" dropdown.
+      Halts in-flight emails (caller invokes HaltSequence separately).
+
+      Mapping:
+        :interested / :not_interested / :ooo → status :replied + reply_category
+        :call_ready                           → status :call_ready
+        :no_reply                             → status :no_reply
+      """
+
+      argument :override, :atom,
+        allow_nil?: false,
+        constraints: [one_of: [:interested, :not_interested, :ooo, :call_ready, :no_reply]]
+
+      require_atomic? false
+
+      change fn changeset, _ ->
+        override = Ash.Changeset.get_argument(changeset, :override)
+        now = DateTime.utc_now()
+
+        case override do
+          o when o in [:interested, :not_interested, :ooo] ->
+            changeset
+            |> Ash.Changeset.change_attribute(:status, :replied)
+            |> Ash.Changeset.change_attribute(:reply_category, o)
+            |> Ash.Changeset.change_attribute(:completed_at, now)
+
+          :call_ready ->
+            changeset
+            |> Ash.Changeset.change_attribute(:status, :call_ready)
+            |> Ash.Changeset.change_attribute(:completed_at, now)
+
+          :no_reply ->
+            changeset
+            |> Ash.Changeset.change_attribute(:status, :no_reply)
+            |> Ash.Changeset.change_attribute(:completed_at, now)
+        end
+      end
+    end
+
+    update :stop_sequence do
+      description "Manual 'Stop sequence' from the thread view. Sets :no_reply, stamps completed_at. Caller halts the thread's drafts/scheduleds."
+      accept []
+      require_atomic? false
+      change set_attribute(:status, :no_reply)
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :completed_at, DateTime.utc_now())
+      end
     end
 
     read :find_active_in_inbox_by_domain do

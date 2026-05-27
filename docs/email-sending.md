@@ -508,7 +508,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Sequence halt on any reply: all `:drafted` and `:scheduled` emails on the contact's thread flip to `:skipped`.
 - **Acceptance**: send a test email, reply from a personal address, see the reply attach to the thread within ~60s with a category set. Cross-domain check: reply from a colleague's address in the same domain attaches to the same thread.
 
-### Phase E7 — Thread view (read + manual interactions)
+### Phase E7 — Thread view (read + manual interactions) ✅ done
 - §4.5 thread timeline (read).
 - Rich-text reply composer (tab 1) sending via Nylas.
 - Notes (tab 2).
