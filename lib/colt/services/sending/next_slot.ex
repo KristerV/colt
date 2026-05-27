@@ -19,7 +19,7 @@ defmodule Colt.Services.Sending.NextSlot do
   resource read failure.
   """
 
-  alias Colt.Resources.Email
+  alias Colt.Resources.OutboundEmail
 
   @max_loops 60
 
@@ -82,7 +82,7 @@ defmodule Colt.Services.Sending.NextSlot do
   end
 
   defp list_today(account_id, day_start, day_end, actor) do
-    Email.list_today_for_account(account_id, to_utc(day_start), to_utc(day_end),
+    OutboundEmail.list_today_for_account(account_id, to_utc(day_start), to_utc(day_end),
       actor: actor,
       authorize?: actor != nil
     )

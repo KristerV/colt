@@ -12,7 +12,7 @@ defmodule Colt.Services.Sending.EmailWriter do
   reference followup timing naturally. Example collection lands in E9.
   """
 
-  alias Colt.Resources.{CampaignContact, Email, Pitch, Sequence, Thread}
+  alias Colt.Resources.{CampaignContact, OutboundEmail, Pitch, Sequence, Thread}
   alias Colt.Services.Ai.Complete
 
   @schema %{
@@ -223,15 +223,15 @@ defmodule Colt.Services.Sending.EmailWriter do
 
   defp persist(ctx, ai_steps, actor) do
     existing =
-      Email.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
-      |> Enum.filter(&(&1.direction == :outbound and &1.status == :drafted))
+      OutboundEmail.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
+      |> Enum.filter(&(&1.status == :drafted))
       |> MapSet.new(& &1.step_position)
 
     emails =
       ai_steps
       |> Enum.reject(&MapSet.member?(existing, &1.position))
       |> Enum.map(fn s ->
-        Email.create_draft!(ctx.thread.id, s.position, s.subject, s.body,
+        OutboundEmail.create_draft!(ctx.thread.id, s.position, s.subject, s.body,
           actor: actor,
           authorize?: actor != nil
         )

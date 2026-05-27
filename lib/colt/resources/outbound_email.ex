@@ -1,8 +1,8 @@
-defmodule Colt.Resources.Email do
+defmodule Colt.Resources.OutboundEmail do
   @moduledoc """
-  One email — outbound (drafted/sent/etc.) or inbound (reply). Attached
-  to a Thread. AI-vs-user fields are kept side-by-side so the writer
-  learning loop can later diff them.
+  One outbound email — drafted, scheduled, sent, or terminal (bounced /
+  failed / skipped). AI-vs-user content fields sit side-by-side so the
+  writer learning loop can later diff them (effective = `user_? || ai_?`).
   """
   use Ash.Resource,
     otp_app: :colt,
@@ -11,7 +11,7 @@ defmodule Colt.Resources.Email do
     authorizers: [Ash.Policy.Authorizer]
 
   postgres do
-    table "emails"
+    table "outbound_emails"
     repo Colt.Repo
 
     references do
@@ -26,6 +26,8 @@ defmodule Colt.Resources.Email do
     define :list_due, args: [:now, :limit]
     define :list_today_for_account, args: [:email_account_id, :day_start, :day_end]
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
+    define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
+    define :list_halt_eligible_for_thread, args: [:thread_id]
 
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body]
@@ -37,7 +39,6 @@ defmodule Colt.Resources.Email do
     define :mark_bounced, args: [:bounce_reason]
     define :mark_failed
     define :mark_skipped
-    define :set_reply_category, args: [:reply_category]
   end
 
   actions do
@@ -55,10 +56,7 @@ defmodule Colt.Resources.Email do
       argument :now, :utc_datetime_usec, allow_nil?: false
       argument :limit, :integer, allow_nil?: false
 
-      filter expr(
-               direction == :outbound and status == :scheduled and
-                 scheduled_at <= ^arg(:now)
-             )
+      filter expr(status == :scheduled and scheduled_at <= ^arg(:now))
 
       prepare build(sort: [scheduled_at: :asc])
       prepare build(limit: arg(:limit))
@@ -67,9 +65,8 @@ defmodule Colt.Resources.Email do
     read :list_today_for_account do
       description """
       Outbound emails for an account whose scheduled_at falls inside the
-      given window (interpreted as the account's local "today"). Includes
-      both :scheduled and :sent so the burst scheduler accounts for
-      already-fired sends. Returns rows sorted by scheduled_at asc.
+      given window. Includes :scheduled and :sent so the burst scheduler
+      sees already-fired sends. Sorted by scheduled_at asc.
       """
 
       argument :email_account_id, :uuid, allow_nil?: false
@@ -77,7 +74,7 @@ defmodule Colt.Resources.Email do
       argument :day_end, :utc_datetime_usec, allow_nil?: false
 
       filter expr(
-               direction == :outbound and email_account_id == ^arg(:email_account_id) and
+               email_account_id == ^arg(:email_account_id) and
                  status in [:scheduled, :sent] and
                  scheduled_at >= ^arg(:day_start) and scheduled_at < ^arg(:day_end)
              )
@@ -88,8 +85,7 @@ defmodule Colt.Resources.Email do
     read :recent_to_recipient do
       description """
       Outbound emails sent or scheduled to the same recipient address in
-      the given campaign since `since`. Used by the 24h dedupe guard in
-      the send loop.
+      the given campaign since `since`. Used by the 24h dedupe guard.
       """
 
       argument :recipient_email, :string, allow_nil?: false
@@ -97,12 +93,38 @@ defmodule Colt.Resources.Email do
       argument :since, :utc_datetime_usec, allow_nil?: false
 
       filter expr(
-               direction == :outbound and
-                 status in [:scheduled, :sent] and
+               status in [:scheduled, :sent] and
                  thread.campaign_contact.campaign_id == ^arg(:campaign_id) and
                  thread.campaign_contact.person.email == ^arg(:recipient_email) and
                  inserted_at >= ^arg(:since)
              )
+    end
+
+    read :find_to_recipient_in_inbox do
+      description """
+      Latest sent/scheduled outbound from `email_account_id` whose joined
+      contact.person.email matches `recipient_email`. Used to route an
+      inbound bounce notification back to the originating send.
+      """
+
+      argument :email_account_id, :uuid, allow_nil?: false
+      argument :recipient_email, :string, allow_nil?: false
+
+      filter expr(
+               email_account_id == ^arg(:email_account_id) and
+                 status in [:sent, :scheduled] and
+                 thread.campaign_contact.person.email == ^arg(:recipient_email)
+             )
+
+      prepare build(sort: [sent_at: :desc, inserted_at: :desc], limit: 1)
+      get? true
+    end
+
+    read :list_halt_eligible_for_thread do
+      description "Outbound rows to cancel on reply/halt: drafted + scheduled."
+      argument :thread_id, :uuid, allow_nil?: false
+
+      filter expr(thread_id == ^arg(:thread_id) and status in [:drafted, :scheduled])
     end
 
     create :create_draft do
@@ -113,7 +135,6 @@ defmodule Colt.Resources.Email do
 
       accept [:thread_id, :step_position, :ai_subject, :ai_body]
 
-      change set_attribute(:direction, :outbound)
       change set_attribute(:status, :drafted)
       change set_attribute(:is_manual_reply, false)
     end
@@ -155,11 +176,6 @@ defmodule Colt.Resources.Email do
       require_atomic? false
       change set_attribute(:status, :skipped)
     end
-
-    update :set_reply_category do
-      accept [:reply_category]
-      require_atomic? false
-    end
   end
 
   policies do
@@ -187,11 +203,6 @@ defmodule Colt.Resources.Email do
   attributes do
     uuid_primary_key :id
 
-    attribute :direction, :atom,
-      constraints: [one_of: [:outbound, :inbound]],
-      allow_nil?: false,
-      public?: true
-
     attribute :step_position, :integer, public?: true
 
     attribute :ai_subject, :string, public?: true
@@ -214,10 +225,6 @@ defmodule Colt.Resources.Email do
 
     attribute :nylas_message_id, :string, public?: true
     attribute :nylas_thread_id, :string, public?: true
-
-    attribute :reply_category, :atom,
-      constraints: [one_of: [:ooo, :interested, :not_interested, :other]],
-      public?: true
 
     attribute :bounce_reason, :string, public?: true
 

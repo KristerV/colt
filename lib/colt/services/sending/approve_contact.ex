@@ -14,7 +14,7 @@ defmodule Colt.Services.Sending.ApproveContact do
     8. Bump campaign.auto_approve_streak iff clean (no edits at all).
   """
 
-  alias Colt.Resources.{Campaign, CampaignContact, Email, Sequence}
+  alias Colt.Resources.{Campaign, CampaignContact, OutboundEmail, Sequence}
   alias Colt.Services.Sending.{AssignInbox, NextSlot}
 
   def run(contact_id, edits, opts \\ []) when is_binary(contact_id) and is_map(edits) do
@@ -56,8 +56,8 @@ defmodule Colt.Services.Sending.ApproveContact do
 
   defp load_drafts(%{thread: %{id: tid}}, actor) do
     {:ok,
-     Email.list_for_thread!(tid, actor: actor, authorize?: actor != nil)
-     |> Enum.filter(&(&1.direction == :outbound and &1.status == :drafted))
+     OutboundEmail.list_for_thread!(tid, actor: actor, authorize?: actor != nil)
+     |> Enum.filter(&(&1.status == :drafted))
      |> Enum.sort_by(& &1.step_position)}
   end
 
@@ -75,7 +75,7 @@ defmodule Colt.Services.Sending.ApproveContact do
 
         if subject_changed?(email, new_subject) or body_changed?(email, new_body) do
           {:ok, e} =
-            Email.update_user_fields(email, new_subject, new_body,
+            OutboundEmail.update_user_fields(email, new_subject, new_body,
               actor: actor,
               authorize?: actor != nil
             )
@@ -126,7 +126,7 @@ defmodule Colt.Services.Sending.ApproveContact do
         with {:ok, slot} <-
                NextSlot.run(inbox, DateTime.utc_now(), step_position: 0, actor: actor),
              {:ok, _} <-
-               Email.schedule(step1, slot, inbox.id,
+               OutboundEmail.schedule(step1, slot, inbox.id,
                  actor: actor,
                  authorize?: actor != nil
                ) do
@@ -139,7 +139,7 @@ defmodule Colt.Services.Sending.ApproveContact do
     drafts
     |> Enum.reject(&(&1.step_position == 0))
     |> Enum.each(fn e ->
-      Email.mark_approved(e, actor: actor, authorize?: actor != nil)
+      OutboundEmail.mark_approved(e, actor: actor, authorize?: actor != nil)
     end)
 
     {:ok, :ok}

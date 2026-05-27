@@ -23,6 +23,7 @@ defmodule Colt.Resources.EmailAccount do
     define :get_by_grant, args: [:nylas_grant_id]
     define :list_for_user, args: [:user_id]
     define :list_all
+    define :list_healthy
 
     define :create_from_nylas,
       args: [:provider, :address, :display_name, :nylas_grant_id, :tz]
@@ -52,6 +53,12 @@ defmodule Colt.Resources.EmailAccount do
     read :list_all do
       description "Admin — every connected inbox across users."
       prepare build(sort: [inserted_at: :desc])
+    end
+
+    read :list_healthy do
+      description "Connected, sendable inboxes — used by the inbound poller."
+      filter expr(status == :healthy and not is_nil(nylas_grant_id))
+      prepare build(sort: [inserted_at: :asc])
     end
 
     create :create_from_nylas do

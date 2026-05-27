@@ -16,13 +16,13 @@ defmodule Colt.Jobs.SendDueEmails do
     max_attempts: 1,
     unique: [period: 30, states: [:available, :scheduled, :executing]]
 
-  alias Colt.Resources.Email
+  alias Colt.Resources.OutboundEmail
 
   @impl true
   def perform(_job) do
     now = DateTime.utc_now()
 
-    case Email.list_due(now, 200, authorize?: false) do
+    case OutboundEmail.list_due(now, 200, authorize?: false) do
       {:ok, rows} ->
         Enum.each(rows, fn email -> Colt.Jobs.SendOne.enqueue(email.id) end)
         {:ok, length(rows)}

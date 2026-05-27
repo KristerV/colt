@@ -12,7 +12,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
   use ColtWeb, :live_view
 
-  alias Colt.Resources.{Campaign, CampaignCompany, CampaignContact, Email, Sequence}
+  alias Colt.Resources.{Campaign, CampaignCompany, CampaignContact, OutboundEmail, Sequence}
   alias Colt.Services.Sending.{ApproveContact, IngestEnriched}
   alias Colt.Services.Sending.EmailWriter
   alias Phoenix.PubSub
@@ -234,8 +234,7 @@ defmodule ColtWeb.Sending.WritingLive do
   end
 
   defp list_outbound_drafts(%{thread: %{id: tid}}, actor) do
-    Email.list_for_thread!(tid, actor: actor, authorize?: actor != nil)
-    |> Enum.filter(&(&1.direction == :outbound))
+    OutboundEmail.list_for_thread!(tid, actor: actor, authorize?: actor != nil)
     |> Enum.sort_by(& &1.step_position)
   end
 
@@ -692,7 +691,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -   {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -    {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}

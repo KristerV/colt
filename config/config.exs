@@ -25,7 +25,8 @@ config :colt, Oban,
      crontab: [
        {"0 3 1 * *", Colt.Jobs.RikIngest},
        {"0 4 1 * *", Colt.Jobs.PrhIngest},
-       {"* * * * *", Colt.Jobs.SendDueEmails}
+       {"* * * * *", Colt.Jobs.SendDueEmails},
+       {"* * * * *", Colt.Jobs.PollInbounds}
      ]}
   ]
 

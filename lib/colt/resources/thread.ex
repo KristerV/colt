@@ -22,6 +22,7 @@ defmodule Colt.Resources.Thread do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :for_contact, args: [:campaign_contact_id]
+    define :find_by_nylas_thread_id, args: [:nylas_thread_id]
     define :create_for_contact, args: [:campaign_contact_id]
     define :set_nylas_thread_id, args: [:nylas_thread_id]
     define :touch_activity, args: [:last_activity_at]
@@ -35,6 +36,12 @@ defmodule Colt.Resources.Thread do
     read :for_contact do
       argument :campaign_contact_id, :uuid, allow_nil?: false
       filter expr(campaign_contact_id == ^arg(:campaign_contact_id))
+      get? true
+    end
+
+    read :find_by_nylas_thread_id do
+      argument :nylas_thread_id, :string, allow_nil?: false
+      filter expr(nylas_thread_id == ^arg(:nylas_thread_id))
       get? true
     end
 
@@ -98,7 +105,8 @@ defmodule Colt.Resources.Thread do
       allow_nil?: false,
       public?: true
 
-    has_many :emails, Colt.Resources.Email
+    has_many :outbound_emails, Colt.Resources.OutboundEmail
+    has_many :inbound_emails, Colt.Resources.InboundEmail
     has_many :notes, Colt.Resources.Note
   end
 

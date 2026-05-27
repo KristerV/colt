@@ -501,7 +501,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Panic switch wiring (toggle in sidebar header).
 - **Acceptance**: approve a contact, watch step 1 send within the burst window (or be visibly scheduled for next workday morning if outside hours). Toggle panic; subsequent ticks skip. Manually insert a duplicate `Email` to the same recipient and watch the job raise.
 
-### Phase E6 — Inbound polling + reply categorizer
+### Phase E6 — Inbound polling + reply categorizer ✅ done
 - `PollInbounds` Oban cron, 30s, per healthy `EmailAccount`. Uses `last_sync_at` cursor.
 - `IngestInboundMessage` Oban job (thread match by `nylas_thread_id` + domain fallback).
 - `CategorizeReply` job (Claude 4.5 Sonnet, 4-way category).

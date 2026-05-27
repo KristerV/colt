@@ -33,6 +33,7 @@ defmodule Colt.Resources.CampaignContact do
     define :mark_failed
     define :set_status, args: [:status]
     define :count_assigned_today, args: [:email_account_id]
+    define :find_active_in_inbox_by_domain, args: [:email_account_id, :domain_suffix]
   end
 
   actions do
@@ -108,6 +109,26 @@ defmodule Colt.Resources.CampaignContact do
     update :set_status do
       accept [:status]
       require_atomic? false
+    end
+
+    read :find_active_in_inbox_by_domain do
+      description """
+      Cross-domain reply fallback (§1.9/§7.2.4). Latest in-flight contact
+      assigned to this inbox whose person email ends in @domain_suffix.
+      Excludes terminal statuses.
+      """
+
+      argument :email_account_id, :uuid, allow_nil?: false
+      argument :domain_suffix, :string, allow_nil?: false
+
+      filter expr(
+               assigned_email_account_id == ^arg(:email_account_id) and
+                 status in [:approved, :sending] and
+                 fragment("lower(?) like '%@' || lower(?)", person.email, ^arg(:domain_suffix))
+             )
+
+      prepare build(sort: [updated_at: :desc], limit: 1)
+      get? true
     end
 
     read :count_assigned_today do

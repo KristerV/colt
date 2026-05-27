@@ -18,7 +18,8 @@ defmodule Colt.Domain do
     resource Colt.Resources.SequenceStep
     resource Colt.Resources.CampaignContact
     resource Colt.Resources.Thread
-    resource Colt.Resources.Email
+    resource Colt.Resources.OutboundEmail
+    resource Colt.Resources.InboundEmail
     resource Colt.Resources.Note
     resource Colt.Resources.Pitch
   end

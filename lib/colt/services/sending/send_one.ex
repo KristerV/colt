@@ -1,6 +1,6 @@
 defmodule Colt.Services.Sending.SendOne do
   @moduledoc """
-  Send a single scheduled outbound Email through Nylas, then schedule the
+  Send a single scheduled OutboundEmail through Nylas, then schedule the
   next step in the contact's sequence snapshot (if any).
 
   Steps (run/1):
@@ -13,7 +13,7 @@ defmodule Colt.Services.Sending.SendOne do
     5. Compose payload (subject = user_? || ai_?, body likewise).
     6. `Colt.Nylas.send_message` — single attempt; Oban owns retry.
     7. Mark sent + store nylas ids.
-    8. Schedule the next step's Email (status :approved → :scheduled) using
+    8. Schedule the next step's OutboundEmail (status :approved → :scheduled) using
        the burst scheduler, lower bound `sent_at + delay_days`.
     9. Broadcast `{:email_sent, …}` on `campaign:<id>`.
   """
@@ -23,7 +23,7 @@ defmodule Colt.Services.Sending.SendOne do
   alias Colt.Resources.{
     CampaignContact,
     CampaignEmailAccount,
-    Email,
+    OutboundEmail,
     Thread
   }
 
@@ -50,7 +50,7 @@ defmodule Colt.Services.Sending.SendOne do
 
   defp load(email_id) do
     with {:ok, email} <-
-           Ash.get(Email, email_id,
+           Ash.get(OutboundEmail, email_id,
              load: [
                thread: [campaign_contact: [:person, :campaign]],
                email_account: []
@@ -82,7 +82,7 @@ defmodule Colt.Services.Sending.SendOne do
   defp check_dedupe(%{email: email, person: person, campaign: campaign}) do
     since = DateTime.utc_now() |> DateTime.add(-@dedupe_window_hours * 3600, :second)
 
-    case Email.recent_to_recipient(person.email, campaign.id, since, authorize?: false) do
+    case OutboundEmail.recent_to_recipient(person.email, campaign.id, since, authorize?: false) do
       {:ok, rows} ->
         case Enum.reject(rows, &(&1.id == email.id)) do
           [] ->
@@ -158,7 +158,7 @@ defmodule Colt.Services.Sending.SendOne do
     sent_at = DateTime.utc_now()
 
     with {:ok, _} <-
-           Email.mark_sent(ctx.email, message_id, thread_id, sent_at, authorize?: false),
+           OutboundEmail.mark_sent(ctx.email, message_id, thread_id, sent_at, authorize?: false),
          {:ok, _} <- maybe_stamp_thread(ctx.email.thread_id, message_id, thread_id, sent_at),
          {:ok, next} <- schedule_next_step(ctx, sent_at) do
       Broadcast.sent(ctx.campaign.id, ctx.email.id, ctx.contact.id, ctx.email.step_position)
@@ -217,16 +217,16 @@ defmodule Colt.Services.Sending.SendOne do
              not_before <- DateTime.add(sent_at, (delay || 0) * 86_400, :second),
              {:ok, slot} <-
                NextSlot.run(ctx.inbox, not_before, step_position: current_pos + 1),
-             {:ok, _} <- Email.schedule(next_email, slot, ctx.inbox.id, authorize?: false) do
+             {:ok, _} <- OutboundEmail.schedule(next_email, slot, ctx.inbox.id, authorize?: false) do
           {:ok, {:scheduled, next_email.id, current_pos + 1}}
         end
     end
   end
 
   defp find_next_email(ctx, position) do
-    case Email.list_for_thread(ctx.email.thread_id, authorize?: false) do
+    case OutboundEmail.list_for_thread(ctx.email.thread_id, authorize?: false) do
       {:ok, rows} ->
-        case Enum.find(rows, &(&1.step_position == position and &1.direction == :outbound)) do
+        case Enum.find(rows, &(&1.step_position == position)) do
           nil -> {:error, {:no_email_for_step, position}}
           row -> {:ok, row}
         end

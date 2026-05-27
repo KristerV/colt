@@ -14,7 +14,7 @@ defmodule Colt.Jobs.SendOne do
     max_attempts: 3,
     unique: [period: 600, states: [:available, :scheduled, :executing, :retryable]]
 
-  alias Colt.Resources.Email
+  alias Colt.Resources.OutboundEmail
   alias Colt.Services.Sending.SendOne
 
   def enqueue(email_id) when is_binary(email_id) do
@@ -45,8 +45,8 @@ defmodule Colt.Jobs.SendOne do
   end
 
   defp mark_failed(email_id) do
-    case Ash.get(Email, email_id, authorize?: false) do
-      {:ok, email} -> Email.mark_failed(email, authorize?: false)
+    case Ash.get(OutboundEmail, email_id, authorize?: false) do
+      {:ok, email} -> OutboundEmail.mark_failed(email, authorize?: false)
       _ -> :ok
     end
   end

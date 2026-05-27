@@ -21,7 +21,7 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "direction",
+      "source": "from_address",
       "type": "text"
     },
     {
@@ -33,19 +33,7 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "step_position",
-      "type": "bigint"
-    },
-    {
-      "allow_nil?": true,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "ai_subject",
+      "source": "subject",
       "type": "text"
     },
     {
@@ -57,59 +45,11 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "ai_body",
-      "type": "text"
-    },
-    {
-      "allow_nil?": true,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "user_subject",
-      "type": "text"
-    },
-    {
-      "allow_nil?": true,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "user_body",
+      "source": "body",
       "type": "text"
     },
     {
       "allow_nil?": false,
-      "default": "false",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "is_manual_reply",
-      "type": "boolean"
-    },
-    {
-      "allow_nil?": false,
-      "default": "\"drafted\"",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "status",
-      "type": "text"
-    },
-    {
-      "allow_nil?": true,
       "default": "nil",
       "generated?": false,
       "precision": null,
@@ -117,19 +57,7 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "scheduled_at",
-      "type": "utc_datetime_usec"
-    },
-    {
-      "allow_nil?": true,
-      "default": "nil",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "sent_at",
+      "source": "received_at",
       "type": "utc_datetime_usec"
     },
     {
@@ -169,16 +97,16 @@
       "type": "text"
     },
     {
-      "allow_nil?": true,
-      "default": "nil",
+      "allow_nil?": false,
+      "default": "false",
       "generated?": false,
       "precision": null,
       "primary_key?": false,
       "references": null,
       "scale": null,
       "size": null,
-      "source": "bounce_reason",
-      "type": "text"
+      "source": "auto_attached?",
+      "type": "boolean"
     },
     {
       "allow_nil?": false,
@@ -223,7 +151,7 @@
           "global": null,
           "strategy": null
         },
-        "name": "emails_thread_id_fkey",
+        "name": "inbound_emails_thread_id_fkey",
         "on_delete": "delete",
         "on_update": null,
         "primary_key?": true,
@@ -254,7 +182,7 @@
           "global": null,
           "strategy": null
         },
-        "name": "emails_email_account_id_fkey",
+        "name": "inbound_emails_email_account_id_fkey",
         "on_delete": "nilify",
         "on_update": null,
         "primary_key?": true,
@@ -273,12 +201,12 @@
   "custom_indexes": [],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "EFF4AC3BF00341DE7E3CA0F428FE8F328DE0EF15C95E17F7940286B126E6F5C9",
+  "hash": "6C2C02C31E298B2542A04E3FA58B32C4203405835AB5E4C2C7202CA1D0210785",
   "identities": [
     {
       "all_tenants?": false,
       "base_filter": null,
-      "index_name": "emails_unique_nylas_message_index",
+      "index_name": "inbound_emails_unique_nylas_message_index",
       "keys": [
         {
           "type": "atom",
@@ -297,5 +225,5 @@
   },
   "repo": "Elixir.Colt.Repo",
   "schema": null,
-  "table": "emails"
+  "table": "inbound_emails"
 }

@@ -258,11 +258,27 @@ defmodule Colt.Services.Ai.Complete do
     do: {:error, "model returned empty response (likely exhausted reasoning budget)"}
 
   defp parse_content(raw, :json) do
-    case Jason.decode(raw) do
+    cleaned = strip_code_fence(raw)
+
+    case Jason.decode(cleaned) do
       {:ok, decoded} -> {:ok, decoded}
       {:error, _} -> {:error, "model returned non-JSON content: #{String.slice(raw, 0, 500)}"}
     end
   end
+
+  # Backup for the json_schema response_format: even with strict schema,
+  # Claude/GLM occasionally wrap JSON in ```json … ``` fences. Strip them
+  # before decoding so the caller never sees this quirk.
+  defp strip_code_fence(raw) when is_binary(raw) do
+    trimmed = String.trim(raw)
+
+    case Regex.run(~r/\A```(?:json)?\s*\n?(.*?)\n?```\z/s, trimmed, capture: :all_but_first) do
+      [inner] -> String.trim(inner)
+      _ -> trimmed
+    end
+  end
+
+  defp strip_code_fence(raw), do: raw
 
   defp parse_content(raw, _), do: {:ok, raw}
 
