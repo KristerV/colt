@@ -522,7 +522,8 @@ defmodule ColtWeb.Sending.SequenceLive do
           class="w-[7px] h-[7px] rounded-full"
           style={
             if(@campaign.auto_approve_on?,
-              do: "background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);",
+              do:
+                "background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);",
               else: "background: var(--ink40);"
             )
           }

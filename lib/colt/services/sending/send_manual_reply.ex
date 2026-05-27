@@ -91,18 +91,25 @@ defmodule Colt.Services.Sending.SendManualReply do
 
   defp persist(thread, inbox, subject, body, resp) do
     message_id = Map.get(resp, "id") || Map.get(resp, :id)
-    nylas_thread_id = Map.get(resp, "thread_id") || Map.get(resp, :thread_id) || thread.nylas_thread_id
+
+    nylas_thread_id =
+      Map.get(resp, "thread_id") || Map.get(resp, :thread_id) || thread.nylas_thread_id
 
     sent_at = DateTime.utc_now()
 
-    Ash.create(OutboundEmail, %{
-      thread_id: thread.id,
-      email_account_id: inbox.id,
-      user_subject: subject,
-      user_body: body,
-      nylas_message_id: message_id,
-      nylas_thread_id: nylas_thread_id,
-      sent_at: sent_at
-    }, action: :create_manual_reply, authorize?: false)
+    Ash.create(
+      OutboundEmail,
+      %{
+        thread_id: thread.id,
+        email_account_id: inbox.id,
+        user_subject: subject,
+        user_body: body,
+        nylas_message_id: message_id,
+        nylas_thread_id: nylas_thread_id,
+        sent_at: sent_at
+      },
+      action: :create_manual_reply,
+      authorize?: false
+    )
   end
 end

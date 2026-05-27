@@ -13,7 +13,11 @@ defmodule Colt.Services.Sending.StopSequence do
     actor = Keyword.get(opts, :actor)
 
     with {:ok, contact} <-
-           Ash.get(CampaignContact, contact_id, load: [:thread], actor: actor, authorize?: actor != nil),
+           Ash.get(CampaignContact, contact_id,
+             load: [:thread],
+             actor: actor,
+             authorize?: actor != nil
+           ),
          {:ok, halted} <- maybe_halt(contact.thread),
          {:ok, contact} <-
            CampaignContact.stop_sequence(contact, actor: actor, authorize?: actor != nil) do

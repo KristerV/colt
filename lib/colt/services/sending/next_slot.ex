@@ -74,8 +74,16 @@ defmodule Colt.Services.Sending.NextSlot do
               {:ok, DateTime.add(last, jitter_min * 60, :second)}
 
             true ->
-              next = DateTime.add(last, 60 * 60, :second)
-              loop(bump_into_workday(next), account, actor, n + 1)
+              # Start a new burst no sooner than 60min after the last
+              # send, but never roll backward from the caller's candidate.
+              next_burst = DateTime.add(last, 60 * 60, :second)
+              next_candidate = candidate |> max_dt(next_burst) |> bump_into_workday()
+
+              if DateTime.to_date(next_candidate) == DateTime.to_date(candidate) do
+                {:ok, next_candidate}
+              else
+                loop(next_candidate, account, actor, n + 1)
+              end
           end
       end
     end

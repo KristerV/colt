@@ -75,12 +75,18 @@ defmodule Colt.Services.Sending.AutoDraftAndApprove do
   end
 
   defp approve(contact, inbox, snapshot, version, actor) do
-    Ash.update(contact, %{
-      assigned_email_account_id: inbox.id,
-      sequence_snapshot: snapshot,
-      sequence_version: version,
-      auto_approved?: true
-    }, action: :approve, actor: actor, authorize?: actor != nil)
+    Ash.update(
+      contact,
+      %{
+        assigned_email_account_id: inbox.id,
+        sequence_snapshot: snapshot,
+        sequence_version: version,
+        auto_approved?: true
+      },
+      action: :approve,
+      actor: actor,
+      authorize?: actor != nil
+    )
   end
 
   defp schedule_step_one([], _, _), do: {:ok, nil}

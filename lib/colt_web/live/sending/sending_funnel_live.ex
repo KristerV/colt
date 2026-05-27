@@ -19,6 +19,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   }
 
   alias Colt.Services.Sending.{ManualOverride, SendManualReply, Stats, StopSequence}
+  alias Phoenix.LiveView.JS
   alias ColtWeb.Components.Liid
   alias Phoenix.PubSub
 
@@ -46,11 +47,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             campaign: campaign,
             contacts: contacts,
             selected: selected,
-            selected_bucket: nil,
+            selected_bucket: :interested,
             stats: stats,
             sent_steps: sent_steps,
             active_tab: :reply,
             reply_html: "",
+            reply_nonce: 0,
             note_body: "",
             sending?: false,
             error: nil
@@ -67,10 +69,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   # ── Events ───────────────────────────────────────────────────────────
 
   def handle_event("select_bucket", %{"bucket" => b}, socket) do
-    bucket = if b == "all", do: nil, else: String.to_atom(b)
-
-    visible =
-      visible_contacts(socket.assigns.contacts, bucket, socket.assigns.sent_steps)
+    bucket = String.to_existing_atom(b)
+    visible = visible_contacts(socket.assigns.contacts, bucket, socket.assigns.sent_steps)
 
     socket =
       socket
@@ -119,15 +119,19 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           {:ok, _email} ->
             socket =
               socket
-              |> assign(reply_html: "", sending?: false, error: nil)
+              |> assign(
+                reply_html: "",
+                reply_nonce: socket.assigns.reply_nonce + 1,
+                sending?: false,
+                error: nil
+              )
               |> load_thread_data()
               |> put_flash(:info, "Reply sent.")
 
             {:noreply, socket}
 
           {:error, reason} ->
-            {:noreply,
-             assign(socket, error: "Send failed: #{inspect(reason)}", sending?: false)}
+            {:noreply, assign(socket, error: "Send failed: #{inspect(reason)}", sending?: false)}
         end
     end
   end
@@ -271,10 +275,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     end)
   end
 
-  defp contact_in_bucket?(c, :sending, sent_map) do
-    c.status in [:pending_approval, :approved, :sending] or
-      (c.status == :sending and Map.has_key?(sent_map, c.id))
-  end
+  defp contact_in_bucket?(c, :sending, _sent_map),
+    do: c.status in [:approved, :sending]
 
   defp contact_in_bucket?(c, :call_ready, _), do: c.status == :call_ready
 
@@ -312,7 +314,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp build_timeline(outbound, inbound, notes) do
     out_items =
-      Enum.map(outbound, fn e ->
+      outbound
+      |> Enum.reject(&(&1.status == :skipped))
+      |> Enum.map(fn e ->
         %{
           kind: if(e.is_manual_reply, do: :manual_outbound, else: :outbound),
           at: e.sent_at || e.scheduled_at || e.inserted_at,
@@ -342,14 +346,28 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp format_override(:call_ready), do: "call ready"
   defp format_override(:no_reply), do: "no reply"
 
-  defp status_label(:pending_approval), do: {"pending", "ink55"}
-  defp status_label(:approved), do: {"approved", "ink70"}
-  defp status_label(:sending), do: {"sending", "ink70"}
-  defp status_label(:replied), do: {"replied", "accent"}
-  defp status_label(:call_ready), do: {"call ready", "accent"}
-  defp status_label(:no_reply), do: {"no reply", "ink40"}
-  defp status_label(:bounced), do: {"bounced", "warn"}
-  defp status_label(:failed), do: {"failed", "fail"}
+  defp status_label(%{status: status, reply_category: cat}) do
+    {label, tone} = base_status_label(status)
+
+    case cat do
+      nil -> {label, tone}
+      _ -> {label <> " · " <> category_label(cat), tone}
+    end
+  end
+
+  defp base_status_label(:pending_approval), do: {"pending", "ink55"}
+  defp base_status_label(:approved), do: {"approved", "ink70"}
+  defp base_status_label(:sending), do: {"sending", "ink70"}
+  defp base_status_label(:replied), do: {"replied", "accent"}
+  defp base_status_label(:call_ready), do: {"call ready", "accent"}
+  defp base_status_label(:no_reply), do: {"no reply", "ink40"}
+  defp base_status_label(:bounced), do: {"bounced", "warn"}
+  defp base_status_label(:failed), do: {"failed", "fail"}
+
+  defp category_label(:interested), do: "interested"
+  defp category_label(:not_interested), do: "not interested"
+  defp category_label(:ooo), do: "ooo"
+  defp category_label(:other), do: "other"
 
   defp terminal?(s), do: s in [:replied, :no_reply, :bounced, :failed, :call_ready]
 
@@ -393,6 +411,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               timeline={@timeline}
               active_tab={@active_tab}
               reply_html={@reply_html}
+              reply_nonce={@reply_nonce}
               note_body={@note_body}
               sending?={@sending?}
               error={@error}
@@ -433,13 +452,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp bucket_strip(assigns) do
     b = assigns.stats.buckets
-    sending = Map.get(b, :pending, 0) + Map.get(b, :pending_send, 0) +
-                Enum.reduce(b, 0, fn {k, n}, acc ->
-                  case Atom.to_string(k) do
-                    "step_" <> _ -> acc + n
-                    _ -> acc
-                  end
-                end)
+
+    sending =
+      Map.get(b, :pending_send, 0) +
+        Enum.reduce(b, 0, fn {k, n}, acc ->
+          case Atom.to_string(k) do
+            "step_" <> _ -> acc + n
+            _ -> acc
+          end
+        end)
 
     not_interested =
       Map.get(b, :replied_not_interested, 0) + Map.get(b, :replied_ooo, 0) +
@@ -459,7 +480,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         label: "Call ready",
         big: Map.get(b, :call_ready, 0),
         unit: "contacts",
-        sub: "awaiting follow-up",
+        sub: "",
         tone: :accent
       },
       %{
@@ -482,15 +503,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         label: "Failed",
         big: Map.get(b, :failed, 0),
         unit: "contacts",
-        sub: "retry available",
+        sub: "#{failure_rate(b, assigns.stats.total_contacts)}% failure rate",
         tone: :fail
       },
       %{
         k: :bounced,
         label: "Bounced",
-        big: assigns.stats.bounce_rate,
-        unit: "%",
-        sub: "#{assigns.stats.total_bounced} contacts",
+        big: assigns.stats.total_bounced,
+        unit: "contacts",
+        sub: "#{Float.round(assigns.stats.bounce_rate, 1)}% bounce rate",
         tone: bounce_tone(assigns.stats.bounce_rate)
       }
     ]
@@ -510,15 +531,24 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             active? && "bg-paperAlt"
           ]}
         >
-          <span :if={active?} class="absolute left-0 right-0 bottom-0 h-[2px]" style="background: var(--accent);" />
+          <span
+            :if={active?}
+            class="absolute left-0 right-0 bottom-0 h-[2px]"
+            style="background: var(--accent);"
+          />
           <div class="flex items-center gap-2 mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink55">
-            <span :if={Map.get(t, :pulse)}
-                  class="w-[5px] h-[5px] rounded-full"
-                  style={"background: #{tone_color(Map.get(t, :tone, :ink))}; animation: liid-pulse 1.4s ease-in-out infinite;"} />
+            <span
+              :if={Map.get(t, :pulse)}
+              class="w-[5px] h-[5px] rounded-full"
+              style={"background: #{tone_color(Map.get(t, :tone, :ink))}; animation: liid-pulse 1.4s ease-in-out infinite;"}
+            />
             {t.label}
           </div>
           <div class="flex items-baseline gap-1.5">
-            <span class="font-serif text-[36px] leading-none tabular-nums" style={"color: #{tone_color(Map.get(t, :tone, :ink))};"}>
+            <span
+              class="font-serif text-[36px] leading-none tabular-nums"
+              style={"color: #{tone_color(Map.get(t, :tone, :ink))};"}
+            >
               {t.big}
             </span>
             <span class="font-mono text-[11px] text-ink55">{t.unit}</span>
@@ -529,11 +559,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         </button>
       <% end %>
     </div>
-    <div :if={@selected_bucket} class="mt-2 font-mono text-[10px] text-ink55">
-      <button phx-click="select_bucket" phx-value-bucket="all" class="underline">clear filter</button>
-    </div>
     """
   end
+
+  defp failure_rate(_, 0), do: 0.0
+
+  defp failure_rate(buckets, total),
+    do: Float.round(Map.get(buckets, :failed, 0) / total * 100, 1)
 
   defp bounce_tone(rate) when is_number(rate) and rate >= 5.0, do: :fail
   defp bounce_tone(rate) when is_number(rate) and rate >= 3.0, do: :warn
@@ -551,13 +583,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp contact_list(assigns) do
     ~H"""
     <div class="border-r border-rule overflow-y-auto bg-paper">
-      <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10 flex justify-between">
-        <span>{length(@contacts)} contacts</span>
-        <span :if={@selected_bucket}>filtered</span>
+      <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10">
+        {length(@contacts)} contacts
       </div>
       <%= for c <- @contacts do %>
         <% active? = @selected && @selected.id == c.id %>
-        <% {label, tone} = status_label(c.status) %>
+        <% {label, tone} = status_label(c) %>
         <button
           phx-click="select_contact"
           phx-value-id={c.id}
@@ -591,6 +622,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   attr :timeline, :list, required: true
   attr :active_tab, :atom, required: true
   attr :reply_html, :string, required: true
+  attr :reply_nonce, :integer, required: true
   attr :note_body, :string, required: true
   attr :sending?, :boolean, required: true
   attr :recipient, :string, default: ""
@@ -598,7 +630,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   attr :campaign_id, :string, required: true
 
   defp thread_pane(assigns) do
-    {status_text, status_tone} = status_label(assigns.contact.status)
+    {status_text, status_tone} = status_label(assigns.contact)
     recipient = (assigns.contact.person && assigns.contact.person.email) || ""
 
     assigns =
@@ -624,27 +656,31 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
-          <span class={"font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 border border-rule rounded-[2px] text-#{@status_tone}"}>
-            ● {@status_text}
-          </span>
-
-          <details class="relative">
-            <summary class="list-none cursor-pointer">
-              <Liid.btn size={:small} mono>Mark as ▾</Liid.btn>
-            </summary>
-            <div class="absolute right-0 mt-1 bg-paper border border-rule rounded-[2px] z-20 min-w-[180px] shadow-sm">
-              <%= for o <- @overrides do %>
-                <button
-                  phx-click="mark_as"
-                  phx-value-override={o}
-                  class="block w-full text-left px-3 py-2 font-mono text-[11px] hover:bg-paperAlt"
-                >
-                  {format_override(o)}
-                </button>
-              <% end %>
-            </div>
-          </details>
+        <div class="flex items-center gap-2 relative">
+          <button
+            type="button"
+            phx-click={JS.toggle(to: "#status-menu-#{@contact.id}")}
+            class={"font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 border border-rule rounded-[2px] cursor-pointer hover:bg-paperAlt text-#{@status_tone}"}
+          >
+            ● {@status_text} ▾
+          </button>
+          <div
+            id={"status-menu-#{@contact.id}"}
+            class="hidden absolute right-0 top-full mt-1 bg-paper border border-rule rounded-[2px] z-20 min-w-[180px] shadow-sm"
+            phx-click-away={JS.hide(to: "#status-menu-#{@contact.id}")}
+          >
+            <%= for o <- @overrides do %>
+              <button
+                phx-click={
+                  JS.push("mark_as", value: %{override: o})
+                  |> JS.hide(to: "#status-menu-#{@contact.id}")
+                }
+                class="block w-full text-left px-3 py-2 font-mono text-[11px] hover:bg-paperAlt"
+              >
+                {format_override(o)}
+              </button>
+            <% end %>
+          </div>
 
           <Liid.btn
             size={:small}
@@ -671,6 +707,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <.composer
           active_tab={@active_tab}
           reply_html={@reply_html}
+          reply_nonce={@reply_nonce}
           note_body={@note_body}
           sending?={@sending?}
           recipient={@recipient}
@@ -759,10 +796,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <span>{@sender}</span>
         <span>·</span>
         <span>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
-        <span :if={@item.email.status == :scheduled} class="text-ink40">· scheduled</span>
-        <span :if={@item.email.status == :bounced} class="text-warn">· bounced</span>
-        <span :if={@item.email.status == :failed} class="text-fail">· failed</span>
-        <span :if={@item.email.status == :skipped} class="text-ink40">· skipped</span>
+        <span :if={@outbound? and @item.email.status == :scheduled} class="text-ink40">
+          · scheduled
+        </span>
+        <span :if={@outbound? and @item.email.status == :bounced} class="text-warn">· bounced</span>
+        <span :if={@outbound? and @item.email.status == :failed} class="text-fail">· failed</span>
+        <span :if={@outbound? and @item.email.status == :skipped} class="text-ink40">· skipped</span>
       </div>
       <div
         class={[
@@ -792,6 +831,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   attr :active_tab, :atom, required: true
   attr :reply_html, :string, required: true
+  attr :reply_nonce, :integer, required: true
   attr :note_body, :string, required: true
   attr :sending?, :boolean, required: true
   attr :recipient, :string, required: true
@@ -838,12 +878,17 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       <div
         :if={@active_tab == :reply}
         class="px-6 py-4"
-        id="trix-wrap"
+        id={"trix-wrap-#{@reply_nonce}"}
         phx-hook="TrixEditor"
         phx-update="ignore"
       >
-        <input id="trix-content" type="hidden" value={@reply_html} />
-        <trix-editor input="trix-content" class="trix-content" style="min-height:120px;"></trix-editor>
+        <input id={"trix-content-#{@reply_nonce}"} type="hidden" value={@reply_html} />
+        <trix-editor
+          input={"trix-content-#{@reply_nonce}"}
+          class="trix-content"
+          style="min-height:120px;"
+        >
+        </trix-editor>
         <div class="mt-3 flex justify-end">
           <Liid.btn
             variant={:primary}
