@@ -141,6 +141,12 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 />
                 <span class="font-mono text-[10px] text-ink40">/day</span>
               </form>
+              <.link
+                navigate={~p"/email-accounts/#{a.id}/stats"}
+                class="no-underline px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] hover:text-ink hover:border-ink40"
+              >
+                stats
+              </.link>
               <Liid.btn
                 :if={a.status != :disconnected}
                 size={:small}

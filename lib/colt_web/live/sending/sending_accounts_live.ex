@@ -190,7 +190,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         </div>
 
         <div class="border border-rule rounded-[2px] overflow-hidden">
-          <div class="grid grid-cols-[1fr_120px_140px_120px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
+          <div class="grid grid-cols-[1fr_120px_140px_160px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
             <div class="px-[18px] py-3">Account</div>
             <div class="px-[14px] py-3 text-right">Quota</div>
             <div class="px-[14px] py-3">Status</div>
@@ -339,7 +339,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
   defp enrolled_row(assigns) do
     ~H"""
     <div class={[
-      "grid grid-cols-[1fr_120px_140px_120px] items-center",
+      "grid grid-cols-[1fr_120px_140px_160px] items-center",
       !@last && "border-b border-rule"
     ]}>
       <div class="px-[18px] py-3.5">
@@ -354,7 +354,13 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
       <div class="px-[14px] py-3.5">
         <.status_pill enrollment={@enrollment} account={@account} />
       </div>
-      <div class="px-[14px] py-3.5 text-right">
+      <div class="px-[14px] py-3.5 text-right flex items-center justify-end gap-2">
+        <.link
+          navigate={~p"/email-accounts/#{@account.id}/stats"}
+          class="no-underline px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] hover:text-ink hover:border-ink40"
+        >
+          stats
+        </.link>
         <button
           type="button"
           phx-click="remove"

@@ -25,6 +25,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :list_for_thread, args: [:thread_id]
     define :list_due, args: [:now, :limit]
     define :list_today_for_account, args: [:email_account_id, :day_start, :day_end]
+    define :list_for_account_window, args: [:email_account_id, :from, :to]
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
     define :list_halt_eligible_for_thread, args: [:thread_id]
@@ -80,6 +81,27 @@ defmodule Colt.Resources.OutboundEmail do
                email_account_id == ^arg(:email_account_id) and
                  status in [:scheduled, :sent] and
                  scheduled_at >= ^arg(:day_start) and scheduled_at < ^arg(:day_end)
+             )
+
+      prepare build(sort: [scheduled_at: :asc])
+    end
+
+    read :list_for_account_window do
+      description """
+      All outbound rows for an account whose effective timestamp
+      (sent_at if present, otherwise scheduled_at) falls inside the
+      [from, to) window. Used by the per-account stats view.
+      """
+
+      argument :email_account_id, :uuid, allow_nil?: false
+      argument :from, :utc_datetime_usec, allow_nil?: false
+      argument :to, :utc_datetime_usec, allow_nil?: false
+
+      filter expr(
+               email_account_id == ^arg(:email_account_id) and
+                 status in [:scheduled, :sent, :failed, :bounced] and
+                 fragment("coalesce(?, ?)", sent_at, scheduled_at) >= ^arg(:from) and
+                 fragment("coalesce(?, ?)", sent_at, scheduled_at) < ^arg(:to)
              )
 
       prepare build(sort: [scheduled_at: :asc])
