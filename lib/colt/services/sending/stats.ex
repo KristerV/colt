@@ -39,13 +39,20 @@ defmodule Colt.Services.Sending.Stats do
     sent = Enum.filter(outbound, &(&1.status == :sent))
     bounced = Enum.filter(outbound, &(&1.status == :bounced))
 
+    opened = Enum.count(sent, &(&1.opens_count > 0))
+    clicked = Enum.count(sent, &(&1.clicks_count > 0))
+
     %{
       total_contacts: length(contacts),
       total_sent: length(sent),
       total_bounced: length(bounced),
+      total_opened: opened,
+      total_clicked: clicked,
       bounce_rate: rate(length(bounced), length(sent)),
       reply_rate: reply_rate(contacts, length(sent)),
       interest_rate: interest_rate(contacts),
+      open_rate: rate(opened, length(sent)),
+      click_rate: rate(clicked, length(sent)),
       daily_avg: daily_avg(sent),
       buckets: bucket_counts(contacts, outbound)
     }

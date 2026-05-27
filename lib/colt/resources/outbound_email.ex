@@ -43,6 +43,8 @@ defmodule Colt.Resources.OutboundEmail do
     define :mark_bounced, args: [:bounce_reason]
     define :mark_failed
     define :mark_skipped
+    define :update_tracking_counts, args: [:opens_count, :clicks_count]
+    define :list_recent_for_tracking, args: [:since]
   end
 
   actions do
@@ -241,6 +243,36 @@ defmodule Colt.Resources.OutboundEmail do
       require_atomic? false
       change set_attribute(:status, :skipped)
     end
+
+    update :update_tracking_counts do
+      description "Sync open/click counts pulled from Nylas for one outbound message."
+      accept [:opens_count, :clicks_count]
+      require_atomic? false
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :tracking_synced_at, DateTime.utc_now())
+      end
+    end
+
+    read :list_recent_for_tracking do
+      description """
+      Sent outbound rows that may have open/click activity to pull from
+      Nylas. Filters to sends within the lookback window, in campaigns
+      with at least one tracking toggle on.
+      """
+
+      argument :since, :utc_datetime_usec, allow_nil?: false
+
+      filter expr(
+               status == :sent and
+                 sent_at >= ^arg(:since) and
+                 not is_nil(nylas_message_id) and
+                 (thread.campaign_contact.campaign.tracking_opens? == true or
+                    thread.campaign_contact.campaign.tracking_clicks? == true)
+             )
+
+      prepare build(sort: [sent_at: :desc])
+    end
   end
 
   policies do
@@ -294,6 +326,10 @@ defmodule Colt.Resources.OutboundEmail do
     attribute :bounce_reason, :string, public?: true
 
     attribute :writer_meta, :map, public?: true, default: %{}
+
+    attribute :opens_count, :integer, allow_nil?: false, default: 0, public?: true
+    attribute :clicks_count, :integer, allow_nil?: false, default: 0, public?: true
+    attribute :tracking_synced_at, :utc_datetime_usec, public?: true
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

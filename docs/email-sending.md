@@ -534,7 +534,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - §8. Campaign-level bounce-rate computation, panic-switch auto-flip at 50 sends / 5% threshold. Red banner.
 - **Acceptance**: simulate a bounce burst on a test campaign with seeded sends; campaign auto-pauses at 50/5%. Send loop honors the panic switch immediately.
 
-### Phase E12 — Open/click tracking
+### Phase E12 — Open/click tracking ✅ done
 - Per-campaign toggle, tracking-domain field + CNAME setup card.
 - Nylas send call passes tracking flags per-message.
 - Stats strip gains optional open + click rate tiles when enabled.

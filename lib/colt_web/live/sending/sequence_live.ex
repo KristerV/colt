@@ -285,7 +285,7 @@ defmodule ColtWeb.Sending.SequenceLive do
         >
           <.toggle on={@campaign.tracking_clicks?} field="clicks" />
         </.setting_row>
-        <.cname_card :if={@tracking_on?} domain={@campaign.tracking_domain} />
+        <.cname_card :if={@tracking_on?} domain={Colt.AppSettings.tracking_domain()} />
 
         <.section_divider label="Approval" />
         <.auto_approve_row campaign={@campaign} />

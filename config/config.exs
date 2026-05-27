@@ -26,7 +26,8 @@ config :colt, Oban,
        {"0 3 1 * *", Colt.Jobs.RikIngest},
        {"0 4 1 * *", Colt.Jobs.PrhIngest},
        {"* * * * *", Colt.Jobs.SendDueEmails},
-       {"* * * * *", Colt.Jobs.PollInbounds}
+       {"* * * * *", Colt.Jobs.PollInbounds},
+       {"*/10 * * * *", Colt.Jobs.PollTracking}
      ]}
   ]
 

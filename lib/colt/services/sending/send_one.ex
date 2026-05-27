@@ -134,11 +134,15 @@ defmodule Colt.Services.Sending.SendOne do
     subject = email.user_subject || email.ai_subject || ""
     body = email.user_body || email.ai_body || ""
 
-    case Nylas.send_message(inbox,
-           to: [person.email],
-           subject: subject,
-           body: plain_to_html(body)
-         ) do
+    send_opts =
+      [
+        to: [person.email],
+        subject: subject,
+        body: plain_to_html(body)
+      ]
+      |> maybe_put(:tracking_options, tracking_options(ctx.campaign))
+
+    case Nylas.send_message(inbox, send_opts) do
       {:ok, %{"id" => message_id} = resp} ->
         finalize_sent(ctx, message_id, resp["thread_id"])
 
@@ -270,4 +274,27 @@ defmodule Colt.Services.Sending.SendOne do
   end
 
   defp plain_to_html(_), do: ""
+
+  # Build Nylas tracking_options if the campaign has opens/clicks on AND
+  # a site-wide tracking domain is configured. Without a domain Nylas
+  # will reject tracking or fall back to its bare cname — which we don't
+  # want, per docs/email-sending.md §12.
+  defp tracking_options(%{tracking_opens?: false, tracking_clicks?: false}), do: nil
+
+  defp tracking_options(%{} = campaign) do
+    case Colt.AppSettings.tracking_domain() do
+      nil ->
+        nil
+
+      _domain ->
+        %{
+          opens: campaign.tracking_opens? == true,
+          links: campaign.tracking_clicks? == true,
+          tracking_label: "campaign:#{campaign.id}"
+        }
+    end
+  end
+
+  defp maybe_put(opts, _key, nil), do: opts
+  defp maybe_put(opts, key, value), do: Keyword.put(opts, key, value)
 end

@@ -398,6 +398,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           <.bucket_strip stats={@stats} selected_bucket={@selected_bucket} />
         </div>
 
+        <.tracking_strip
+          :if={@campaign.tracking_opens? or @campaign.tracking_clicks?}
+          campaign={@campaign}
+          stats={@stats}
+        />
+
         <div class="grid grid-cols-[360px_1fr] flex-1 min-h-0 border-t border-rule">
           <.contact_list
             contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
@@ -570,6 +576,44 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp bounce_tone(rate) when is_number(rate) and rate >= 5.0, do: :fail
   defp bounce_tone(rate) when is_number(rate) and rate >= 3.0, do: :warn
   defp bounce_tone(_), do: :default
+
+  attr :campaign, :map, required: true
+  attr :stats, :map, required: true
+
+  defp tracking_strip(assigns) do
+    ~H"""
+    <div class="px-7 pb-4">
+      <div class="grid grid-cols-2 border border-rule rounded-[2px] bg-paper">
+        <div :if={@campaign.tracking_opens?} class="p-4 border-r border-rule">
+          <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
+            Opens
+          </div>
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
+              {Float.round(@stats.open_rate, 1)}%
+            </span>
+            <span class="font-mono text-[11px] text-ink55">
+              {@stats.total_opened}/{@stats.total_sent}
+            </span>
+          </div>
+        </div>
+        <div :if={@campaign.tracking_clicks?} class="p-4">
+          <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
+            Clicks
+          </div>
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
+              {Float.round(@stats.click_rate, 1)}%
+            </span>
+            <span class="font-mono text-[11px] text-ink55">
+              {@stats.total_clicked}/{@stats.total_sent}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    """
+  end
 
   defp tone_color(:accent), do: "var(--accent)"
   defp tone_color(:fail), do: "var(--fail)"

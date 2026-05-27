@@ -43,8 +43,21 @@ defmodule ColtWeb.Admin.Summary do
         path: "/admin/costs"
       },
       oban_tile(),
-      system_tile()
+      system_tile(),
+      %{
+        kicker: "Email",
+        title: "Tracking",
+        value: tracking_domain_summary(),
+        path: "/admin/tracking-domain"
+      }
     ]
+  end
+
+  defp tracking_domain_summary do
+    case Colt.AppSettings.tracking_domain() do
+      nil -> "unset"
+      d -> d
+    end
   end
 
   attr :tiles, :list, required: true

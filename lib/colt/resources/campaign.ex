@@ -249,8 +249,6 @@ defmodule Colt.Resources.Campaign do
       default: false,
       public?: true
 
-    attribute :tracking_domain, :string, public?: true
-
     create_timestamp :inserted_at
     update_timestamp :updated_at
   end
