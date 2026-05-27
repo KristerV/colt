@@ -424,9 +424,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               campaign_id={@campaign.id}
             />
           <% else %>
-            <div class="flex items-center justify-center text-ink40 font-mono text-[11px]">
-              No contacts to show yet.
-            </div>
+            <.empty_pane bucket={@selected_bucket} campaign_id={@campaign.id} />
           <% end %>
         </div>
       </div>
@@ -576,6 +574,35 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp bounce_tone(rate) when is_number(rate) and rate >= 5.0, do: :fail
   defp bounce_tone(rate) when is_number(rate) and rate >= 3.0, do: :warn
   defp bounce_tone(_), do: :default
+
+  attr :bucket, :any, default: nil
+  attr :campaign_id, :string, required: true
+
+  defp empty_pane(assigns) do
+    bucket_label =
+      case assigns.bucket do
+        nil -> "this bucket"
+        b -> b |> Atom.to_string() |> String.replace("_", " ")
+      end
+
+    assigns = assign(assigns, bucket_label: bucket_label)
+
+    ~H"""
+    <div class="flex flex-col items-center justify-center text-center px-8 py-16 gap-4">
+      <div class="font-serif text-[64px] leading-none text-ink20">0</div>
+      <div class="font-serif text-[22px] tracking-[-0.01em] text-ink">
+        Nothing in <em class="text-accent">{@bucket_label}</em> yet.
+      </div>
+      <div class="text-[13px] text-ink55 max-w-[360px] leading-[1.55]">
+        Pick another tile above, or approve more contacts in
+        <.link navigate={~p"/campaigns/#{@campaign_id}/writing"} class="underline text-ink70">
+          Writing
+        </.link>
+        to feed the funnel.
+      </div>
+    </div>
+    """
+  end
 
   attr :campaign, :map, required: true
   attr :stats, :map, required: true

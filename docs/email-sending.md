@@ -540,7 +540,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Stats strip gains optional open + click rate tiles when enabled.
 - **Acceptance**: enable on a test campaign, send to a known address with image-loading, observe open event arriving via Nylas webhook within minutes.
 
-### Phase E13 — Billing placeholder + polish
+### Phase E13 — Billing placeholder + polish ✅ done
 - Static `/billing`.
 - Visual pass over every sending view against the design system.
 - Empty states.
