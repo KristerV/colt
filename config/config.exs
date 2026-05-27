@@ -18,7 +18,7 @@ config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 config :colt, Oban,
   engine: Oban.Engines.Basic,
   notifier: Oban.Notifiers.Postgres,
-  queues: [default: 10, registry: 1, scrape: 4, ai: 5, export: 1, sending: 4],
+  queues: [default: 10, registry: 1, scrape: 4, ai: 5, export: 1, sending: 4, ai_writer: 4],
   repo: Colt.Repo,
   plugins: [
     {Oban.Plugins.Cron,

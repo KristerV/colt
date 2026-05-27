@@ -70,10 +70,11 @@ defmodule Colt.Resources.CampaignContact do
     update :approve do
       description """
       Mark contact as approved. Stores the sequence snapshot + version
-      and the sticky inbox. Sets approved_at = now.
+      and the sticky inbox. Sets approved_at = now. `auto_approved?` is
+      true when the auto-approve worker drove this (no user editing).
       """
 
-      accept [:assigned_email_account_id, :sequence_snapshot, :sequence_version]
+      accept [:assigned_email_account_id, :sequence_snapshot, :sequence_version, :auto_approved?]
       require_atomic? false
 
       change set_attribute(:status, :approved)

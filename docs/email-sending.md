@@ -525,7 +525,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - `collect_examples/1` (§6 step 2). No ranking, cap 20, include person details. Add the random seed integer + the "pick by seed mod N" instruction to the prompt.
 - **Acceptance**: edit a draft to add a project-specific phrase. Next contact's draft incorporates that phrase or tone. With two distinct example styles in the campaign, observe over ~10 generated contacts that both styles appear roughly proportionally (a fully deterministic check is hard — eyeball is fine, but log the chosen seed per generation for auditability). Document in the writer module how to inspect the full prompt for one contact via iex.
 
-### Phase E10 — Auto-approve unlock
+### Phase E10 — Auto-approve unlock ✅ done
 - Counter wiring, unlock at 10. Toggle appears in sequence view once unlocked.
 - Auto-approve path: new `AutoDraftAndApprove` Oban worker (`ai_writer` queue). Runs when `auto_approve_on?` is true and `IngestEnriched` (or the writing-view promotion) inserts new `:pending_approval` rows. Leaves `user_*` nil, sets contact status `:approved`, schedules step 1.
 - **Acceptance**: simulate 10 untouched approvals (iex), toggle appears in sequence view; flip on; bring in new contacts — they never enter pending_approval and step-1 emails appear scheduled.

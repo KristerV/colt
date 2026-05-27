@@ -123,6 +123,23 @@ defmodule ColtWeb.Sending.SequenceLive do
     end
   end
 
+  def handle_event("toggle_auto_approve", _params, socket) do
+    campaign = socket.assigns.campaign
+
+    if campaign.auto_approve_unlocked? do
+      {:ok, campaign} =
+        Colt.Resources.Campaign.set_auto_approve_on(
+          campaign,
+          !campaign.auto_approve_on?,
+          actor: socket.assigns.current_user
+        )
+
+      {:noreply, socket |> assign(campaign: campaign) |> mark_saved()}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("toggle_tracking", %{"field" => field}, socket) do
     campaign = socket.assigns.campaign
 
@@ -489,6 +506,29 @@ defmodule ColtWeb.Sending.SequenceLive do
           />
         </div>
       </div>
+      <button
+        :if={@campaign.auto_approve_unlocked?}
+        phx-click="toggle_auto_approve"
+        type="button"
+        class={[
+          "shrink-0 inline-flex items-center gap-2 px-3 py-1.5 rounded-[2px] border font-mono text-[10px] uppercase tracking-[0.08em] cursor-pointer",
+          if(@campaign.auto_approve_on?,
+            do: "bg-ink text-paper border-ink",
+            else: "bg-transparent text-ink55 border-ink20"
+          )
+        ]}
+      >
+        <span
+          class="w-[7px] h-[7px] rounded-full"
+          style={
+            if(@campaign.auto_approve_on?,
+              do: "background: var(--accent); box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 18%, transparent);",
+              else: "background: var(--ink40);"
+            )
+          }
+        />
+        {if @campaign.auto_approve_on?, do: "ON", else: "OFF"}
+      </button>
     </div>
     """
   end

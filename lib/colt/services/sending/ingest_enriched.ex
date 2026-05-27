@@ -8,14 +8,26 @@ defmodule Colt.Services.Sending.IngestEnriched do
   alone via the `unique_per_campaign` identity upsert.
   """
 
-  alias Colt.Resources.{CampaignCompany, CampaignContact, Person, Thread}
+  alias Colt.Resources.{Campaign, CampaignCompany, CampaignContact, Person, Thread}
 
   def run(campaign_id, opts \\ []) when is_binary(campaign_id) do
     actor = Keyword.get(opts, :actor)
 
     with {:ok, picks} <- load_picks(campaign_id, actor),
-         {:ok, inserted} <- promote_all(campaign_id, picks, actor) do
-      {:ok, %{candidates: length(picks), inserted: inserted}}
+         {:ok, inserted_contacts} <- promote_all(campaign_id, picks, actor),
+         {:ok, _} <- maybe_enqueue_auto(campaign_id, inserted_contacts, actor) do
+      {:ok, %{candidates: length(picks), inserted: length(inserted_contacts)}}
+    end
+  end
+
+  defp maybe_enqueue_auto(campaign_id, contacts, actor) do
+    case Campaign.get(campaign_id, actor: actor, authorize?: actor != nil) do
+      {:ok, %{auto_approve_on?: true}} ->
+        Enum.each(contacts, &Colt.Jobs.AutoDraftAndApprove.enqueue(&1.id))
+        {:ok, :enqueued}
+
+      _ ->
+        {:ok, :skipped}
     end
   end
 
@@ -30,14 +42,14 @@ defmodule Colt.Services.Sending.IngestEnriched do
 
   defp promote_all(campaign_id, picks, actor) do
     inserted =
-      Enum.reduce(picks, 0, fn cc, acc ->
+      Enum.reduce(picks, [], fn cc, acc ->
         case promote_one(campaign_id, cc.picked_person_id, actor) do
-          {:ok, _} -> acc + 1
+          {:ok, contact} -> [contact | acc]
           {:error, _} -> acc
         end
       end)
 
-    {:ok, inserted}
+    {:ok, Enum.reverse(inserted)}
   end
 
   defp promote_one(campaign_id, person_id, actor) do

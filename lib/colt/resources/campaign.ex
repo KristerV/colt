@@ -30,6 +30,7 @@ defmodule Colt.Resources.Campaign do
     define :set_tracking, args: [:tracking_opens?, :tracking_clicks?]
     define :set_panic, args: [:panic_switch_on]
     define :bump_auto_approve_streak
+    define :set_auto_approve_on, args: [:auto_approve_on?]
   end
 
   actions do
@@ -108,6 +109,12 @@ defmodule Colt.Resources.Campaign do
     update :set_panic do
       description "Toggle the campaign-level panic switch."
       accept [:panic_switch_on]
+      require_atomic? false
+    end
+
+    update :set_auto_approve_on do
+      description "Flip auto_approve_on?. Caller should guard on auto_approve_unlocked?."
+      accept [:auto_approve_on?]
       require_atomic? false
     end
 
