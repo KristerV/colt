@@ -515,7 +515,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Stop sequence button + manual status override.
 - **Acceptance**: send a manual reply from the thread view, see it arrive at the recipient with the same `In-Reply-To`. Add a note. Stop sequence — all scheduled emails for the contact flip to `:skipped`.
 
-### Phase E8 — Sending funnel
+### Phase E8 — Sending funnel ✅ done
 - §4.4. Stats strip + bucket strip + split-pane (list left, thread right).
 - Tile click filters list, row click selects contact.
 - Writing view becomes the pending-approval bucket's right pane.

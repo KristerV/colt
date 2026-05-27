@@ -42,6 +42,7 @@ defmodule Colt.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:memoize, "~> 1.0"},
       {:tzdata, "~> 1.0"},
       {:nimble_csv, "~> 1.0"},
       {:html2markdown, "~> 0.3"},

@@ -18,21 +18,25 @@ defmodule Colt.Services.Sending.Broadcast do
 
   @pubsub Colt.PubSub
 
-  def sent(campaign_id, email_id, contact_id, step_position),
-    do:
-      PubSub.broadcast(
-        @pubsub,
-        topic(campaign_id),
-        {:email_sent, email_id, contact_id, step_position}
-      )
+  def sent(campaign_id, email_id, contact_id, step_position) do
+    Colt.Services.Sending.Stats.invalidate(campaign_id)
 
-  def failed(campaign_id, email_id, contact_id, reason),
-    do:
-      PubSub.broadcast(
-        @pubsub,
-        topic(campaign_id),
-        {:email_failed, email_id, contact_id, reason}
-      )
+    PubSub.broadcast(
+      @pubsub,
+      topic(campaign_id),
+      {:email_sent, email_id, contact_id, step_position}
+    )
+  end
+
+  def failed(campaign_id, email_id, contact_id, reason) do
+    Colt.Services.Sending.Stats.invalidate(campaign_id)
+
+    PubSub.broadcast(
+      @pubsub,
+      topic(campaign_id),
+      {:email_failed, email_id, contact_id, reason}
+    )
+  end
 
   def skipped(campaign_id, email_id, contact_id, reason),
     do:
@@ -50,29 +54,35 @@ defmodule Colt.Services.Sending.Broadcast do
         {:next_scheduled, email_id, contact_id, step_position}
       )
 
-  def inbound(campaign_id, email_id, contact_id),
-    do:
-      PubSub.broadcast(
-        @pubsub,
-        topic(campaign_id),
-        {:inbound_received, email_id, contact_id}
-      )
+  def inbound(campaign_id, email_id, contact_id) do
+    Colt.Services.Sending.Stats.invalidate(campaign_id)
 
-  def reply_categorized(campaign_id, contact_id, category),
-    do:
-      PubSub.broadcast(
-        @pubsub,
-        topic(campaign_id),
-        {:reply_categorized, contact_id, category}
-      )
+    PubSub.broadcast(
+      @pubsub,
+      topic(campaign_id),
+      {:inbound_received, email_id, contact_id}
+    )
+  end
 
-  def sequence_halted(campaign_id, contact_id, reason),
-    do:
-      PubSub.broadcast(
-        @pubsub,
-        topic(campaign_id),
-        {:sequence_halted, contact_id, reason}
-      )
+  def reply_categorized(campaign_id, contact_id, category) do
+    Colt.Services.Sending.Stats.invalidate(campaign_id)
+
+    PubSub.broadcast(
+      @pubsub,
+      topic(campaign_id),
+      {:reply_categorized, contact_id, category}
+    )
+  end
+
+  def sequence_halted(campaign_id, contact_id, reason) do
+    Colt.Services.Sending.Stats.invalidate(campaign_id)
+
+    PubSub.broadcast(
+      @pubsub,
+      topic(campaign_id),
+      {:sequence_halted, contact_id, reason}
+    )
+  end
 
   def topic(campaign_id), do: "campaign:#{campaign_id}"
 

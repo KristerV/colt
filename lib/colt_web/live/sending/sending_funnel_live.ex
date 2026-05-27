@@ -18,7 +18,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     OutboundEmail
   }
 
-  alias Colt.Services.Sending.{ManualOverride, SendManualReply, StopSequence}
+  alias Colt.Services.Sending.{ManualOverride, SendManualReply, Stats, StopSequence}
   alias ColtWeb.Components.Liid
   alias Phoenix.PubSub
 
@@ -36,6 +36,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
         contacts = load_contacts(campaign.id, actor)
         selected = pick_contact(contacts, params["contact_id"])
+        stats = Stats.for(campaign.id)
+        sent_steps = compute_sent_steps(contacts)
 
         socket =
           socket
@@ -44,6 +46,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             campaign: campaign,
             contacts: contacts,
             selected: selected,
+            selected_bucket: nil,
+            stats: stats,
+            sent_steps: sent_steps,
             active_tab: :reply,
             reply_html: "",
             note_body: "",
@@ -60,6 +65,21 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   end
 
   # ── Events ───────────────────────────────────────────────────────────
+
+  def handle_event("select_bucket", %{"bucket" => b}, socket) do
+    bucket = if b == "all", do: nil, else: String.to_atom(b)
+
+    visible =
+      visible_contacts(socket.assigns.contacts, bucket, socket.assigns.sent_steps)
+
+    socket =
+      socket
+      |> assign(selected_bucket: bucket)
+      |> assign(selected: List.first(visible) || socket.assigns.selected)
+      |> load_thread_data()
+
+    {:noreply, socket}
+  end
 
   def handle_event("select_contact", %{"id" => id}, socket) do
     selected = Enum.find(socket.assigns.contacts, &(&1.id == id))
@@ -199,6 +219,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp reload_contacts_and_keep_selected(socket) do
     actor = socket.assigns.current_user
     contacts = load_contacts(socket.assigns.campaign.id, actor)
+    stats = Stats.for(socket.assigns.campaign.id)
     selected_id = socket.assigns.selected && socket.assigns.selected.id
 
     selected =
@@ -207,9 +228,67 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         else: List.first(contacts)
 
     socket
-    |> assign(contacts: contacts, selected: selected)
+    |> assign(
+      contacts: contacts,
+      selected: selected,
+      stats: stats,
+      sent_steps: compute_sent_steps(contacts)
+    )
     |> load_thread_data()
   end
+
+  # Map contact_id → max sent step_position. Used both for bucket
+  # filtering and the contact-list status chip. Cheap enough at v1
+  # scale; Stats memoization covers the heavier metric computation.
+  defp compute_sent_steps(contacts) do
+    Enum.reduce(contacts, %{}, fn c, acc ->
+      case c.thread do
+        %{id: tid} ->
+          case OutboundEmail.list_for_thread(tid, authorize?: false) do
+            {:ok, rows} ->
+              sent = rows |> Enum.filter(&(&1.status == :sent and &1.step_position != nil))
+
+              case sent do
+                [] -> acc
+                _ -> Map.put(acc, c.id, sent |> Enum.map(& &1.step_position) |> Enum.max())
+              end
+
+            _ ->
+              acc
+          end
+
+        _ ->
+          acc
+      end
+    end)
+  end
+
+  defp visible_contacts(contacts, nil, _sent_map), do: contacts
+
+  defp visible_contacts(contacts, bucket, sent_map) do
+    Enum.filter(contacts, fn c ->
+      contact_in_bucket?(c, bucket, sent_map)
+    end)
+  end
+
+  defp contact_in_bucket?(c, :sending, sent_map) do
+    c.status in [:pending_approval, :approved, :sending] or
+      (c.status == :sending and Map.has_key?(sent_map, c.id))
+  end
+
+  defp contact_in_bucket?(c, :call_ready, _), do: c.status == :call_ready
+
+  defp contact_in_bucket?(c, :interested, _),
+    do: c.status == :replied and c.reply_category == :interested
+
+  defp contact_in_bucket?(c, :not_interested, _) do
+    c.status == :no_reply or
+      (c.status == :replied and c.reply_category in [:not_interested, :ooo, :other])
+  end
+
+  defp contact_in_bucket?(c, :failed, _), do: c.status == :failed
+  defp contact_in_bucket?(c, :bounced, _), do: c.status == :bounced
+  defp contact_in_bucket?(_, _, _), do: true
 
   defp load_thread_data(%{assigns: %{selected: nil}} = socket) do
     assign(socket, timeline: [], thread: nil)
@@ -293,8 +372,16 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           </Liid.headline>
         </div>
 
+        <div class="px-7 pb-4">
+          <.bucket_strip stats={@stats} selected_bucket={@selected_bucket} />
+        </div>
+
         <div class="grid grid-cols-[360px_1fr] flex-1 min-h-0 border-t border-rule">
-          <.contact_list contacts={@contacts} selected={@selected} />
+          <.contact_list
+            contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
+            selected={@selected}
+            selected_bucket={@selected_bucket}
+          />
           <%= if @selected do %>
             <.thread_pane
               contact={@selected}
@@ -320,14 +407,132 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   # ── Partials ─────────────────────────────────────────────────────────
 
+  attr :stats, :map, required: true
+  attr :selected_bucket, :any, default: nil
+
+  defp bucket_strip(assigns) do
+    b = assigns.stats.buckets
+    sending = Map.get(b, :pending, 0) + Map.get(b, :pending_send, 0) +
+                Enum.reduce(b, 0, fn {k, n}, acc ->
+                  case Atom.to_string(k) do
+                    "step_" <> _ -> acc + n
+                    _ -> acc
+                  end
+                end)
+
+    not_interested =
+      Map.get(b, :replied_not_interested, 0) + Map.get(b, :replied_ooo, 0) +
+        Map.get(b, :replied_other, 0) + Map.get(b, :no_reply, 0)
+
+    tiles = [
+      %{
+        k: :sending,
+        label: "Sending",
+        big: sending,
+        unit: "contacts",
+        sub: "#{assigns.stats.total_sent} emails sent",
+        pulse: true
+      },
+      %{
+        k: :call_ready,
+        label: "Call ready",
+        big: Map.get(b, :call_ready, 0),
+        unit: "contacts",
+        sub: "awaiting follow-up",
+        tone: :accent
+      },
+      %{
+        k: :interested,
+        label: "Interested",
+        big: Map.get(b, :replied_interested, 0),
+        unit: "contacts",
+        sub: "#{assigns.stats.interest_rate}% interest",
+        tone: :accent
+      },
+      %{
+        k: :not_interested,
+        label: "Not interested",
+        big: not_interested,
+        unit: "contacts",
+        sub: "#{assigns.stats.reply_rate}% reply rate"
+      },
+      %{
+        k: :failed,
+        label: "Failed",
+        big: Map.get(b, :failed, 0),
+        unit: "contacts",
+        sub: "retry available",
+        tone: :fail
+      },
+      %{
+        k: :bounced,
+        label: "Bounced",
+        big: assigns.stats.bounce_rate,
+        unit: "%",
+        sub: "#{assigns.stats.total_bounced} contacts",
+        tone: bounce_tone(assigns.stats.bounce_rate)
+      }
+    ]
+
+    assigns = assign(assigns, tiles: tiles)
+
+    ~H"""
+    <div class="grid grid-cols-6 border border-rule rounded-[2px] bg-paper">
+      <%= for {t, i} <- Enum.with_index(@tiles) do %>
+        <% active? = @selected_bucket == t.k %>
+        <button
+          phx-click="select_bucket"
+          phx-value-bucket={t.k}
+          class={[
+            "text-left p-4 cursor-pointer relative",
+            i < length(@tiles) - 1 && "border-r border-rule",
+            active? && "bg-paperAlt"
+          ]}
+        >
+          <span :if={active?} class="absolute left-0 right-0 bottom-0 h-[2px]" style="background: var(--accent);" />
+          <div class="flex items-center gap-2 mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink55">
+            <span :if={Map.get(t, :pulse)}
+                  class="w-[5px] h-[5px] rounded-full"
+                  style={"background: #{tone_color(Map.get(t, :tone, :ink))}; animation: liid-pulse 1.4s ease-in-out infinite;"} />
+            {t.label}
+          </div>
+          <div class="flex items-baseline gap-1.5">
+            <span class="font-serif text-[36px] leading-none tabular-nums" style={"color: #{tone_color(Map.get(t, :tone, :ink))};"}>
+              {t.big}
+            </span>
+            <span class="font-mono text-[11px] text-ink55">{t.unit}</span>
+          </div>
+          <div class="mt-2.5 pt-2 border-t border-rule font-mono text-[10px] text-ink55">
+            {t.sub}
+          </div>
+        </button>
+      <% end %>
+    </div>
+    <div :if={@selected_bucket} class="mt-2 font-mono text-[10px] text-ink55">
+      <button phx-click="select_bucket" phx-value-bucket="all" class="underline">clear filter</button>
+    </div>
+    """
+  end
+
+  defp bounce_tone(rate) when is_number(rate) and rate >= 5.0, do: :fail
+  defp bounce_tone(rate) when is_number(rate) and rate >= 3.0, do: :warn
+  defp bounce_tone(_), do: :default
+
+  defp tone_color(:accent), do: "var(--accent)"
+  defp tone_color(:fail), do: "var(--fail)"
+  defp tone_color(:warn), do: "var(--warn)"
+  defp tone_color(_), do: "var(--ink)"
+
   attr :contacts, :list, required: true
   attr :selected, :map, default: nil
+  attr :selected_bucket, :any, default: nil
 
   defp contact_list(assigns) do
     ~H"""
     <div class="border-r border-rule overflow-y-auto bg-paper">
-      <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10">
-        {length(@contacts)} contacts
+      <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10 flex justify-between">
+        <span>{length(@contacts)} contacts</span>
+        <span :if={@selected_bucket}>filtered</span>
       </div>
       <%= for c <- @contacts do %>
         <% active? = @selected && @selected.id == c.id %>
