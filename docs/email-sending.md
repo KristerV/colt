@@ -530,7 +530,7 @@ Build top-to-bottom. Each phase has Acceptance bullets and ships independently. 
 - Auto-approve path: new `AutoDraftAndApprove` Oban worker (`ai_writer` queue). Runs when `auto_approve_on?` is true and `IngestEnriched` (or the writing-view promotion) inserts new `:pending_approval` rows. Leaves `user_*` nil, sets contact status `:approved`, schedules step 1.
 - **Acceptance**: simulate 10 untouched approvals (iex), toggle appears in sequence view; flip on; bring in new contacts — they never enter pending_approval and step-1 emails appear scheduled.
 
-### Phase E11 — Bounce monitoring + auto-pause
+### Phase E11 — Bounce monitoring + auto-pause ✅ done
 - §8. Campaign-level bounce-rate computation, panic-switch auto-flip at 50 sends / 5% threshold. Red banner.
 - **Acceptance**: simulate a bounce burst on a test campaign with seeded sends; campaign auto-pauses at 50/5%. Send loop honors the panic switch immediately.
 

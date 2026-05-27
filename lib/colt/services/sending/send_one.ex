@@ -162,6 +162,7 @@ defmodule Colt.Services.Sending.SendOne do
          {:ok, _} <- maybe_stamp_thread(ctx.email.thread_id, message_id, thread_id, sent_at),
          {:ok, next} <- schedule_next_step(ctx, sent_at) do
       Broadcast.sent(ctx.campaign.id, ctx.email.id, ctx.contact.id, ctx.email.step_position)
+      maybe_bounce_safety_net(ctx.campaign.id)
 
       case next do
         {:scheduled, next_email_id, position} ->
@@ -244,6 +245,17 @@ defmodule Colt.Services.Sending.SendOne do
   defp finalize_contact(ctx, _snapshot, _current_pos) do
     {:ok, _} = CampaignContact.set_status(ctx.contact, :no_reply, authorize?: false)
     {:ok, :no_more_steps}
+  end
+
+  # Safety net (§8): every 1000th send across the campaign, recompute
+  # bounce metrics in case we missed a bounce event upstream. Cheap —
+  # the BounceMonitor early-returns when sent_count < 50.
+  defp maybe_bounce_safety_net(campaign_id) do
+    if :rand.uniform(1000) == 1 do
+      Colt.Services.Sending.BounceMonitor.check(campaign_id)
+    end
+
+    :ok
   end
 
   # Nylas v3's `body` field is HTML. The AI writes plain text, so escape

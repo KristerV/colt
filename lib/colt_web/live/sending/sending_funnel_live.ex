@@ -366,6 +366,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       campaign_name={@campaign.name}
     >
       <div class="flex flex-col h-[calc(100vh-120px)]">
+        <.bounce_banner
+          :if={@campaign.panic_switch_on and @stats.bounce_rate >= 5.0}
+          rate={@stats.bounce_rate}
+        />
         <div class="px-7 pt-6 pb-4">
           <Liid.headline kicker="Sending · Funnel">
             Where the <em class="text-accent">conversation</em> is going.
@@ -406,6 +410,23 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   end
 
   # ── Partials ─────────────────────────────────────────────────────────
+
+  attr :rate, :float, required: true
+
+  defp bounce_banner(assigns) do
+    ~H"""
+    <div
+      class="px-6 py-2.5 text-paper font-mono text-[11px] tracking-[0.06em] uppercase flex items-center gap-3"
+      style="background: var(--fail);"
+    >
+      <span class="inline-block w-[7px] h-[7px] rounded-full bg-paper animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
+      <span class="font-semibold tracking-[0.12em]">Campaign auto-paused</span>
+      <span class="opacity-90 normal-case tracking-normal">
+        Bounce rate {Float.round(@rate, 1)}% · above the 5% threshold. Investigate before resuming.
+      </span>
+    </div>
+    """
+  end
 
   attr :stats, :map, required: true
   attr :selected_bucket, :any, default: nil

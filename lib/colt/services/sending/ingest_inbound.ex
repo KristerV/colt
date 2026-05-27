@@ -144,8 +144,12 @@ defmodule Colt.Services.Sending.IngestInbound do
         with {:ok, _} <-
                OutboundEmail.mark_bounced(outbound, msg.bounce_reason, authorize?: false),
              {:ok, _} <- maybe_mark_contact_bounced(outbound) do
+          campaign_id = campaign_id_from_outbound(outbound)
+
+          if campaign_id, do: Colt.Services.Sending.BounceMonitor.check(campaign_id)
+
           Broadcast.failed(
-            campaign_id_from_outbound(outbound),
+            campaign_id,
             outbound.id,
             outbound.thread && outbound.thread.campaign_contact_id,
             {:bounced, msg.bounce_reason}
