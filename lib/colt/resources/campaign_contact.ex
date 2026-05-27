@@ -72,6 +72,10 @@ defmodule Colt.Resources.CampaignContact do
       Mark contact as approved. Stores the sequence snapshot + version
       and the sticky inbox. Sets approved_at = now. `auto_approved?` is
       true when the auto-approve worker drove this (no user editing).
+
+      Resource-level guard: refuses to approve a contact whose thread
+      has no outbound emails. Approving without drafts strands the
+      contact in `:approved` forever — never reachable by the send loop.
       """
 
       accept [:assigned_email_account_id, :sequence_snapshot, :sequence_version, :auto_approved?]
@@ -81,6 +85,21 @@ defmodule Colt.Resources.CampaignContact do
 
       change fn changeset, _ ->
         Ash.Changeset.change_attribute(changeset, :approved_at, DateTime.utc_now())
+      end
+
+      validate fn changeset, _ ->
+        contact_id = Ash.Changeset.get_data(changeset, :id)
+
+        case Colt.Resources.Thread.for_contact(contact_id, authorize?: false) do
+          {:ok, %{id: thread_id}} ->
+            case Colt.Resources.OutboundEmail.list_for_thread(thread_id, authorize?: false) do
+              {:ok, [_ | _]} -> :ok
+              _ -> {:error, field: :id, message: "contact has no drafted emails to approve"}
+            end
+
+          _ ->
+            {:error, field: :id, message: "contact has no thread"}
+        end
       end
     end
 
