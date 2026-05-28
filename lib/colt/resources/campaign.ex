@@ -90,6 +90,7 @@ defmodule Colt.Resources.Campaign do
     update :update_target do
       description "Change target contact count without advancing status. Used for mid-run target edits."
       accept [:target_contact_count]
+      change Colt.Resources.Campaign.Changes.CapacityGuard
       require_atomic? false
     end
 
@@ -144,6 +145,7 @@ defmodule Colt.Resources.Campaign do
     update :finalize do
       description "Start enrichment — set target contact count, advance to :enriching (never downgrades), stamp finalized_at."
       accept [:target_contact_count]
+      change Colt.Resources.Campaign.Changes.CapacityGuard
       change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :enriching}
 
       change fn changeset, _ ->

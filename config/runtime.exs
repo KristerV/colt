@@ -114,6 +114,34 @@ if config_env() == :prod do
       System.get_env("NYLAS_REDIRECT_URI") ||
         raise("Missing environment variable `NYLAS_REDIRECT_URI`!")
 
+  # ── Stripe ──────────────────────────────────────────────────────────
+  stripe_price_50 =
+    System.get_env("STRIPE_PRICE_50") ||
+      raise("Missing environment variable `STRIPE_PRICE_50`!")
+
+  stripe_price_200 =
+    System.get_env("STRIPE_PRICE_200") ||
+      raise("Missing environment variable `STRIPE_PRICE_200`!")
+
+  stripe_price_1000 =
+    System.get_env("STRIPE_PRICE_1000") ||
+      raise("Missing environment variable `STRIPE_PRICE_1000`!")
+
+  config :stripity_stripe,
+    api_key:
+      System.get_env("STRIPE_SECRET_KEY") ||
+        raise("Missing environment variable `STRIPE_SECRET_KEY`!")
+
+  config :colt, Colt.Billing,
+    price_capacity: %{
+      stripe_price_50 => 50,
+      stripe_price_200 => 200,
+      stripe_price_1000 => 1000
+    },
+    webhook_secret:
+      System.get_env("STRIPE_WEBHOOK_SECRET") ||
+        raise("Missing environment variable `STRIPE_WEBHOOK_SECRET`!")
+
   config :colt, Colt.Mailer,
     adapter: Swoosh.Adapters.Mailgun,
     api_key:

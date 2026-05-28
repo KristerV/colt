@@ -28,6 +28,10 @@ defmodule ColtWeb.Router do
     plug :ensure_admin
   end
 
+  pipeline :stripe_webhook do
+    plug :accepts, ["json"]
+  end
+
   scope "/", ColtWeb do
     pipe_through :browser
 
@@ -61,7 +65,15 @@ defmodule ColtWeb.Router do
       live "/admin/tracking-domain", Admin.TrackingDomainLive
     end
 
+    ash_authentication_live_session :public_routes,
+      on_mount: [ColtWeb.LiveLocale, {ColtWeb.LiveUserAuth, :live_user_optional}] do
+      live "/pricing", PricingLive
+    end
+
     post "/locale", LocaleController, :set
+
+    post "/billing/checkout", BillingController, :checkout
+    post "/billing/portal", BillingController, :portal
 
     get "/campaigns/:id/export.csv", ExportController, :csv
 
@@ -109,6 +121,11 @@ defmodule ColtWeb.Router do
       auth_routes_prefix: "/auth",
       overrides: [ColtWeb.AuthOverrides, Elixir.AshAuthentication.Phoenix.Overrides.DaisyUI]
     )
+  end
+
+  scope "/", ColtWeb do
+    pipe_through :stripe_webhook
+    post "/webhooks/stripe", StripeWebhookController, :create
   end
 
   # Other scopes may use custom stacks.

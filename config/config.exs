@@ -107,6 +107,12 @@ config :colt, Colt.Mailer, adapter: Swoosh.Adapters.Local
 
 config :colt, :mail_from, {"Liid", "noreply@mg.liid.ee"}
 
+# Billing — Stripe price-id → monthly enriched-contact capacity. Populated from
+# env vars in runtime.exs for prod. Dev/test override via dev.secrets.exs.
+config :colt, Colt.Billing, price_capacity: %{}
+
+config :stripity_stripe, api_key: System.get_env("STRIPE_SECRET_KEY", "")
+
 config :colt, ColtWeb.Gettext,
   locales: ~w(en et lv lt fi sv nb da is),
   default_locale: "en"

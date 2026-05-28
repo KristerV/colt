@@ -48,6 +48,33 @@ defmodule Colt.Accounts.User do
       require_atomic? true
     end
 
+    update :set_stripe_customer do
+      description "Persist the Stripe customer id after first checkout."
+      accept [:stripe_customer_id]
+      require_atomic? false
+    end
+
+    update :apply_subscription do
+      description "Webhook → apply current subscription state (capacity + period bounds + status)."
+
+      accept [
+        :monthly_contact_capacity,
+        :subscription_period_start,
+        :subscription_period_end,
+        :subscription_status
+      ]
+
+      require_atomic? false
+    end
+
+    update :clear_subscription do
+      description "Webhook → subscription canceled; zero capacity, mark canceled."
+      accept []
+      change set_attribute(:monthly_contact_capacity, 0)
+      change set_attribute(:subscription_status, :canceled)
+      require_atomic? false
+    end
+
     read :get_by_subject do
       description "Get a user by the subject claim in a JWT"
       argument :subject, :string, allow_nil?: false
@@ -58,6 +85,13 @@ defmodule Colt.Accounts.User do
     read :get_by_email do
       description "Looks up a user by their email"
       get_by :email
+    end
+
+    read :get_by_stripe_customer do
+      description "Webhook lookup by Stripe customer id."
+      argument :stripe_customer_id, :string, allow_nil?: false
+      get? true
+      filter expr(stripe_customer_id == ^arg(:stripe_customer_id))
     end
 
     create :sign_in_with_magic_link do
@@ -122,6 +156,10 @@ defmodule Colt.Accounts.User do
     policy action(:set_locale) do
       authorize_if expr(id == ^actor(:id))
     end
+
+    policy action([:set_stripe_customer, :apply_subscription, :clear_subscription]) do
+      authorize_if expr(id == ^actor(:id))
+    end
   end
 
   attributes do
@@ -141,6 +179,54 @@ defmodule Colt.Accounts.User do
     attribute :locale, :string do
       public? true
       allow_nil? true
+    end
+
+    attribute :stripe_customer_id, :string do
+      public? false
+      allow_nil? true
+    end
+
+    attribute :monthly_contact_capacity, :integer do
+      public? true
+      allow_nil? false
+      default 0
+      constraints min: 0
+    end
+
+    attribute :subscription_period_start, :utc_datetime do
+      public? true
+      allow_nil? true
+    end
+
+    attribute :subscription_period_end, :utc_datetime do
+      public? true
+      allow_nil? true
+    end
+
+    attribute :subscription_status, :atom do
+      public? true
+      allow_nil? false
+      default :none
+      constraints one_of: [:none, :active, :past_due, :canceled]
+    end
+  end
+
+  relationships do
+    has_many :campaigns, Colt.Resources.Campaign, destination_attribute: :owner_id
+  end
+
+  calculations do
+    calculate :remaining_capacity,
+              :integer,
+              expr(monthly_contact_capacity - enriched_this_period_count)
+  end
+
+  aggregates do
+    count :enriched_this_period_count, [:campaigns, :campaign_companies] do
+      filter expr(
+               status == :enriched and
+                 inserted_at >= parent(subscription_period_start)
+             )
     end
   end
 
