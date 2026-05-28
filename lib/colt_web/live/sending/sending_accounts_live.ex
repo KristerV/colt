@@ -17,7 +17,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         {:ok,
          socket
          |> assign(
-           page_title: "Sending accounts — #{campaign.name}",
+           page_title: gettext("Sending accounts — %{name}", name: campaign.name),
            campaign: campaign,
            picker_selection: nil
          )
@@ -175,8 +175,8 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
     >
       <div class="w-full max-w-[900px] mx-auto pb-16">
         <div class="flex items-end justify-between gap-6 mb-10">
-          <Liid.headline kicker="Sending · Accounts">
-            Which inboxes this campaign <em>sends through</em>.
+          <Liid.headline kicker={gettext("Sending · Accounts")}>
+            {raw(gettext("Which inboxes this campaign <em>sends through</em>."))}
           </Liid.headline>
 
           <.link
@@ -184,16 +184,16 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
             class="no-underline"
           >
             <Liid.btn variant={:primary} mono size={:small}>
-              <Liid.icon name="plus" size={11} /> Add accounts
+              <Liid.icon name="plus" size={11} /> {gettext("Add accounts")}
             </Liid.btn>
           </.link>
         </div>
 
         <div class="border border-rule rounded-[2px] overflow-hidden">
           <div class="grid grid-cols-[1fr_120px_140px_160px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
-            <div class="px-[18px] py-3">Account</div>
-            <div class="px-[14px] py-3 text-right">Quota</div>
-            <div class="px-[14px] py-3">Status</div>
+            <div class="px-[18px] py-3">{gettext("Account")}</div>
+            <div class="px-[14px] py-3 text-right">{gettext("Quota")}</div>
+            <div class="px-[14px] py-3">{gettext("Status")}</div>
             <div class="px-[14px] py-3 text-right"></div>
           </div>
 
@@ -211,16 +211,21 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         </div>
 
         <div class="mt-7 grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
-          <.capacity_tile label="Daily capacity" big={"~#{@cap.daily}"} sub="emails / day" accent />
           <.capacity_tile
-            label="Monthly"
-            big={"~#{:erlang.float_to_binary(@cap.monthly / 1000, decimals: 1)}k"}
-            sub="emails / month"
+            label={gettext("Daily capacity")}
+            big={"~#{@cap.daily}"}
+            sub={gettext("emails / day")}
+            accent
           />
           <.capacity_tile
-            label="Throughput"
+            label={gettext("Monthly")}
+            big={"~#{:erlang.float_to_binary(@cap.monthly / 1000, decimals: 1)}k"}
+            sub={gettext("emails / month")}
+          />
+          <.capacity_tile
+            label={gettext("Throughput")}
             big={"#{@throughput}"}
-            sub={"contacts / day · #{@cycle_days}d each"}
+            sub={gettext("contacts / day · %{days}d each", days: @cycle_days)}
           />
         </div>
       </div>
@@ -252,10 +257,14 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
       <div class="w-full max-w-[900px] mx-auto pb-16">
         <div class="flex items-end justify-between gap-6 mb-10">
           <Liid.headline
-            kicker="Sending · Accounts · Add"
-            sub="Each inbox respects its global daily quota. Disconnected accounts are unselectable."
+            kicker={gettext("Sending · Accounts · Add")}
+            sub={
+              gettext(
+                "Each inbox respects its global daily quota. Disconnected accounts are unselectable."
+              )
+            }
           >
-            Pick inboxes for this <em>campaign</em>.
+            {raw(gettext("Pick inboxes for this <em>campaign</em>."))}
           </Liid.headline>
 
           <div class="flex items-center gap-3">
@@ -263,7 +272,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
               navigate={~p"/campaigns/#{@campaign.id}/sending-accounts"}
               class="no-underline"
             >
-              <Liid.btn size={:small}>Cancel</Liid.btn>
+              <Liid.btn size={:small}>{gettext("Cancel")}</Liid.btn>
             </.link>
             <Liid.btn
               variant={:primary}
@@ -271,35 +280,35 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
               mono
               phx-click="save_picker"
             >
-              <Liid.icon name="check" size={11} /> Save selection
+              <Liid.icon name="check" size={11} /> {gettext("Save selection")}
             </Liid.btn>
           </div>
         </div>
 
         <div class="mb-3 font-mono text-[11px] text-ink55 tracking-[0.04em]">
           <span class="text-ink font-semibold">{@selected_count}</span>
-          selected · {@total_count} available
+          {gettext("selected · %{total} available", total: @total_count)}
         </div>
 
         <div class="border border-rule rounded-[2px] overflow-hidden">
           <div class="grid grid-cols-[36px_1fr_100px_140px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
             <div class="py-3"></div>
-            <div class="px-[14px] py-3">Account</div>
-            <div class="px-[14px] py-3 text-right">Quota</div>
-            <div class="px-[14px] py-3">Status</div>
+            <div class="px-[14px] py-3">{gettext("Account")}</div>
+            <div class="px-[14px] py-3 text-right">{gettext("Quota")}</div>
+            <div class="px-[14px] py-3">{gettext("Status")}</div>
           </div>
 
           <%= if @accounts == [] do %>
             <div class="p-9 text-center">
               <div class="font-serif text-[22px] text-ink55 tracking-[-0.01em] mb-1.5">
-                No inboxes connected yet.
+                {gettext("No inboxes connected yet.")}
               </div>
               <div class="text-[12px] text-ink40 mb-3.5">
-                Connect at least one in Email accounts to enroll it here.
+                {gettext("Connect at least one in Email accounts to enroll it here.")}
               </div>
               <.link navigate={~p"/email-accounts"} class="no-underline">
                 <Liid.btn size={:small} mono>
-                  <Liid.icon name="arrow" size={11} /> Email accounts
+                  <Liid.icon name="arrow" size={11} /> {gettext("Email accounts")}
                 </Liid.btn>
               </.link>
             </div>
@@ -317,12 +326,12 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         <div class="mt-4 px-4 py-3 bg-paperAlt border border-rule rounded-[2px] flex items-center gap-2.5 font-mono text-[11px] text-ink55 tracking-[0.04em]">
           <Liid.icon name="spark" size={11} />
           <span>
-            Don't see the inbox you want?
+            {gettext("Don't see the inbox you want?")}
             <.link
               navigate={~p"/email-accounts"}
               class="text-ink underline underline-offset-2 hover:text-ink70"
             >
-              Connect a new one in Email accounts →
+              {gettext("Connect a new one in Email accounts →")}
             </.link>
           </span>
         </div>
@@ -349,7 +358,9 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         </div>
       </div>
       <div class="px-[14px] py-3.5 text-right">
-        <span class="font-mono text-[12px] text-ink70 tabular-nums">{@account.daily_quota}/day</span>
+        <span class="font-mono text-[12px] text-ink70 tabular-nums">
+          {gettext("%{quota}/day", quota: @account.daily_quota)}
+        </span>
       </div>
       <div class="px-[14px] py-3.5">
         <.status_pill enrollment={@enrollment} account={@account} />
@@ -359,16 +370,16 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           navigate={~p"/email-accounts/#{@account.id}/stats"}
           class="no-underline px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] hover:text-ink hover:border-ink40"
         >
-          stats
+          {gettext("stats")}
         </.link>
         <button
           type="button"
           phx-click="remove"
           phx-value-id={@enrollment.id}
-          data-confirm={"Remove #{@account.address} from this campaign?"}
+          data-confirm={gettext("Remove %{address} from this campaign?", address: @account.address)}
           class="px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] cursor-pointer hover:text-ink hover:border-ink40 bg-transparent"
         >
-          remove
+          {gettext("remove")}
         </button>
       </div>
     </div>
@@ -379,22 +390,22 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
   attr :account, :map, required: true
 
   defp status_pill(assigns) do
-    {label, class, dot_pulse} =
+    {label, class, dot_pulse, active?} =
       cond do
         assigns.account.status == :disconnected ->
-          {"disconnected", "text-fail border-fail/40 bg-fail/10", false}
+          {gettext("disconnected"), "text-fail border-fail/40 bg-fail/10", false, false}
 
         assigns.account.status == :auth_error ->
-          {"auth error", "text-fail border-fail/40 bg-fail/10", false}
+          {gettext("auth error"), "text-fail border-fail/40 bg-fail/10", false, false}
 
         assigns.enrollment.paused? or assigns.account.status == :paused_bounces ->
-          {"paused", "text-ink55 border-ink20 bg-ink10", false}
+          {gettext("paused"), "text-ink55 border-ink20 bg-ink10", false, false}
 
         true ->
-          {"active", "border-[color:var(--accent)]/40", true}
+          {gettext("active"), "border-[color:var(--accent)]/40", true, true}
       end
 
-    assigns = assign(assigns, label: label, class: class, dot_pulse: dot_pulse)
+    assigns = assign(assigns, label: label, class: class, dot_pulse: dot_pulse, active?: active?)
 
     ~H"""
     <span
@@ -403,14 +414,14 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         @class
       ]}
       style={
-        if @label == "active",
+        if @active?,
           do: "color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent);"
       }
     >
       <span
         class={["w-1.5 h-1.5 rounded-full", @dot_pulse && "animate-pulse"]}
         style={
-          if @label == "active",
+          if @active?,
             do: "background: var(--accent);",
             else: "background: currentColor;"
         }
@@ -426,14 +437,14 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
     ~H"""
     <div class="p-9 text-center">
       <div class="font-serif text-[22px] text-ink55 tracking-[-0.01em] mb-1.5">
-        No inboxes enrolled yet.
+        {gettext("No inboxes enrolled yet.")}
       </div>
       <div class="text-[12px] text-ink40 mb-3.5">
-        This campaign can't send until at least one is added.
+        {gettext("This campaign can't send until at least one is added.")}
       </div>
       <.link navigate={~p"/campaigns/#{@campaign_id}/sending-accounts/add"} class="no-underline">
         <Liid.btn variant={:primary} size={:small} mono>
-          <Liid.icon name="plus" size={11} /> Add accounts
+          <Liid.icon name="plus" size={11} /> {gettext("Add accounts")}
         </Liid.btn>
       </.link>
     </div>
@@ -481,12 +492,14 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         <div class="font-mono text-[13px] text-ink font-medium">{@account.address}</div>
         <div :if={!@selectable} class="text-[11px] text-fail mt-0.5">
           {if @account.status == :disconnected,
-            do: "disconnected — re-auth in Email accounts first",
-            else: "auth error — re-auth in Email accounts"}
+            do: gettext("disconnected — re-auth in Email accounts first"),
+            else: gettext("auth error — re-auth in Email accounts")}
         </div>
       </div>
       <div class={["px-[14px] py-3.5 text-right", !@selectable && "opacity-60"]}>
-        <span class="font-mono text-[12px] text-ink70 tabular-nums">{@account.daily_quota}/day</span>
+        <span class="font-mono text-[12px] text-ink70 tabular-nums">
+          {gettext("%{quota}/day", quota: @account.daily_quota)}
+        </span>
       </div>
       <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
         <.status_pill_static status={@account.status} />
@@ -498,23 +511,23 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
   attr :status, :atom, required: true
 
   defp status_pill_static(assigns) do
-    {label, active?} =
+    {label, active?, tone} =
       case assigns.status do
-        :healthy -> {"active", true}
-        :paused_bounces -> {"paused", false}
-        :disconnected -> {"disconnected", false}
-        :auth_error -> {"auth error", false}
+        :healthy -> {gettext("active"), true, :active}
+        :paused_bounces -> {gettext("paused"), false, :paused}
+        :disconnected -> {gettext("disconnected"), false, :fail}
+        :auth_error -> {gettext("auth error"), false, :fail}
       end
 
-    assigns = assign(assigns, label: label, active?: active?)
+    assigns = assign(assigns, label: label, active?: active?, tone: tone)
 
     ~H"""
     <span
       class={[
         "inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.06em] uppercase font-semibold rounded-[2px] border",
         @active? && "border-[color:var(--accent)]/40",
-        @label == "paused" && "text-ink55 border-ink20 bg-ink10",
-        @label in ["disconnected", "auth error"] && "text-fail border-fail/40 bg-fail/10"
+        @tone == :paused && "text-ink55 border-ink20 bg-ink10",
+        @tone == :fail && "text-fail border-fail/40 bg-fail/10"
       ]}
       style={
         if @active?,

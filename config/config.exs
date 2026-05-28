@@ -107,6 +107,25 @@ config :colt, Colt.Mailer, adapter: Swoosh.Adapters.Local
 
 config :colt, :mail_from, {"Liid", "noreply@mg.liid.ee"}
 
+config :colt, ColtWeb.Gettext,
+  locales: ~w(en et lv lt fi sv nb da is),
+  default_locale: "en"
+
+# TLD → locale. .com / unknown → en. .no maps to nb (canonical Norwegian).
+config :colt, :locales,
+  tld_map: %{
+    "ee" => "et",
+    "lv" => "lv",
+    "lt" => "lt",
+    "fi" => "fi",
+    "se" => "sv",
+    "no" => "nb",
+    "dk" => "da",
+    "is" => "is"
+  },
+  available: ~w(en et lv lt fi sv nb da is),
+  default: "en"
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",

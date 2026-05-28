@@ -11,7 +11,7 @@ defmodule ColtWeb.Campaigns.NameLive do
       {:ok, campaign} ->
         {:ok,
          assign(socket,
-           page_title: "Name — #{campaign.name}",
+           page_title: gettext("Name — %{name}", name: campaign.name),
            campaign: campaign,
            name: campaign.name,
            error: nil,
@@ -32,7 +32,7 @@ defmodule ColtWeb.Campaigns.NameLive do
 
     cond do
       name == "" ->
-        {:noreply, assign(socket, error: "Campaign name can't be empty.")}
+        {:noreply, assign(socket, error: gettext("Campaign name can't be empty."))}
 
       name == socket.assigns.campaign.name ->
         {:noreply, assign(socket, saved?: true)}
@@ -60,10 +60,10 @@ defmodule ColtWeb.Campaigns.NameLive do
     >
       <div class="max-w-[640px] w-full">
         <Liid.headline
-          kicker="Campaign · Name"
-          sub="Rename it. Stored immediately on save."
+          kicker={gettext("Campaign · Name")}
+          sub={gettext("Rename it. Stored immediately on save.")}
         >
-          The <em>name</em> of this campaign.
+          {raw(gettext("The <em>name</em> of this campaign."))}
         </Liid.headline>
 
         <form phx-change="validate" phx-submit="save" class="mt-14" autocomplete="off">
@@ -80,12 +80,12 @@ defmodule ColtWeb.Campaigns.NameLive do
             {@error}
           </div>
           <div :if={@saved?} class="mt-4 font-mono text-[11px] text-ink55">
-            saved.
+            {gettext("saved.")}
           </div>
 
           <div class="mt-16">
             <Liid.btn variant={:primary} mono type="submit">
-              Save <Liid.icon name="check" />
+              {gettext("Save")} <Liid.icon name="check" />
             </Liid.btn>
           </div>
         </form>

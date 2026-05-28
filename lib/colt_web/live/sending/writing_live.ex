@@ -33,7 +33,7 @@ defmodule ColtWeb.Sending.WritingLive do
         socket =
           socket
           |> assign(
-            page_title: "Writing — #{campaign.name}",
+            page_title: gettext("Writing — %{name}", name: campaign.name),
             campaign: campaign,
             state: :loading,
             contact: nil,
@@ -85,18 +85,27 @@ defmodule ColtWeb.Sending.WritingLive do
     case ApproveContact.run(contact.id, edits, actor: actor) do
       {:ok, _} ->
         {:noreply,
-         socket |> put_flash(:info, "Approved — scheduling step 1.") |> load_next_contact()}
+         socket
+         |> put_flash(:info, gettext("Approved — scheduling step 1."))
+         |> load_next_contact()}
 
       {:error, :no_healthy_inbox} ->
         {:noreply,
          put_flash(
            socket,
            :error,
-           "No healthy sending inbox enrolled in this campaign. Add one under Sending accounts."
+           gettext(
+             "No healthy sending inbox enrolled in this campaign. Add one under Sending accounts."
+           )
          )}
 
       {:error, reason} ->
-        {:noreply, put_flash(socket, :error, "Couldn't approve: #{inspect(reason)}")}
+        {:noreply,
+         put_flash(
+           socket,
+           :error,
+           gettext("Couldn't approve: %{reason}", reason: inspect(reason))
+         )}
     end
   end
 
@@ -114,7 +123,7 @@ defmodule ColtWeb.Sending.WritingLive do
     if socket.assigns.contact && socket.assigns.contact.id == contact_id do
       {:noreply,
        socket
-       |> put_flash(:error, "AI writer failed: #{inspect(reason)}")
+       |> put_flash(:error, gettext("AI writer failed: %{reason}", reason: inspect(reason)))
        |> assign(state: :default)}
     else
       {:noreply, socket}
@@ -301,16 +310,18 @@ defmodule ColtWeb.Sending.WritingLive do
     >
       <div class="w-full max-w-[760px] mx-auto">
         <Liid.headline
-          kicker="Sending · Writing"
-          sub="One contact at a time. Approve to schedule the first step; the rest follows."
+          kicker={gettext("Sending · Writing")}
+          sub={
+            gettext("One contact at a time. Approve to schedule the first step; the rest follows.")
+          }
         >
-          Draft for <em>this contact</em>.
+          {raw(gettext("Draft for <em>this contact</em>."))}
         </Liid.headline>
 
         <div class="mt-10">
           <%= case @state do %>
             <% :loading -> %>
-              <div class="font-mono text-[11px] text-ink40">loading…</div>
+              <div class="font-mono text-[11px] text-ink40">{gettext("loading…")}</div>
             <% :empty -> %>
               <.empty_state available={@enriched_available} />
             <% :empty_auto -> %>
@@ -361,19 +372,24 @@ defmodule ColtWeb.Sending.WritingLive do
     <div class="flex flex-col items-center text-center gap-6 py-10">
       <div class="font-serif text-[96px] leading-none text-accent opacity-40">0</div>
       <h2 class="font-serif text-[36px] tracking-[-0.02em] leading-[1.05] m-0 max-w-[520px]">
-        Nothing to <em class="text-accent">review</em>.
+        {raw(gettext("Nothing to <em class=\"text-accent\">review</em>."))}
       </h2>
       <p class="text-[14px] text-ink55 max-w-[460px] leading-[1.6]">
         <span :if={@available > 0}>
-          {@available} enriched contacts are waiting to be brought into sending.
+          {gettext("%{n} enriched contacts are waiting to be brought into sending.",
+            n: @available
+          )}
         </span>
         <span :if={@available == 0}>
-          No enriched contacts are queued. Run enrichment first.
+          {gettext("No enriched contacts are queued. Run enrichment first.")}
         </span>
       </p>
       <Liid.btn :if={@available > 0} variant={:primary} mono phx-click="promote">
         <Liid.icon name="arrow" size={12} />
-        Bring in {@available} enriched {pluralize(@available, "contact")}
+        {gettext("Bring in %{n} enriched %{word}",
+          n: @available,
+          word: pluralize(@available, gettext("contact"))
+        )}
       </Liid.btn>
     </div>
     """
@@ -395,10 +411,10 @@ defmodule ColtWeb.Sending.WritingLive do
         />
       </div>
       <h2 class="font-serif text-[36px] tracking-[-0.02em] leading-[1.05] m-0 max-w-[480px]">
-        You're <em class="text-accent">off the hook</em>.
+        {raw(gettext("You're <em class=\"text-accent\">off the hook</em>."))}
       </h2>
       <p class="text-[14px] text-ink55 max-w-[460px] leading-[1.6]">
-        Auto-approve is on. New contacts skip this view and go straight to scheduled.
+        {gettext("Auto-approve is on. New contacts skip this view and go straight to scheduled.")}
       </p>
     </div>
     """
@@ -425,14 +441,14 @@ defmodule ColtWeb.Sending.WritingLive do
 
     <div class="mt-7">
       <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
-        How it lands in {first_name(@person)}'s inbox
+        {gettext("How it lands in %{name}'s inbox", name: first_name(@person))}
       </div>
       <.inbox_preview subject={@subject} from={(@person && @person.email) || "you@example.com"} />
     </div>
 
     <div class="mt-8">
       <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
-        Subject
+        {gettext("Subject")}
       </div>
       <form phx-change="set_subject" class="block">
         <input
@@ -440,19 +456,21 @@ defmodule ColtWeb.Sending.WritingLive do
           name="value"
           value={@subject}
           phx-debounce="400"
-          placeholder="subject line"
+          placeholder={gettext("subject line")}
           disabled={@drafting}
           class="w-full px-5 py-3 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[13.5px] text-ink outline-none placeholder:text-ink40"
           style="border-left-color: var(--accent);"
         />
       </form>
       <div class="mt-1.5 font-mono text-[10px] text-ink40">
-        follow-ups re-use this subject as “re: …”
+        {gettext("follow-ups re-use this subject as “re: …”")}
       </div>
     </div>
 
     <div class="mt-7 flex items-baseline justify-between">
-      <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">Sequence draft</div>
+      <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
+        {gettext("Sequence draft")}
+      </div>
       <div
         :if={@drafting}
         class="font-mono text-[10px] tracking-[0.06em] inline-flex items-center gap-1.5"
@@ -461,7 +479,7 @@ defmodule ColtWeb.Sending.WritingLive do
         <span
           class="w-[5px] h-[5px] rounded-full"
           style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-        /> drafting…
+        /> {gettext("drafting…")}
       </div>
     </div>
 
@@ -487,17 +505,17 @@ defmodule ColtWeb.Sending.WritingLive do
     </div>
 
     <div :if={@saved_at} class="mt-6 font-mono text-[11px] text-ink40">
-      saved {Calendar.strftime(@saved_at, "%H:%M:%S")}
+      {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
     </div>
     """
   end
 
-  defp first_name(nil), do: "them"
+  defp first_name(nil), do: gettext("them")
 
-  defp first_name(%{name: nil}), do: "them"
+  defp first_name(%{name: nil}), do: gettext("them")
 
   defp first_name(%{name: name}) do
-    name |> String.split() |> List.first() || "them"
+    name |> String.split() |> List.first() || gettext("them")
   end
 
   attr :person, :map, required: true
@@ -568,10 +586,10 @@ defmodule ColtWeb.Sending.WritingLive do
     >
       <div class="flex items-center gap-3.5 px-5 py-3 border-b border-rule bg-paperAlt">
         <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink40">
-          Step {@idx + 1}
+          {gettext("Step %{n}", n: @idx + 1)}
         </span>
         <span class="text-[13px] text-ink">
-          {if @idx == 0, do: "First email", else: "Follow-up #{@idx}"}
+          {if @idx == 0, do: gettext("First email"), else: gettext("Follow-up %{n}", n: @idx)}
         </span>
       </div>
       <form phx-change="set_body" class="block">
@@ -596,7 +614,7 @@ defmodule ColtWeb.Sending.WritingLive do
     <div class="border border-rule rounded-[2px] px-5 py-4">
       <div class="flex items-center gap-3 mb-3">
         <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink40">
-          Step {@position + 1}
+          {gettext("Step %{n}", n: @position + 1)}
         </span>
         <span
           class="inline-flex items-center gap-1.5 font-mono text-[10px]"
@@ -605,7 +623,7 @@ defmodule ColtWeb.Sending.WritingLive do
           <span
             class="w-[5px] h-[5px] rounded-full"
             style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-          /> drafting…
+          /> {gettext("drafting…")}
         </span>
       </div>
       <div class="h-3 w-[60%] bg-ink10 mb-2" />
@@ -667,8 +685,8 @@ defmodule ColtWeb.Sending.WritingLive do
     """
   end
 
-  defp subject_or_placeholder(""), do: "(empty subject)"
-  defp subject_or_placeholder(nil), do: "(empty subject)"
+  defp subject_or_placeholder(""), do: gettext("(empty subject)")
+  defp subject_or_placeholder(nil), do: gettext("(empty subject)")
   defp subject_or_placeholder(s), do: s
 
   attr :from, :string, required: true
@@ -691,7 +709,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -      {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -        {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
@@ -711,7 +729,7 @@ defmodule ColtWeb.Sending.WritingLive do
         phx-click="approve"
         disabled={@drafting or not @can_approve}
       >
-        <Liid.icon name="check" size={12} /> Approve &amp; next
+        <Liid.icon name="check" size={12} /> {gettext("Approve & next")}
       </Liid.btn>
     </div>
     """

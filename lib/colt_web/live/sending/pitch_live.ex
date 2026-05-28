@@ -30,7 +30,7 @@ defmodule ColtWeb.Sending.PitchLive do
 
         {:ok,
          assign(socket,
-           page_title: "Pitch — #{campaign.name}",
+           page_title: gettext("Pitch — %{name}", name: campaign.name),
            campaign: campaign,
            pitch: pitch,
            domain: pitch.domain || "",
@@ -124,15 +124,19 @@ defmodule ColtWeb.Sending.PitchLive do
     >
       <div class="w-full max-w-[760px] mx-auto pb-16">
         <Liid.headline
-          kicker="Sending · Pitch"
-          sub="What you sell, in your words. We read your site once and draft this for you — the AI writer reuses it on every outbound email."
+          kicker={gettext("Sending · Pitch")}
+          sub={
+            gettext(
+              "What you sell, in your words. We read your site once and draft this for you — the AI writer reuses it on every outbound email."
+            )
+          }
         >
-          The <em>offer</em> behind every email.
+          {raw(gettext("The <em>offer</em> behind every email."))}
         </Liid.headline>
 
         <div class="mt-10">
           <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
-            Your domain
+            {gettext("Your domain")}
           </div>
           <form phx-change="set_domain" class="block">
             <input
@@ -146,14 +150,16 @@ defmodule ColtWeb.Sending.PitchLive do
             />
           </form>
           <div class="mt-1.5 font-mono text-[10px] text-ink40">
-            press tab or click out to fetch. changing the domain re-fetches and overwrites the summary below.
+            {gettext(
+              "press tab or click out to fetch. changing the domain re-fetches and overwrites the summary below."
+            )}
           </div>
         </div>
 
         <div class="mt-8">
           <div class="flex items-center justify-between mb-2.5">
             <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
-              What you sell
+              {gettext("What you sell")}
             </div>
             <div
               :if={@pitch.fetching?}
@@ -163,7 +169,7 @@ defmodule ColtWeb.Sending.PitchLive do
               <span
                 class="w-[5px] h-[5px] rounded-full"
                 style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-              /> reading site…
+              /> {gettext("reading site…")}
             </div>
           </div>
           <form phx-change="set_summary" class="block">
@@ -175,7 +181,8 @@ defmodule ColtWeb.Sending.PitchLive do
               placeholder={
                 if @pitch.fetching?,
                   do: "",
-                  else: "We'll fill this in once you set a domain. Or type your own pitch here."
+                  else:
+                    gettext("We'll fill this in once you set a domain. Or type your own pitch here.")
               }
               class={[
                 "w-full px-5 py-4 bg-paper text-[13.5px] leading-[1.6] text-ink70 outline-none border border-ink20 rounded-[2px] resize-none font-sans block",
@@ -185,13 +192,17 @@ defmodule ColtWeb.Sending.PitchLive do
             >{@summary}</textarea>
           </form>
           <div :if={@pitch.fetched_at} class="mt-1.5 font-mono text-[10px] text-ink40">
-            site last read {Calendar.strftime(@pitch.fetched_at, "%Y-%m-%d %H:%M")}.
-            <span :if={@pitch.user_summary not in [nil, ""]} class="text-ink55">edited.</span>
+            {gettext("site last read %{at}.",
+              at: Calendar.strftime(@pitch.fetched_at, "%Y-%m-%d %H:%M")
+            )}
+            <span :if={@pitch.user_summary not in [nil, ""]} class="text-ink55">
+              {gettext("edited.")}
+            </span>
           </div>
         </div>
 
         <div :if={@saved_at} class="mt-10 font-mono text-[11px] text-ink40">
-          saved {Calendar.strftime(@saved_at, "%H:%M:%S")}
+          {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
         </div>
       </div>
     </Layouts.app>

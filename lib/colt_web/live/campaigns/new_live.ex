@@ -7,7 +7,7 @@ defmodule ColtWeb.Campaigns.NewLive do
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
   def mount(_params, _session, socket) do
-    {:ok, assign(socket, page_title: "New campaign", name: "", error: nil)}
+    {:ok, assign(socket, page_title: gettext("New campaign"), name: "", error: nil)}
   end
 
   def handle_event("validate", %{"name" => name}, socket) do
@@ -19,7 +19,7 @@ defmodule ColtWeb.Campaigns.NewLive do
 
     cond do
       name == "" ->
-        {:noreply, assign(socket, error: "Name a campaign before continuing.")}
+        {:noreply, assign(socket, error: gettext("Name a campaign before continuing."))}
 
       true ->
         case Campaign.create_draft(name, actor: socket.assigns.current_user) do
@@ -37,10 +37,14 @@ defmodule ColtWeb.Campaigns.NewLive do
     <Layouts.app flash={@flash} current_user={@current_user} active={:campaigns}>
       <div class="max-w-[640px] w-full">
         <Liid.headline
-          kicker="01 / Campaign"
-          sub="Name it after the persona, market, or quarter — anything you'll recognise in three weeks."
+          kicker={gettext("01 / Campaign")}
+          sub={
+            gettext(
+              "Name it after the persona, market, or quarter — anything you'll recognise in three weeks."
+            )
+          }
         >
-          What are we calling this <em>hunt</em>?
+          {raw(gettext("What are we calling this <em>hunt</em>?"))}
         </Liid.headline>
 
         <form
@@ -53,14 +57,14 @@ defmodule ColtWeb.Campaigns.NewLive do
             type="text"
             name="name"
             value={@name}
-            placeholder="Nordic CTOs Q2"
+            placeholder={gettext("Nordic CTOs Q2")}
             phx-debounce="200"
             autofocus
             class="w-full font-serif text-[28px] md:text-[44px] font-normal tracking-[-0.02em] text-ink py-[12px] pb-[14px] border-0 border-b border-ink bg-transparent outline-none placeholder:text-ink40"
           />
 
           <div class="mt-3 font-mono text-[11px] tracking-[0.04em] text-ink55">
-            <span style="color: var(--color-accent);">●</span> draft · saved on continue
+            <span style="color: var(--color-accent);">●</span> {gettext("draft · saved on continue")}
           </div>
 
           <div :if={@error} class="mt-4 font-mono text-[11px] text-fail">
@@ -69,9 +73,9 @@ defmodule ColtWeb.Campaigns.NewLive do
 
           <div class="mt-16 flex items-center gap-4">
             <Liid.btn variant={:primary} mono type="submit">
-              Continue <Liid.icon name="arrow" />
+              {gettext("Continue")} <Liid.icon name="arrow" />
             </Liid.btn>
-            <span class="font-mono text-[11px] text-ink40">⏎ to continue</span>
+            <span class="font-mono text-[11px] text-ink40">{gettext("⏎ to continue")}</span>
           </div>
         </form>
       </div>

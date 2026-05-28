@@ -43,7 +43,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         socket =
           socket
           |> assign(
-            page_title: "Sending funnel — #{campaign.name}",
+            page_title: gettext("Sending funnel — %{name}", name: campaign.name),
             campaign: campaign,
             contacts: contacts,
             selected: selected,
@@ -109,10 +109,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     cond do
       is_nil(contact) ->
-        {:noreply, assign(socket, error: "Pick a contact first.")}
+        {:noreply, assign(socket, error: gettext("Pick a contact first."))}
 
       String.trim(strip_html(html)) == "" ->
-        {:noreply, assign(socket, error: "Reply body is empty.")}
+        {:noreply, assign(socket, error: gettext("Reply body is empty."))}
 
       true ->
         case SendManualReply.run(contact.thread.id, html, actor: actor) do
@@ -126,12 +126,16 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
                 error: nil
               )
               |> load_thread_data()
-              |> put_flash(:info, "Reply sent.")
+              |> put_flash(:info, gettext("Reply sent."))
 
             {:noreply, socket}
 
           {:error, reason} ->
-            {:noreply, assign(socket, error: "Send failed: #{inspect(reason)}", sending?: false)}
+            {:noreply,
+             assign(socket,
+               error: gettext("Send failed: %{reason}", reason: inspect(reason)),
+               sending?: false
+             )}
         end
     end
   end
@@ -141,7 +145,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     cond do
       is_nil(contact) or String.trim(body) == "" ->
-        {:noreply, assign(socket, error: "Note is empty.")}
+        {:noreply, assign(socket, error: gettext("Note is empty."))}
 
       true ->
         case Note.create(contact.thread.id, body, actor: actor) do
@@ -150,12 +154,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               socket
               |> assign(note_body: "", error: nil)
               |> load_thread_data()
-              |> put_flash(:info, "Note saved.")
+              |> put_flash(:info, gettext("Note saved."))
 
             {:noreply, socket}
 
           {:error, reason} ->
-            {:noreply, assign(socket, error: "Couldn't save note: #{inspect(reason)}")}
+            {:noreply,
+             assign(socket,
+               error: gettext("Couldn't save note: %{reason}", reason: inspect(reason))
+             )}
         end
     end
   end
@@ -167,11 +174,14 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Sequence stopped — contact marked no-reply.")
+         |> put_flash(:info, gettext("Sequence stopped — contact marked no-reply."))
          |> reload_contacts_and_keep_selected()}
 
       {:error, reason} ->
-        {:noreply, assign(socket, error: "Couldn't stop sequence: #{inspect(reason)}")}
+        {:noreply,
+         assign(socket,
+           error: gettext("Couldn't stop sequence: %{reason}", reason: inspect(reason))
+         )}
     end
   end
 
@@ -184,11 +194,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       {:ok, _} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Marked as #{format_override(atom)}.")
+         |> put_flash(:info, gettext("Marked as %{label}.", label: format_override(atom)))
          |> reload_contacts_and_keep_selected()}
 
       {:error, reason} ->
-        {:noreply, assign(socket, error: "Couldn't update: #{inspect(reason)}")}
+        {:noreply,
+         assign(socket, error: gettext("Couldn't update: %{reason}", reason: inspect(reason)))}
     end
   end
 
@@ -340,11 +351,11 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp strip_html(_), do: ""
 
-  defp format_override(:interested), do: "interested"
-  defp format_override(:not_interested), do: "not interested"
-  defp format_override(:ooo), do: "out of office"
-  defp format_override(:call_ready), do: "call ready"
-  defp format_override(:no_reply), do: "no reply"
+  defp format_override(:interested), do: gettext("interested")
+  defp format_override(:not_interested), do: gettext("not interested")
+  defp format_override(:ooo), do: gettext("out of office")
+  defp format_override(:call_ready), do: gettext("call ready")
+  defp format_override(:no_reply), do: gettext("no reply")
 
   defp status_label(%{status: status, reply_category: cat}) do
     {label, tone} = base_status_label(status)
@@ -355,19 +366,19 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     end
   end
 
-  defp base_status_label(:pending_approval), do: {"pending", "ink55"}
-  defp base_status_label(:approved), do: {"approved", "ink70"}
-  defp base_status_label(:sending), do: {"sending", "ink70"}
-  defp base_status_label(:replied), do: {"replied", "accent"}
-  defp base_status_label(:call_ready), do: {"call ready", "accent"}
-  defp base_status_label(:no_reply), do: {"no reply", "ink40"}
-  defp base_status_label(:bounced), do: {"bounced", "warn"}
-  defp base_status_label(:failed), do: {"failed", "fail"}
+  defp base_status_label(:pending_approval), do: {gettext("pending"), "ink55"}
+  defp base_status_label(:approved), do: {gettext("approved"), "ink70"}
+  defp base_status_label(:sending), do: {gettext("sending"), "ink70"}
+  defp base_status_label(:replied), do: {gettext("replied"), "accent"}
+  defp base_status_label(:call_ready), do: {gettext("call ready"), "accent"}
+  defp base_status_label(:no_reply), do: {gettext("no reply"), "ink40"}
+  defp base_status_label(:bounced), do: {gettext("bounced"), "warn"}
+  defp base_status_label(:failed), do: {gettext("failed"), "fail"}
 
-  defp category_label(:interested), do: "interested"
-  defp category_label(:not_interested), do: "not interested"
-  defp category_label(:ooo), do: "ooo"
-  defp category_label(:other), do: "other"
+  defp category_label(:interested), do: gettext("interested")
+  defp category_label(:not_interested), do: gettext("not interested")
+  defp category_label(:ooo), do: gettext("ooo")
+  defp category_label(:other), do: gettext("other")
 
   defp terminal?(s), do: s in [:replied, :no_reply, :bounced, :failed, :call_ready]
 
@@ -389,8 +400,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           rate={@stats.bounce_rate}
         />
         <div class="px-7 pt-6 pb-4">
-          <Liid.headline kicker="Sending · Funnel">
-            Where the <em class="text-accent">conversation</em> is going.
+          <Liid.headline kicker={gettext("Sending · Funnel")}>
+            {raw(gettext("Where the <em class=\"text-accent\">conversation</em> is going."))}
           </Liid.headline>
         </div>
 
@@ -443,9 +454,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       style="background: var(--fail);"
     >
       <span class="inline-block w-[7px] h-[7px] rounded-full bg-paper animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
-      <span class="font-semibold tracking-[0.12em]">Campaign auto-paused</span>
+      <span class="font-semibold tracking-[0.12em]">{gettext("Campaign auto-paused")}</span>
       <span class="opacity-90 normal-case tracking-normal">
-        Bounce rate {Float.round(@rate, 1)}% · above the 5% threshold. Investigate before resuming.
+        {gettext(
+          "Bounce rate %{rate}%% · above the 5%% threshold. Investigate before resuming.",
+          rate: Float.round(@rate, 1)
+        )}
       </span>
     </div>
     """
@@ -473,49 +487,55 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     tiles = [
       %{
         k: :sending,
-        label: "Sending",
+        label: gettext("Sending"),
         big: sending,
-        unit: "contacts",
-        sub: "#{assigns.stats.total_sent} emails sent",
+        unit: gettext("contacts"),
+        sub: gettext("%{n} emails sent", n: assigns.stats.total_sent),
         pulse: true
       },
       %{
         k: :call_ready,
-        label: "Call ready",
+        label: gettext("Call ready"),
         big: Map.get(b, :call_ready, 0),
-        unit: "contacts",
+        unit: gettext("contacts"),
         sub: "",
         tone: :accent
       },
       %{
         k: :interested,
-        label: "Interested",
+        label: gettext("Interested"),
         big: Map.get(b, :replied_interested, 0),
-        unit: "contacts",
-        sub: "#{assigns.stats.interest_rate}% interest",
+        unit: gettext("contacts"),
+        sub: gettext("%{rate}%% interest", rate: assigns.stats.interest_rate),
         tone: :accent
       },
       %{
         k: :not_interested,
-        label: "Not interested",
+        label: gettext("Not interested"),
         big: not_interested,
-        unit: "contacts",
-        sub: "#{assigns.stats.reply_rate}% reply rate"
+        unit: gettext("contacts"),
+        sub: gettext("%{rate}%% reply rate", rate: assigns.stats.reply_rate)
       },
       %{
         k: :failed,
-        label: "Failed",
+        label: gettext("Failed"),
         big: Map.get(b, :failed, 0),
-        unit: "contacts",
-        sub: "#{failure_rate(b, assigns.stats.total_contacts)}% failure rate",
+        unit: gettext("contacts"),
+        sub:
+          gettext("%{rate}%% failure rate",
+            rate: failure_rate(b, assigns.stats.total_contacts)
+          ),
         tone: :fail
       },
       %{
         k: :bounced,
-        label: "Bounced",
+        label: gettext("Bounced"),
         big: assigns.stats.total_bounced,
-        unit: "contacts",
-        sub: "#{Float.round(assigns.stats.bounce_rate, 1)}% bounce rate",
+        unit: gettext("contacts"),
+        sub:
+          gettext("%{rate}%% bounce rate",
+            rate: Float.round(assigns.stats.bounce_rate, 1)
+          ),
         tone: bounce_tone(assigns.stats.bounce_rate)
       }
     ]
@@ -581,7 +601,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp empty_pane(assigns) do
     bucket_label =
       case assigns.bucket do
-        nil -> "this bucket"
+        nil -> gettext("this bucket")
         b -> b |> Atom.to_string() |> String.replace("_", " ")
       end
 
@@ -591,14 +611,16 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     <div class="flex flex-col items-center justify-center text-center px-8 py-16 gap-4">
       <div class="font-serif text-[64px] leading-none text-ink20">0</div>
       <div class="font-serif text-[22px] tracking-[-0.01em] text-ink">
-        Nothing in <em class="text-accent">{@bucket_label}</em> yet.
+        {raw(
+          gettext("Nothing in <em class=\"text-accent\">%{bucket}</em> yet.", bucket: @bucket_label)
+        )}
       </div>
       <div class="text-[13px] text-ink55 max-w-[360px] leading-[1.55]">
-        Pick another tile above, or approve more contacts in
+        {gettext("Pick another tile above, or approve more contacts in")}
         <.link navigate={~p"/campaigns/#{@campaign_id}/writing"} class="underline text-ink70">
-          Writing
+          {gettext("Writing")}
         </.link>
-        to feed the funnel.
+        {gettext("to feed the funnel.")}
       </div>
     </div>
     """
@@ -613,7 +635,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       <div class="grid grid-cols-2 border border-rule rounded-[2px] bg-paper">
         <div :if={@campaign.tracking_opens?} class="p-4 border-r border-rule">
           <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
-            Opens
+            {gettext("Opens")}
           </div>
           <div class="flex items-baseline gap-1.5">
             <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
@@ -626,7 +648,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         </div>
         <div :if={@campaign.tracking_clicks?} class="p-4">
           <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
-            Clicks
+            {gettext("Clicks")}
           </div>
           <div class="flex items-baseline gap-1.5">
             <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
@@ -655,7 +677,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     ~H"""
     <div class="border-r border-rule overflow-y-auto bg-paper">
       <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10">
-        {length(@contacts)} contacts
+        {gettext("%{n} contacts", n: length(@contacts))}
       </div>
       <%= for c <- @contacts do %>
         <% active? = @selected && @selected.id == c.id %>
@@ -759,7 +781,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             phx-click="stop_sequence"
             disabled={terminal?(@contact.status)}
           >
-            Stop sequence
+            {gettext("Stop sequence")}
           </Liid.btn>
         </div>
       </div>
@@ -767,7 +789,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       <div class="flex-1 overflow-y-auto px-7 py-6">
         <%= if @timeline == [] do %>
           <div class="text-ink40 font-mono text-[11px]">
-            No messages yet. The first step will appear here once it sends.
+            {gettext("No messages yet. The first step will appear here once it sends.")}
           </div>
         <% else %>
           <%= for item <- @timeline do %>
@@ -801,7 +823,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         class="flex justify-between font-mono text-[10px] uppercase mb-1.5"
         style="color:rgba(90,74,42,0.7);"
       >
-        <span>Note</span>
+        <span>{gettext("Note")}</span>
         <span>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
       </div>
       <div class="font-serif italic text-[15px] leading-[1.5]" style="color:#5a4a2a;">
@@ -819,9 +841,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     chip =
       cond do
-        manual? -> "reply (you)"
-        outbound? -> "step #{(assigns.item.email.step_position || 0) + 1}"
-        true -> "reply"
+        manual? -> gettext("reply (you)")
+        outbound? -> gettext("step %{n}", n: (assigns.item.email.step_position || 0) + 1)
+        true -> gettext("reply")
       end
 
     body =
@@ -836,7 +858,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         assigns.item.email.user_subject || assigns.item.email.ai_subject
       end
 
-    sender = if inbound?, do: assigns.item.email.from_address, else: "you"
+    sender = if inbound?, do: assigns.item.email.from_address, else: gettext("you")
 
     assigns =
       assign(assigns,
@@ -868,11 +890,17 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <span>·</span>
         <span>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
         <span :if={@outbound? and @item.email.status == :scheduled} class="text-ink40">
-          · scheduled
+          {gettext("· scheduled")}
         </span>
-        <span :if={@outbound? and @item.email.status == :bounced} class="text-warn">· bounced</span>
-        <span :if={@outbound? and @item.email.status == :failed} class="text-fail">· failed</span>
-        <span :if={@outbound? and @item.email.status == :skipped} class="text-ink40">· skipped</span>
+        <span :if={@outbound? and @item.email.status == :bounced} class="text-warn">
+          {gettext("· bounced")}
+        </span>
+        <span :if={@outbound? and @item.email.status == :failed} class="text-fail">
+          {gettext("· failed")}
+        </span>
+        <span :if={@outbound? and @item.email.status == :skipped} class="text-ink40">
+          {gettext("· skipped")}
+        </span>
       </div>
       <div
         class={[
@@ -923,7 +951,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             )
           ]}
         >
-          Reply
+          {gettext("Reply")}
         </button>
         <button
           phx-click="switch_tab"
@@ -936,11 +964,11 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             )
           ]}
         >
-          Note
+          {gettext("Note")}
         </button>
         <span class="flex-1" />
         <span :if={@active_tab == :reply} class="font-mono text-[10px] text-ink40 truncate">
-          To: {@recipient}
+          {gettext("To: %{recipient}", recipient: @recipient)}
         </span>
       </div>
 
@@ -968,7 +996,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             phx-click="send_reply"
             disabled={@sending?}
           >
-            <Liid.icon name="arrow" size={11} /> Send reply
+            <Liid.icon name="arrow" size={11} /> {gettext("Send reply")}
           </Liid.btn>
         </div>
       </div>
@@ -979,13 +1007,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             name="value"
             rows="4"
             phx-debounce="300"
-            placeholder="Internal note — not sent to recipient."
+            placeholder={gettext("Internal note — not sent to recipient.")}
             class="w-full px-3 py-2 border border-ink20 rounded-[2px] text-[13px] outline-none resize-none"
           >{@note_body}</textarea>
         </form>
         <div class="mt-3 flex justify-end">
           <Liid.btn variant={:primary} size={:small} mono phx-click="save_note">
-            Save note
+            {gettext("Save note")}
           </Liid.btn>
         </div>
       </div>

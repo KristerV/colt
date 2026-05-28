@@ -15,6 +15,7 @@ defmodule ColtWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :load_from_session
+    plug ColtWeb.Plugs.Locale
   end
 
   pipeline :api do
@@ -30,7 +31,8 @@ defmodule ColtWeb.Router do
   scope "/", ColtWeb do
     pipe_through :browser
 
-    ash_authentication_live_session :authenticated_routes do
+    ash_authentication_live_session :authenticated_routes,
+      on_mount: [ColtWeb.LiveLocale] do
       live "/", HomeLive
       live "/campaigns", Campaigns.IndexLive
       live "/campaigns/new", Campaigns.NewLive
@@ -58,6 +60,8 @@ defmodule ColtWeb.Router do
       live "/admin/system", Admin.SystemLive
       live "/admin/tracking-domain", Admin.TrackingDomainLive
     end
+
+    post "/locale", LocaleController, :set
 
     get "/campaigns/:id/export.csv", ExportController, :csv
 

@@ -6,6 +6,7 @@ defmodule ColtWeb.Components.Funnel do
   Visual source of truth: `priv/design_prototype/project/view-4.jsx`.
   """
   use Phoenix.Component
+  use Gettext, backend: ColtWeb.Gettext
 
   alias ColtWeb.Components.Liid
 
@@ -15,6 +16,11 @@ defmodule ColtWeb.Components.Funnel do
     contact: "Contact",
     verify: "Verify"
   }
+
+  defp stage_label(:website), do: gettext("Website")
+  defp stage_label(:icp), do: gettext("ICP fit")
+  defp stage_label(:contact), do: gettext("Contact")
+  defp stage_label(:verify), do: gettext("Verify")
 
   @stage_keys ~w(website icp contact verify)a
 
@@ -29,15 +35,15 @@ defmodule ColtWeb.Components.Funnel do
   def stats_strip(assigns) do
     enriched_label =
       if assigns.target,
-        do: "Enriched (target: #{assigns.target})",
-        else: "Enriched"
+        do: gettext("Enriched (target: %{n})", n: assigns.target),
+        else: gettext("Enriched")
 
     tiles = [
-      %{key: :queued, label: "Queued", color: "var(--ink40)", pulse?: false},
-      %{key: :working, label: "Working", color: "var(--accent)", pulse?: true},
+      %{key: :queued, label: gettext("Queued"), color: "var(--ink40)", pulse?: false},
+      %{key: :working, label: gettext("Working"), color: "var(--accent)", pulse?: true},
       %{key: :enriched, label: enriched_label, color: "var(--accent)", pulse?: false},
-      %{key: :rejected, label: "ICP miss", color: "var(--ink40)", pulse?: false},
-      %{key: :failed, label: "Failed", color: "var(--fail)", pulse?: false}
+      %{key: :rejected, label: gettext("ICP miss"), color: "var(--ink40)", pulse?: false},
+      %{key: :failed, label: gettext("Failed"), color: "var(--fail)", pulse?: false}
     ]
 
     assigns = assign(assigns, tiles: tiles)
@@ -96,12 +102,17 @@ defmodule ColtWeb.Components.Funnel do
         <span
           class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
           style="background: var(--accent);"
-        /> running · {@meta.workers} workers · {@meta.rate}/s
+        /> {gettext("running · %{workers} workers · %{rate}/s",
+          workers: @meta.workers,
+          rate: @meta.rate
+        )}
       </span>
-      <span>queue: {@meta.queue}</span>
-      <span>elapsed: {fmt_hms(@meta.elapsed_s)}</span>
-      <span>eta: {fmt_hms(@meta.eta_s)}</span>
-      <span class="ml-auto">{@visible} of {@total} visible</span>
+      <span>{gettext("queue: %{n}", n: @meta.queue)}</span>
+      <span>{gettext("elapsed: %{t}", t: fmt_hms(@meta.elapsed_s))}</span>
+      <span>{gettext("eta: %{t}", t: fmt_hms(@meta.eta_s))}</span>
+      <span class="ml-auto">
+        {gettext("%{visible} of %{total} visible", visible: @visible, total: @total)}
+      </span>
     </div>
     """
   end
@@ -116,25 +127,25 @@ defmodule ColtWeb.Components.Funnel do
         <span class="inline-block w-3 h-3 border border-ink40 rounded-[2px]" />
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
-        Company
+        {gettext("Company")}
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
-        Size
+        {gettext("Size")}
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-center">
-        Growth
+        {gettext("Growth")}
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
-        Enrichment
+        {gettext("Enrichment")}
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
-        Contact
+        {gettext("Contact")}
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
-        Email / Phone
+        {gettext("Email / Phone")}
       </span>
       <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
-        Status
+        {gettext("Status")}
       </span>
     </div>
     """
@@ -168,7 +179,7 @@ defmodule ColtWeb.Components.Funnel do
             <%= if @row.domain do %>
               {@row.domain}
             <% else %>
-              <span class="italic">resolving...</span>
+              <span class="italic">{gettext("resolving...")}</span>
             <% end %>
             · {@row.registry_code}
           </div>
@@ -201,7 +212,7 @@ defmodule ColtWeb.Components.Funnel do
               <%= if @row.domain do %>
                 {@row.domain}
               <% else %>
-                <span class="italic">resolving...</span>
+                <span class="italic">{gettext("resolving...")}</span>
               <% end %>
               · {@row.registry_code}
             </div>
@@ -245,7 +256,7 @@ defmodule ColtWeb.Components.Funnel do
   attr :stages, :map, required: true
 
   def enrichment_pills(assigns) do
-    assigns = assign(assigns, keys: @stage_keys, labels: @stage_labels)
+    assigns = assign(assigns, keys: @stage_keys)
 
     ~H"""
     <div class="flex items-center gap-1.5">
@@ -256,7 +267,7 @@ defmodule ColtWeb.Components.Funnel do
           style={pill_style(st)}
         >
           <.pill_dot state={st} />
-          {Map.fetch!(@labels, key)}
+          {stage_label(key)}
         </span>
         <span :if={i < 3} class="w-1 h-px bg-ink20" />
       <% end %>
@@ -301,7 +312,7 @@ defmodule ColtWeb.Components.Funnel do
           </div>
         </div>
       <% @row.status == :enriched -> %>
-        <span class="font-mono text-[11px] text-fail">no contact</span>
+        <span class="font-mono text-[11px] text-fail">{gettext("no contact")}</span>
       <% @row.status == :rejected -> %>
         <span class="font-mono text-[11px] text-ink40">—</span>
       <% @row.status in [:no_website, :no_contacts, :verify_failed, :failed] -> %>
@@ -388,7 +399,7 @@ defmodule ColtWeb.Components.Funnel do
           phx-value-mode="exclude"
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
-          <Liid.icon name="x" size={11} /> Not a good fit
+          <Liid.icon name="x" size={11} /> {gettext("Not a good fit")}
         </button>
         <button
           :if={@row.status == :rejected}
@@ -398,17 +409,17 @@ defmodule ColtWeb.Components.Funnel do
           phx-value-mode="include"
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
-          <Liid.icon name="check" size={11} /> Actually a good fit
+          <Liid.icon name="check" size={11} /> {gettext("Actually a good fit")}
         </button>
         <button
           :if={@row.status in [:enriched, :rejected]}
           type="button"
           phx-click="recheck_icp_row"
           phx-value-id={@row.cc_id}
-          data-confirm="Re-check ICP fit for this company?"
+          data-confirm={gettext("Re-check ICP fit for this company?")}
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
-          <Liid.icon name="refresh" size={11} /> Re-check ICP
+          <Liid.icon name="refresh" size={11} /> {gettext("Re-check ICP")}
         </button>
         <button
           :if={@admin?}
@@ -417,23 +428,23 @@ defmodule ColtWeb.Components.Funnel do
           phx-value-id={@row.cc_id}
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
-          <Liid.icon name="code" size={11} /> LLM calls (admin)
+          <Liid.icon name="code" size={11} /> {gettext("LLM calls (admin)")}
         </button>
         <button
           :if={@admin?}
           type="button"
           phx-click="retry_row"
           phx-value-id={@row.cc_id}
-          data-confirm="Delete all enrichment data for this company and start over?"
+          data-confirm={gettext("Delete all enrichment data for this company and start over?")}
           class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
         >
-          <Liid.icon name="refresh" size={11} /> Retry (admin)
+          <Liid.icon name="refresh" size={11} /> {gettext("Retry (admin)")}
         </button>
       </div>
       <div class="flex flex-col gap-6">
         <div :if={@row.summary}>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-            Company summary
+            {gettext("Company summary")}
           </div>
           <div class="text-[12px] text-ink70 leading-[1.6]">
             {@row.summary}
@@ -442,7 +453,9 @@ defmodule ColtWeb.Components.Funnel do
 
         <div :if={Map.get(@row, :icp_reason)}>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
-            ICP decision · {if @row.status == :rejected, do: "rejected", else: "matched"}
+            {gettext("ICP decision")} · {if @row.status == :rejected,
+              do: gettext("rejected"),
+              else: gettext("matched")}
           </div>
           <div class="text-[12px] text-ink70 leading-[1.6]">
             {@row.icp_reason}
@@ -451,7 +464,7 @@ defmodule ColtWeb.Components.Funnel do
 
         <div :if={Map.get(@row, :website_url)}>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
-            Website
+            {gettext("Website")}
           </div>
           <a
             href={@row.website_url}
@@ -466,7 +479,7 @@ defmodule ColtWeb.Components.Funnel do
 
         <div :if={Map.get(@row, :scraped_paths, []) != []}>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
-            Scraped pages ({length(@row.scraped_paths)})
+            {gettext("Scraped pages (%{n})", n: length(@row.scraped_paths))}
           </div>
           <div class="font-mono text-[11px] leading-[1.7] text-ink70 flex flex-col">
             <a
@@ -480,7 +493,9 @@ defmodule ColtWeb.Components.Funnel do
             </a>
           </div>
           <div class="text-[10px] text-ink40 mt-2 leading-[1.5]">
-            All pages above were combined into one input for the contact-extraction LLM call.
+            {gettext(
+              "All pages above were combined into one input for the contact-extraction LLM call."
+            )}
           </div>
         </div>
       </div>
@@ -488,7 +503,7 @@ defmodule ColtWeb.Components.Funnel do
       <div>
         <%= if @row.status in [:rejected, :no_website, :no_contacts, :verify_failed, :failed] do %>
           <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
-            Outcome
+            {gettext("Outcome")}
           </div>
           <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
             <div
@@ -501,7 +516,7 @@ defmodule ColtWeb.Components.Funnel do
               {@row.rejection_reason}
             </div>
             <div :if={!@row.rejection_reason} class="text-[12px] text-ink40 italic">
-              no reason recorded
+              {gettext("no reason recorded")}
             </div>
 
             <details
@@ -509,7 +524,7 @@ defmodule ColtWeb.Components.Funnel do
               class="mt-3 pt-3 border-t border-rule"
             >
               <summary class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 cursor-pointer">
-                Technical detail (admin)
+                {gettext("Technical detail (admin)")}
               </summary>
               <pre class="mt-2 text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all max-h-64 overflow-auto bg-paperAlt p-3 rounded-sharp"><%= @row.failure_detail %></pre>
             </details>
@@ -517,10 +532,10 @@ defmodule ColtWeb.Components.Funnel do
         <% else %>
           <div class="flex items-baseline justify-between mb-3">
             <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
-              Extracted contact
+              {gettext("Extracted contact")}
             </div>
             <div :if={Map.get(@row, :total_contacts, 0) > 0} class="font-mono text-[10px] text-ink40">
-              {@row.total_contacts} total
+              {gettext("%{n} total", n: @row.total_contacts)}
             </div>
           </div>
           <%= if @row.contact do %>
@@ -535,7 +550,9 @@ defmodule ColtWeb.Components.Funnel do
                 <div :if={@row.contact.email} class="flex items-center gap-2">
                   <Liid.icon name="mail" size={11} class="text-ink55" />
                   <span class="text-ink">{@row.contact.email}</span>
-                  <span class="ml-auto text-[10px]" style="color: var(--accent);">verified</span>
+                  <span class="ml-auto text-[10px]" style="color: var(--accent);">
+                    {gettext("verified")}
+                  </span>
                 </div>
                 <div :if={@row.contact.phone} class="flex items-center gap-2">
                   <Liid.icon name="phone" size={11} class="text-ink55" />
@@ -556,7 +573,7 @@ defmodule ColtWeb.Components.Funnel do
 
             <div :if={Map.get(@row, :extra_contacts, []) != []} class="mt-4">
               <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
-                Other contacts
+                {gettext("Other contacts")}
               </div>
               <div class="flex flex-col gap-2">
                 <div
@@ -575,7 +592,7 @@ defmodule ColtWeb.Components.Funnel do
               </div>
             </div>
           <% else %>
-            <div class="text-[12px] text-ink40 italic">no contact extracted</div>
+            <div class="text-[12px] text-ink40 italic">{gettext("no contact extracted")}</div>
           <% end %>
         <% end %>
       </div>
@@ -583,15 +600,15 @@ defmodule ColtWeb.Components.Funnel do
     """
   end
 
-  defp outcome_label(:rejected, _), do: "icp miss"
-  defp outcome_label(:no_website, _), do: "no website"
-  defp outcome_label(:no_contacts, _), do: "no contacts"
-  defp outcome_label(:verify_failed, _), do: "email unverified"
-  defp outcome_label(:failed, :website), do: "website failed"
-  defp outcome_label(:failed, :icp), do: "icp failed"
-  defp outcome_label(:failed, :contact), do: "contact failed"
-  defp outcome_label(:failed, :verify), do: "verify failed"
-  defp outcome_label(:failed, _), do: "failed"
+  defp outcome_label(:rejected, _), do: gettext("icp miss")
+  defp outcome_label(:no_website, _), do: gettext("no website")
+  defp outcome_label(:no_contacts, _), do: gettext("no contacts")
+  defp outcome_label(:verify_failed, _), do: gettext("email unverified")
+  defp outcome_label(:failed, :website), do: gettext("website failed")
+  defp outcome_label(:failed, :icp), do: gettext("icp failed")
+  defp outcome_label(:failed, :contact), do: gettext("contact failed")
+  defp outcome_label(:failed, :verify), do: gettext("verify failed")
+  defp outcome_label(:failed, _), do: gettext("failed")
   defp outcome_label(_, _), do: ""
 
   defp pill_style(:idle),
@@ -617,19 +634,19 @@ defmodule ColtWeb.Components.Funnel do
     do:
       "border-color: var(--fail); color: var(--fail); background: color-mix(in oklch, var(--fail) 10%, transparent);"
 
-  defp status_view(:pending, _), do: {"queued", "var(--ink40)", false}
-  defp status_view(:scraping, _), do: {"working", "var(--ink)", true}
-  defp status_view(:enriched, _), do: {"enriched", "var(--accent)", false}
-  defp status_view(:rejected, _), do: {"icp miss", "var(--ink40)", false}
-  defp status_view(:no_website, _), do: {"no website", "var(--warn)", false}
-  defp status_view(:no_contacts, _), do: {"no contacts", "var(--warn)", false}
-  defp status_view(:verify_failed, _), do: {"email unverified", "var(--fail)", false}
-  defp status_view(:failed, :website), do: {"website failed", "var(--fail)", false}
-  defp status_view(:failed, :icp), do: {"icp failed", "var(--fail)", false}
-  defp status_view(:failed, :contact), do: {"contact failed", "var(--fail)", false}
-  defp status_view(:failed, :verify), do: {"verify failed", "var(--fail)", false}
-  defp status_view(:failed, _), do: {"failed", "var(--fail)", false}
-  defp status_view(_, _), do: {"queued", "var(--ink40)", false}
+  defp status_view(:pending, _), do: {gettext("queued"), "var(--ink40)", false}
+  defp status_view(:scraping, _), do: {gettext("working"), "var(--ink)", true}
+  defp status_view(:enriched, _), do: {gettext("enriched"), "var(--accent)", false}
+  defp status_view(:rejected, _), do: {gettext("icp miss"), "var(--ink40)", false}
+  defp status_view(:no_website, _), do: {gettext("no website"), "var(--warn)", false}
+  defp status_view(:no_contacts, _), do: {gettext("no contacts"), "var(--warn)", false}
+  defp status_view(:verify_failed, _), do: {gettext("email unverified"), "var(--fail)", false}
+  defp status_view(:failed, :website), do: {gettext("website failed"), "var(--fail)", false}
+  defp status_view(:failed, :icp), do: {gettext("icp failed"), "var(--fail)", false}
+  defp status_view(:failed, :contact), do: {gettext("contact failed"), "var(--fail)", false}
+  defp status_view(:failed, :verify), do: {gettext("verify failed"), "var(--fail)", false}
+  defp status_view(:failed, _), do: {gettext("failed"), "var(--fail)", false}
+  defp status_view(_, _), do: {gettext("queued"), "var(--ink40)", false}
 
   defp growth_style(:declining), do: {[4, 3, 2, 1], "var(--warn)"}
   defp growth_style(:stagnant), do: {[3, 3, 3, 3], "var(--ink40)"}

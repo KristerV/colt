@@ -17,7 +17,11 @@ defmodule ColtWeb.Components.PanicToggle do
       type="button"
       phx-click="toggle"
       phx-target={@myself}
-      title={if @on, do: "Sending paused — click to resume", else: "Sending on — click to pause"}
+      title={
+        if @on,
+          do: gettext("Sending paused — click to resume"),
+          else: gettext("Sending on — click to pause")
+      }
       class="relative inline-block w-6 h-[13px] rounded-full border-0 p-0 cursor-pointer bg-transparent"
     >
       <span

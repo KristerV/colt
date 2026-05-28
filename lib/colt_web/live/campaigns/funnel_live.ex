@@ -48,7 +48,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         socket =
           socket
           |> assign(
-            page_title: "Funnel — #{campaign.name}",
+            page_title: gettext("Funnel — %{name}", name: campaign.name),
             campaign: campaign,
             rows_index: rows_index,
             expanded_id: nil,
@@ -158,7 +158,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:noreply,
          assign(socket,
            learning_saving?: false,
-           learning_error: "Couldn't generate the learning. Try again."
+           learning_error: gettext("Couldn't generate the learning. Try again.")
          )}
     end
   end
@@ -231,7 +231,8 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:noreply, socket}
 
       reason == "" ->
-        {:noreply, assign(socket, learning_error: "Tell us why so we can learn the rule.")}
+        {:noreply,
+         assign(socket, learning_error: gettext("Tell us why so we can learn the rule."))}
 
       true ->
         socket = assign(socket, learning_saving?: true, learning_error: nil)
@@ -582,23 +583,23 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp work_in_flight?(%{queued: q, working: w}), do: q + w > 0
   defp work_in_flight?(_), do: false
 
-  defp bucket_label(:queued), do: "Queued"
-  defp bucket_label(:working), do: "Working"
-  defp bucket_label(:enriched), do: "Enriched"
-  defp bucket_label(:rejected), do: "ICP miss"
-  defp bucket_label(:failed), do: "Failed"
+  defp bucket_label(:queued), do: gettext("Queued")
+  defp bucket_label(:working), do: gettext("Working")
+  defp bucket_label(:enriched), do: gettext("Enriched")
+  defp bucket_label(:rejected), do: gettext("ICP miss")
+  defp bucket_label(:failed), do: gettext("Failed")
   defp bucket_label(_), do: ""
 
-  defp empty_message(:queued), do: "Nothing waiting in line."
-  defp empty_message(:working), do: "No companies currently being processed."
+  defp empty_message(:queued), do: gettext("Nothing waiting in line.")
+  defp empty_message(:working), do: gettext("No companies currently being processed.")
 
   defp empty_message(:enriched),
-    do: "Nothing has been fully enriched yet. Pick another bucket to watch progress."
+    do: gettext("Nothing has been fully enriched yet. Pick another bucket to watch progress.")
 
   defp empty_message(:rejected),
-    do: "No companies have been rejected on ICP fit yet."
+    do: gettext("No companies have been rejected on ICP fit yet.")
 
-  defp empty_message(:failed), do: "Nothing has failed. Enjoy it."
+  defp empty_message(:failed), do: gettext("Nothing has failed. Enjoy it.")
   defp empty_message(_), do: ""
 
   def render(assigns) do
@@ -615,10 +616,11 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
           <div class="min-w-0">
             <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
-              05 / Funnel · {@campaign.name}
+              {gettext("05 / Funnel · %{name}", name: @campaign.name)}
             </div>
             <h1 class="font-serif font-normal text-[32px] md:text-[44px] leading-none tracking-[-0.02em] m-0">
-              Enriching <span style="color: var(--accent);">{@total}</span> companies.
+              {gettext("Enriching")}
+              <span style="color: var(--accent);">{@total}</span> {gettext("companies.")}
             </h1>
           </div>
           <% busy = work_in_flight?(@stats) %>
@@ -628,9 +630,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               mono
               disabled={busy}
               phx-click="recheck_icp"
-              data-confirm="Re-check ICP fit on all enriched and ICP-rejected companies?"
+              data-confirm={gettext("Re-check ICP fit on all enriched and ICP-rejected companies?")}
             >
-              <Liid.icon name="refresh" size={11} /> Re-check ICP
+              <Liid.icon name="refresh" size={11} /> {gettext("Re-check ICP")}
             </Liid.btn>
             <Liid.btn
               size={:small}
@@ -639,7 +641,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               disabled={busy or @stats.enriched == 0}
               phx-click="open_export"
             >
-              <Liid.icon name="download" size={11} /> Export
+              <Liid.icon name="download" size={11} /> {gettext("Export")}
             </Liid.btn>
           </div>
         </div>
@@ -728,11 +730,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         <div class="flex justify-between items-start gap-3 mb-6">
           <div class="min-w-0">
             <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
-              Export · {@campaign.name}
+              {gettext("Export · %{name}", name: @campaign.name)}
             </div>
             <h2 class="font-serif font-normal text-[24px] md:text-[32px] leading-[1.1] tracking-[-0.02em] m-0">
-              Take <span style="color: var(--accent);">{@count}</span>
-              enriched {if @count == 1, do: "contact", else: "contacts"} somewhere.
+              {gettext("Take")} <span style="color: var(--accent);">{@count}</span>
+              {if @count == 1,
+                do: gettext("enriched contact somewhere."),
+                else: gettext("enriched contacts somewhere.")}
             </h2>
           </div>
           <button
@@ -747,15 +751,27 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <.format_card
             name="CSV"
-            desc="Flat sheet · companies + primary contact"
-            note={"#{@count} rows"}
+            desc={gettext("Flat sheet · companies + primary contact")}
+            note={gettext("%{n} rows", n: @count)}
             enabled
           />
-          <.format_card name="JSON" desc="Nested · companies → people → pages" note="soon" />
-          <.format_card name="HubSpot" desc="Push directly · de-dupe by domain" note="soon" />
-          <.format_card name="Pipedrive" desc="Push directly · org + person + deal" note="soon" />
-          <.format_card name="Apollo" desc="Add to sequence" note="soon" />
-          <.format_card name="Webhook" desc="POST to your URL" note="soon" />
+          <.format_card
+            name="JSON"
+            desc={gettext("Nested · companies → people → pages")}
+            note={gettext("soon")}
+          />
+          <.format_card
+            name="HubSpot"
+            desc={gettext("Push directly · de-dupe by domain")}
+            note={gettext("soon")}
+          />
+          <.format_card
+            name="Pipedrive"
+            desc={gettext("Push directly · org + person + deal")}
+            note={gettext("soon")}
+          />
+          <.format_card name="Apollo" desc={gettext("Add to sequence")} note={gettext("soon")} />
+          <.format_card name="Webhook" desc={gettext("POST to your URL")} note={gettext("soon")} />
         </div>
 
         <div
@@ -763,7 +779,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           style="padding: 14px 16px; line-height: 1.6;"
         >
           <div class="text-ink70 mb-1">
-            liid-{slug(@campaign.name)}.csv · preview
+            {gettext("liid-%{slug}.csv · preview", slug: slug(@campaign.name))}
           </div>
           <div>email,first_name,last_name,company_name,website,title,snippet</div>
           <div :for={row <- @preview} class="truncate hidden sm:block">
@@ -773,12 +789,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             {preview_line(row)}
           </div>
           <div :if={@preview == []} class="text-ink40">
-            (no rows yet — preview will appear once a contact is verified)
+            {gettext("(no rows yet — preview will appear once a contact is verified)")}
           </div>
         </div>
 
         <div class="flex gap-3 mt-6">
-          <Liid.btn size={:small} phx-click="close_export">Cancel</Liid.btn>
+          <Liid.btn size={:small} phx-click="close_export">{gettext("Cancel")}</Liid.btn>
           <span class="flex-1"></span>
           <.link
             href={~p"/campaigns/#{@campaign.id}/export.csv"}
@@ -789,7 +805,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               @count == 0 && "opacity-50 pointer-events-none"
             ]}
           >
-            <Liid.icon name="download" size={11} /> Download CSV
+            <Liid.icon name="download" size={11} /> {gettext("Download CSV")}
           </.link>
         </div>
       </div>
@@ -853,8 +869,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               {Phoenix.HTML.raw(learning_heading(@mode))}
             </h2>
             <div class="text-[12px] text-ink55 mt-2 leading-[1.55]">
-              Tell us in your own words. We'll save it as a rule and apply it
-              next time you re-check ICP — no other companies move until you do.
+              {gettext(
+                "Tell us in your own words. We'll save it as a rule and apply it next time you re-check ICP — no other companies move until you do."
+              )}
             </div>
           </div>
           <button
@@ -877,7 +894,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
 
           <div class="flex items-center gap-3 justify-end">
-            <Liid.btn size={:small} type="button" phx-click="close_learning">Cancel</Liid.btn>
+            <Liid.btn size={:small} type="button" phx-click="close_learning">
+              {gettext("Cancel")}
+            </Liid.btn>
             <Liid.btn
               size={:small}
               variant={:primary}
@@ -885,7 +904,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               type="submit"
               disabled={@saving?}
             >
-              {if @saving?, do: "Saving…", else: "Save learning"}
+              {if @saving?, do: gettext("Saving…"), else: gettext("Save learning")}
             </Liid.btn>
           </div>
         </form>
@@ -894,17 +913,18 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     """
   end
 
-  defp learning_eyebrow(:exclude), do: "Not a good fit"
-  defp learning_eyebrow(:include), do: "Actually a good fit"
+  defp learning_eyebrow(:exclude), do: gettext("Not a good fit")
+  defp learning_eyebrow(:include), do: gettext("Actually a good fit")
 
-  defp learning_heading(:exclude), do: "What makes this a <em>miss</em>?"
-  defp learning_heading(:include), do: "What makes this a <em>match</em>?"
+  defp learning_heading(:exclude), do: gettext("What makes this a <em>miss</em>?")
+  defp learning_heading(:include), do: gettext("What makes this a <em>match</em>?")
 
   defp learning_placeholder(:exclude),
-    do: "e.g. They're a pure reseller — we sell to manufacturers, not distributors."
+    do: gettext("e.g. They're a pure reseller — we sell to manufacturers, not distributors.")
 
   defp learning_placeholder(:include),
-    do: "e.g. They manufacture in-house — the site just emphasises their distribution arm."
+    do:
+      gettext("e.g. They manufacture in-house — the site just emphasises their distribution arm.")
 
   attr :row, :map, required: true
   attr :calls, :list, required: true
@@ -926,10 +946,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         <div class="flex justify-between items-start gap-3 mb-5">
           <div class="min-w-0">
             <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
-              LLM calls · {@row.name}
+              {gettext("LLM calls · %{name}", name: @row.name)}
             </div>
             <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
-              {length(@calls)} recorded calls
+              {gettext("%{n} recorded calls", n: length(@calls))}
             </h2>
           </div>
           <button

@@ -7,13 +7,15 @@ defmodule ColtWeb.Sending.SequenceLive do
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
 
-  @languages [
-    {"en", "English"},
-    {"et", "Estonian"},
-    {"fi", "Finnish"},
-    {"sv", "Swedish"},
-    {"de", "German"}
-  ]
+  defp languages do
+    [
+      {"en", gettext("English")},
+      {"et", gettext("Estonian")},
+      {"fi", gettext("Finnish")},
+      {"sv", gettext("Swedish")},
+      {"de", gettext("German")}
+    ]
+  end
 
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
@@ -26,11 +28,11 @@ defmodule ColtWeb.Sending.SequenceLive do
 
         {:ok,
          assign(socket,
-           page_title: "Sequence — #{campaign.name}",
+           page_title: gettext("Sequence — %{name}", name: campaign.name),
            campaign: campaign,
            sequence: sequence,
            steps: steps,
-           languages: @languages,
+           languages: languages(),
            saved_at: nil
          )}
 
@@ -225,14 +227,18 @@ defmodule ColtWeb.Sending.SequenceLive do
     >
       <div class="w-full max-w-[760px] mx-auto pb-16">
         <Liid.headline
-          kicker="Sending · Sequence"
-          sub="One template, applied to every approved contact. The AI rewrites the body per contact; the structure (steps, waits, terminal action) is fixed here."
+          kicker={gettext("Sending · Sequence")}
+          sub={
+            gettext(
+              "One template, applied to every approved contact. The AI rewrites the body per contact; the structure (steps, waits, terminal action) is fixed here."
+            )
+          }
         >
-          The <em>shape</em> of every email we'll send.
+          {raw(gettext("The <em>shape</em> of every email we'll send."))}
         </Liid.headline>
 
         <div class="mt-2 font-mono text-[10px] tracking-[0.14em] uppercase text-ink40">
-          version {@sequence.version}
+          {gettext("version %{v}", v: @sequence.version)}
         </div>
 
         <div class="mt-10 flex flex-col gap-0">
@@ -246,7 +252,7 @@ defmodule ColtWeb.Sending.SequenceLive do
             phx-click="add_step"
             class="mt-3 py-3 border border-dashed border-ink20 text-ink55 font-mono text-[11px] tracking-[0.08em] uppercase rounded-[2px] cursor-pointer hover:border-ink40 hover:text-ink"
           >
-            + add follow-up
+            {gettext("+ add follow-up")}
           </button>
 
           <%= if @terminal do %>
@@ -255,10 +261,10 @@ defmodule ColtWeb.Sending.SequenceLive do
           <% end %>
         </div>
 
-        <.section_divider label="Language" />
+        <.section_divider label={gettext("Language")} />
         <.setting_row
-          label="Drafts written in"
-          hint="The AI will write every subject + body in this language."
+          label={gettext("Drafts written in")}
+          hint={gettext("The AI will write every subject + body in this language.")}
         >
           <form phx-change="set_language" class="inline-flex">
             <select
@@ -272,26 +278,26 @@ defmodule ColtWeb.Sending.SequenceLive do
           </form>
         </.setting_row>
 
-        <.section_divider label="Tracking" />
+        <.section_divider label={gettext("Tracking")} />
         <.setting_row
-          label="Open tracking"
-          hint="Pixel embedded in every email. Requires a CNAME you set up yourself."
+          label={gettext("Open tracking")}
+          hint={gettext("Pixel embedded in every email. Requires a CNAME you set up yourself.")}
         >
           <.toggle on={@campaign.tracking_opens?} field="opens" />
         </.setting_row>
         <.setting_row
-          label="Click tracking"
-          hint="Wraps every link through a redirector on the same CNAME."
+          label={gettext("Click tracking")}
+          hint={gettext("Wraps every link through a redirector on the same CNAME.")}
         >
           <.toggle on={@campaign.tracking_clicks?} field="clicks" />
         </.setting_row>
         <.cname_card :if={@tracking_on?} domain={Colt.AppSettings.tracking_domain()} />
 
-        <.section_divider label="Approval" />
+        <.section_divider label={gettext("Approval")} />
         <.auto_approve_row campaign={@campaign} />
 
         <div :if={@saved_at} class="mt-10 font-mono text-[11px] text-ink40">
-          saved {Calendar.strftime(@saved_at, "%H:%M:%S")}
+          {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
         </div>
       </div>
     </Layouts.app>
@@ -313,7 +319,7 @@ defmodule ColtWeb.Sending.SequenceLive do
           {@idx + 1}
         </span>
         <span class="text-[14px] font-medium text-ink">
-          {if @idx == 0, do: "First email", else: "Follow-up #{@idx}"}
+          {if @idx == 0, do: gettext("First email"), else: gettext("Follow-up %{n}", n: @idx)}
         </span>
         <span class="flex-1" />
         <button
@@ -322,7 +328,7 @@ defmodule ColtWeb.Sending.SequenceLive do
           phx-click="remove_step"
           phx-value-id={@step.id}
           class="text-ink40 hover:text-fail cursor-pointer"
-          aria-label="Remove step"
+          aria-label={gettext("Remove step")}
         >
           <ColtWeb.Components.Liid.icon name="x" size={12} />
         </button>
@@ -339,7 +345,7 @@ defmodule ColtWeb.Sending.SequenceLive do
       <span class="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border border-ink40 text-ink55 font-mono text-[11px] font-semibold">
         ×
       </span>
-      <span class="text-[13px] text-ink70">If still no reply, mark contact as</span>
+      <span class="text-[13px] text-ink70">{gettext("If still no reply, mark contact as")}</span>
       <form phx-change="set_terminal_action" class="inline-flex">
         <input type="hidden" name="step_id" value={@step.id} />
         <select
@@ -355,7 +361,9 @@ defmodule ColtWeb.Sending.SequenceLive do
         </select>
       </form>
       <span class="flex-1" />
-      <span class="font-mono text-[10px] tracking-[0.04em] text-ink40">end of sequence</span>
+      <span class="font-mono text-[10px] tracking-[0.04em] text-ink40">
+        {gettext("end of sequence")}
+      </span>
     </div>
     """
   end
@@ -370,7 +378,7 @@ defmodule ColtWeb.Sending.SequenceLive do
       <span class="absolute left-[14px] top-0 bottom-0 w-px bg-ink20" />
       <span class="absolute left-[9px] top-[calc(50%-5px)] w-[11px] h-[11px] rounded-full bg-paper border border-ink20" />
       <span class="font-mono text-[11px] tracking-[0.06em] text-ink55 inline-flex items-center gap-2">
-        wait
+        {gettext("wait")}
         <form phx-change="set_delay" class="inline-flex">
           <input type="hidden" name="step_id" value={@id} />
           <input
@@ -382,9 +390,9 @@ defmodule ColtWeb.Sending.SequenceLive do
             class="w-[52px] px-1.5 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] text-center bg-paper text-ink tabular-nums outline-none"
           />
         </form>
-        days
+        {gettext("days")}
         <span :if={@terminal} class="font-mono text-[11px] tracking-[0.04em] text-ink40">
-          · then
+          {gettext("· then")}
         </span>
       </span>
     </div>
@@ -448,13 +456,17 @@ defmodule ColtWeb.Sending.SequenceLive do
     <div class="mt-3.5 p-5 bg-paperAlt border border-rule rounded-[2px]">
       <div class="flex items-baseline justify-between mb-3.5">
         <div>
-          <div class="text-[13px] text-ink font-medium">Tracking CNAME</div>
+          <div class="text-[13px] text-ink font-medium">{gettext("Tracking CNAME")}</div>
           <div class="text-[12px] text-ink55 mt-0.5">
-            Required for opens/clicks. One CNAME at your DNS provider, reused across all sending accounts. Configure under <span class="font-mono text-ink70">/admin/tracking-domain</span>.
+            {raw(
+              gettext(
+                "Required for opens/clicks. One CNAME at your DNS provider, reused across all sending accounts. Configure under <span class=\"font-mono text-ink70\">/admin/tracking-domain</span>."
+              )
+            )}
           </div>
         </div>
         <span class="font-mono text-[10px] tracking-[0.06em] uppercase text-ink40 px-2 py-0.5 border border-ink20 rounded-[2px]">
-          {if @domain, do: "set", else: "unset"}
+          {if @domain, do: gettext("set"), else: gettext("unset")}
         </span>
       </div>
     </div>
@@ -474,27 +486,31 @@ defmodule ColtWeb.Sending.SequenceLive do
     ]}>
       <div class="flex-1">
         <div class="flex items-center gap-2.5 mb-1">
-          <span class="text-[13px] text-ink font-medium">Auto-approve drafts</span>
+          <span class="text-[13px] text-ink font-medium">{gettext("Auto-approve drafts")}</span>
           <span
             :if={!@campaign.auto_approve_unlocked?}
             class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink55 px-1.5 py-0.5 border border-ink20 rounded-[2px]"
           >
-            locked
+            {gettext("locked")}
           </span>
           <span
             :if={@campaign.auto_approve_unlocked?}
             class="font-mono text-[9px] tracking-[0.14em] uppercase font-semibold px-1.5 py-0.5 rounded-[2px]"
             style="color: var(--accent); background: color-mix(in oklch, var(--accent) 8%, transparent); border: 1px solid color-mix(in oklch, var(--accent) 35%, transparent);"
           >
-            unlocked
+            {gettext("unlocked")}
           </span>
         </div>
         <div :if={!@campaign.auto_approve_unlocked?} class="text-[12px] text-ink55 leading-[1.5]">
-          Unlocks after you've accepted <span class="text-ink">10 AI drafts</span>
-          unchanged. You've cleanly accepted <span class="text-ink font-mono">{@campaign.auto_approve_streak} / 10</span>.
+          {raw(
+            gettext(
+              "Unlocks after you've accepted <span class=\"text-ink\">10 AI drafts</span> unchanged. You've cleanly accepted <span class=\"text-ink font-mono\">%{streak} / 10</span>.",
+              streak: @campaign.auto_approve_streak
+            )
+          )}
         </div>
         <div :if={@campaign.auto_approve_unlocked?} class="text-[12px] text-ink55 leading-[1.5]">
-          New contacts go straight to scheduled without landing in the Writing queue.
+          {gettext("New contacts go straight to scheduled without landing in the Writing queue.")}
         </div>
         <div
           :if={!@campaign.auto_approve_unlocked?}
@@ -528,7 +544,7 @@ defmodule ColtWeb.Sending.SequenceLive do
             )
           }
         />
-        {if @campaign.auto_approve_on?, do: "ON", else: "OFF"}
+        {if @campaign.auto_approve_on?, do: gettext("ON"), else: gettext("OFF")}
       </button>
     </div>
     """

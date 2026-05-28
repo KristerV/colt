@@ -10,7 +10,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(page_title: "Email accounts")
+     |> assign(page_title: gettext("Email accounts"))
      |> load_accounts()}
   end
 
@@ -22,7 +22,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
          {:ok, _} <- EmailAccount.disconnect(account, actor: user) do
       {:noreply,
        socket
-       |> put_flash(:info, "Inbox disconnected. Billing stopped at Nylas.")
+       |> put_flash(:info, gettext("Inbox disconnected. Billing stopped at Nylas."))
        |> load_accounts()}
     else
       {:error, reason} ->
@@ -30,7 +30,10 @@ defmodule ColtWeb.Account.EmailAccountsLive do
          put_flash(
            socket,
            :error,
-           "Could not disconnect — Nylas is still billing for this inbox. Retry in a moment. (#{inspect(reason)})"
+           gettext(
+             "Could not disconnect — Nylas is still billing for this inbox. Retry in a moment. (%{reason})",
+             reason: inspect(reason)
+           )
          )}
     end
   end
@@ -72,27 +75,31 @@ defmodule ColtWeb.Account.EmailAccountsLive do
       <div class="max-w-[860px] w-full">
         <div class="flex items-end justify-between gap-6 mb-10">
           <Liid.headline
-            kicker="Account · Email accounts"
-            sub="Inboxes you've connected through Nylas. Pick any of them per campaign under Sending accounts."
+            kicker={gettext("Account · Email accounts")}
+            sub={
+              gettext(
+                "Inboxes you've connected through Nylas. Pick any of them per campaign under Sending accounts."
+              )
+            }
           >
-            Connected <em>inboxes</em>.
+            {raw(gettext("Connected <em>inboxes</em>."))}
           </Liid.headline>
         </div>
 
         <div class="flex flex-wrap gap-3 mb-10">
           <.link href={~p"/email-accounts/connect/google"} class="no-underline">
             <Liid.btn variant={:primary} mono>
-              Connect Gmail <Liid.icon name="arrow" />
+              {gettext("Connect Gmail")} <Liid.icon name="arrow" />
             </Liid.btn>
           </.link>
           <.link href={~p"/email-accounts/connect/m365"} class="no-underline">
             <Liid.btn mono>
-              Connect Outlook <Liid.icon name="arrow" />
+              {gettext("Connect Outlook")} <Liid.icon name="arrow" />
             </Liid.btn>
           </.link>
           <.link href={~p"/email-accounts/connect/imap"} class="no-underline">
             <Liid.btn mono>
-              Connect IMAP <Liid.icon name="arrow" />
+              {gettext("Connect IMAP")} <Liid.icon name="arrow" />
             </Liid.btn>
           </.link>
         </div>
@@ -101,9 +108,11 @@ defmodule ColtWeb.Account.EmailAccountsLive do
           :if={@accounts == []}
           class="border border-rule rounded-[2px] bg-paper px-8 py-12 text-center"
         >
-          <div class="font-serif text-[24px] tracking-[-0.02em] text-ink">No inboxes yet.</div>
+          <div class="font-serif text-[24px] tracking-[-0.02em] text-ink">
+            {gettext("No inboxes yet.")}
+          </div>
           <div class="mt-2 text-[13px] text-ink55">
-            Hit "Connect" above and Nylas's hosted auth will walk you through it.
+            {gettext("Hit \"Connect\" above and Nylas's hosted auth will walk you through it.")}
           </div>
         </div>
 
@@ -129,7 +138,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
               >
                 <input type="hidden" name="id" value={a.id} />
                 <label class="font-mono text-[10px] tracking-[0.08em] uppercase text-ink55">
-                  quota
+                  {gettext("quota")}
                 </label>
                 <input
                   type="number"
@@ -139,13 +148,13 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   phx-debounce="400"
                   class="w-[64px] px-2 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] text-center bg-paper text-ink tabular-nums outline-none"
                 />
-                <span class="font-mono text-[10px] text-ink40">/day</span>
+                <span class="font-mono text-[10px] text-ink40">{gettext("/day")}</span>
               </form>
               <.link
                 navigate={~p"/email-accounts/#{a.id}/stats"}
                 class="no-underline px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] hover:text-ink hover:border-ink40"
               >
-                stats
+                {gettext("stats")}
               </.link>
               <Liid.btn
                 :if={a.status != :disconnected}
@@ -153,10 +162,10 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 mono
                 phx-click="disconnect"
                 phx-value-id={a.id}
-                phx-disable-with="Disconnecting…"
-                data-confirm={"Disconnect #{a.address}?"}
+                phx-disable-with={gettext("Disconnecting…")}
+                data-confirm={gettext("Disconnect %{address}?", address: a.address)}
               >
-                Disconnect
+                {gettext("Disconnect")}
               </Liid.btn>
             </div>
           </li>

@@ -4,6 +4,9 @@ defmodule Colt.Accounts do
 
   resources do
     resource Colt.Accounts.Token
-    resource Colt.Accounts.User
+
+    resource Colt.Accounts.User do
+      define :set_user_locale, action: :set_locale, args: [:locale]
+    end
   end
 end

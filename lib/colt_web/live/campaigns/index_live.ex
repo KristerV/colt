@@ -13,7 +13,7 @@ defmodule ColtWeb.Campaigns.IndexLive do
         load: [:total_count, :done_count]
       )
 
-    {:ok, assign(socket, page_title: "Campaigns", campaigns: campaigns)}
+    {:ok, assign(socket, page_title: gettext("Campaigns"), campaigns: campaigns)}
   end
 
   def render(assigns) do
@@ -21,12 +21,15 @@ defmodule ColtWeb.Campaigns.IndexLive do
     <Layouts.app flash={@flash} current_user={@current_user} active={:campaigns}>
       <div class="max-w-[960px] w-full">
         <div class="flex items-end justify-between gap-6 mb-10">
-          <Liid.headline kicker="Workspace" sub="Every search you've started, newest first.">
-            Your <em>campaigns</em>.
+          <Liid.headline
+            kicker={gettext("Workspace")}
+            sub={gettext("Every search you've started, newest first.")}
+          >
+            {raw(gettext("Your <em>campaigns</em>."))}
           </Liid.headline>
           <.link navigate={~p"/campaigns/new"} class="no-underline">
             <Liid.btn variant={:primary} mono>
-              New campaign <Liid.icon name="arrow" />
+              {gettext("New campaign")} <Liid.icon name="arrow" />
             </Liid.btn>
           </.link>
         </div>
@@ -36,15 +39,15 @@ defmodule ColtWeb.Campaigns.IndexLive do
           class="border border-rule rounded-[2px] bg-paper px-8 py-12 text-center"
         >
           <div class="font-serif text-[24px] tracking-[-0.02em] text-ink">
-            No campaigns yet.
+            {gettext("No campaigns yet.")}
           </div>
           <div class="mt-2 text-[13px] text-ink55">
-            Start by naming the first one.
+            {gettext("Start by naming the first one.")}
           </div>
           <div class="mt-6 inline-block">
             <.link navigate={~p"/campaigns/new"} class="no-underline">
               <Liid.btn variant={:primary} mono>
-                New campaign <Liid.icon name="arrow" />
+                {gettext("New campaign")} <Liid.icon name="arrow" />
               </Liid.btn>
             </.link>
           </div>
@@ -64,7 +67,12 @@ defmodule ColtWeb.Campaigns.IndexLive do
                   <div class="mt-1 font-mono text-[11px] text-ink40 tracking-[0.04em] flex items-center gap-3">
                     <span class="uppercase">{c.status}</span>
                     <span>·</span>
-                    <span class="tnum">{c.done_count} / {c.total_count} enriched</span>
+                    <span class="tnum">
+                      {gettext("%{done} / %{total} enriched",
+                        done: c.done_count,
+                        total: c.total_count
+                      )}
+                    </span>
                     <span>·</span>
                     <span>{relative_time(c.inserted_at)}</span>
                   </div>
@@ -87,11 +95,11 @@ defmodule ColtWeb.Campaigns.IndexLive do
     diff = DateTime.diff(DateTime.utc_now(), dt, :second)
 
     cond do
-      diff < 60 -> "just now"
-      diff < 3600 -> "#{div(diff, 60)}m ago"
-      diff < 86_400 -> "#{div(diff, 3600)}h ago"
-      diff < 7 * 86_400 -> "#{div(diff, 86_400)}d ago"
-      true -> "#{div(diff, 7 * 86_400)}w ago"
+      diff < 60 -> gettext("just now")
+      diff < 3600 -> gettext("%{n}m ago", n: div(diff, 60))
+      diff < 86_400 -> gettext("%{n}h ago", n: div(diff, 3600))
+      diff < 7 * 86_400 -> gettext("%{n}d ago", n: div(diff, 86_400))
+      true -> gettext("%{n}w ago", n: div(diff, 7 * 86_400))
     end
   end
 end

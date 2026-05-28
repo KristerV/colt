@@ -20,7 +20,10 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
       {:ok, account} ->
         {:ok,
          socket
-         |> assign(page_title: "Stats — #{account.address}", account: account)
+         |> assign(
+           page_title: gettext("Stats — %{address}", address: account.address),
+           account: account
+         )
          |> load_stats()}
 
       {:error, _} ->
@@ -137,40 +140,40 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
     <Layouts.app flash={@flash} current_user={@current_user} active={:email_accounts}>
       <div class="max-w-[900px] w-full pb-16">
         <div class="flex items-end justify-between gap-6 mb-10">
-          <Liid.headline kicker={"Account · " <> @account.address}>
-            Sending <em>pattern</em>.
+          <Liid.headline kicker={gettext("Account · %{address}", address: @account.address)}>
+            {raw(gettext("Sending <em>pattern</em>."))}
           </Liid.headline>
 
           <.link navigate={~p"/email-accounts"} class="no-underline">
             <Liid.btn size={:small} mono>
-              <Liid.icon name="arrow" size={11} /> All accounts
+              <Liid.icon name="arrow" size={11} /> {gettext("All accounts")}
             </Liid.btn>
           </.link>
         </div>
 
         <div class="mb-7 grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
           <.stat_tile
-            label="Sent · 28d window"
+            label={gettext("Sent · 28d window")}
             big={"#{@window_sent}"}
-            sub={"in tz #{@tz}"}
+            sub={gettext("in tz %{tz}", tz: @tz)}
             accent
           />
           <.stat_tile
-            label="Daily average · last 7d"
+            label={gettext("Daily average · last 7d")}
             big={daily_avg_label(@avg7)}
-            sub="sent / day"
+            sub={gettext("sent / day")}
           />
           <.stat_tile
-            label="Scheduled ahead"
+            label={gettext("Scheduled ahead")}
             big={"#{@window_scheduled_ahead}"}
-            sub={"next #{@window_days}d"}
+            sub={gettext("next %{days}d", days: @window_days)}
           />
         </div>
 
         <section class="mb-7 border border-rule rounded-[2px] bg-paper p-5">
           <div class="flex items-center justify-between mb-4">
             <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
-              Volume · ±{@window_days} days
+              {gettext("Volume · ±%{days} days", days: @window_days)}
             </div>
             <.legend />
           </div>
@@ -180,7 +183,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
         <section class="border border-rule rounded-[2px] bg-paper p-5">
           <div class="flex items-center justify-between mb-4">
             <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
-              Pattern · time of day × day
+              {gettext("Pattern · time of day × day")}
             </div>
             <.legend />
           </div>
@@ -226,13 +229,15 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
     ~H"""
     <div class="flex items-center gap-4 font-mono text-[10px] tracking-[0.06em] uppercase text-ink55">
       <span class="inline-flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span> sent
+        <span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span> {gettext("sent")}
       </span>
       <span class="inline-flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-fail"></span> failed
+        <span class="w-2 h-2 rounded-full bg-fail"></span> {gettext("failed")}
       </span>
       <span class="inline-flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full" style="background: var(--ink55);"></span> scheduled
+        <span class="w-2 h-2 rounded-full" style="background: var(--ink55);"></span> {gettext(
+          "scheduled"
+        )}
       </span>
     </div>
     """
@@ -461,10 +466,10 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
         tip =
           [
             Calendar.strftime(p.local_dt, "%Y-%m-%d %H:%M"),
-            "from " <> from_addr,
-            "to " <> p.to,
-            "campaign: " <> p.campaign,
-            "status: " <> to_string(p.status)
+            gettext("from %{addr}", addr: from_addr),
+            gettext("to %{addr}", addr: p.to),
+            gettext("campaign: %{campaign}", campaign: p.campaign),
+            gettext("status: %{status}", status: to_string(p.status))
           ]
           |> Enum.join("\n")
 

@@ -10,12 +10,13 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
+  # TODO i18n: module attr label — rendered via growth_label/1 at render time
   @growth_buckets [
-    {:declining, "Shrinking"},
-    {:stagnant, "Stagnant"},
-    {:slow, "Growing · slow"},
-    {:growing_2x, "Growing · 2×"},
-    {:growing_10x, "Growing · 10×"}
+    :declining,
+    :stagnant,
+    :slow,
+    :growing_2x,
+    :growing_10x
   ]
 
   @debounce_ms 2_000
@@ -26,7 +27,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         socket =
           socket
           |> assign(
-            page_title: "Filters — #{campaign.name}",
+            page_title: gettext("Filters — %{name}", name: campaign.name),
             campaign: campaign,
             form: default_form(campaign),
             error: nil,
@@ -156,7 +157,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           {:noreply,
            socket
            |> assign(campaign: campaign, confirming?: false)
-           |> put_flash(:info, "Filters updated — top-up scheduled.")}
+           |> put_flash(:info, gettext("Filters updated — top-up scheduled."))}
         else
           {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
         end
@@ -325,7 +326,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               navigate={~p"/campaigns/#{@campaign.id}/market"}
               class="inline-flex items-center gap-2 px-3 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
             >
-              <Liid.icon name="chev-l" size={11} /> Back
+              <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
             </.link>
             <Liid.btn
               variant={:primary}
@@ -362,12 +363,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     ~H"""
     <div class="lg:basis-[360px] lg:shrink-0 flex flex-col min-h-0 gap-7">
-      <Liid.headline kicker="04 / Filters">
-        Narrow the <em>funnel</em>.
+      <Liid.headline kicker={gettext("04 / Filters")}>
+        {raw(gettext("Narrow the <em>funnel</em>."))}
       </Liid.headline>
 
       <div class="flex flex-col gap-6 overflow-auto pr-2">
-        <.fset label="Industry" hint={industry_hint(@form.industries)}>
+        <.fset label={gettext("Industry")} hint={industry_hint(@form.industries)}>
           <.industry_box
             mode={:include}
             selected={@form.industries}
@@ -378,7 +379,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           />
         </.fset>
 
-        <.fset label="Exclude industries" hint={industry_hint(@form.industries_exclude)}>
+        <.fset label={gettext("Exclude industries")} hint={industry_hint(@form.industries_exclude)}>
           <.industry_box
             mode={:exclude}
             selected={@form.industries_exclude}
@@ -390,7 +391,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         </.fset>
 
         <.range_fset
-          label="Employees"
+          label={gettext("Employees")}
           field="employees"
           min={@form.employees_min}
           max={@form.employees_max}
@@ -398,17 +399,21 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         />
 
         <.range_fset
-          label="Revenue (€)"
+          label={gettext("Revenue (€)")}
           field="revenue"
           min={@form.revenue_min}
           max={@form.revenue_max}
           format={:money}
         />
 
-        <.fset label="Trajectory" hint={"#{length(@form.growth_buckets)} selected"}>
+        <.fset
+          label={gettext("Trajectory")}
+          hint={gettext("%{n} selected", n: length(@form.growth_buckets))}
+        >
           <div class="flex flex-col gap-1">
-            <%= for {bucket, label} <- @growth_buckets do %>
+            <%= for bucket <- @growth_buckets do %>
               <% on = bucket in @form.growth_buckets %>
+              <% label = growth_label(bucket) %>
               <button
                 type="button"
                 phx-click="toggle"
@@ -430,7 +435,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             <% end %>
           </div>
           <div class="font-mono text-[11px] text-ink40 mt-2 tracking-[0.04em]">
-            growth = revenue Δ over 3 fiscal years
+            {gettext("growth = revenue Δ over 3 fiscal years")}
           </div>
         </.fset>
       </div>
@@ -447,17 +452,17 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   defp industry_box(assigns) do
     items = if assigns.query == "", do: assigns.top_industries, else: assigns.results
-    label = if assigns.query == "", do: "popular", else: "matches"
+    label = if assigns.query == "", do: gettext("popular"), else: gettext("matches")
 
     {field, search_evt, pick_evt, open_evt, close_evt, placeholder} =
       case assigns.mode do
         :include ->
           {"industries", "industry_search", "industry_pick", "industry_open", "industry_close",
-           "search industries…"}
+           gettext("search industries…")}
 
         :exclude ->
           {"industries_exclude", "exclude_search", "exclude_pick", "exclude_open",
-           "exclude_close", "search to exclude…"}
+           "exclude_close", gettext("search to exclude…")}
       end
 
     assigns =
@@ -494,7 +499,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             type="text"
             name="q"
             value={@query}
-            placeholder={if @selected == [], do: @placeholder, else: "+ add"}
+            placeholder={if @selected == [], do: @placeholder, else: gettext("+ add")}
             phx-focus={@open_evt}
             phx-debounce="150"
             class="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-ink40"
@@ -510,7 +515,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           {@items_label}
         </div>
         <div :if={@items == []} class="px-3 py-2.5 font-mono text-[11px] text-ink40">
-          no matches
+          {gettext("no matches")}
         </div>
         <%= for item <- @items do %>
           <% {code, right} = item %>
@@ -539,7 +544,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   end
 
   defp industry_hint([]), do: nil
-  defp industry_hint(list), do: "#{length(list)} selected"
+  defp industry_hint(list), do: gettext("%{n} selected", n: length(list))
 
   attr :label, :string, required: true
   attr :field, :string, required: true
@@ -608,7 +613,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           inputmode="numeric"
           name="min"
           value={format_grouped(@min)}
-          placeholder="min"
+          placeholder={gettext("min")}
           phx-debounce="600"
           class="flex-1 px-2.5 py-1.5 border border-ink20 bg-paperAlt font-mono text-[12px] rounded-sharp outline-none focus:border-ink"
         />
@@ -618,7 +623,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           inputmode="numeric"
           name="max"
           value={format_grouped(@max)}
-          placeholder="max"
+          placeholder={gettext("max")}
           phx-debounce="600"
           class="flex-1 px-2.5 py-1.5 border border-ink20 bg-paperAlt font-mono text-[12px] rounded-sharp outline-none focus:border-ink"
         />
@@ -707,7 +712,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     <div class="border border-ink20 bg-paperAlt rounded-sharp p-5 md:p-7 relative">
       <div>
         <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2 flex items-center gap-2">
-          Companies match
+          {gettext("Companies match")}
           <span
             :if={@pending?}
             class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
@@ -723,7 +728,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             {format_int(@count)}
           </div>
           <div class="font-mono text-[12px] text-ink55 pb-2">
-            of {format_int(@total)}
+            {gettext("of %{n}", n: format_int(@total))}
           </div>
         </div>
       </div>
@@ -731,8 +736,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     """
   end
 
-  defp confirm_label(:enriching), do: "Save filters"
-  defp confirm_label(_), do: "Continue → Target"
+  defp confirm_label(:enriching), do: gettext("Save filters")
+  defp confirm_label(_), do: gettext("Continue → Target")
 
   attr :form, :map, required: true
 
@@ -743,7 +748,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     ~H"""
     <div :if={@chips != []} class="flex flex-wrap gap-1.5 items-center">
       <span class="font-mono text-[10px] text-ink40 tracking-[0.12em] uppercase mr-1">
-        active
+        {gettext("active")}
       </span>
       <%= for {field, value, label} <- @chips do %>
         <button
@@ -763,7 +768,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   defp active_chip_list(form) do
     Enum.map(form.growth_buckets, fn b ->
-      {"growth_buckets", to_string(b), "Trajectory · #{growth_label(b)}"}
+      {"growth_buckets", to_string(b), gettext("Trajectory · %{label}", label: growth_label(b))}
     end)
   end
 
@@ -780,9 +785,11 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             :if={@pending?}
             class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
             style="background: var(--accent);"
-          /> preview {if @pending?, do: "· refreshing", else: "· live"}
+          /> {gettext("preview")} {if @pending?, do: gettext("· refreshing"), else: gettext("· live")}
         </span>
-        <span>showing {length(@preview)} of {format_int(@count)}</span>
+        <span>
+          {gettext("showing %{shown} of %{total}", shown: length(@preview), total: format_int(@count))}
+        </span>
       </div>
       <div class="flex-1 overflow-auto">
         <%= for c <- @preview do %>
@@ -820,11 +827,11 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   defp growth_glyph(:declining), do: "↘"
   defp growth_glyph(_), do: "—"
 
-  defp growth_label(:growing_10x), do: "Growing · 10×"
-  defp growth_label(:growing_2x), do: "Growing · 2×"
-  defp growth_label(:slow), do: "Growing · slow"
-  defp growth_label(:stagnant), do: "Stagnant"
-  defp growth_label(:declining), do: "Shrinking"
+  defp growth_label(:growing_10x), do: gettext("Growing · 10×")
+  defp growth_label(:growing_2x), do: gettext("Growing · 2×")
+  defp growth_label(:slow), do: gettext("Growing · slow")
+  defp growth_label(:stagnant), do: gettext("Stagnant")
+  defp growth_label(:declining), do: gettext("Shrinking")
   defp growth_label(_), do: "—"
 
   defp industry_label(nil), do: "—"

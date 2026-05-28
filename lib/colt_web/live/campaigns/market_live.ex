@@ -8,6 +8,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
+  # TODO i18n: module attr label — country names are at render time via market_name/1
   @markets [
     %{code: "EE", name: "Estonia", api: "rik.ee", market: :ee, disabled: false},
     %{code: "FI", name: "Finland", api: "ytj.fi", market: :fi, disabled: false},
@@ -23,7 +24,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
         socket =
           socket
           |> assign(
-            page_title: "Market — #{campaign.name}",
+            page_title: gettext("Market — %{name}", name: campaign.name),
             campaign: campaign,
             selected: campaign.market || :ee,
             markets: @markets,
@@ -102,10 +103,14 @@ defmodule ColtWeb.Campaigns.MarketLive do
     >
       <div class="flex flex-col flex-1 min-h-0 gap-10">
         <Liid.headline
-          kicker="03 / Market"
-          sub="One market per campaign. Liid hits the government registry and walks the resulting domain list. Greyed-out registries are scheduled for next quarter."
+          kicker={gettext("03 / Market")}
+          sub={
+            gettext(
+              "One market per campaign. Liid hits the government registry and walks the resulting domain list. Greyed-out registries are scheduled for next quarter."
+            )
+          }
         >
-          Which <em>register</em> do we pull from?
+          {raw(gettext("Which <em>register</em> do we pull from?"))}
         </Liid.headline>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
@@ -136,14 +141,17 @@ defmodule ColtWeb.Campaigns.MarketLive do
           </.link>
           <Liid.btn variant={:primary} mono phx-click="continue">
             <%= if @next_done? do %>
-              Save <Liid.icon name="check" />
+              {gettext("Save")} <Liid.icon name="check" />
             <% else %>
-              Continue → filters <Liid.icon name="arrow" />
+              {gettext("Continue → filters")} <Liid.icon name="arrow" />
             <% end %>
           </Liid.btn>
-          <span :if={@saved?} class="font-mono text-[11px] text-ink55">saved.</span>
+          <span :if={@saved?} class="font-mono text-[11px] text-ink55">{gettext("saved.")}</span>
           <span class="w-full md:w-auto md:ml-auto font-mono text-[11px] text-ink40">
-            {format_int(@ee_count)} active companies in rik.ee · last sync {format_sync(@last_sync)}
+            {gettext("%{count} active companies in rik.ee · last sync %{sync}",
+              count: format_int(@ee_count),
+              sync: format_sync(@last_sync)
+            )}
           </span>
         </div>
       </div>
@@ -191,7 +199,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
           :if={@market.disabled}
           class="font-mono text-[9px] tracking-[0.12em] uppercase text-ink40 border border-ink20 rounded-sharp px-1.5 py-0.5"
         >
-          soon
+          {gettext("soon")}
         </span>
       </div>
 
@@ -221,7 +229,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
 
   defp format_int(_), do: "—"
 
-  defp format_sync(nil), do: "never"
+  defp format_sync(nil), do: gettext("never")
 
   defp format_sync(%DateTime{} = dt) do
     # EET is UTC+2 (we ignore DST/EEST for v1; this is footer aesthetics).

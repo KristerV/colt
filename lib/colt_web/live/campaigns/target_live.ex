@@ -20,7 +20,7 @@ defmodule ColtWeb.Campaigns.TargetLive do
       {:ok, campaign} ->
         {:ok,
          assign(socket,
-           page_title: "Target — #{campaign.name}",
+           page_title: gettext("Target — %{name}", name: campaign.name),
            campaign: campaign,
            draft: campaign.target_contact_count || 100,
            saved?: false,
@@ -89,15 +89,19 @@ defmodule ColtWeb.Campaigns.TargetLive do
     >
       <div class="flex flex-col gap-6 max-w-[640px] mx-auto py-12">
         <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55">
-          05 / Target · {@campaign.name}
+          {gettext("05 / Target · %{name}", name: @campaign.name)}
         </div>
         <h1 class="font-serif font-normal text-[32px] md:text-[44px] leading-none tracking-[-0.02em] m-0">
-          How many <em style="font-family: 'Instrument Serif', serif;">contacts</em> do you want?
+          {raw(
+            gettext(
+              "How many <em style=\"font-family: 'Instrument Serif', serif;\">contacts</em> do you want?"
+            )
+          )}
         </h1>
         <p class="text-[14px] text-ink55 max-w-[520px]">
-          We'll keep pulling and enriching companies until we hit this number of named
-          contacts (or run out of matches). About 1 in 5 companies yields a contact,
-          so we'll need ~5× this many companies in the funnel.
+          {gettext(
+            "We'll keep pulling and enriching companies until we hit this number of named contacts (or run out of matches). About 1 in 5 companies yields a contact, so we'll need ~5× this many companies in the funnel."
+          )}
         </p>
 
         <div class="flex flex-wrap gap-2 mt-2">
@@ -132,12 +136,12 @@ defmodule ColtWeb.Campaigns.TargetLive do
             navigate={~p"/campaigns/#{@campaign.id}/filters"}
             class="inline-flex items-center gap-2 px-3 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
           >
-            <Liid.icon name="chev-l" size={11} /> Back to filters
+            <Liid.icon name="chev-l" size={11} /> {gettext("Back to filters")}
           </.link>
           <Liid.btn variant={:primary} mono phx-click="confirm">
             {confirm_label(@campaign.status, @draft)}
           </Liid.btn>
-          <span :if={@saved?} class="font-mono text-[11px] text-ink55">saved.</span>
+          <span :if={@saved?} class="font-mono text-[11px] text-ink55">{gettext("saved.")}</span>
           <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
         </div>
       </div>
@@ -145,6 +149,8 @@ defmodule ColtWeb.Campaigns.TargetLive do
     """
   end
 
-  defp confirm_label(s, n) when s in [:draft, :collecting], do: "Start enrichment · #{n} contacts"
-  defp confirm_label(_, n), do: "Save · #{n} contacts"
+  defp confirm_label(s, n) when s in [:draft, :collecting],
+    do: gettext("Start enrichment · %{n} contacts", n: n)
+
+  defp confirm_label(_, n), do: gettext("Save · %{n} contacts", n: n)
 end

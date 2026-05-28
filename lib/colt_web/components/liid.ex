@@ -6,6 +6,7 @@ defmodule ColtWeb.Components.Liid do
   Tokens and keyframes are defined in `assets/css/app.css`.
   """
   use Phoenix.Component
+  use Gettext, backend: ColtWeb.Gettext
 
   alias Phoenix.LiveView.JS
 
@@ -442,30 +443,77 @@ defmodule ColtWeb.Components.Liid do
       <div class="flex-1" />
 
       <div class="flex items-center gap-2">
+        <.language_picker />
         <%= if @current_user do %>
           <.link
             navigate="/campaigns"
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
           >
-            Campaigns
+            {gettext("Campaigns")}
           </.link>
           <.link
             href="/sign-out"
             method="get"
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
           >
-            Sign out
+            {gettext("Sign out")}
           </.link>
         <% else %>
           <.link
             href="/sign-in"
             class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
           >
-            Sign in
+            {gettext("Sign in")}
           </.link>
         <% end %>
       </div>
     </header>
+    """
+  end
+
+  @locales [
+    {"en", "English"},
+    {"et", "Eesti"},
+    {"lv", "Latviešu"},
+    {"lt", "Lietuvių"},
+    {"fi", "Suomi"},
+    {"sv", "Svenska"},
+    {"nb", "Norsk"},
+    {"da", "Dansk"},
+    {"is", "Íslenska"}
+  ]
+
+  def language_picker(assigns) do
+    assigns =
+      assign_new(assigns, :current, fn ->
+        Gettext.get_locale(ColtWeb.Gettext)
+      end)
+      |> assign(:locales, @locales)
+
+    ~H"""
+    <details class="relative" data-component="language-picker">
+      <summary class="list-none cursor-pointer font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink border border-ink20 rounded-[2px] px-3 py-1.5">
+        {@current}
+      </summary>
+      <div class="absolute right-0 mt-1 z-50 bg-paper border border-rule rounded-[2px] min-w-[160px] shadow-sm">
+        <form :for={{code, label} <- @locales} action="/locale" method="post" class="block">
+          <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
+          <input type="hidden" name="locale" value={code} />
+          <button
+            type="submit"
+            class={[
+              "w-full text-left font-mono text-[11px] uppercase tracking-[0.08em] px-3 py-2",
+              "bg-transparent border-0 cursor-pointer hover:bg-paperAlt hover:text-ink",
+              code == @current && "text-ink bg-paperAlt",
+              code != @current && "text-ink70"
+            ]}
+          >
+            <span class="inline-block w-6 text-ink40">{code}</span>
+            <span>{label}</span>
+          </button>
+        </form>
+      </div>
+    </details>
     """
   end
 
@@ -483,27 +531,42 @@ defmodule ColtWeb.Components.Liid do
   defp step_to_active(_), do: nil
 
   @workspace_items [
-    %{id: :campaigns, label: "Campaigns", icon: "grid", href: "/campaigns"},
-    %{id: :email_accounts, label: "Email accounts", icon: "mail", href: "/email-accounts"},
-    %{id: :billing, label: "Billing", icon: "file", href: "/billing"}
+    %{id: :campaigns, icon: "grid", href: "/campaigns"},
+    %{id: :email_accounts, icon: "mail", href: "/email-accounts"},
+    %{id: :billing, icon: "file", href: "/billing"}
   ]
 
   @enrichment_items [
-    %{id: :name, label: "Name", icon: "file"},
-    %{id: :icp, label: "ICP", icon: "user"},
-    %{id: :market, label: "Market", icon: "globe"},
-    %{id: :filters, label: "Filters", icon: "filter"},
-    %{id: :target, label: "Target", icon: "spark"},
-    %{id: :enrichment_funnel, label: "Funnel", icon: "grid"}
+    %{id: :name, icon: "file"},
+    %{id: :icp, icon: "user"},
+    %{id: :market, icon: "globe"},
+    %{id: :filters, icon: "filter"},
+    %{id: :target, icon: "spark"},
+    %{id: :enrichment_funnel, icon: "grid"}
   ]
 
   @sending_items [
-    %{id: :pitch, label: "Pitch", icon: "spark"},
-    %{id: :sequence, label: "Sequence", icon: "code"},
-    %{id: :sending_accounts, label: "Sending accounts", icon: "mail"},
-    %{id: :writing, label: "Writing", icon: "spark"},
-    %{id: :sending_funnel, label: "Sending funnel", icon: "grid"}
+    %{id: :pitch, icon: "spark"},
+    %{id: :sequence, icon: "code"},
+    %{id: :sending_accounts, icon: "mail"},
+    %{id: :writing, icon: "spark"},
+    %{id: :sending_funnel, icon: "grid"}
   ]
+
+  defp nav_label(:campaigns), do: gettext("Campaigns")
+  defp nav_label(:email_accounts), do: gettext("Email accounts")
+  defp nav_label(:billing), do: gettext("Billing")
+  defp nav_label(:name), do: gettext("Name")
+  defp nav_label(:icp), do: gettext("ICP")
+  defp nav_label(:market), do: gettext("Market")
+  defp nav_label(:filters), do: gettext("Filters")
+  defp nav_label(:target), do: gettext("Target")
+  defp nav_label(:enrichment_funnel), do: gettext("Funnel")
+  defp nav_label(:pitch), do: gettext("Pitch")
+  defp nav_label(:sequence), do: gettext("Sequence")
+  defp nav_label(:sending_accounts), do: gettext("Sending accounts")
+  defp nav_label(:writing), do: gettext("Writing")
+  defp nav_label(:sending_funnel), do: gettext("Sending funnel")
 
   attr :active, :atom, default: nil
   attr :current_user, :map, default: nil
@@ -534,14 +597,14 @@ defmodule ColtWeb.Components.Liid do
 
         <.sidebar_section
           :if={@campaign}
-          label="Enrichment"
+          label={gettext("Enrichment")}
           items={enrichment_items_with_hrefs(@campaign_id)}
           active={@active}
         />
 
         <.sidebar_section
           :if={@campaign}
-          label="Sending"
+          label={gettext("Sending")}
           items={sending_items_with_hrefs(@campaign_id)}
           active={@active}
         >
@@ -563,7 +626,7 @@ defmodule ColtWeb.Components.Liid do
           class="w-full flex items-center gap-2.5 px-[18px] py-[7px] text-left text-ink70 hover:text-ink hover:bg-paperAlt cursor-pointer bg-transparent border-0"
         >
           <.icon name="mail" size={13} class="text-ink55" />
-          <span class="text-[13px]">Feedback</span>
+          <span class="text-[13px]">{gettext("Feedback")}</span>
         </button>
         <.link
           :if={@current_user.is_admin}
@@ -571,7 +634,7 @@ defmodule ColtWeb.Components.Liid do
           class="flex items-center gap-2.5 px-[18px] py-[7px] text-ink70 hover:text-ink hover:bg-paperAlt no-underline"
         >
           <.icon name="code" size={13} class="text-ink55" />
-          <span class="text-[13px]">Admin</span>
+          <span class="text-[13px]">{gettext("Admin")}</span>
         </.link>
         <.link
           href="/sign-out"
@@ -579,7 +642,7 @@ defmodule ColtWeb.Components.Liid do
           class="flex items-center gap-2.5 px-[18px] py-[7px] text-ink70 hover:text-ink hover:bg-paperAlt no-underline"
         >
           <.icon name="arrow" size={13} class="text-ink55" />
-          <span class="text-[13px]">Sign out</span>
+          <span class="text-[13px]">{gettext("Sign out")}</span>
         </.link>
 
         <div class="border-t border-rule px-[18px] py-3 flex items-center gap-2.5">
@@ -597,7 +660,7 @@ defmodule ColtWeb.Components.Liid do
           href="/sign-in"
           class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
         >
-          sign in
+          {gettext("sign in")}
         </.link>
       </div>
     </aside>
@@ -676,7 +739,7 @@ defmodule ColtWeb.Components.Liid do
               "text-[13px]",
               if(is_active, do: "text-ink font-medium", else: "text-ink70")
             ]}>
-              {item.label}
+              {nav_label(item.id)}
             </span>
           </.link>
         <% end %>
@@ -691,7 +754,7 @@ defmodule ColtWeb.Components.Liid do
     ~H"""
     <div class="px-[18px] pt-4 pb-3 border-t border-b border-rule bg-paperAlt mb-2.5">
       <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1.5">
-        Campaign
+        {gettext("Campaign")}
       </div>
       <div class="font-serif text-[20px] leading-[1.1] tracking-[-0.015em] text-ink truncate">
         {@campaign.name}

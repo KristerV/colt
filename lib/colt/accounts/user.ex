@@ -43,6 +43,11 @@ defmodule Colt.Accounts.User do
   actions do
     defaults [:read]
 
+    update :set_locale do
+      accept [:locale]
+      require_atomic? true
+    end
+
     read :get_by_subject do
       description "Get a user by the subject claim in a JWT"
       argument :subject, :string, allow_nil?: false
@@ -113,6 +118,10 @@ defmodule Colt.Accounts.User do
       authorize_if expr(^actor(:is_admin) == true)
       authorize_if expr(id == ^actor(:id))
     end
+
+    policy action(:set_locale) do
+      authorize_if expr(id == ^actor(:id))
+    end
   end
 
   attributes do
@@ -127,6 +136,11 @@ defmodule Colt.Accounts.User do
       allow_nil? false
       default false
       public? false
+    end
+
+    attribute :locale, :string do
+      public? true
+      allow_nil? true
     end
   end
 
