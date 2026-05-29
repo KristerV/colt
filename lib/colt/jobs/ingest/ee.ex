@@ -1,18 +1,17 @@
-defmodule Colt.Jobs.RikIngest do
+defmodule Colt.Jobs.Ingest.Ee do
   @moduledoc """
   Weekly Oban worker that runs the rik.ee Estonia ingest.
 
   See spec §3.1 / phases §1. Cron is wired in `config/config.exs` to fire
-  Sunday 03:00 UTC on the `:registry` queue (concurrency 1).
+  monthly on the `:registry` queue (concurrency 1).
 
   ## Manual scheduling
 
-      # full ingest (all 4 stages)
-      Colt.Jobs.RikIngest.schedule()
+      # full ingest (all stages)
+      Colt.Jobs.Ingest.Ee.schedule()
 
-      # resume from stage 4 (annual reports + growth) — useful when
-      # earlier stages already finished and a later stage crashed.
-      Colt.Jobs.RikIngest.schedule(from: 4)
+      # resume from a later stage after a crash
+      Colt.Jobs.Ingest.Ee.schedule(from: 4)
   """
 
   use Oban.Worker,

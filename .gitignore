@@ -43,3 +43,8 @@ npm-debug.log
 # Cached registry dumps — only the small fixtures under priv/fixtures/ are tracked.
 /priv/ingest_cache/
 /priv/ingest_cache_fi/
+/priv/ingest_cache_lv/
+/priv/ingest_cache_lt_rc/
+/priv/ingest_cache_lt_sodra/
+/priv/ingest_cache_dk/
+/priv/ingest_cache_no/

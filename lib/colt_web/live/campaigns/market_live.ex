@@ -3,20 +3,11 @@ defmodule ColtWeb.Campaigns.MarketLive do
 
   import Ecto.Query, only: [from: 2]
 
+  alias Colt.Markets
   alias Colt.Resources.{AnnualReport, Campaign, Company}
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
-
-  # TODO i18n: module attr label — country names are at render time via market_name/1
-  @markets [
-    %{code: "EE", name: "Estonia", api: "rik.ee", market: :ee, disabled: false},
-    %{code: "FI", name: "Finland", api: "ytj.fi", market: :fi, disabled: false},
-    %{code: "LV", name: "Latvia", api: "ur.gov.lv", market: :lv, disabled: true},
-    %{code: "LT", name: "Lithuania", api: "registrucentras.lt", market: :lt, disabled: true},
-    %{code: "SE", name: "Sweden", api: "bolagsverket.se", market: :se, disabled: true},
-    %{code: "NO", name: "Norway", api: "brreg.no", market: :no, disabled: true}
-  ]
 
   def mount(%{"id" => id}, _session, socket) do
     case Campaign.get(id, actor: socket.assigns.current_user) do
@@ -27,7 +18,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
             page_title: gettext("Market — %{name}", name: campaign.name),
             campaign: campaign,
             selected: campaign.market || :ee,
-            markets: @markets,
+            markets: Markets.all(),
             counts: active_counts(),
             ee_count: ee_active_count(),
             last_sync: last_sync_at(),
@@ -43,12 +34,15 @@ defmodule ColtWeb.Campaigns.MarketLive do
     end
   end
 
-  def handle_event("select", %{"market" => market}, socket)
-      when market in ~w(ee fi) do
-    {:noreply, assign(socket, selected: String.to_existing_atom(market))}
-  end
+  def handle_event("select", %{"market" => market}, socket) do
+    enabled = Markets.enabled_atoms() |> Enum.map(&Atom.to_string/1)
 
-  def handle_event("select", %{"market" => _}, socket), do: {:noreply, socket}
+    if market in enabled do
+      {:noreply, assign(socket, selected: String.to_existing_atom(market))}
+    else
+      {:noreply, socket}
+    end
+  end
 
   def handle_event("continue", _params, socket) do
     case Campaign.set_market(socket.assigns.campaign, socket.assigns.selected,
@@ -169,11 +163,11 @@ defmodule ColtWeb.Campaigns.MarketLive do
       type="button"
       phx-click="select"
       phx-value-market={Atom.to_string(@market.market)}
-      disabled={@market.disabled}
+      disabled={not @market.enabled}
       class={[
         "flex flex-col justify-between p-6 pb-5 border rounded-sharp min-h-[200px] text-left",
-        @market.disabled && "opacity-45 cursor-not-allowed",
-        not @market.disabled && "cursor-pointer",
+        not @market.enabled && "opacity-45 cursor-not-allowed",
+        @market.enabled && "cursor-pointer",
         @selected && "border-ink bg-paperAlt",
         not @selected && "border-ink20 bg-paper"
       ]}
@@ -196,7 +190,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
           </span>
         </div>
         <span
-          :if={@market.disabled}
+          :if={not @market.enabled}
           class="font-mono text-[9px] tracking-[0.12em] uppercase text-ink40 border border-ink20 rounded-sharp px-1.5 py-0.5"
         >
           {gettext("soon")}

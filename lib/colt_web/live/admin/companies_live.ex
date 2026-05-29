@@ -19,45 +19,58 @@ defmodule ColtWeb.Admin.CompaniesLive do
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-3xl font-semibold">Companies</h1>
 
-        <div class="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            phx-click="schedule_rik_ingest"
-            class="btn btn-primary btn-sm rounded-none"
-          >
-            Schedule rik.ee ingestion
-          </button>
-          <button
-            type="button"
-            phx-click="schedule_prh_ingest"
-            class="btn btn-primary btn-sm rounded-none"
-          >
-            Schedule PRH (FI) ingestion
-          </button>
+        <div class="flex items-center gap-3">
           <.link navigate="/admin/oban" class="text-sm opacity-60 hover:opacity-100 font-mono">
             View Oban &rarr;
           </.link>
         </div>
 
-        <div :for={m <- @markets} class="space-y-3">
-          <div class="text-xs uppercase tracking-wider opacity-60 font-mono">
-            {market_label(m.market)}
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <.stat :for={s <- m.stats} label={s.label} value={s.value} />
-          </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm font-mono border border-base-300">
+            <thead class="bg-base-200">
+              <tr class="text-left text-xs uppercase tracking-wider opacity-70">
+                <th class="px-3 py-2 font-medium">Market</th>
+                <th class="px-3 py-2 font-medium text-right">Active</th>
+                <th class="px-3 py-2 font-medium text-right">With ≥1 report</th>
+                <th class="px-3 py-2 font-medium text-right">With employees</th>
+                <th class="px-3 py-2 font-medium text-right w-px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={m <- @markets} class="border-t border-base-300">
+                <td class="px-3 py-1.5">{market_label(m.market)}</td>
+                <td :for={s <- m.stats} class="px-3 py-1.5 text-right tabular-nums">
+                  {format(s.value)}
+                </td>
+                <td class="px-3 py-1.5 text-right">
+                  <button
+                    type="button"
+                    phx-click="schedule_ingest"
+                    phx-value-market={Atom.to_string(m.market)}
+                    class="btn btn-xs btn-primary rounded-none"
+                  >
+                    Schedule
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </Layouts.app>
     """
   end
 
-  def handle_event("schedule_rik_ingest", _params, socket) do
-    schedule_job(socket, Colt.Jobs.RikIngest, "rik.ee")
-  end
+  def handle_event("schedule_ingest", %{"market" => market_str}, socket) do
+    market = String.to_existing_atom(market_str)
 
-  def handle_event("schedule_prh_ingest", _params, socket) do
-    schedule_job(socket, Colt.Jobs.PrhIngest, "PRH (FI)")
+    case Colt.Markets.job_for(market) do
+      nil ->
+        {:noreply, put_flash(socket, :error, "No ingest job configured for #{market_str}.")}
+
+      worker ->
+        schedule_job(socket, worker, market_label(market))
+    end
   end
 
   defp schedule_job(socket, worker, label) do
@@ -73,29 +86,14 @@ defmodule ColtWeb.Admin.CompaniesLive do
     end
   end
 
-  attr :label, :string, required: true
-  attr :value, :integer, required: true
-
-  defp stat(assigns) do
-    ~H"""
-    <div class="card bg-base-200 border border-base-300">
-      <div class="card-body">
-        <div class="text-xs uppercase tracking-wider opacity-60">{@label}</div>
-        <div class="text-3xl font-mono tabular-nums">{format(@value)}</div>
-      </div>
-    </div>
-    """
-  end
-
   defp format(n), do: n |> Integer.to_string() |> String.replace(~r/\B(?=(\d{3})+(?!\d))/, " ")
 
-  defp market_label(:ee), do: "Estonia (EE)"
-  defp market_label(:fi), do: "Finland (FI)"
-  defp market_label(:lv), do: "Latvia (LV)"
-  defp market_label(:lt), do: "Lithuania (LT)"
-  defp market_label(:se), do: "Sweden (SE)"
-  defp market_label(:no), do: "Norway (NO)"
-  defp market_label(other), do: other |> to_string() |> String.upcase()
+  defp market_label(market) when is_atom(market) do
+    case Enum.find(Colt.Markets.all(), &(&1.market == market)) do
+      %{name: name, code: code} -> "#{name} (#{code})"
+      nil -> market |> to_string() |> String.upcase()
+    end
+  end
 
   defp load_market_stats do
     %Postgrex.Result{rows: rows} =

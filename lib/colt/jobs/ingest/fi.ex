@@ -1,10 +1,10 @@
-defmodule Colt.Jobs.PrhIngest do
+defmodule Colt.Jobs.Ingest.Fi do
   @moduledoc """
   Monthly Oban worker that runs the PRH (Finland) ingest.
 
   Cron is wired in `config/config.exs` to fire on the 1st of each month
-  on the `:registry` queue (concurrency 1, shared with the rik.ee
-  weekly job).
+  on the `:registry` queue (concurrency 1, shared with other country
+  ingests).
   """
 
   use Oban.Worker,

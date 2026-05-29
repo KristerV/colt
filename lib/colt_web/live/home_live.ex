@@ -323,15 +323,19 @@ defmodule ColtWeb.HomeLive do
     """
   end
 
+  defp market_name("EE"), do: gettext("Estonia")
+  defp market_name("FI"), do: gettext("Finland")
+  defp market_name("LV"), do: gettext("Latvia")
+  defp market_name("LT"), do: gettext("Lithuania")
+  defp market_name("SE"), do: gettext("Sweden")
+  defp market_name("NO"), do: gettext("Norway")
+  defp market_name("DK"), do: gettext("Denmark")
+
   defp coverage(assigns) do
-    markets = [
-      {"EE", gettext("Estonia"), :live},
-      {"FI", gettext("Finland"), :live},
-      {"LV", gettext("Latvia"), :soon},
-      {"LT", gettext("Lithuania"), :soon},
-      {"SE", gettext("Sweden"), :soon},
-      {"NO", gettext("Norway"), :soon}
-    ]
+    markets =
+      Enum.map(Colt.Markets.all(), fn m ->
+        {m.code, market_name(m.code), if(m.enabled, do: :live, else: :soon)}
+      end)
 
     assigns = assign(assigns, markets: markets)
 
