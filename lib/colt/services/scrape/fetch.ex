@@ -37,7 +37,24 @@ defmodule Colt.Services.Scrape.Fetch do
 
   # Percent-encode non-ASCII path/query bytes. HTTP clients (Mint) and Chromium's
   # CDP both reject request targets containing raw UTF-8 (e.g. `/ru/контакты`).
+  # Also prepend a scheme — bare hosts (`estmaterminal.ee`) are rejected by Finch.
   defp normalize_url(url) do
+    url
+    |> ensure_scheme()
+    |> percent_encode()
+  end
+
+  # Treat a URL without an explicit scheme as https. `URI.parse/1` leaves
+  # `scheme: nil` for `estmaterminal.ee` or `example.com/path`, where the host
+  # ends up parsed as the path.
+  defp ensure_scheme(url) do
+    case URI.parse(url) do
+      %URI{scheme: scheme} when is_binary(scheme) -> url
+      _ -> "https://" <> url
+    end
+  end
+
+  defp percent_encode(url) do
     if ascii?(url) do
       url
     else
