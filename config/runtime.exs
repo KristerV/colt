@@ -114,6 +114,14 @@ if config_env() == :prod do
       System.get_env("NYLAS_REDIRECT_URI") ||
         raise("Missing environment variable `NYLAS_REDIRECT_URI`!")
 
+  # Bolagsverket HVD API (Sweden registry ingest). Optional — if either env
+  # var is missing the SE ingest fails fast with :missing_api_key instead of
+  # crashing app boot. Request creds from
+  # https://bolagsverket.se/apierochoppnadata/hamtaforetagsinformation/vardefulladatamangder/kundanmalantillapiforvardefulladatamangder.5528.html
+  config :colt, :bolagsverket,
+    client_id: System.get_env("BOLAGSVERKET_CLIENT_ID"),
+    client_secret: System.get_env("BOLAGSVERKET_CLIENT_SECRET")
+
   # ── Stripe ──────────────────────────────────────────────────────────
   stripe_price_50 =
     System.get_env("STRIPE_PRICE_50") ||
