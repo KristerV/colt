@@ -7,12 +7,7 @@ defmodule Colt.Services.Scrape.Static do
   @user_agent "LiidBot/1.0 (+https://liid.app; contact@liid.app)"
 
   def run(url) when is_binary(url) do
-    case Req.get(url,
-           headers: [{"user-agent", @user_agent}],
-           redirect: true,
-           receive_timeout: 60_000,
-           retry: false
-         ) do
+    case request(url) do
       {:ok, %Req.Response{status: status, body: body} = resp}
       when status in 200..299 and is_binary(body) ->
         {:ok, %{html: to_utf8(body), status: status, final_url: final_url(resp, url)}}
@@ -23,9 +18,26 @@ defmodule Colt.Services.Scrape.Static do
       {:ok, %Req.Response{status: status}} ->
         {:error, {:http, status}}
 
-      {:error, exception} ->
-        {:error, Exception.message(exception)}
+      {:error, reason} ->
+        {:error, reason}
     end
+  end
+
+  # Some hosts make Finch/Mint *exit* `:badarg` (e.g. bad port, malformed host)
+  # rather than return `{:error, _}`. An uncaught exit crashes the Oban worker
+  # and discards the job; we'd rather surface it as a normal fetch error so the
+  # caller can mark the company not-enrichable and move on.
+  defp request(url) do
+    Req.get(url,
+      headers: [{"user-agent", @user_agent}],
+      redirect: true,
+      receive_timeout: 60_000,
+      retry: false
+    )
+  rescue
+    exception -> {:error, Exception.message(exception)}
+  catch
+    :exit, reason -> {:error, "request exited: #{inspect(reason)}"}
   end
 
   # Pages served as Latin-1/Windows-1252 (mislabeled or no charset) leak bytes
