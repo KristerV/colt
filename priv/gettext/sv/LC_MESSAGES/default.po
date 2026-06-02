@@ -11,16 +11,6 @@ msgstr ""
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/colt_web/live/home_live.ex:260
-#, elixir-autogen, elixir-format
-msgid "AI is a tool here, not the <em>product</em>."
-msgstr "AI är ett verktyg här, inte <em>produkten</em>."
-
-#: lib/colt_web/live/home_live.ex:275
-#, elixir-autogen, elixir-format
-msgid "AI lives inside the pipeline as glue — matching ICPs, summarising websites, validating fit — never as the thing writing to your prospects."
-msgstr "AI finns inuti pipelinen som lim — matchar ICP, sammanfattar webbplatser, validerar passform — aldrig som det som skriver till dina prospekt."
-
 #: lib/colt_web/components/core_components.ex:368
 #, elixir-autogen, elixir-format
 msgid "Actions"
@@ -38,15 +28,10 @@ msgid "Attempting to reconnect"
 msgstr "Försöker återansluta"
 
 #: lib/colt_web/components/liid.ex:558
-#: lib/colt_web/live/account/billing_live.ex:7
+#: lib/colt_web/live/account/billing_live.ex:15
 #, elixir-autogen, elixir-format
 msgid "Billing"
 msgstr "Fakturering"
-
-#: lib/colt_web/live/home_live.ex:394
-#, elixir-autogen, elixir-format
-msgid "Build a targeted list from real registry data. Export it. Send something worth reading."
-msgstr "Bygg en målinriktad lista från riktig registerdata. Exportera den. Skicka något värt att läsa."
 
 #: lib/colt_web/components/liid.ex:757
 #, elixir-autogen, elixir-format
@@ -60,17 +45,12 @@ msgstr "Kampanj"
 msgid "Campaigns"
 msgstr "Kampanjer"
 
-#: lib/colt_web/live/home_live.ex:118
-#, elixir-autogen, elixir-format
-msgid "Companies, revenue, employee counts, annual reports — straight from rik.ee and equivalents in each market."
-msgstr "Företag, omsättning, antal anställda, årsredovisningar — direkt från rik.ee och motsvarigheter på varje marknad."
-
-#: lib/colt_web/live/home_live.ex:342
+#: lib/colt_web/live/home_live.ex:505
 #, elixir-autogen, elixir-format
 msgid "Coverage"
 msgstr "Täckning"
 
-#: lib/colt_web/live/home_live.ex:294
+#: lib/colt_web/live/home_live.ex:449
 #, elixir-autogen, elixir-format
 msgid "Describe your ICP and pick a market."
 msgstr "Beskriv din ICP och välj en marknad."
@@ -82,28 +62,23 @@ msgstr "Beskriv din ICP och välj en marknad."
 msgid "Email accounts"
 msgstr "E-postkonton"
 
-#: lib/colt_web/components/funnel.ex:134
+#: lib/colt_web/components/funnel.ex:139
 #: lib/colt_web/components/liid.ex:600
 #, elixir-autogen, elixir-format
 msgid "Enrichment"
 msgstr "Berikning"
 
-#: lib/colt_web/live/home_live.ex:328
+#: lib/colt_web/live/home_live.ex:485
 #, elixir-autogen, elixir-format
 msgid "Estonia"
 msgstr "Estland"
-
-#: lib/colt_web/live/home_live.ex:143
-#, elixir-autogen, elixir-format
-msgid "Export-ready."
-msgstr "Redo att exportera."
 
 #: lib/colt_web/components/liid.ex:629
 #, elixir-autogen, elixir-format
 msgid "Feedback"
 msgstr "Återkoppling"
 
-#: lib/colt_web/live/home_live.ex:297
+#: lib/colt_web/live/home_live.ex:452
 #, elixir-autogen, elixir-format
 msgid "Filter the registry data — size, revenue, growth, region."
 msgstr "Filtrera registerdatan — storlek, omsättning, tillväxt, region."
@@ -113,17 +88,7 @@ msgstr "Filtrera registerdatan — storlek, omsättning, tillväxt, region."
 msgid "Filters"
 msgstr "Filter"
 
-#: lib/colt_web/live/home_live.ex:175
-#, elixir-autogen, elixir-format
-msgid "Filters get you close. ICP match gets you <em>right</em>."
-msgstr "Filter får dig nära. ICP-matchning gör det <em>rätt</em>."
-
-#: lib/colt_web/live/home_live.ex:134
-#, elixir-autogen, elixir-format
-msgid "Filters that match how you target."
-msgstr "Filter som matchar hur du riktar in dig."
-
-#: lib/colt_web/live/home_live.ex:329
+#: lib/colt_web/live/home_live.ex:486
 #, elixir-autogen, elixir-format
 msgid "Finland"
 msgstr "Finland"
@@ -133,28 +98,7 @@ msgstr "Finland"
 msgid "Funnel"
 msgstr "Tratt"
 
-#: lib/colt_web/live/home_live.ex:434
-#: lib/colt_web/live/home_live.ex:435
-#, elixir-autogen, elixir-format
-msgid "Get verified leads"
-msgstr "Få verifierade leads"
-
-#: lib/colt_web/live/home_live.ex:180
-#, elixir-autogen, elixir-format
-msgid "Government data lets you narrow by size, revenue, region — the structured stuff. But \"50-employee fintechs in Tallinn\" still leaves you with a list where half the companies aren't actually selling what you think."
-msgstr "Myndighetsdata låter dig filtrera på storlek, omsättning, region — det strukturerade. Men \"fintechbolag i Tallinn med 50 anställda\" ger dig ändå en lista där hälften av företagen inte säljer det du tror."
-
-#: lib/colt_web/live/home_live.ex:116
-#, elixir-autogen, elixir-format
-msgid "Government data, not scraped guesses."
-msgstr "Myndighetsdata, inte skrapade gissningar."
-
-#: lib/colt_web/live/home_live.ex:109
-#, elixir-autogen, elixir-format
-msgid "Government data, recently verified."
-msgstr "Myndighetsdata, nyligen verifierad."
-
-#: lib/colt_web/live/home_live.ex:290
+#: lib/colt_web/live/home_live.ex:445
 #, elixir-autogen, elixir-format
 msgid "How it works"
 msgstr "Så fungerar det"
@@ -164,52 +108,17 @@ msgstr "Så fungerar det"
 msgid "ICP"
 msgstr "ICP"
 
-#: lib/colt_web/live/home_live.ex:171
+#: lib/colt_web/live/home_live.ex:281
 #, elixir-autogen, elixir-format
 msgid "ICP match"
 msgstr "ICP-matchning"
 
-#: lib/colt_web/live/home_live.ex:90
-#, elixir-autogen, elixir-format
-msgid "If you're running cold outbound here, you've already felt it: half your list bounces, the other half is wrong-fit."
-msgstr "Om du kör cold outbound här har du redan känt det: hälften av din lista studsar, den andra hälften passar inte."
-
-#: lib/colt_web/live/home_live.ex:136
-#, elixir-autogen, elixir-format
-msgid "Industry, region, founded year, employee count, revenue band, growth trajectory."
-msgstr "Bransch, region, grundningsår, antal anställda, omsättningsintervall, tillväxtkurva."
-
-#: lib/colt_web/live/home_live.ex:144
-#, elixir-autogen, elixir-format
-msgid "Instantly-format CSV in one click. Take it anywhere."
-msgstr "Instantly-formaterad CSV med ett klick. Ta den vart du vill."
-
-#: lib/colt_web/live/home_live.ex:330
+#: lib/colt_web/live/home_live.ex:487
 #, elixir-autogen, elixir-format
 msgid "Latvia"
 msgstr "Lettland"
 
-#: lib/colt_web/live/home_live.ex:302
-#, elixir-autogen, elixir-format
-msgid "Liid enriches in parallel: website validated, contact found, email verified. Export."
-msgstr "Liid berikar parallellt: webbplats validerad, kontakt hittad, e-post verifierad. Exportera."
-
-#: lib/colt_web/live/home_live.ex:44
-#, elixir-autogen, elixir-format
-msgid "Liid pulls company data straight from government registries and enriches it with fresh, verified contact info. Filter by what actually matters — size, revenue, growth, region — and export to Instantly in one click."
-msgstr "Liid hämtar företagsdata direkt från offentliga register och berikar den med färsk, verifierad kontaktinformation. Filtrera på det som faktiskt spelar roll — storlek, omsättning, tillväxt, region — och exportera till Instantly med ett klick."
-
-#: lib/colt_web/live/home_live.ex:38
-#, elixir-autogen, elixir-format
-msgid "Liid · lead enrichment for the Baltics and Nordics"
-msgstr "Liid · leadberikning för Baltikum och Norden"
-
-#: lib/colt_web/live/home_live.ex:11
-#, elixir-autogen, elixir-format
-msgid "Liid — reliable B2B contact data for the Baltics and Nordics"
-msgstr "Liid — pålitlig B2B-kontaktdata för Baltikum och Norden"
-
-#: lib/colt_web/live/home_live.ex:331
+#: lib/colt_web/live/home_live.ex:488
 #, elixir-autogen, elixir-format
 msgid "Lithuania"
 msgstr "Litauen"
@@ -219,22 +128,17 @@ msgstr "Litauen"
 msgid "Market"
 msgstr "Marknad"
 
-#: lib/colt_web/live/home_live.ex:84
-#, elixir-autogen, elixir-format
-msgid "Most contact databases that cover the Baltics are stale, scraped once, and padded with junk. <span class=\"text-ink\">Apollo</span> and <span class=\"text-ink\">ZoomInfo</span> are built for the US — coverage drops off the moment you cross into Tallinn or Riga. Local scrapers get you a name and maybe a generic <span class=\"font-mono text-[14px]\">info@</span> address."
-msgstr "De flesta kontaktdatabaser som täcker Baltikum är inaktuella, skrapade en gång och uppblåsta med skräp. <span class=\"text-ink\">Apollo</span> och <span class=\"text-ink\">ZoomInfo</span> är byggda för USA — täckningen rasar i samma stund du kommer in i Tallinn eller Riga. Lokala skrapare ger dig ett namn och kanske en generisk <span class=\"font-mono text-[14px]\">info@</span>-adress."
-
 #: lib/colt_web/components/liid.ex:559
 #, elixir-autogen, elixir-format
 msgid "Name"
 msgstr "Namn"
 
-#: lib/colt_web/live/home_live.ex:333
+#: lib/colt_web/live/home_live.ex:490
 #, elixir-autogen, elixir-format
 msgid "Norway"
 msgstr "Norge"
 
-#: lib/colt_web/live/home_live.ex:256
+#: lib/colt_web/live/home_live.ex:416
 #, elixir-autogen, elixir-format
 msgid "On AI"
 msgstr "Om AI"
@@ -244,18 +148,8 @@ msgstr "Om AI"
 msgid "Pitch"
 msgstr "Pitch"
 
-#: lib/colt_web/live/home_live.ex:125
-#, elixir-autogen, elixir-format
-msgid "Recent enrichment, on demand."
-msgstr "Färsk berikning, på begäran."
-
-#: lib/colt_web/live/home_live.ex:41
-#, elixir-autogen, elixir-format
-msgid "Reliable B2B contact data for the <em>Baltics</em> and Nordics."
-msgstr "Pålitlig B2B-kontaktdata för <em>Baltikum</em> och Norden."
-
 #: lib/colt_web/components/liid.ex:607
-#: lib/colt_web/live/sending/sending_funnel_live.ex:488
+#: lib/colt_web/live/sending/sending_funnel_live.ex:490
 #, elixir-autogen, elixir-format
 msgid "Sending"
 msgstr "Utskick"
@@ -286,42 +180,33 @@ msgstr "Logga in"
 msgid "Sign out"
 msgstr "Logga ut"
 
-#: lib/colt_web/live/home_live.ex:185
-#, elixir-autogen, elixir-format
-msgid "So Liid reads every candidate's website, summarises what they actually do, and checks it against the ICP you described in plain English. Wrong-fit companies are flagged and excluded from the export — you only pay attention to ones that pass both gates."
-msgstr "Så Liid läser varje kandidats webbplats, sammanfattar vad de faktiskt gör och stämmer av mot den ICP du beskrivit på vanlig svenska. Företag som inte passar flaggas och utesluts från exporten — du behöver bara titta på dem som klarar bägge grindarna."
-
 #: lib/colt_web/components/layouts.ex:76
 #, elixir-autogen, elixir-format
 msgid "Something went wrong!"
 msgstr "Något gick fel!"
 
-#: lib/colt_web/live/home_live.ex:391
+#: lib/colt_web/live/home_live.ex:554
 #, elixir-autogen, elixir-format
 msgid "Stop sending to <em>dead</em> inboxes."
 msgstr "Sluta skicka till <em>döda</em> inkorgar."
 
-#: lib/colt_web/live/home_live.ex:332
+#: lib/colt_web/live/home_live.ex:489
 #, elixir-autogen, elixir-format
 msgid "Sweden"
 msgstr "Sverige"
 
 #: lib/colt_web/components/liid.ex:563
+#: lib/colt_web/live/home_live.ex:85
 #, elixir-autogen, elixir-format
 msgid "Target"
 msgstr "Mål"
 
-#: lib/colt_web/live/home_live.ex:270
-#, elixir-autogen, elixir-format
-msgid "The cold emails that work are the ones with a clear offer sent to a well-targeted list. That's what Liid optimises for."
-msgstr "De kalla mejlen som fungerar är de med ett tydligt erbjudande skickade till en väl riktad lista. Det är vad Liid optimerar för."
-
-#: lib/colt_web/live/home_live.ex:79
+#: lib/colt_web/live/home_live.ex:154
 #, elixir-autogen, elixir-format
 msgid "The problem"
 msgstr "Problemet"
 
-#: lib/colt_web/live/home_live.ex:412
+#: lib/colt_web/live/home_live.ex:575
 #, elixir-autogen, elixir-format
 msgid "Täp OÜ · Tallinn, Estonia"
 msgstr "Täp OÜ · Tallinn, Estland"
@@ -331,28 +216,19 @@ msgstr "Täp OÜ · Tallinn, Estland"
 msgid "We can't find the internet"
 msgstr "Vi hittar inte internet"
 
-#: lib/colt_web/live/home_live.ex:265
-#, elixir-autogen, elixir-format
-msgid "We tried the \"AI does everything\" version. Agents that write emails, agents that decide who to contact, agents that personalise. It's expensive to keep stable and the output stinks of slop — recipients can tell. People are getting so much AI-written outreach now that even genuinely human emails are starting to read as suspicious."
-msgstr "Vi provade \"AI gör allt\"-versionen. Agenter som skriver mejl, agenter som bestämmer vem som ska kontaktas, agenter som personifierar. Det är dyrt att hålla stabilt och resultatet luktar AI-slafs — mottagarna märker det. Folk får så mycket AI-skriven outreach nu att även genuint mänskliga mejl börjar läsas som misstänkta."
-
-#: lib/colt_web/live/home_live.ex:106
+#: lib/colt_web/live/home_live.ex:179
 #, elixir-autogen, elixir-format
 msgid "What Liid does"
 msgstr "Vad Liid gör"
 
-#: lib/colt_web/live/home_live.ex:127
-#, elixir-autogen, elixir-format
-msgid "When Liid gives you a contact, it was checked recently. No \"last verified 2022\" footnotes."
-msgstr "När Liid ger dig en kontakt har den kontrollerats nyligen. Inga \"senast verifierad 2022\"-fotnoter."
-
 #: lib/colt_web/components/liid.ex:568
-#: lib/colt_web/live/sending/sending_funnel_live.ex:619
+#: lib/colt_web/live/home_live.ex:368
+#: lib/colt_web/live/sending/sending_funnel_live.ex:621
 #, elixir-autogen, elixir-format
 msgid "Writing"
 msgstr "Skrivande"
 
-#: lib/colt_web/live/home_live.ex:410
+#: lib/colt_web/live/home_live.ex:573
 #, elixir-autogen, elixir-format
 msgid "built by Krister Viirsaar"
 msgstr "byggd av Krister Viirsaar"
@@ -362,107 +238,102 @@ msgstr "byggd av Krister Viirsaar"
 msgid "close"
 msgstr "stäng"
 
-#: lib/colt_web/live/home_live.ex:203
+#: lib/colt_web/live/home_live.ex:318
 #, elixir-autogen, elixir-format
 msgid "industrial automation · not a match"
 msgstr "industriautomation · ingen matchning"
 
-#: lib/colt_web/live/home_live.ex:368
+#: lib/colt_web/live/home_live.ex:531
 #, elixir-autogen, elixir-format
 msgid "live"
 msgstr "live"
 
-#: lib/colt_web/live/home_live.ex:196
-#: lib/colt_web/live/home_live.ex:210
+#: lib/colt_web/live/home_live.ex:311
+#: lib/colt_web/live/home_live.ex:325
 #, elixir-autogen, elixir-format
 msgid "matches \"B2B SaaS for logistics\""
 msgstr "matchar \"B2B SaaS för logistik\""
 
-#: lib/colt_web/live/home_live.ex:216
-#, elixir-autogen, elixir-format
-msgid "preview · 2 of 3 included in export"
-msgstr "förhandsvisning · 2 av 3 i export"
-
 #: lib/colt_web/components/liid.ex:663
-#: lib/colt_web/live/home_live.ex:60
-#: lib/colt_web/live/home_live.ex:425
+#: lib/colt_web/live/home_live.ex:65
+#: lib/colt_web/live/home_live.ex:588
 #, elixir-autogen, elixir-format
 msgid "sign in"
 msgstr "logga in"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:754
-#: lib/colt_web/live/campaigns/funnel_live.ex:755
-#: lib/colt_web/live/campaigns/funnel_live.ex:756
-#: lib/colt_web/live/campaigns/funnel_live.ex:757
-#: lib/colt_web/live/campaigns/funnel_live.ex:758
-#: lib/colt_web/live/campaigns/market_live.ex:195
-#: lib/colt_web/live/home_live.ex:375
+#: lib/colt_web/live/campaigns/funnel_live.ex:761
+#: lib/colt_web/live/campaigns/funnel_live.ex:766
+#: lib/colt_web/live/campaigns/funnel_live.ex:771
+#: lib/colt_web/live/campaigns/funnel_live.ex:773
+#: lib/colt_web/live/campaigns/funnel_live.ex:774
+#: lib/colt_web/live/campaigns/market_live.ex:196
+#: lib/colt_web/live/home_live.ex:538
 #, elixir-autogen, elixir-format
 msgid "soon"
 msgstr "snart"
 
-#: lib/colt_web/live/campaigns/market_live.ex:147
+#: lib/colt_web/live/campaigns/market_live.ex:145
 #, elixir-autogen, elixir-format
 msgid "%{count} active companies in rik.ee · last sync %{sync}"
 msgstr "%{count} aktiva företag i rik.ee · senast synkad %{sync}"
 
-#: lib/colt_web/live/campaigns/index_live.ex:67
+#: lib/colt_web/live/campaigns/index_live.ex:71
 #, elixir-autogen, elixir-format
 msgid "%{done} / %{total} enriched"
 msgstr "%{done} / %{total} berikade"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:678
+#: lib/colt_web/live/sending/sending_funnel_live.ex:680
 #, elixir-autogen, elixir-format
 msgid "%{n} contacts"
 msgstr "%{n} kontakter"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:491
+#: lib/colt_web/live/sending/sending_funnel_live.ex:493
 #, elixir-autogen, elixir-format
 msgid "%{n} emails sent"
 msgstr "%{n} mejl skickade"
 
-#: lib/colt_web/live/sending/writing_live.ex:381
+#: lib/colt_web/live/sending/writing_live.ex:379
 #, elixir-autogen, elixir-format
 msgid "%{n} enriched contacts are waiting to be brought into sending."
 msgstr "%{n} berikade kontakter väntar på att tas in i utskick."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:931
+#: lib/colt_web/live/campaigns/funnel_live.ex:952
 #, elixir-autogen, elixir-format
 msgid "%{n} recorded calls"
 msgstr "%{n} inspelade anrop"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:751
+#: lib/colt_web/live/campaigns/funnel_live.ex:755
 #, elixir-autogen, elixir-format
 msgid "%{n} rows"
 msgstr "%{n} rader"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:409
-#: lib/colt_web/live/campaigns/filters_live.ex:544
+#: lib/colt_web/live/campaigns/filters_live.ex:411
+#: lib/colt_web/live/campaigns/filters_live.ex:547
 #, elixir-autogen, elixir-format
 msgid "%{n} selected"
 msgstr "%{n} valda"
 
-#: lib/colt_web/components/funnel.ex:529
+#: lib/colt_web/components/funnel.ex:538
 #, elixir-autogen, elixir-format
 msgid "%{n} total"
 msgstr "%{n} totalt"
 
-#: lib/colt_web/live/campaigns/index_live.ex:93
+#: lib/colt_web/live/campaigns/index_live.ex:101
 #, elixir-autogen, elixir-format
 msgid "%{n}d ago"
 msgstr "%{n}d sedan"
 
-#: lib/colt_web/live/campaigns/index_live.ex:92
+#: lib/colt_web/live/campaigns/index_live.ex:100
 #, elixir-autogen, elixir-format
 msgid "%{n}h ago"
 msgstr "%{n}h sedan"
 
-#: lib/colt_web/live/campaigns/index_live.ex:91
+#: lib/colt_web/live/campaigns/index_live.ex:99
 #, elixir-autogen, elixir-format
 msgid "%{n}m ago"
 msgstr "%{n}m sedan"
 
-#: lib/colt_web/live/campaigns/index_live.ex:94
+#: lib/colt_web/live/campaigns/index_live.ex:102
 #, elixir-autogen, elixir-format
 msgid "%{n}w ago"
 msgstr "%{n}v sedan"
@@ -473,43 +344,43 @@ msgstr "%{n}v sedan"
 msgid "%{quota}/day"
 msgstr "%{quota}/dag"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:534
+#: lib/colt_web/live/sending/sending_funnel_live.ex:536
 #, elixir-autogen, elixir-format
 msgid "%{rate}%% bounce rate"
 msgstr "%{rate}%% studsfrekvens"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:523
+#: lib/colt_web/live/sending/sending_funnel_live.ex:525
 #, elixir-autogen, elixir-format
 msgid "%{rate}%% failure rate"
 msgstr "%{rate}%% felfrekvens"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:507
+#: lib/colt_web/live/sending/sending_funnel_live.ex:509
 #, elixir-autogen, elixir-format
 msgid "%{rate}%% interest"
 msgstr "%{rate}%% intresse"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:515
+#: lib/colt_web/live/sending/sending_funnel_live.ex:517
 #, elixir-autogen, elixir-format
 msgid "%{rate}%% reply rate"
 msgstr "%{rate}%% svarsfrekvens"
 
-#: lib/colt_web/components/funnel.ex:110
+#: lib/colt_web/components/funnel.ex:114
 #, elixir-autogen, elixir-format
 msgid "%{visible} of %{total} visible"
 msgstr "%{visible} av %{total} synliga"
 
-#: lib/colt_web/live/sending/writing_live.ex:690
-#: lib/colt_web/live/sending/writing_live.ex:691
+#: lib/colt_web/live/sending/writing_live.ex:688
+#: lib/colt_web/live/sending/writing_live.ex:689
 #, elixir-autogen, elixir-format
 msgid "(empty subject)"
 msgstr "(tomt ämne)"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:776
+#: lib/colt_web/live/campaigns/funnel_live.ex:792
 #, elixir-autogen, elixir-format
 msgid "(no rows yet — preview will appear once a contact is verified)"
 msgstr "(inga rader än — förhandsvisning visas när en kontakt har verifierats)"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:499
+#: lib/colt_web/live/campaigns/filters_live.ex:502
 #, elixir-autogen, elixir-format
 msgid "+ add"
 msgstr "+ lägg till"
@@ -534,7 +405,7 @@ msgstr "01 / Kampanj"
 msgid "02 / ICP"
 msgstr "02 / ICP"
 
-#: lib/colt_web/live/campaigns/market_live.ex:106
+#: lib/colt_web/live/campaigns/market_live.ex:100
 #, elixir-autogen, elixir-format
 msgid "03 / Market"
 msgstr "03 / Marknad"
@@ -544,7 +415,7 @@ msgstr "03 / Marknad"
 msgid "04 / Filters"
 msgstr "04 / Filter"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:618
+#: lib/colt_web/live/campaigns/funnel_live.ex:619
 #, elixir-autogen, elixir-format
 msgid "05 / Funnel · %{name}"
 msgstr "05 / Tratt · %{name}"
@@ -570,7 +441,7 @@ msgstr "Konto"
 msgid "Account · %{address}"
 msgstr "Konto · %{address}"
 
-#: lib/colt_web/live/account/billing_live.ex:15
+#: lib/colt_web/live/account/billing_live.ex:27
 #, elixir-autogen, elixir-format
 msgid "Account · Billing"
 msgstr "Konto · Fakturering"
@@ -580,8 +451,8 @@ msgstr "Konto · Fakturering"
 msgid "Account · Email accounts"
 msgstr "Konto · E-postkonton"
 
-#: lib/colt_web/components/funnel.ex:407
-#: lib/colt_web/live/campaigns/funnel_live.ex:897
+#: lib/colt_web/components/funnel.ex:412
+#: lib/colt_web/live/campaigns/funnel_live.ex:917
 #, elixir-autogen, elixir-format
 msgid "Actually a good fit"
 msgstr "Faktiskt en bra matchning"
@@ -597,7 +468,7 @@ msgstr "Lägg till en måltitel."
 msgid "Add accounts"
 msgstr "Lägg till konton"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:757
+#: lib/colt_web/live/campaigns/funnel_live.ex:773
 #, elixir-autogen, elixir-format
 msgid "Add to sequence"
 msgstr "Lägg till i sekvens"
@@ -607,7 +478,7 @@ msgstr "Lägg till i sekvens"
 msgid "All accounts"
 msgstr "Alla konton"
 
-#: lib/colt_web/components/funnel.ex:489
+#: lib/colt_web/components/funnel.ex:496
 #, elixir-autogen, elixir-format
 msgid "All pages above were combined into one input for the contact-extraction LLM call."
 msgstr "Alla sidor ovan slogs ihop till en indata för LLM-anropet som extraherar kontakten."
@@ -617,7 +488,7 @@ msgstr "Alla sidor ovan slogs ihop till en indata för LLM-anropet som extrahera
 msgid "Approval"
 msgstr "Godkännande"
 
-#: lib/colt_web/live/sending/writing_live.ex:734
+#: lib/colt_web/live/sending/writing_live.ex:732
 #, elixir-autogen, elixir-format
 msgid "Approve & next"
 msgstr "Godkänn & nästa"
@@ -632,58 +503,58 @@ msgstr "Godkänd — schemalägger steg 1."
 msgid "Auto-approve drafts"
 msgstr "Autogodkänn utkast"
 
-#: lib/colt_web/live/sending/writing_live.ex:419
+#: lib/colt_web/live/sending/writing_live.ex:417
 #, elixir-autogen, elixir-format
 msgid "Auto-approve is on. New contacts skip this view and go straight to scheduled."
 msgstr "Autogodkännande är på. Nya kontakter hoppar över denna vy och går direkt till schemalagda."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:136
+#: lib/colt_web/live/campaigns/icp_live.ex:142
 #, elixir-autogen, elixir-format
 msgid "B2B"
 msgstr "B2B"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:136
+#: lib/colt_web/live/campaigns/icp_live.ex:142
 #, elixir-autogen, elixir-format
 msgid "B2C"
 msgstr "B2C"
 
 #: lib/colt_web/live/campaigns/filters_live.ex:329
-#: lib/colt_web/live/campaigns/icp_live.ex:241
+#: lib/colt_web/live/campaigns/icp_live.ex:255
 #, elixir-autogen, elixir-format
 msgid "Back"
 msgstr "Tillbaka"
 
-#: lib/colt_web/live/campaigns/target_live.ex:133
+#: lib/colt_web/live/campaigns/target_live.ex:139
 #, elixir-autogen, elixir-format
 msgid "Back to filters"
 msgstr "Tillbaka till filter"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:136
+#: lib/colt_web/live/campaigns/icp_live.ex:142
 #, elixir-autogen, elixir-format
 msgid "Both"
 msgstr "Båda"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:457
+#: lib/colt_web/live/sending/sending_funnel_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "Bounce rate %{rate}%% · above the 5%% threshold. Investigate before resuming."
 msgstr "Studsfrekvens %{rate}%% · över 5%%-tröskeln. Undersök innan du återupptar."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:530
+#: lib/colt_web/live/sending/sending_funnel_live.ex:532
 #, elixir-autogen, elixir-format
 msgid "Bounced"
 msgstr "Studsade"
 
-#: lib/colt_web/live/sending/writing_live.ex:391
+#: lib/colt_web/live/sending/writing_live.ex:389
 #, elixir-autogen, elixir-format
 msgid "Bring in %{n} enriched %{word}"
 msgstr "Ta in %{n} berikade %{word}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:496
+#: lib/colt_web/live/sending/sending_funnel_live.ex:498
 #, elixir-autogen, elixir-format
 msgid "Call ready"
 msgstr "Redo för samtal"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:455
+#: lib/colt_web/live/sending/sending_funnel_live.ex:457
 #, elixir-autogen, elixir-format
 msgid "Campaign auto-paused"
 msgstr "Kampanj autopausad"
@@ -698,39 +569,34 @@ msgstr "Kampanjnamn får inte vara tomt."
 msgid "Campaign · Name"
 msgstr "Kampanj · Namn"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:781
-#: lib/colt_web/live/campaigns/funnel_live.ex:879
+#: lib/colt_web/live/campaigns/funnel_live.ex:797
+#: lib/colt_web/live/campaigns/funnel_live.ex:898
 #: lib/colt_web/live/sending/sending_accounts_live.ex:275
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr "Avbryt"
-
-#: lib/colt_web/live/account/billing_live.ex:38
-#, elixir-autogen, elixir-format
-msgid "Choose plan"
-msgstr "Välj plan"
 
 #: lib/colt_web/live/sending/sequence_live.ex:289
 #, elixir-autogen, elixir-format
 msgid "Click tracking"
 msgstr "Klickspårning"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:649
+#: lib/colt_web/live/sending/sending_funnel_live.ex:651
 #, elixir-autogen, elixir-format
 msgid "Clicks"
 msgstr "Klick"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:712
+#: lib/colt_web/live/campaigns/filters_live.ex:715
 #, elixir-autogen, elixir-format
 msgid "Companies match"
 msgstr "Företag matchar"
 
-#: lib/colt_web/components/funnel.ex:125
+#: lib/colt_web/components/funnel.ex:130
 #, elixir-autogen, elixir-format
 msgid "Company"
 msgstr "Företag"
 
-#: lib/colt_web/components/funnel.ex:442
+#: lib/colt_web/components/funnel.ex:447
 #, elixir-autogen, elixir-format
 msgid "Company summary"
 msgstr "Företagssammanfattning"
@@ -766,27 +632,27 @@ msgid "Connected <em>inboxes</em>."
 msgstr "Anslutna <em>inkorgar</em>."
 
 #: lib/colt_web/components/funnel.ex:22
-#: lib/colt_web/components/funnel.ex:137
+#: lib/colt_web/components/funnel.ex:142
 #, elixir-autogen, elixir-format
 msgid "Contact"
 msgstr "Kontakt"
 
-#: lib/colt_web/live/campaigns/new_live.ex:72
+#: lib/colt_web/live/campaigns/new_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "Continue"
 msgstr "Fortsätt"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:737
+#: lib/colt_web/live/campaigns/filters_live.ex:740
 #, elixir-autogen, elixir-format
 msgid "Continue → Target"
 msgstr "Fortsätt → Mål"
 
-#: lib/colt_web/live/campaigns/market_live.ex:142
+#: lib/colt_web/live/campaigns/market_live.ex:140
 #, elixir-autogen, elixir-format
 msgid "Continue → filters"
 msgstr "Fortsätt → filter"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:247
+#: lib/colt_web/live/campaigns/icp_live.ex:261
 #, elixir-autogen, elixir-format
 msgid "Continue → market"
 msgstr "Fortsätt → marknad"
@@ -806,17 +672,17 @@ msgstr "Kunde inte godkänna: %{reason}"
 msgid "Couldn't generate the learning. Try again."
 msgstr "Kunde inte generera lärdomen. Försök igen."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:163
+#: lib/colt_web/live/sending/sending_funnel_live.ex:164
 #, elixir-autogen, elixir-format
 msgid "Couldn't save note: %{reason}"
 msgstr "Kunde inte spara anteckning: %{reason}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:181
+#: lib/colt_web/live/sending/sending_funnel_live.ex:183
 #, elixir-autogen, elixir-format
 msgid "Couldn't stop sequence: %{reason}"
 msgstr "Kunde inte stoppa sekvens: %{reason}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:200
+#: lib/colt_web/live/sending/sending_funnel_live.ex:202
 #, elixir-autogen, elixir-format
 msgid "Couldn't update: %{reason}"
 msgstr "Kunde inte uppdatera: %{reason}"
@@ -831,30 +697,25 @@ msgstr "Dagligt snitt · senaste 7d"
 msgid "Daily capacity"
 msgstr "Daglig kapacitet"
 
-#: lib/colt_web/components/funnel.ex:433
+#: lib/colt_web/components/funnel.ex:438
 #, elixir-autogen, elixir-format
 msgid "Delete all enrichment data for this company and start over?"
 msgstr "Radera all berikningsdata för detta företag och börja om?"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:202
+#: lib/colt_web/live/campaigns/icp_live.ex:214
 #, elixir-autogen, elixir-format
 msgid "Delete learning"
 msgstr "Ta bort lärdom"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:121
+#: lib/colt_web/live/campaigns/icp_live.ex:125
 #, elixir-autogen, elixir-format
 msgid "Describe the <em>customer</em> you want."
 msgstr "Beskriv <em>kunden</em> du vill ha."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:165
+#: lib/colt_web/live/campaigns/icp_live.ex:172
 #, elixir-autogen, elixir-format
 msgid "Describe the ideal customer in plain English. The AI agent visits each prospect's website and uses this to decide if they're a fit. Spell out what a good customer looks like — industry, size, business model, what they sell or do — and just as importantly, what a <em>bad</em> fit looks like (e.g. \"not solo freelancers\", \"not B2C\", \"not agencies\")."
 msgstr "Beskriv den ideala kunden på vanlig svenska. AI-agenten besöker varje prospekts webbplats och använder detta för att avgöra om de passar. Förklara vad en bra kund ser ut som — bransch, storlek, affärsmodell, vad de säljer eller gör — och lika viktigt, vad en <em>dålig</em> matchning är (t.ex. \"inga frilansare\", \"inte B2C\", \"inga byråer\")."
-
-#: lib/colt_web/live/account/billing_live.ex:36
-#, elixir-autogen, elixir-format
-msgid "Disabled during beta"
-msgstr "Inaktiverat under beta"
 
 #: lib/colt_web/live/account/email_accounts_live.ex:168
 #, elixir-autogen, elixir-format
@@ -876,12 +737,12 @@ msgstr "Kopplar från…"
 msgid "Don't see the inbox you want?"
 msgstr "Ser du inte den inkorg du vill ha?"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:792
+#: lib/colt_web/live/campaigns/funnel_live.ex:808
 #, elixir-autogen, elixir-format
 msgid "Download CSV"
 msgstr "Ladda ner CSV"
 
-#: lib/colt_web/live/sending/writing_live.ex:320
+#: lib/colt_web/live/sending/writing_live.ex:318
 #, elixir-autogen, elixir-format
 msgid "Draft for <em>this contact</em>."
 msgstr "Utkast för <em>denna kontakt</em>."
@@ -891,17 +752,12 @@ msgstr "Utkast för <em>denna kontakt</em>."
 msgid "Drafts written in"
 msgstr "Utkast skrivna på"
 
-#: lib/colt_web/live/home_live.ex:66
-#, elixir-autogen, elixir-format
-msgid "EE + FI live · 12,400+ companies indexed"
-msgstr "EE + FI live · 12 400+ företag indexerade"
-
 #: lib/colt_web/live/sending/sending_accounts_live.ex:262
 #, elixir-autogen, elixir-format
 msgid "Each inbox respects its global daily quota. Disconnected accounts are unselectable."
 msgstr "Varje inkorg respekterar sin globala dagliga kvot. Frånkopplade konton kan inte väljas."
 
-#: lib/colt_web/components/funnel.ex:140
+#: lib/colt_web/components/funnel.ex:145
 #, elixir-autogen, elixir-format
 msgid "Email / Phone"
 msgstr "E-post / Telefon"
@@ -917,7 +773,7 @@ msgid "English"
 msgstr "Engelska"
 
 #: lib/colt_web/components/funnel.ex:39
-#: lib/colt_web/live/campaigns/funnel_live.ex:587
+#: lib/colt_web/live/campaigns/funnel_live.ex:588
 #, elixir-autogen, elixir-format
 msgid "Enriched"
 msgstr "Berikade"
@@ -927,7 +783,7 @@ msgstr "Berikade"
 msgid "Enriched (target: %{n})"
 msgstr "Berikade (mål: %{n})"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:621
+#: lib/colt_web/live/campaigns/funnel_live.ex:622
 #, elixir-autogen, elixir-format
 msgid "Enriching"
 msgstr "Berikar"
@@ -937,7 +793,7 @@ msgstr "Berikar"
 msgid "Estonian"
 msgstr "Estniska"
 
-#: lib/colt_web/live/campaigns/index_live.ex:24
+#: lib/colt_web/live/campaigns/index_live.ex:26
 #, elixir-autogen, elixir-format
 msgid "Every search you've started, newest first."
 msgstr "Varje sökning du har påbörjat, nyast först."
@@ -947,24 +803,24 @@ msgstr "Varje sökning du har påbörjat, nyast först."
 msgid "Exclude industries"
 msgstr "Exkludera branscher"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:642
+#: lib/colt_web/live/campaigns/funnel_live.ex:644
 #, elixir-autogen, elixir-format
 msgid "Export"
 msgstr "Exportera"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:731
+#: lib/colt_web/live/campaigns/funnel_live.ex:733
 #, elixir-autogen, elixir-format
 msgid "Export · %{name}"
 msgstr "Export · %{name}"
 
-#: lib/colt_web/components/funnel.ex:526
+#: lib/colt_web/components/funnel.ex:535
 #, elixir-autogen, elixir-format
 msgid "Extracted contact"
 msgstr "Extraherad kontakt"
 
 #: lib/colt_web/components/funnel.ex:46
-#: lib/colt_web/live/campaigns/funnel_live.ex:589
-#: lib/colt_web/live/sending/sending_funnel_live.ex:519
+#: lib/colt_web/live/campaigns/funnel_live.ex:590
+#: lib/colt_web/live/sending/sending_funnel_live.ex:521
 #, elixir-autogen, elixir-format
 msgid "Failed"
 msgstr "Misslyckade"
@@ -985,18 +841,18 @@ msgid "Finnish"
 msgstr "Finska"
 
 #: lib/colt_web/live/sending/sequence_live.ex:322
-#: lib/colt_web/live/sending/writing_live.ex:594
+#: lib/colt_web/live/sending/writing_live.ex:592
 #, elixir-autogen, elixir-format
 msgid "First email"
 msgstr "Första mejlet"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:750
+#: lib/colt_web/live/campaigns/funnel_live.ex:754
 #, elixir-autogen, elixir-format
 msgid "Flat sheet · companies + primary contact"
 msgstr "Platt blad · företag + huvudkontakt"
 
 #: lib/colt_web/live/sending/sequence_live.ex:322
-#: lib/colt_web/live/sending/writing_live.ex:594
+#: lib/colt_web/live/sending/writing_live.ex:592
 #, elixir-autogen, elixir-format
 msgid "Follow-up %{n}"
 msgstr "Uppföljning %{n}"
@@ -1011,22 +867,22 @@ msgstr "Tratt — %{name}"
 msgid "German"
 msgstr "Tyska"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:825
+#: lib/colt_web/live/campaigns/filters_live.ex:830
 #, elixir-autogen, elixir-format
 msgid "Growing · 10×"
 msgstr "Växer · 10×"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:826
+#: lib/colt_web/live/campaigns/filters_live.ex:831
 #, elixir-autogen, elixir-format
 msgid "Growing · 2×"
 msgstr "Växer · 2×"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:827
+#: lib/colt_web/live/campaigns/filters_live.ex:832
 #, elixir-autogen, elixir-format
 msgid "Growing · slow"
 msgstr "Växer · långsamt"
 
-#: lib/colt_web/components/funnel.ex:131
+#: lib/colt_web/components/funnel.ex:136
 #, elixir-autogen, elixir-format
 msgid "Growth"
 msgstr "Tillväxt"
@@ -1036,28 +892,29 @@ msgstr "Tillväxt"
 msgid "Hit \"Connect\" above and Nylas's hosted auth will walk you through it."
 msgstr "Klicka på \"Anslut\" ovan så guidar Nylas hostade autentisering dig genom processen."
 
-#: lib/colt_web/live/sending/writing_live.ex:446
+#: lib/colt_web/live/sending/writing_live.ex:444
 #, elixir-autogen, elixir-format
 msgid "How it lands in %{name}'s inbox"
 msgstr "Så landar det i %{name}s inkorg"
 
-#: lib/colt_web/live/campaigns/target_live.ex:95
+#: lib/colt_web/live/campaigns/target_live.ex:96
 #, elixir-autogen, elixir-format
 msgid "How many <em style=\"font-family: 'Instrument Serif', serif;\">contacts</em> do you want?"
 msgstr "Hur många <em style=\"font-family: 'Instrument Serif', serif;\">kontakter</em> vill du ha?"
 
-#: lib/colt_web/components/funnel.ex:451
+#: lib/colt_web/components/funnel.ex:456
 #, elixir-autogen, elixir-format
 msgid "ICP decision"
 msgstr "ICP-beslut"
 
 #: lib/colt_web/components/funnel.ex:21
+#: lib/colt_web/live/home_live.ex:91
 #, elixir-autogen, elixir-format
 msgid "ICP fit"
 msgstr "ICP-matchning"
 
 #: lib/colt_web/components/funnel.ex:45
-#: lib/colt_web/live/campaigns/funnel_live.ex:588
+#: lib/colt_web/live/campaigns/funnel_live.ex:589
 #, elixir-autogen, elixir-format
 msgid "ICP miss"
 msgstr "ICP-miss"
@@ -1067,7 +924,7 @@ msgstr "ICP-miss"
 msgid "ICP — %{name}"
 msgstr "ICP — %{name}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:162
+#: lib/colt_web/live/campaigns/icp_live.ex:168
 #, elixir-autogen, elixir-format
 msgid "Ideal customer profile"
 msgstr "Ideal kundprofil"
@@ -1092,52 +949,42 @@ msgstr "Inkorgar du har anslutit via Nylas. Välj valfri av dem per kampanj unde
 msgid "Industry"
 msgstr "Bransch"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:504
+#: lib/colt_web/live/sending/sending_funnel_live.ex:506
 #, elixir-autogen, elixir-format
 msgid "Interested"
 msgstr "Intresserad"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1008
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1010
 #, elixir-autogen, elixir-format
 msgid "Internal note — not sent to recipient."
 msgstr "Intern anteckning — skickas inte till mottagaren."
 
-#: lib/colt_web/components/funnel.ex:426
+#: lib/colt_web/components/funnel.ex:431
 #, elixir-autogen, elixir-format
 msgid "LLM calls (admin)"
 msgstr "LLM-anrop (admin)"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:928
+#: lib/colt_web/live/campaigns/funnel_live.ex:949
 #, elixir-autogen, elixir-format
 msgid "LLM calls · %{name}"
 msgstr "LLM-anrop · %{name}"
-
-#: lib/colt_web/live/home_live.ex:68
-#, elixir-autogen, elixir-format
-msgid "LV · LT · SE · NO soon"
-msgstr "LV · LT · SE · NO snart"
 
 #: lib/colt_web/live/sending/sequence_live.ex:264
 #, elixir-autogen, elixir-format
 msgid "Language"
 msgstr "Språk"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:177
+#: lib/colt_web/live/campaigns/icp_live.ex:187
 #, elixir-autogen, elixir-format
 msgid "Learned refinements (%{n})"
 msgstr "Inlärda förfiningar (%{n})"
 
-#: lib/colt_web/live/account/billing_live.ex:21
-#, elixir-autogen, elixir-format
-msgid "Liid is in invite-only beta — no billing yet, no card on file, nothing to manage here. We'll wire pricing in once we're out of beta. Until then, send freely."
-msgstr "Liid är i inbjudningsbaserad beta — ingen fakturering än, inget kort registrerat, inget att hantera här. Vi kopplar in prissättning när vi är ute ur beta. Tills dess, skicka fritt."
-
-#: lib/colt_web/live/sending/sending_funnel_live.ex:195
+#: lib/colt_web/live/sending/sending_funnel_live.ex:197
 #, elixir-autogen, elixir-format
 msgid "Marked as %{label}."
 msgstr "Markerad som %{label}."
 
-#: lib/colt_web/live/campaigns/market_live.ex:27
+#: lib/colt_web/live/campaigns/market_live.ex:18
 #, elixir-autogen, elixir-format
 msgid "Market — %{name}"
 msgstr "Marknad — %{name}"
@@ -1152,7 +999,7 @@ msgstr "Månadsvis"
 msgid "Name a campaign before continuing."
 msgstr "Namnge en kampanj innan du fortsätter."
 
-#: lib/colt_web/live/campaigns/new_live.ex:41
+#: lib/colt_web/live/campaigns/new_live.ex:42
 #, elixir-autogen, elixir-format
 msgid "Name it after the persona, market, or quarter — anything you'll recognise in three weeks."
 msgstr "Döp den efter personan, marknaden eller kvartalet — något du känner igen om tre veckor."
@@ -1167,13 +1014,13 @@ msgstr "Namn — %{name}"
 msgid "Narrow the <em>funnel</em>."
 msgstr "Snäva in <em>tratten</em>."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:754
+#: lib/colt_web/live/campaigns/funnel_live.ex:760
 #, elixir-autogen, elixir-format
 msgid "Nested · companies → people → pages"
 msgstr "Nästlad · företag → personer → sidor"
 
-#: lib/colt_web/live/campaigns/index_live.ex:29
-#: lib/colt_web/live/campaigns/index_live.ex:47
+#: lib/colt_web/live/campaigns/index_live.ex:32
+#: lib/colt_web/live/campaigns/index_live.ex:50
 #: lib/colt_web/live/campaigns/new_live.ex:10
 #, elixir-autogen, elixir-format
 msgid "New campaign"
@@ -1184,22 +1031,22 @@ msgstr "Ny kampanj"
 msgid "New contacts go straight to scheduled without landing in the Writing queue."
 msgstr "Nya kontakter går direkt till schemalagda utan att hamna i Skrivande-kön."
 
-#: lib/colt_web/live/campaigns/index_live.ex:39
+#: lib/colt_web/live/campaigns/index_live.ex:42
 #, elixir-autogen, elixir-format
 msgid "No campaigns yet."
 msgstr "Inga kampanjer än."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:593
+#: lib/colt_web/live/campaigns/funnel_live.ex:594
 #, elixir-autogen, elixir-format
 msgid "No companies currently being processed."
 msgstr "Inga företag bearbetas just nu."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:599
+#: lib/colt_web/live/campaigns/funnel_live.ex:600
 #, elixir-autogen, elixir-format
 msgid "No companies have been rejected on ICP fit yet."
 msgstr "Inga företag har avvisats på ICP-matchning än."
 
-#: lib/colt_web/live/sending/writing_live.ex:386
+#: lib/colt_web/live/sending/writing_live.ex:384
 #, elixir-autogen, elixir-format
 msgid "No enriched contacts are queued. Run enrichment first."
 msgstr "Inga berikade kontakter står i kö. Kör berikning först."
@@ -1224,29 +1071,29 @@ msgstr "Inga inkorgar registrerade än."
 msgid "No inboxes yet."
 msgstr "Inga inkorgar än."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:790
+#: lib/colt_web/live/sending/sending_funnel_live.ex:792
 #, elixir-autogen, elixir-format
 msgid "No messages yet. The first step will appear here once it sends."
 msgstr "Inga meddelanden än. Första steget visas här när det skickas."
 
-#: lib/colt_web/live/campaigns/new_live.ex:56
+#: lib/colt_web/live/campaigns/new_live.ex:60
 #, elixir-autogen, elixir-format
 msgid "Nordic CTOs Q2"
 msgstr "Nordiska CTO:er Q2"
 
-#: lib/colt_web/components/funnel.ex:397
-#: lib/colt_web/live/campaigns/funnel_live.ex:896
+#: lib/colt_web/components/funnel.ex:402
+#: lib/colt_web/live/campaigns/funnel_live.ex:916
 #, elixir-autogen, elixir-format
 msgid "Not a good fit"
 msgstr "Inte en bra matchning"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:512
+#: lib/colt_web/live/sending/sending_funnel_live.ex:514
 #, elixir-autogen, elixir-format
 msgid "Not interested"
 msgstr "Inte intresserad"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:824
-#: lib/colt_web/live/sending/sending_funnel_live.ex:965
+#: lib/colt_web/live/sending/sending_funnel_live.ex:826
+#: lib/colt_web/live/sending/sending_funnel_live.ex:967
 #, elixir-autogen, elixir-format
 msgid "Note"
 msgstr "Anteckning"
@@ -1261,27 +1108,27 @@ msgstr "Anteckningen är tom."
 msgid "Note saved."
 msgstr "Anteckning sparad."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:596
+#: lib/colt_web/live/campaigns/funnel_live.ex:597
 #, elixir-autogen, elixir-format
 msgid "Nothing has been fully enriched yet. Pick another bucket to watch progress."
 msgstr "Inget har berikats fullt ut än. Välj en annan hink för att följa framstegen."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:601
+#: lib/colt_web/live/campaigns/funnel_live.ex:602
 #, elixir-autogen, elixir-format
 msgid "Nothing has failed. Enjoy it."
 msgstr "Inget har misslyckats. Njut av det."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:613
+#: lib/colt_web/live/sending/sending_funnel_live.ex:615
 #, elixir-autogen, elixir-format
 msgid "Nothing in <em class=\"text-accent\">%{bucket}</em> yet."
 msgstr "Inget i <em class=\"text-accent\">%{bucket}</em> än."
 
-#: lib/colt_web/live/sending/writing_live.ex:377
+#: lib/colt_web/live/sending/writing_live.ex:375
 #, elixir-autogen, elixir-format
 msgid "Nothing to <em class=\"text-accent\">review</em>."
 msgstr "Inget att <em class=\"text-accent\">granska</em>."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:592
+#: lib/colt_web/live/campaigns/funnel_live.ex:593
 #, elixir-autogen, elixir-format
 msgid "Nothing waiting in line."
 msgstr "Inget väntar i kö."
@@ -1301,7 +1148,7 @@ msgstr "PÅ"
 msgid "One contact at a time. Approve to schedule the first step; the rest follows."
 msgstr "En kontakt i taget. Godkänn för att schemalägga första steget; resten följer."
 
-#: lib/colt_web/live/campaigns/market_live.ex:107
+#: lib/colt_web/live/campaigns/market_live.ex:102
 #, elixir-autogen, elixir-format
 msgid "One market per campaign. Liid hits the government registry and walks the resulting domain list. Greyed-out registries are scheduled for next quarter."
 msgstr "En marknad per kampanj. Liid frågar det offentliga registret och går igenom den resulterande domänlistan. Gråmarkerade register är inplanerade till nästa kvartal."
@@ -1316,22 +1163,22 @@ msgstr "En mall, tillämpad på varje godkänd kontakt. AI:n skriver om brödtex
 msgid "Open tracking"
 msgstr "Öppningsspårning"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:636
+#: lib/colt_web/live/sending/sending_funnel_live.ex:638
 #, elixir-autogen, elixir-format
 msgid "Opens"
 msgstr "Öppningar"
 
-#: lib/colt_web/components/funnel.ex:565
+#: lib/colt_web/components/funnel.ex:576
 #, elixir-autogen, elixir-format
 msgid "Other contacts"
 msgstr "Andra kontakter"
 
-#: lib/colt_web/components/funnel.ex:497
+#: lib/colt_web/components/funnel.ex:506
 #, elixir-autogen, elixir-format
 msgid "Outcome"
 msgstr "Resultat"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:758
+#: lib/colt_web/live/campaigns/funnel_live.ex:774
 #, elixir-autogen, elixir-format
 msgid "POST to your URL"
 msgstr "POST till din URL"
@@ -1346,7 +1193,7 @@ msgstr "Mönster · tid på dygnet × dag"
 msgid "Pick a contact first."
 msgstr "Välj en kontakt först."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:617
+#: lib/colt_web/live/sending/sending_funnel_live.ex:619
 #, elixir-autogen, elixir-format
 msgid "Pick another tile above, or approve more contacts in"
 msgstr "Välj en annan ruta ovan, eller godkänn fler kontakter i"
@@ -1366,33 +1213,23 @@ msgstr "Pitch — %{name}"
 msgid "Pixel embedded in every email. Requires a CNAME you set up yourself."
 msgstr "Pixel inbäddad i varje mejl. Kräver en CNAME som du ställer in själv."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:119
+#: lib/colt_web/live/campaigns/icp_live.ex:120
 #, elixir-autogen, elixir-format
 msgid "Plain English. The model reads this against every company's website to decide if it's a fit. Be specific about what disqualifies."
 msgstr "Vanlig svenska. Modellen läser detta mot varje företags webbplats för att avgöra om det är en matchning. Var specifik om vad som diskvalificerar."
 
-#: lib/colt_web/live/account/billing_live.ex:18
-#, elixir-autogen, elixir-format
-msgid "Plans <em class=\"text-accent\">coming soon</em>."
-msgstr "Planer <em class=\"text-accent\">kommer snart</em>."
-
-#: lib/colt_web/live/campaigns/funnel_live.ex:755
+#: lib/colt_web/live/campaigns/funnel_live.ex:765
 #, elixir-autogen, elixir-format
 msgid "Push directly · de-dupe by domain"
 msgstr "Skicka direkt · avduplicera per domän"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:756
+#: lib/colt_web/live/campaigns/funnel_live.ex:770
 #, elixir-autogen, elixir-format
 msgid "Push directly · org + person + deal"
 msgstr "Skicka direkt · org + person + affär"
 
-#: lib/colt_web/live/account/billing_live.ex:26
-#, elixir-autogen, elixir-format
-msgid "Questions or feedback?"
-msgstr "Frågor eller återkoppling?"
-
 #: lib/colt_web/components/funnel.ex:42
-#: lib/colt_web/live/campaigns/funnel_live.ex:585
+#: lib/colt_web/live/campaigns/funnel_live.ex:586
 #, elixir-autogen, elixir-format
 msgid "Queued"
 msgstr "I kö"
@@ -1403,18 +1240,18 @@ msgstr "I kö"
 msgid "Quota"
 msgstr "Kvot"
 
-#: lib/colt_web/components/funnel.ex:417
-#: lib/colt_web/live/campaigns/funnel_live.ex:633
+#: lib/colt_web/components/funnel.ex:422
+#: lib/colt_web/live/campaigns/funnel_live.ex:635
 #, elixir-autogen, elixir-format
 msgid "Re-check ICP"
 msgstr "Kontrollera ICP igen"
 
-#: lib/colt_web/components/funnel.ex:414
+#: lib/colt_web/components/funnel.ex:419
 #, elixir-autogen, elixir-format
 msgid "Re-check ICP fit for this company?"
 msgstr "Kontrollera ICP-matchning för detta företag igen?"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:631
+#: lib/colt_web/live/campaigns/funnel_live.ex:633
 #, elixir-autogen, elixir-format
 msgid "Re-check ICP fit on all enriched and ICP-rejected companies?"
 msgstr "Kontrollera ICP-matchning igen på alla berikade och ICP-avvisade företag?"
@@ -1434,7 +1271,7 @@ msgstr "Ta bort steg"
 msgid "Rename it. Stored immediately on save."
 msgstr "Döp om den. Sparas omedelbart."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:952
+#: lib/colt_web/live/sending/sending_funnel_live.ex:954
 #, elixir-autogen, elixir-format
 msgid "Reply"
 msgstr "Svara"
@@ -1454,7 +1291,7 @@ msgstr "Svar skickat."
 msgid "Required for opens/clicks. One CNAME at your DNS provider, reused across all sending accounts. Configure under <span class=\"font-mono text-ink70\">/admin/tracking-domain</span>."
 msgstr "Krävs för öppningar/klick. En CNAME hos din DNS-leverantör, återanvänds över alla avsändarkonton. Konfigurera under <span class=\"font-mono text-ink70\">/admin/tracking-domain</span>."
 
-#: lib/colt_web/components/funnel.ex:436
+#: lib/colt_web/components/funnel.ex:441
 #, elixir-autogen, elixir-format
 msgid "Retry (admin)"
 msgstr "Försök igen (admin)"
@@ -1464,29 +1301,29 @@ msgstr "Försök igen (admin)"
 msgid "Revenue (€)"
 msgstr "Omsättning (€)"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:228
+#: lib/colt_web/live/campaigns/icp_live.ex:242
 #, elixir-autogen, elixir-format
 msgid "Sales Manager, COO, CEO"
 msgstr "Säljchef, COO, VD"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:245
-#: lib/colt_web/live/campaigns/market_live.ex:140
+#: lib/colt_web/live/campaigns/icp_live.ex:259
+#: lib/colt_web/live/campaigns/market_live.ex:138
 #: lib/colt_web/live/campaigns/name_live.ex:88
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr "Spara"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:736
+#: lib/colt_web/live/campaigns/filters_live.ex:739
 #, elixir-autogen, elixir-format
 msgid "Save filters"
 msgstr "Spara filter"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:887
+#: lib/colt_web/live/campaigns/funnel_live.ex:907
 #, elixir-autogen, elixir-format
 msgid "Save learning"
 msgstr "Spara lärdom"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1014
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1016
 #, elixir-autogen, elixir-format
 msgid "Save note"
 msgstr "Spara anteckning"
@@ -1496,17 +1333,17 @@ msgstr "Spara anteckning"
 msgid "Save selection"
 msgstr "Spara val"
 
-#: lib/colt_web/live/campaigns/target_live.ex:149
+#: lib/colt_web/live/campaigns/target_live.ex:155
 #, elixir-autogen, elixir-format
 msgid "Save · %{n} contacts"
 msgstr "Spara · %{n} kontakter"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:180
+#: lib/colt_web/live/campaigns/icp_live.ex:190
 #, elixir-autogen, elixir-format
 msgid "Saved from \"not a good fit\" / \"actually a good fit\" feedback on the funnel. Applied on top of the ICP above. Delete any that no longer reflect what you want — then re-check ICP on the funnel."
 msgstr "Sparat från \"inte en bra matchning\" / \"faktiskt en bra matchning\"-återkoppling på tratten. Tillämpas ovanpå ICP:n ovan. Ta bort de som inte längre speglar vad du vill ha — kontrollera sedan ICP igen på tratten."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:887
+#: lib/colt_web/live/campaigns/funnel_live.ex:907
 #, elixir-autogen, elixir-format
 msgid "Saving…"
 msgstr "Sparar…"
@@ -1516,7 +1353,7 @@ msgstr "Sparar…"
 msgid "Scheduled ahead"
 msgstr "Schemalagt framöver"
 
-#: lib/colt_web/components/funnel.ex:475
+#: lib/colt_web/components/funnel.ex:482
 #, elixir-autogen, elixir-format
 msgid "Scraped pages (%{n})"
 msgstr "Skrapade sidor (%{n})"
@@ -1526,7 +1363,7 @@ msgstr "Skrapade sidor (%{n})"
 msgid "Send failed: %{reason}"
 msgstr "Skick misslyckades: %{reason}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:997
+#: lib/colt_web/live/sending/sending_funnel_live.ex:999
 #, elixir-autogen, elixir-format
 msgid "Send reply"
 msgstr "Skicka svar"
@@ -1546,12 +1383,12 @@ msgstr "Avsändarkonton — %{name}"
 msgid "Sending funnel — %{name}"
 msgstr "Utskickstratt — %{name}"
 
-#: lib/colt_web/components/panic_toggle.ex:20
+#: lib/colt_web/components/panic_toggle.ex:23
 #, elixir-autogen, elixir-format
 msgid "Sending on — click to pause"
 msgstr "Utskick på — klicka för att pausa"
 
-#: lib/colt_web/components/panic_toggle.ex:20
+#: lib/colt_web/components/panic_toggle.ex:22
 #, elixir-autogen, elixir-format
 msgid "Sending paused — click to resume"
 msgstr "Utskick pausat — klicka för att återuppta"
@@ -1566,7 +1403,7 @@ msgstr "Utskick · Konton"
 msgid "Sending · Accounts · Add"
 msgstr "Utskick · Konton · Lägg till"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:401
+#: lib/colt_web/live/sending/sending_funnel_live.ex:403
 #, elixir-autogen, elixir-format
 msgid "Sending · Funnel"
 msgstr "Utskick · Tratt"
@@ -1591,12 +1428,12 @@ msgstr "Utskick · Skrivande"
 msgid "Sent · 28d window"
 msgstr "Skickade · 28d-fönster"
 
-#: lib/colt_web/live/sending/writing_live.ex:474
+#: lib/colt_web/live/sending/writing_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "Sequence draft"
 msgstr "Sekvensutkast"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:175
+#: lib/colt_web/live/sending/sending_funnel_live.ex:177
 #, elixir-autogen, elixir-format
 msgid "Sequence stopped — contact marked no-reply."
 msgstr "Sekvens stoppad — kontakt markerad som inget-svar."
@@ -1606,32 +1443,32 @@ msgstr "Sekvens stoppad — kontakt markerad som inget-svar."
 msgid "Sequence — %{name}"
 msgstr "Sekvens — %{name}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:132
+#: lib/colt_web/live/campaigns/icp_live.ex:136
 #, elixir-autogen, elixir-format
 msgid "Sets the buyer side. Used as a hard filter before the model reads your ICP — saves you spelling it out below."
 msgstr "Sätter köparsidan. Används som hårt filter innan modellen läser din ICP — du slipper stava ut det nedan."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:829
+#: lib/colt_web/live/campaigns/filters_live.ex:834
 #, elixir-autogen, elixir-format
 msgid "Shrinking"
 msgstr "Krymper"
 
-#: lib/colt_web/components/funnel.ex:128
+#: lib/colt_web/components/funnel.ex:133
 #, elixir-autogen, elixir-format
 msgid "Size"
 msgstr "Storlek"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:828
+#: lib/colt_web/live/campaigns/filters_live.ex:833
 #, elixir-autogen, elixir-format
 msgid "Stagnant"
 msgstr "Stagnerande"
 
-#: lib/colt_web/live/campaigns/index_live.ex:42
+#: lib/colt_web/live/campaigns/index_live.ex:45
 #, elixir-autogen, elixir-format
 msgid "Start by naming the first one."
 msgstr "Börja med att namnge den första."
 
-#: lib/colt_web/live/campaigns/target_live.ex:147
+#: lib/colt_web/live/campaigns/target_live.ex:153
 #, elixir-autogen, elixir-format
 msgid "Start enrichment · %{n} contacts"
 msgstr "Starta berikning · %{n} kontakter"
@@ -1641,25 +1478,25 @@ msgstr "Starta berikning · %{n} kontakter"
 msgid "Stats — %{address}"
 msgstr "Statistik — %{address}"
 
-#: lib/colt_web/components/funnel.ex:143
+#: lib/colt_web/components/funnel.ex:148
 #: lib/colt_web/live/sending/sending_accounts_live.ex:196
 #: lib/colt_web/live/sending/sending_accounts_live.ex:298
 #, elixir-autogen, elixir-format
 msgid "Status"
 msgstr "Status"
 
-#: lib/colt_web/live/sending/writing_live.ex:591
-#: lib/colt_web/live/sending/writing_live.ex:619
+#: lib/colt_web/live/sending/writing_live.ex:589
+#: lib/colt_web/live/sending/writing_live.ex:617
 #, elixir-autogen, elixir-format
 msgid "Step %{n}"
 msgstr "Steg %{n}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:782
+#: lib/colt_web/live/sending/sending_funnel_live.ex:784
 #, elixir-autogen, elixir-format
 msgid "Stop sequence"
 msgstr "Stoppa sekvens"
 
-#: lib/colt_web/live/sending/writing_live.ex:453
+#: lib/colt_web/live/sending/writing_live.ex:451
 #, elixir-autogen, elixir-format
 msgid "Subject"
 msgstr "Ämne"
@@ -1669,17 +1506,17 @@ msgstr "Ämne"
 msgid "Swedish"
 msgstr "Svenska"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:734
+#: lib/colt_web/live/campaigns/funnel_live.ex:736
 #, elixir-autogen, elixir-format
 msgid "Take"
 msgstr "Ta"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:129
+#: lib/colt_web/live/campaigns/icp_live.ex:133
 #, elixir-autogen, elixir-format
 msgid "Target audience"
 msgstr "Målgrupp"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:217
+#: lib/colt_web/live/campaigns/icp_live.ex:229
 #, elixir-autogen, elixir-format
 msgid "Target job title"
 msgstr "Måltitel"
@@ -1689,17 +1526,17 @@ msgstr "Måltitel"
 msgid "Target — %{name}"
 msgstr "Mål — %{name}"
 
-#: lib/colt_web/components/funnel.ex:518
+#: lib/colt_web/components/funnel.ex:527
 #, elixir-autogen, elixir-format
 msgid "Technical detail (admin)"
 msgstr "Teknisk detalj (admin)"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:856
+#: lib/colt_web/live/campaigns/funnel_live.ex:872
 #, elixir-autogen, elixir-format
 msgid "Tell us in your own words. We'll save it as a rule and apply it next time you re-check ICP — no other companies move until you do."
 msgstr "Berätta med egna ord. Vi sparar det som en regel och tillämpar nästa gång du kontrollerar ICP igen — inga andra företag flyttas förrän du gör det."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:234
+#: lib/colt_web/live/campaigns/funnel_live.ex:235
 #, elixir-autogen, elixir-format
 msgid "Tell us why so we can learn the rule."
 msgstr "Berätta varför så vi kan lära oss regeln."
@@ -1724,7 +1561,7 @@ msgstr "<em>Formen</em> på varje mejl vi skickar."
 msgid "The AI will write every subject + body in this language."
 msgstr "AI:n skriver varje ämne + brödtext på detta språk."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:220
+#: lib/colt_web/live/campaigns/icp_live.ex:232
 #, elixir-autogen, elixir-format
 msgid "The contact we'll try to extract per company. You can list multiple titles in order of importance — e.g. \"Sales Manager, COO, CEO\" — and we'll pick the highest-priority match found."
 msgstr "Kontakten vi försöker extrahera per företag. Du kan lista flera titlar i prioritetsordning — t.ex. \"Säljchef, COO, VD\" — och vi väljer den högst prioriterade matchningen vi hittar."
@@ -1739,7 +1576,7 @@ msgstr "Denna kampanj kan inte skicka förrän minst en läggs till."
 msgid "Throughput"
 msgstr "Genomströmning"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:969
+#: lib/colt_web/live/sending/sending_funnel_live.ex:971
 #, elixir-autogen, elixir-format
 msgid "To: %{recipient}"
 msgstr "Till: %{recipient}"
@@ -1754,12 +1591,12 @@ msgstr "Spårning"
 msgid "Tracking CNAME"
 msgstr "Spårnings-CNAME"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:409
+#: lib/colt_web/live/campaigns/filters_live.ex:410
 #, elixir-autogen, elixir-format
 msgid "Trajectory"
 msgstr "Tillväxtkurva"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:768
+#: lib/colt_web/live/campaigns/filters_live.ex:771
 #, elixir-autogen, elixir-format
 msgid "Trajectory · %{label}"
 msgstr "Tillväxtkurva · %{label}"
@@ -1784,28 +1621,28 @@ msgstr "Volym · ±%{days} dagar"
 msgid "We'll fill this in once you set a domain. Or type your own pitch here."
 msgstr "Vi fyller i detta när du har angett en domän. Eller skriv din egen pitch här."
 
-#: lib/colt_web/live/campaigns/target_live.ex:98
+#: lib/colt_web/live/campaigns/target_live.ex:102
 #, elixir-autogen, elixir-format
 msgid "We'll keep pulling and enriching companies until we hit this number of named contacts (or run out of matches). About 1 in 5 companies yields a contact, so we'll need ~5× this many companies in the funnel."
 msgstr "Vi fortsätter hämta och berika företag tills vi når detta antal namngivna kontakter (eller slut på matchningar). Ungefär 1 av 5 företag ger en kontakt, så vi behöver ~5× så här många företag i tratten."
 
 #: lib/colt_web/components/funnel.ex:20
-#: lib/colt_web/components/funnel.ex:460
+#: lib/colt_web/components/funnel.ex:467
 #, elixir-autogen, elixir-format
 msgid "Website"
 msgstr "Webbplats"
 
-#: lib/colt_web/live/campaigns/new_live.ex:43
+#: lib/colt_web/live/campaigns/new_live.ex:47
 #, elixir-autogen, elixir-format
 msgid "What are we calling this <em>hunt</em>?"
 msgstr "Vad ska vi kalla denna <em>jakt</em>?"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:900
+#: lib/colt_web/live/campaigns/funnel_live.ex:920
 #, elixir-autogen, elixir-format
 msgid "What makes this a <em>match</em>?"
 msgstr "Vad gör detta till en <em>matchning</em>?"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:899
+#: lib/colt_web/live/campaigns/funnel_live.ex:919
 #, elixir-autogen, elixir-format
 msgid "What makes this a <em>miss</em>?"
 msgstr "Vad gör detta till en <em>miss</em>?"
@@ -1820,12 +1657,12 @@ msgstr "Vad du säljer"
 msgid "What you sell, in your words. We read your site once and draft this for you — the AI writer reuses it on every outbound email."
 msgstr "Vad du säljer, med dina ord. Vi läser din sida en gång och utkastar detta åt dig — AI-skribenten återanvänder det i varje utgående mejl."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:402
+#: lib/colt_web/live/sending/sending_funnel_live.ex:404
 #, elixir-autogen, elixir-format
 msgid "Where the <em class=\"text-accent\">conversation</em> is going."
 msgstr "Vart <em class=\"text-accent\">samtalet</em> är på väg."
 
-#: lib/colt_web/live/campaigns/market_live.ex:109
+#: lib/colt_web/live/campaigns/market_live.ex:107
 #, elixir-autogen, elixir-format
 msgid "Which <em>register</em> do we pull from?"
 msgstr "Vilket <em>register</em> hämtar vi från?"
@@ -1836,12 +1673,12 @@ msgid "Which inboxes this campaign <em>sends through</em>."
 msgstr "Vilka inkorgar denna kampanj <em>skickar genom</em>."
 
 #: lib/colt_web/components/funnel.ex:43
-#: lib/colt_web/live/campaigns/funnel_live.ex:586
+#: lib/colt_web/live/campaigns/funnel_live.ex:587
 #, elixir-autogen, elixir-format
 msgid "Working"
 msgstr "Arbetar"
 
-#: lib/colt_web/live/campaigns/index_live.ex:24
+#: lib/colt_web/live/campaigns/index_live.ex:25
 #, elixir-autogen, elixir-format
 msgid "Workspace"
 msgstr "Arbetsyta"
@@ -1856,12 +1693,12 @@ msgstr "Lindar varje länk genom en omdirigerare på samma CNAME."
 msgid "Writing — %{name}"
 msgstr "Skrivande — %{name}"
 
-#: lib/colt_web/live/sending/writing_live.ex:416
+#: lib/colt_web/live/sending/writing_live.ex:414
 #, elixir-autogen, elixir-format
 msgid "You're <em class=\"text-accent\">off the hook</em>."
 msgstr "Du är <em class=\"text-accent\">av kroken</em>."
 
-#: lib/colt_web/live/campaigns/index_live.ex:25
+#: lib/colt_web/live/campaigns/index_live.ex:28
 #, elixir-autogen, elixir-format
 msgid "Your <em>campaigns</em>."
 msgstr "Dina <em>kampanjer</em>."
@@ -1871,14 +1708,14 @@ msgstr "Dina <em>kampanjer</em>."
 msgid "Your domain"
 msgstr "Din domän"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:748
+#: lib/colt_web/live/campaigns/filters_live.ex:751
 #: lib/colt_web/live/sending/sending_accounts_live.ex:405
 #: lib/colt_web/live/sending/sending_accounts_live.ex:516
 #, elixir-autogen, elixir-format
 msgid "active"
 msgstr "aktiv"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:368
+#: lib/colt_web/live/sending/sending_funnel_live.ex:370
 #, elixir-autogen, elixir-format
 msgid "approved"
 msgstr "godkänd"
@@ -1894,13 +1731,13 @@ msgstr "autentiseringsfel"
 msgid "auth error — re-auth in Email accounts"
 msgstr "autentiseringsfel — autentisera om under E-postkonton"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:373
+#: lib/colt_web/live/sending/sending_funnel_live.ex:375
 #, elixir-autogen, elixir-format
 msgid "bounced"
 msgstr "studsade"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:355
-#: lib/colt_web/live/sending/sending_funnel_live.ex:371
+#: lib/colt_web/live/sending/sending_funnel_live.ex:357
+#: lib/colt_web/live/sending/sending_funnel_live.ex:373
 #, elixir-autogen, elixir-format
 msgid "call ready"
 msgstr "redo för samtal"
@@ -1910,28 +1747,28 @@ msgstr "redo för samtal"
 msgid "campaign: %{campaign}"
 msgstr "kampanj: %{campaign}"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:621
+#: lib/colt_web/live/campaigns/funnel_live.ex:623
 #, elixir-autogen, elixir-format
 msgid "companies."
 msgstr "företag."
 
-#: lib/colt_web/live/sending/writing_live.ex:393
+#: lib/colt_web/live/sending/writing_live.ex:391
 #, elixir-autogen, elixir-format
 msgid "contact"
 msgstr "kontakt"
 
-#: lib/colt_web/components/funnel.ex:598
-#: lib/colt_web/components/funnel.ex:635
+#: lib/colt_web/components/funnel.ex:609
+#: lib/colt_web/components/funnel.ex:646
 #, elixir-autogen, elixir-format
 msgid "contact failed"
 msgstr "kontakt misslyckades"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:490
-#: lib/colt_web/live/sending/sending_funnel_live.ex:498
-#: lib/colt_web/live/sending/sending_funnel_live.ex:506
-#: lib/colt_web/live/sending/sending_funnel_live.ex:514
-#: lib/colt_web/live/sending/sending_funnel_live.ex:521
-#: lib/colt_web/live/sending/sending_funnel_live.ex:532
+#: lib/colt_web/live/sending/sending_funnel_live.ex:492
+#: lib/colt_web/live/sending/sending_funnel_live.ex:500
+#: lib/colt_web/live/sending/sending_funnel_live.ex:508
+#: lib/colt_web/live/sending/sending_funnel_live.ex:516
+#: lib/colt_web/live/sending/sending_funnel_live.ex:523
+#: lib/colt_web/live/sending/sending_funnel_live.ex:534
 #, elixir-autogen, elixir-format
 msgid "contacts"
 msgstr "kontakter"
@@ -1957,23 +1794,23 @@ msgstr "frånkopplad"
 msgid "disconnected — re-auth in Email accounts first"
 msgstr "frånkopplad — autentisera om under E-postkonton först"
 
-#: lib/colt_web/live/campaigns/new_live.ex:63
+#: lib/colt_web/live/campaigns/new_live.ex:67
 #, elixir-autogen, elixir-format
 msgid "draft · saved on continue"
 msgstr "utkast · sparas vid fortsätt"
 
-#: lib/colt_web/live/sending/writing_live.ex:484
-#: lib/colt_web/live/sending/writing_live.ex:628
+#: lib/colt_web/live/sending/writing_live.ex:482
+#: lib/colt_web/live/sending/writing_live.ex:626
 #, elixir-autogen, elixir-format
 msgid "drafting…"
 msgstr "skriver utkast…"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:906
+#: lib/colt_web/live/campaigns/funnel_live.ex:927
 #, elixir-autogen, elixir-format
 msgid "e.g. They manufacture in-house — the site just emphasises their distribution arm."
 msgstr "t.ex. De tillverkar internt — sajten betonar bara deras distributionsgren."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:903
+#: lib/colt_web/live/campaigns/funnel_live.ex:923
 #, elixir-autogen, elixir-format
 msgid "e.g. They're a pure reseller — we sell to manufacturers, not distributors."
 msgstr "t.ex. De är ren återförsäljare — vi säljer till tillverkare, inte distributörer."
@@ -1983,13 +1820,13 @@ msgstr "t.ex. De är ren återförsäljare — vi säljer till tillverkare, inte
 msgid "edited."
 msgstr "redigerad."
 
-#: lib/colt_web/components/funnel.ex:108
+#: lib/colt_web/components/funnel.ex:111
 #, elixir-autogen, elixir-format
 msgid "elapsed: %{t}"
 msgstr "förflutet: %{t}"
 
-#: lib/colt_web/components/funnel.ex:595
-#: lib/colt_web/components/funnel.ex:632
+#: lib/colt_web/components/funnel.ex:606
+#: lib/colt_web/components/funnel.ex:643
 #, elixir-autogen, elixir-format
 msgid "email unverified"
 msgstr "e-post overifierad"
@@ -2009,40 +1846,40 @@ msgstr "mejl / månad"
 msgid "end of sequence"
 msgstr "slut på sekvens"
 
-#: lib/colt_web/components/funnel.ex:628
+#: lib/colt_web/components/funnel.ex:639
 #, elixir-autogen, elixir-format
 msgid "enriched"
 msgstr "berikad"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:735
+#: lib/colt_web/live/campaigns/funnel_live.ex:738
 #, elixir-autogen, elixir-format
 msgid "enriched contact somewhere."
 msgstr "berikad kontakt någonstans."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:735
+#: lib/colt_web/live/campaigns/funnel_live.ex:739
 #, elixir-autogen, elixir-format
 msgid "enriched contacts somewhere."
 msgstr "berikade kontakter någonstans."
 
-#: lib/colt_web/components/funnel.ex:109
+#: lib/colt_web/components/funnel.ex:112
 #, elixir-autogen, elixir-format
 msgid "eta: %{t}"
 msgstr "eta: %{t}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:194
+#: lib/colt_web/live/campaigns/icp_live.ex:206
 #, elixir-autogen, elixir-format
 msgid "exclude"
 msgstr "exkludera"
 
-#: lib/colt_web/components/funnel.ex:600
-#: lib/colt_web/components/funnel.ex:637
+#: lib/colt_web/components/funnel.ex:611
+#: lib/colt_web/components/funnel.ex:648
 #: lib/colt_web/live/account/email_account_stats_live.ex:235
-#: lib/colt_web/live/sending/sending_funnel_live.ex:374
+#: lib/colt_web/live/sending/sending_funnel_live.ex:376
 #, elixir-autogen, elixir-format
 msgid "failed"
 msgstr "misslyckades"
 
-#: lib/colt_web/live/sending/writing_live.ex:468
+#: lib/colt_web/live/sending/writing_live.ex:466
 #, elixir-autogen, elixir-format
 msgid "follow-ups re-use this subject as “re: …”"
 msgstr "uppföljningar återanvänder detta ämne som ”re: …”"
@@ -2052,19 +1889,19 @@ msgstr "uppföljningar återanvänder detta ämne som ”re: …”"
 msgid "from %{addr}"
 msgstr "från %{addr}"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:435
+#: lib/colt_web/live/campaigns/filters_live.ex:438
 #, elixir-autogen, elixir-format
 msgid "growth = revenue Δ over 3 fiscal years"
 msgstr "tillväxt = omsättnings-Δ över 3 räkenskapsår"
 
-#: lib/colt_web/components/funnel.ex:597
-#: lib/colt_web/components/funnel.ex:634
+#: lib/colt_web/components/funnel.ex:608
+#: lib/colt_web/components/funnel.ex:645
 #, elixir-autogen, elixir-format
 msgid "icp failed"
 msgstr "ICP misslyckades"
 
-#: lib/colt_web/components/funnel.ex:592
-#: lib/colt_web/components/funnel.ex:629
+#: lib/colt_web/components/funnel.ex:603
+#: lib/colt_web/components/funnel.ex:640
 #, elixir-autogen, elixir-format
 msgid "icp miss"
 msgstr "ICP-miss"
@@ -2074,28 +1911,28 @@ msgstr "ICP-miss"
 msgid "in tz %{tz}"
 msgstr "i tz %{tz}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:194
+#: lib/colt_web/live/campaigns/icp_live.ex:206
 #, elixir-autogen, elixir-format
 msgid "include"
 msgstr "inkludera"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:352
-#: lib/colt_web/live/sending/sending_funnel_live.ex:376
+#: lib/colt_web/live/sending/sending_funnel_live.ex:354
+#: lib/colt_web/live/sending/sending_funnel_live.ex:378
 #, elixir-autogen, elixir-format
 msgid "interested"
 msgstr "intresserad"
 
-#: lib/colt_web/live/campaigns/index_live.ex:90
+#: lib/colt_web/live/campaigns/index_live.ex:98
 #, elixir-autogen, elixir-format
 msgid "just now"
 msgstr "just nu"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:766
+#: lib/colt_web/live/campaigns/funnel_live.ex:782
 #, elixir-autogen, elixir-format
 msgid "liid-%{slug}.csv · preview"
 msgstr "liid-%{slug}.csv · förhandsvisning"
 
-#: lib/colt_web/live/sending/writing_live.ex:326
+#: lib/colt_web/live/sending/writing_live.ex:324
 #, elixir-autogen, elixir-format
 msgid "loading…"
 msgstr "laddar…"
@@ -2105,27 +1942,27 @@ msgstr "laddar…"
 msgid "locked"
 msgstr "låst"
 
-#: lib/colt_web/components/funnel.ex:451
+#: lib/colt_web/components/funnel.ex:458
 #, elixir-autogen, elixir-format
 msgid "matched"
 msgstr "matchad"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:452
+#: lib/colt_web/live/campaigns/filters_live.ex:455
 #, elixir-autogen, elixir-format
 msgid "matches"
 msgstr "matchar"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:623
+#: lib/colt_web/live/campaigns/filters_live.ex:626
 #, elixir-autogen, elixir-format
 msgid "max"
 msgstr "max"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:613
+#: lib/colt_web/live/campaigns/filters_live.ex:616
 #, elixir-autogen, elixir-format
 msgid "min"
 msgstr "min"
 
-#: lib/colt_web/live/campaigns/market_live.ex:225
+#: lib/colt_web/live/campaigns/market_live.ex:226
 #, elixir-autogen, elixir-format
 msgid "never"
 msgstr "aldrig"
@@ -2135,66 +1972,66 @@ msgstr "aldrig"
 msgid "next %{days}d"
 msgstr "nästa %{days}d"
 
-#: lib/colt_web/components/funnel.ex:310
+#: lib/colt_web/components/funnel.ex:315
 #, elixir-autogen, elixir-format
 msgid "no contact"
 msgstr "ingen kontakt"
 
-#: lib/colt_web/components/funnel.ex:584
+#: lib/colt_web/components/funnel.ex:595
 #, elixir-autogen, elixir-format
 msgid "no contact extracted"
 msgstr "ingen kontakt extraherad"
 
-#: lib/colt_web/components/funnel.ex:594
-#: lib/colt_web/components/funnel.ex:631
+#: lib/colt_web/components/funnel.ex:605
+#: lib/colt_web/components/funnel.ex:642
 #, elixir-autogen, elixir-format
 msgid "no contacts"
 msgstr "inga kontakter"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:515
+#: lib/colt_web/live/campaigns/filters_live.ex:518
 #, elixir-autogen, elixir-format
 msgid "no matches"
 msgstr "inga matchningar"
 
-#: lib/colt_web/components/funnel.ex:510
+#: lib/colt_web/components/funnel.ex:519
 #, elixir-autogen, elixir-format
 msgid "no reason recorded"
 msgstr "inget skäl registrerat"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:356
-#: lib/colt_web/live/sending/sending_funnel_live.ex:372
+#: lib/colt_web/live/sending/sending_funnel_live.ex:358
+#: lib/colt_web/live/sending/sending_funnel_live.ex:374
 #, elixir-autogen, elixir-format
 msgid "no reply"
 msgstr "inget svar"
 
-#: lib/colt_web/components/funnel.ex:593
-#: lib/colt_web/components/funnel.ex:630
+#: lib/colt_web/components/funnel.ex:604
+#: lib/colt_web/components/funnel.ex:641
 #, elixir-autogen, elixir-format
 msgid "no website"
 msgstr "ingen webbplats"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:353
-#: lib/colt_web/live/sending/sending_funnel_live.ex:377
+#: lib/colt_web/live/sending/sending_funnel_live.ex:355
+#: lib/colt_web/live/sending/sending_funnel_live.ex:379
 #, elixir-autogen, elixir-format
 msgid "not interested"
 msgstr "inte intresserad"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:728
+#: lib/colt_web/live/campaigns/filters_live.ex:731
 #, elixir-autogen, elixir-format
 msgid "of %{n}"
 msgstr "av %{n}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:378
+#: lib/colt_web/live/sending/sending_funnel_live.ex:380
 #, elixir-autogen, elixir-format
 msgid "ooo"
 msgstr "ooo"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:379
+#: lib/colt_web/live/sending/sending_funnel_live.ex:381
 #, elixir-autogen, elixir-format
 msgid "other"
 msgstr "annat"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:354
+#: lib/colt_web/live/sending/sending_funnel_live.ex:356
 #, elixir-autogen, elixir-format
 msgid "out of office"
 msgstr "frånvarande"
@@ -2205,12 +2042,12 @@ msgstr "frånvarande"
 msgid "paused"
 msgstr "pausad"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:367
-#, elixir-autogen, elixir-format, fuzzy
+#: lib/colt_web/live/sending/sending_funnel_live.ex:369
+#, elixir-autogen, elixir-format
 msgid "pending"
-msgstr "Utskick"
+msgstr "väntar"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:452
+#: lib/colt_web/live/campaigns/filters_live.ex:455
 #, elixir-autogen, elixir-format
 msgid "popular"
 msgstr "populär"
@@ -2220,18 +2057,18 @@ msgstr "populär"
 msgid "press tab or click out to fetch. changing the domain re-fetches and overwrites the summary below."
 msgstr "tryck tab eller klicka utanför för att hämta. om du ändrar domänen hämtas på nytt och sammanfattningen nedan skrivs över."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:785
+#: lib/colt_web/live/campaigns/filters_live.ex:788
 #, elixir-autogen, elixir-format
 msgid "preview"
 msgstr "förhandsvisning"
 
-#: lib/colt_web/components/funnel.ex:107
+#: lib/colt_web/components/funnel.ex:110
 #, elixir-autogen, elixir-format
 msgid "queue: %{n}"
 msgstr "kö: %{n}"
 
-#: lib/colt_web/components/funnel.ex:626
-#: lib/colt_web/components/funnel.ex:638
+#: lib/colt_web/components/funnel.ex:637
+#: lib/colt_web/components/funnel.ex:649
 #, elixir-autogen, elixir-format
 msgid "queued"
 msgstr "i kö"
@@ -2246,7 +2083,7 @@ msgstr "kvot"
 msgid "reading site…"
 msgstr "läser sajten…"
 
-#: lib/colt_web/components/funnel.ex:451
+#: lib/colt_web/components/funnel.ex:457
 #, elixir-autogen, elixir-format
 msgid "rejected"
 msgstr "avvisad"
@@ -2256,23 +2093,23 @@ msgstr "avvisad"
 msgid "remove"
 msgstr "ta bort"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:370
+#: lib/colt_web/live/sending/sending_funnel_live.ex:372
 #, elixir-autogen, elixir-format
 msgid "replied"
 msgstr "svarade"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:844
+#: lib/colt_web/live/sending/sending_funnel_live.ex:846
 #, elixir-autogen, elixir-format
 msgid "reply"
 msgstr "svar"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:842
+#: lib/colt_web/live/sending/sending_funnel_live.ex:844
 #, elixir-autogen, elixir-format
 msgid "reply (you)"
 msgstr "svar (du)"
 
-#: lib/colt_web/components/funnel.ex:177
-#: lib/colt_web/components/funnel.ex:210
+#: lib/colt_web/components/funnel.ex:182
+#: lib/colt_web/components/funnel.ex:215
 #, elixir-autogen, elixir-format
 msgid "resolving..."
 msgstr "löser..."
@@ -2284,15 +2121,15 @@ msgstr "kör · %{workers} arbetare · %{rate}/s"
 
 #: lib/colt_web/live/sending/pitch_live.ex:205
 #: lib/colt_web/live/sending/sequence_live.ex:300
-#: lib/colt_web/live/sending/writing_live.ex:510
+#: lib/colt_web/live/sending/writing_live.ex:508
 #, elixir-autogen, elixir-format
 msgid "saved %{at}"
 msgstr "sparat %{at}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:250
-#: lib/colt_web/live/campaigns/market_live.ex:145
+#: lib/colt_web/live/campaigns/icp_live.ex:264
+#: lib/colt_web/live/campaigns/market_live.ex:143
 #: lib/colt_web/live/campaigns/name_live.ex:83
-#: lib/colt_web/live/campaigns/target_live.ex:138
+#: lib/colt_web/live/campaigns/target_live.ex:144
 #, elixir-autogen, elixir-format
 msgid "saved."
 msgstr "sparat."
@@ -2302,12 +2139,12 @@ msgstr "sparat."
 msgid "scheduled"
 msgstr "schemalagd"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:458
+#: lib/colt_web/live/campaigns/filters_live.ex:461
 #, elixir-autogen, elixir-format
 msgid "search industries…"
 msgstr "sök branscher…"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:462
+#: lib/colt_web/live/campaigns/filters_live.ex:465
 #, elixir-autogen, elixir-format
 msgid "search to exclude…"
 msgstr "sök för att exkludera…"
@@ -2317,10 +2154,10 @@ msgstr "sök för att exkludera…"
 msgid "selected · %{total} available"
 msgstr "valda · %{total} tillgängliga"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:369
-#, elixir-autogen, elixir-format, fuzzy
+#: lib/colt_web/live/sending/sending_funnel_live.ex:371
+#, elixir-autogen, elixir-format
 msgid "sending"
-msgstr "Utskick"
+msgstr "skickar"
 
 #: lib/colt_web/live/account/email_account_stats_live.ex:232
 #, elixir-autogen, elixir-format
@@ -2337,7 +2174,7 @@ msgstr "skickade / dag"
 msgid "set"
 msgstr "satt"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:787
+#: lib/colt_web/live/campaigns/filters_live.ex:791
 #, elixir-autogen, elixir-format
 msgid "showing %{shown} of %{total}"
 msgstr "visar %{shown} av %{total}"
@@ -2358,24 +2195,24 @@ msgstr "statistik"
 msgid "status: %{status}"
 msgstr "status: %{status}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:843
+#: lib/colt_web/live/sending/sending_funnel_live.ex:845
 #, elixir-autogen, elixir-format
 msgid "step %{n}"
 msgstr "steg %{n}"
 
-#: lib/colt_web/live/sending/writing_live.ex:461
+#: lib/colt_web/live/sending/writing_live.ex:459
 #, elixir-autogen, elixir-format
 msgid "subject line"
 msgstr "ämnesrad"
 
+#: lib/colt_web/live/sending/writing_live.ex:513
 #: lib/colt_web/live/sending/writing_live.ex:515
-#: lib/colt_web/live/sending/writing_live.ex:517
-#: lib/colt_web/live/sending/writing_live.ex:520
+#: lib/colt_web/live/sending/writing_live.ex:518
 #, elixir-autogen, elixir-format
 msgid "them"
 msgstr "dem"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:602
+#: lib/colt_web/live/sending/sending_funnel_live.ex:604
 #, elixir-autogen, elixir-format
 msgid "this bucket"
 msgstr "denna hink"
@@ -2385,7 +2222,7 @@ msgstr "denna hink"
 msgid "to %{addr}"
 msgstr "till %{addr}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:621
+#: lib/colt_web/live/sending/sending_funnel_live.ex:623
 #, elixir-autogen, elixir-format
 msgid "to feed the funnel."
 msgstr "för att mata tratten."
@@ -2400,13 +2237,13 @@ msgstr "upplåst"
 msgid "unset"
 msgstr "ej satt"
 
-#: lib/colt_web/components/funnel.ex:544
+#: lib/colt_web/components/funnel.ex:554
 #, elixir-autogen, elixir-format
 msgid "verified"
 msgstr "verifierad"
 
-#: lib/colt_web/components/funnel.ex:599
-#: lib/colt_web/components/funnel.ex:636
+#: lib/colt_web/components/funnel.ex:610
+#: lib/colt_web/components/funnel.ex:647
 #, elixir-autogen, elixir-format
 msgid "verify failed"
 msgstr "verifiering misslyckades"
@@ -2421,48 +2258,48 @@ msgstr "version %{v}"
 msgid "wait"
 msgstr "vänta"
 
-#: lib/colt_web/components/funnel.ex:596
-#: lib/colt_web/components/funnel.ex:633
+#: lib/colt_web/components/funnel.ex:607
+#: lib/colt_web/components/funnel.ex:644
 #, elixir-autogen, elixir-format
 msgid "website failed"
 msgstr "webbplats misslyckades"
 
-#: lib/colt_web/components/funnel.ex:627
+#: lib/colt_web/components/funnel.ex:638
 #, elixir-autogen, elixir-format
 msgid "working"
 msgstr "arbetar"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:859
+#: lib/colt_web/live/sending/sending_funnel_live.ex:861
 #, elixir-autogen, elixir-format
 msgid "you"
 msgstr "du"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:894
+#: lib/colt_web/live/sending/sending_funnel_live.ex:896
 #, elixir-autogen, elixir-format
 msgid "· bounced"
 msgstr "· studsade"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:897
+#: lib/colt_web/live/sending/sending_funnel_live.ex:899
 #, elixir-autogen, elixir-format
 msgid "· failed"
 msgstr "· misslyckades"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:785
-#, elixir-autogen, elixir-format, fuzzy
+#: lib/colt_web/live/campaigns/filters_live.ex:788
+#, elixir-autogen, elixir-format
 msgid "· live"
-msgstr "live"
+msgstr "· live"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:785
+#: lib/colt_web/live/campaigns/filters_live.ex:788
 #, elixir-autogen, elixir-format
 msgid "· refreshing"
 msgstr "· uppdaterar"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:891
+#: lib/colt_web/live/sending/sending_funnel_live.ex:893
 #, elixir-autogen, elixir-format
 msgid "· scheduled"
 msgstr "· schemalagd"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:900
+#: lib/colt_web/live/sending/sending_funnel_live.ex:902
 #, elixir-autogen, elixir-format
 msgid "· skipped"
 msgstr "· överhoppad"
@@ -2472,7 +2309,348 @@ msgstr "· överhoppad"
 msgid "· then"
 msgstr "· sedan"
 
-#: lib/colt_web/live/campaigns/new_live.ex:74
+#: lib/colt_web/live/campaigns/new_live.ex:78
 #, elixir-autogen, elixir-format
 msgid "⏎ to continue"
 msgstr "⏎ för att fortsätta"
+
+#: lib/colt_web/live/home_live.ex:71
+#, elixir-autogen, elixir-format
+msgid "%{codes} live"
+msgstr "%{codes} live"
+
+#: lib/colt_web/live/home_live.ex:74
+#, elixir-autogen, elixir-format
+msgid "%{codes} soon"
+msgstr "%{codes} snart"
+
+#: lib/colt_web/live/home_live.ex:231
+#, elixir-autogen, elixir-format
+msgid "AI ICP-fit filtering keeps your volume aimed at companies that could actually buy — never spent on ones that would never buy from you."
+msgstr "AI-baserad ICP-filtrering håller din volym riktad mot företag som faktiskt skulle kunna köpa — aldrig bortkastad på dem som ändå aldrig skulle köpa av dig."
+
+#: lib/colt_web/live/home_live.ex:92
+#, elixir-autogen, elixir-format
+msgid "AI checks if the company website fits your profile"
+msgstr "AI kontrollerar om företagets webbplats matchar din profil"
+
+#: lib/colt_web/live/home_live.ex:377
+#, elixir-autogen, elixir-format
+msgid "AI does write your emails — but every change you make is remembered and used for the next draft."
+msgstr "AI:n skriver dina mejl — men varje ändring du gör kommer ihåg och används i nästa utkast."
+
+#: lib/colt_web/live/home_live.ex:420
+#, elixir-autogen, elixir-format
+msgid "AI is great as <em>glue</em> between the blocks, but it's not a great block."
+msgstr "AI är utmärkt som <em>lim</em> mellan byggstenarna, men det är ingen bra byggsten i sig."
+
+#: lib/colt_web/live/home_live.ex:372
+#, elixir-autogen, elixir-format
+msgid "AI learns from how <em>you</em> write."
+msgstr "AI:n lär sig av hur <em>du</em> skriver."
+
+#: lib/colt_web/live/home_live.ex:49
+#, elixir-autogen, elixir-format
+msgid "Accurate targeting, emails personalised in your own writing style, and the infrastructure to send thousands — all in one."
+msgstr "Träffsäker målgruppsstyrning, mejl personliga i din egen skrivstil och infrastrukturen för att skicka tusentals — allt i ett."
+
+#: lib/colt_web/live/home_live.ex:163
+#, elixir-autogen, elixir-format
+msgid "And stale contact data destroys your domain reputation and your emails go to spam — where nobody reads them."
+msgstr "Och inaktuella kontaktuppgifter förstör ditt domänrykte så att dina mejl hamnar i skräpposten — där ingen läser dem."
+
+#: lib/colt_web/live/home_live.ex:557
+#, elixir-autogen, elixir-format
+msgid "Build a targeted list from real registry data, write something worth reading, and send it from your own inbox — all in one place."
+msgstr "Bygg en träffsäker lista från riktiga registerdata, skriv något värt att läsa och skicka det från din egen inkorg — allt på ett ställe."
+
+#: lib/colt_web/live/account/billing_live.ex:73
+#, elixir-autogen, elixir-format
+msgid "Change plan"
+msgstr "Byt plan"
+
+#: lib/colt_web/live/home_live.ex:189
+#, elixir-autogen, elixir-format
+msgid "Clean data"
+msgstr "Rena data"
+
+#: lib/colt_web/live/home_live.ex:182
+#, elixir-autogen, elixir-format
+msgid "Clean data in. <em>Safe</em> volume out."
+msgstr "Rena data in. <em>Säker</em> volym ut."
+
+#: lib/colt_web/live/home_live.ex:196
+#, elixir-autogen, elixir-format
+msgid "Company data straight from the government registries, with contact details scraped recently — not a dump from years ago."
+msgstr "Företagsdata direkt från de offentliga registren, med kontaktuppgifter nyligen inhämtade — inte en dump från flera år tillbaka."
+
+#: lib/colt_web/live/home_live.ex:460
+#, elixir-autogen, elixir-format
+msgid "Connect your inbox and approve the drafted sequence."
+msgstr "Anslut din inkorg och godkänn den utkastade sekvensen."
+
+#: lib/colt_web/live/home_live.ex:97
+#, elixir-autogen, elixir-format
+msgid "Contact data"
+msgstr "Kontaktdata"
+
+#: lib/colt_web/live/home_live.ex:491
+#, elixir-autogen, elixir-format
+msgid "Denmark"
+msgstr "Danmark"
+
+#: lib/colt_web/live/home_live.ex:212
+#, elixir-autogen, elixir-format
+msgid "Double-verified contacts."
+msgstr "Dubbelverifierade kontakter."
+
+#: lib/colt_web/live/home_live.ex:214
+#, elixir-autogen, elixir-format
+msgid "Every email and phone we surface actually appears on the company's own site, and we check deliverability separately — so bounces don't trash your domain."
+msgstr "Varje e-post och telefonnummer vi tar fram finns faktiskt på företagets egen webbplats, och vi kontrollerar leveransbarheten separat — så att studsar inte skadar din domän."
+
+#: lib/colt_web/live/home_live.ex:86
+#, elixir-autogen, elixir-format
+msgid "Filter companies based on government data"
+msgstr "Filtrera företag utifrån offentliga data"
+
+#: lib/colt_web/live/home_live.ex:203
+#, elixir-autogen, elixir-format
+msgid "Filter on what actually matters."
+msgstr "Filtrera på det som faktiskt spelar roll."
+
+#: lib/colt_web/live/home_live.ex:285
+#, elixir-autogen, elixir-format
+msgid "Filters narrow it down. AI tells you <em>exactly</em> who fits."
+msgstr "Filter snävar in det. AI:n säger <em>exakt</em> vilka som passar."
+
+#: lib/colt_web/live/home_live.ex:194
+#, elixir-autogen, elixir-format
+msgid "Fresh by default."
+msgstr "Färska som standard."
+
+#: lib/colt_web/live/home_live.ex:98
+#, elixir-autogen, elixir-format
+msgid "Freshly scraped and verified"
+msgstr "Nyligen inhämtade och verifierade"
+
+#: lib/colt_web/live/home_live.ex:238
+#, elixir-autogen, elixir-format
+msgid "Fully automated sending."
+msgstr "Helautomatiska utskick."
+
+#: lib/colt_web/live/home_live.ex:396
+#, elixir-autogen, elixir-format
+msgid "Hi Mart — saw Konvey runs last-mile for a few Tallinn 3PLs. We cut routing overhead for teams your size; worth a 15-min look?"
+msgstr "Hej Mart — såg att Konvey sköter last-mile åt några 3PL-aktörer i Tallinn. Vi kapar ruttplaneringens overhead för team av er storlek; värt en 15-minuters titt?"
+
+#: lib/colt_web/live/home_live.ex:430
+#, elixir-autogen, elixir-format
+msgid "It shows in the inbox, too. People can sense the slop, and they get so much \"personalised\" AI outreach now that it all blurs together. A well-targeted, clear offer is what actually gets read."
+msgstr "Det syns i inkorgen också. Folk känner av slasket, och de får så mycket \"personlig\" AI-utskick numera att allt flyter ihop. Ett välriktat, tydligt erbjudande är det som faktiskt blir läst."
+
+#: lib/colt_web/live/home_live.ex:46
+#, elixir-autogen, elixir-format
+msgid "Lead gen for the Baltics and <em>Nordics</em>."
+msgstr "Lead gen för Baltikum och <em>Norden</em>."
+
+#: lib/colt_web/live/home_live.ex:456
+#, elixir-autogen, elixir-format
+msgid "Liid enriches: website validated, contact found, email verified."
+msgstr "Liid berikar: webbplats validerad, kontakt hittad, e-post verifierad."
+
+#: lib/colt_web/live/home_live.ex:464
+#, elixir-autogen, elixir-format
+msgid "Liid sends on schedule and funnels every reply back to you."
+msgstr "Liid skickar enligt schema och styr varje svar tillbaka till dig."
+
+#: lib/colt_web/live/pricing_live.ex:20
+#, elixir-autogen, elixir-format
+msgid "Liid · pricing"
+msgstr "Liid · priser"
+
+#: lib/colt_web/live/home_live.ex:12
+#, elixir-autogen, elixir-format
+msgid "Liid — all-in-one lead gen for the Baltics and Nordics"
+msgstr "Liid — allt-i-ett lead gen för Baltikum och Norden"
+
+#: lib/colt_web/live/account/billing_live.ex:58
+#, elixir-autogen, elixir-format
+msgid "Manage subscription"
+msgstr "Hantera prenumeration"
+
+#: lib/colt_web/live/home_live.ex:247
+#, elixir-autogen, elixir-format
+msgid "Many inboxes, less risk."
+msgstr "Många inkorgar, mindre risk."
+
+#: lib/colt_web/live/account/billing_live.ex:34
+#, elixir-autogen, elixir-format
+msgid "Monthly cap"
+msgstr "Månadstak"
+
+#: lib/colt_web/live/home_live.ex:229
+#, elixir-autogen, elixir-format
+msgid "No wasted sends."
+msgstr "Inga bortkastade utskick."
+
+#: lib/colt_web/live/account/billing_live.ex:103
+#, elixir-autogen, elixir-format
+msgid "Payment <em class=\"text-warn\">past due</em>."
+msgstr "Betalning <em class=\"text-warn\">förfallen</em>."
+
+#: lib/colt_web/live/account/billing_live.ex:109
+#, elixir-autogen, elixir-format
+msgid "Pick a <em class=\"text-accent\">plan</em> to start enriching."
+msgstr "Välj en <em class=\"text-accent\">plan</em> för att börja berika."
+
+#: lib/colt_web/live/pricing_live.ex:26
+#, elixir-autogen, elixir-format
+msgid "Pick a monthly enrichment cap. Everything else — ICP scoring, AI drafting, multi-domain sending, follow-ups — comes with every plan."
+msgstr "Välj ett månatligt berikningstak. Allt annat — ICP-poängsättning, AI-utkast, utskick från flera domäner, uppföljningar — ingår i varje plan."
+
+#: lib/colt_web/live/account/billing_live.ex:74
+#, elixir-autogen, elixir-format
+msgid "Pick a plan"
+msgstr "Välj en plan"
+
+#: lib/colt_web/live/pricing_live.ex:35
+#, elixir-autogen, elixir-format
+msgid "Prices are in EUR, excl. VAT. Cancel any time from the billing portal."
+msgstr "Priser anges i EUR, exkl. moms. Avsluta när som helst från faktureringsportalen."
+
+#: lib/colt_web/live/pricing_live.ex:9
+#, elixir-autogen, elixir-format
+msgid "Pricing"
+msgstr "Priser"
+
+#: lib/colt_web/live/pricing_live.ex:23
+#, elixir-autogen, elixir-format
+msgid "Pricing that <em>scales</em> with reach."
+msgstr "Prissättning som <em>skalar</em> med räckvidden."
+
+#: lib/colt_web/live/account/billing_live.ex:40
+#, elixir-autogen, elixir-format
+msgid "Remaining"
+msgstr "Återstår"
+
+#: lib/colt_web/live/account/billing_live.ex:43
+#, elixir-autogen, elixir-format
+msgid "Renews"
+msgstr "Förnyas"
+
+#: lib/colt_web/live/home_live.ex:205
+#, elixir-autogen, elixir-format
+msgid "Revenue and employee-count bands, region, growth, industry, founded year — the structured data US tools never have for this region."
+msgstr "Intervall för omsättning och antal anställda, region, tillväxt, bransch, grundningsår — den strukturerade data som amerikanska verktyg aldrig har för den här regionen."
+
+#: lib/colt_web/live/home_live.ex:158
+#, elixir-autogen, elixir-format
+msgid "Running cold outbound in the Baltics and Nordics means juggling tools — one to build the list, another to verify emails, a third to send and track replies. Every handoff loses data and adds a place for things to break."
+msgstr "Att driva cold outbound i Baltikum och Norden innebär att jonglera verktyg — ett för att bygga listan, ett för att verifiera mejl, ett tredje för att skicka och spåra svar. Varje överlämning tappar data och lägger till ett ställe där saker kan gå sönder."
+
+#: lib/colt_web/live/home_live.ex:224
+#, elixir-autogen, elixir-format
+msgid "Safe volume"
+msgstr "Säker volym"
+
+#: lib/colt_web/live/home_live.ex:109
+#, elixir-autogen, elixir-format
+msgid "Send"
+msgstr "Skicka"
+
+#: lib/colt_web/live/home_live.ex:110
+#, elixir-autogen, elixir-format
+msgid "Send 1000's of emails a day from multiple domains"
+msgstr "Skicka tusentals mejl om dagen från flera domäner"
+
+#: lib/colt_web/live/home_live.ex:240
+#, elixir-autogen, elixir-format
+msgid "Sequences send on schedule from your own inbox — working hours, daily caps, randomised bursts. Replies pause the sequence automatically."
+msgstr "Sekvenser skickas enligt schema från din egen inkorg — arbetstider, dagliga tak, slumpade utskickspuffar. Svar pausar sekvensen automatiskt."
+
+#: lib/colt_web/live/home_live.ex:295
+#, elixir-autogen, elixir-format
+msgid "So Liid reads every candidate's website, summarises what they actually do, and checks it against the ICP you described in plain English. Wrong-fit companies are excluded before you see them — and the ones that pass are exactly the contacts your sequence goes to. No re-importing, no copy-paste."
+msgstr "Så Liid läser varje kandidats webbplats, sammanfattar vad de faktiskt gör och stämmer av mot den ICP du beskrivit på vanlig svenska. Företag som inte passar utesluts innan du ens ser dem — och de som klarar sig är precis de kontakter din sekvens går till. Ingen ny import, ingen copy-paste."
+
+#: lib/colt_web/live/home_live.ex:249
+#, elixir-autogen, elixir-format
+msgid "Spread volume across several connected accounts — more reach, lower risk per inbox, and your sending stays healthy."
+msgstr "Sprid volymen över flera anslutna konton — mer räckvidd, lägre risk per inkorg, och dina utskick håller sig friska."
+
+#: lib/colt_web/live/home_live.ex:597
+#: lib/colt_web/live/home_live.ex:598
+#, elixir-autogen, elixir-format
+msgid "Start a campaign"
+msgstr "Starta en kampanj"
+
+#: lib/colt_web/live/home_live.ex:390
+#, elixir-autogen, elixir-format
+msgid "Step 1 · Initial"
+msgstr "Steg 1 · Inledande"
+
+#: lib/colt_web/live/home_live.ex:394
+#, elixir-autogen, elixir-format
+msgid "Subject:"
+msgstr "Ämne:"
+
+#: lib/colt_web/live/account/billing_live.ex:106
+#, elixir-autogen, elixir-format
+msgid "Subscription <em class=\"text-ink55\">canceled</em>."
+msgstr "Prenumeration <em class=\"text-ink55\">avslutad</em>."
+
+#: lib/colt_web/live/home_live.ex:290
+#, elixir-autogen, elixir-format
+msgid "The structured data gets you part way — size, revenue, region. But an industry code only says a company is filed under \"fintech\", not that it sells what you sell. Half a code-matched list looks right and isn't."
+msgstr "Den strukturerade datan tar dig en bit på vägen — storlek, omsättning, region. Men en branschkod säger bara att ett företag är registrerat under \"fintech\", inte att det säljer det du säljer. En lista matchad på koder ser till hälften rätt ut men är det inte."
+
+#: lib/colt_web/live/home_live.ex:300
+#, elixir-autogen, elixir-format
+msgid "This matters more than any clever personalisation. A plain, clear email to a company that genuinely fits beats a tailored one sent to the wrong list — and it keeps your domain out of spam folders."
+msgstr "Det här spelar större roll än någon smart personalisering. Ett enkelt, tydligt mejl till ett företag som genuint passar slår ett skräddarsytt mejl skickat till fel lista — och det håller din domän borta från skräppostmapparna."
+
+#: lib/colt_web/live/home_live.ex:425
+#, elixir-autogen, elixir-format
+msgid "Top-tier models do this work well, but they cost so much it isn't worth it — and cheap models just don't work. We tried the \"AI agent does everything\" model and it never came together. So we do what programmers have known for thirty years and apply AI only where it actually makes sense. It's the glue, not the block."
+msgstr "Toppmodellerna gör det här jobbet bra, men de kostar så mycket att det inte är värt det — och billiga modeller fungerar helt enkelt inte. Vi testade modellen där \"AI-agenten gör allt\" och den föll aldrig på plats. Så vi gör som programmerare har vetat i trettio år och använder AI bara där det faktiskt är vettigt. Det är limmet, inte byggstenen."
+
+#: lib/colt_web/live/account/billing_live.ex:36
+#, elixir-autogen, elixir-format
+msgid "Used this period"
+msgstr "Använt denna period"
+
+#: lib/colt_web/live/home_live.ex:103
+#, elixir-autogen, elixir-format
+msgid "Write"
+msgstr "Skriv"
+
+#: lib/colt_web/live/home_live.ex:104
+#, elixir-autogen, elixir-format
+msgid "Write a few emails, AI learns your style"
+msgstr "Skriv några mejl, AI:n lär sig din stil"
+
+#: lib/colt_web/live/home_live.ex:382
+#, elixir-autogen, elixir-format
+msgid "You review every email first. Once you're happy with what the AI does, flip on \"approve automatically\" and it takes over."
+msgstr "Du granskar varje mejl först. När du är nöjd med vad AI:n gör slår du på \"godkänn automatiskt\" och den tar över."
+
+#: lib/colt_web/live/account/billing_live.ex:100
+#, elixir-autogen, elixir-format
+msgid "Your plan is <em class=\"text-accent\">active</em>."
+msgstr "Din plan är <em class=\"text-accent\">aktiv</em>."
+
+#: lib/colt_web/live/account/billing_live.ex:65
+#, elixir-autogen, elixir-format
+msgid "contact support"
+msgstr "kontakta support"
+
+#: lib/colt_web/live/home_live.ex:392
+#, elixir-autogen, elixir-format
+msgid "draft · editable"
+msgstr "utkast · redigerbart"
+
+#: lib/colt_web/live/home_live.ex:403
+#, elixir-autogen, elixir-format
+msgid "one contact at a time · learns from your edits · your voice, not a template"
+msgstr "en kontakt i taget · lär sig av dina ändringar · din röst, inte en mall"

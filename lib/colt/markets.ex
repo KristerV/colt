@@ -61,7 +61,7 @@ defmodule Colt.Markets do
       name: "Norway",
       api: "brreg.no",
       market: :no,
-      enabled: false,
+      enabled: true,
       job: Colt.Jobs.Ingest.No
     }
   ]
