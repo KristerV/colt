@@ -102,6 +102,8 @@ if config_env() == :prod do
       System.get_env("MYEMAILVERIFIER_API_KEY") ||
         raise("Missing environment variable `MYEMAILVERIFIER_API_KEY`!")
 
+  # NYLAS_REDIRECT_URI must match a Callback URI registered in the Nylas
+  # dashboard (Hosted Auth). Prod: https://liid.ee/email-accounts/callback
   config :colt, :nylas,
     api_uri: System.get_env("NYLAS_API_URI") || "https://api.eu.nylas.com",
     client_id:
