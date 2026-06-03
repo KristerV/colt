@@ -23,9 +23,10 @@ defmodule Colt.Jobs.Enrichment.VerifyEmail do
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}, attempt: attempt} = job) do
-    with {:ok, cc} <- CampaignCompany.get(id) do
+    with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.resume(cc) do
       cond do
-        cc.status in [:verify_failed, :enriched, :failed] ->
+        cc.status in [:verify_failed, :enriched] ->
           :ok
 
         cc.picked_person_id == nil ->

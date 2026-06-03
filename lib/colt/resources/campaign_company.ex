@@ -35,6 +35,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :list_for_export, args: [:campaign_id]
     define :reset
     define :reset_for_icp_recheck
+    define :clear_failure
   end
 
   actions do
@@ -70,11 +71,16 @@ defmodule Colt.Resources.CampaignCompany do
     end
 
     update :mark_enriched do
+      # Full success — scrub any fall-out/failure markers from an earlier
+      # attempt (e.g. an infra `:failed` this row recovered from).
       change set_attribute(:status, :enriched)
+      change set_attribute(:failed_stage, nil)
+      change set_attribute(:failure_detail, nil)
     end
 
     update :mark_no_website do
       change set_attribute(:status, :no_website)
+      change set_attribute(:failure_detail, nil)
     end
 
     update :mark_rejected do
@@ -83,6 +89,7 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:status, :rejected)
       change set_attribute(:rejection_reason, arg(:rejection_reason))
       change set_attribute(:icp_reason, arg(:rejection_reason))
+      change set_attribute(:failure_detail, nil)
     end
 
     update :set_icp_reason do
@@ -102,6 +109,22 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:failed_stage, arg(:failed_stage))
       change set_attribute(:rejection_reason, arg(:reason))
       change set_attribute(:failure_detail, arg(:detail))
+    end
+
+    update :clear_failure do
+      description """
+      Restart-safe entry. Drops a terminal `:failed` back to in-flight
+      (`:scraping`) and clears stale failure fields so a re-run of a discarded
+      job recovers cleanly and downstream stages aren't blocked. Workers call
+      this on entry; it's a no-op for any non-failed status.
+      """
+
+      change set_attribute(:status, :scraping)
+      change set_attribute(:failed_stage, nil)
+      change set_attribute(:rejection_reason, nil)
+      change set_attribute(:failure_detail, nil)
+
+      require_atomic? false
     end
 
     update :reset do
@@ -146,6 +169,7 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:status, :no_contacts)
       change set_attribute(:failed_stage, :contact)
       change set_attribute(:rejection_reason, arg(:reason))
+      change set_attribute(:failure_detail, nil)
     end
 
     update :mark_verify_failed do
@@ -154,6 +178,7 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:status, :verify_failed)
       change set_attribute(:failed_stage, :verify)
       change set_attribute(:rejection_reason, arg(:reason))
+      change set_attribute(:failure_detail, nil)
     end
   end
 

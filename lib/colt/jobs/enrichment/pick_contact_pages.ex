@@ -15,6 +15,7 @@ defmodule Colt.Jobs.Enrichment.PickContactPages do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.resume(cc),
          {:ok, company} <- Company.get(cc.company_id) do
       Transition.stage(cc, :contact, :work)
 

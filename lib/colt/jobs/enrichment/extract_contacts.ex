@@ -36,6 +36,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
   defp do_perform(id) do
     with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.resume(cc),
          {:ok, company} <- Company.get(cc.company_id),
          {:ok, campaign} <- Campaign.get(cc.campaign_id, authorize?: false),
          {:ok, pages} <- Page.for_company(company.id) do

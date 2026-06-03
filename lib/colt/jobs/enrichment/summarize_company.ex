@@ -20,6 +20,7 @@ defmodule Colt.Jobs.Enrichment.SummarizeCompany do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.resume(cc),
          {:ok, company} <- Company.get(cc.company_id) do
       cond do
         Freshness.has_summary?(company) and Freshness.company_fresh?(company) ->

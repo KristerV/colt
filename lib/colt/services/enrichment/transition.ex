@@ -72,6 +72,31 @@ defmodule Colt.Services.Enrichment.Transition do
   end
 
   @doc """
+  Restart-safe entry point for pipeline workers.
+
+  When a CC carries a terminal `:failed` this is a re-run of a discarded job
+  (the underlying problem — usually an AI outage — having since cleared). Drop
+  it back to in-flight and clear the stale failure fields so the worker can
+  proceed and downstream stages (e.g. VerifyEmail) don't short-circuit on the
+  lingering `:failed`. No-op for any non-failed status, so healthy runs take
+  no extra write.
+  """
+  def resume(%CampaignCompany{status: :failed} = cc) do
+    {:ok, cc} = CampaignCompany.clear_failure(cc)
+
+    Broadcast.row(cc.campaign_id, cc.id, %{
+      status: :scraping,
+      failed_stage: nil,
+      failure_detail: nil,
+      rejection_reason: nil
+    })
+
+    {:ok, cc}
+  end
+
+  def resume(%CampaignCompany{} = cc), do: {:ok, cc}
+
+  @doc """
   Move CC into `:scraping` (in-flight). No-ops if already past pending.
   """
   def begin(%CampaignCompany{status: :pending} = cc) do

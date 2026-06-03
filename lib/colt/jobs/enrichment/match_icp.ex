@@ -24,6 +24,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
+         {:ok, cc} <- Transition.resume(cc),
          {:ok, company} <- Company.get(cc.company_id),
          {:ok, campaign} <- Campaign.get(cc.campaign_id, authorize?: false) do
       Transition.stage(cc, :icp, :work)
