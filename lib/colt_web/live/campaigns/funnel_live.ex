@@ -6,8 +6,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   """
   use ColtWeb, :live_view
 
-  import Ecto.Query
-
   alias Colt.Resources.{ApiCall, Campaign, CampaignCompany, IcpLearning}
 
   alias Colt.Services.Enrichment.{
@@ -109,8 +107,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:noreply, socket}
 
       row ->
-        new_stages = Map.put(row.stages, stage, state)
-        new_row = %{row | stages: new_stages}
+        # The pipeline is sequential, so "stage S is now <state>" fully implies
+        # the rest: everything before S is done, everything after idle. Rebuild
+        # the whole frontier (same model the reload path uses) rather than
+        # poking one pill — this self-corrects stale pills left over from a
+        # prior terminal state, e.g. when RecheckIcp reopens a failed row.
+        new_row = %{row | stages: stage_frontier(stage_index(stage), state)}
         {:noreply, replace_row(socket, new_row)}
     end
   end
@@ -299,7 +301,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           extra_contacts: [],
           total_contacts: 0,
           scraped_paths: [],
-          stages: idle_stages()
+          stages: stages_for(:pending, nil, 0)
         })
 
       socket =
@@ -374,7 +376,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     # always match the outcome — guards against missed/out-of-order :stage
     # broadcasts (e.g. worker crashes before emitting :fail).
     if terminal?(new_row.status) and not terminal?(row.status) do
-      %{new_row | stages: snapshot_stages(new_row.status, new_row.failed_stage)}
+      %{new_row | stages: stages_for(new_row.status, new_row.failed_stage, 0)}
     else
       new_row
     end
@@ -396,8 +398,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         load: [company: [:persons, :pages]]
       )
 
-    completed = completed_stage_workers(Enum.map(ccs, & &1.id))
-    Enum.map(ccs, &row_for(&1, Map.get(completed, &1.id, MapSet.new())))
+    Enum.map(ccs, &row_for/1)
   end
 
   defp load_rows_for_ids([]), do: []
@@ -409,41 +410,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         load: [company: [:persons, :pages]]
       )
 
-    completed = completed_stage_workers(Enum.map(ccs, & &1.id))
-    Enum.map(ccs, &row_for(&1, Map.get(completed, &1.id, MapSet.new())))
+    Enum.map(ccs, &row_for/1)
   end
 
-  # Map of cc_id → MapSet of stages whose terminal worker has completed.
-  # Lets snapshot_stages paint the right pills on page reload for rows
-  # still in :scraping (otherwise they'd all show gray idle).
-  @stage_workers %{
-    "Colt.Jobs.Enrichment.SummarizeCompany" => :website,
-    "Colt.Jobs.Enrichment.MatchICP" => :icp,
-    "Colt.Jobs.Enrichment.ExtractContacts" => :contact,
-    "Colt.Jobs.Enrichment.VerifyEmail" => :verify
-  }
-
-  defp completed_stage_workers([]), do: %{}
-
-  defp completed_stage_workers(cc_ids) do
-    cc_id_strs = Enum.map(cc_ids, &to_string/1)
-    workers = Map.keys(@stage_workers)
-
-    q =
-      from j in Oban.Job,
-        where: j.worker in ^workers,
-        where: j.state == "completed",
-        where: fragment("?->>'campaign_company_id' = ANY(?)", j.args, ^cc_id_strs),
-        select: {fragment("(?->>'campaign_company_id')::uuid", j.args), j.worker}
-
-    Colt.Repo.all(q)
-    |> Enum.reduce(%{}, fn {cc_id, worker}, acc ->
-      stage = Map.fetch!(@stage_workers, worker)
-      Map.update(acc, cc_id, MapSet.new([stage]), &MapSet.put(&1, stage))
-    end)
-  end
-
-  defp row_for(cc, completed_stages) do
+  defp row_for(cc) do
     company = cc.company
     person = pick_person(company.persons, cc.picked_person_id)
     extras = others(company.persons, person)
@@ -459,7 +429,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       growth: company.revenue_growth_bucket,
       status: cc.status,
       failed_stage: cc.failed_stage,
-      stages: snapshot_stages(cc.status, cc.failed_stage, completed_stages),
+      stages: stages_for(cc.status, cc.failed_stage, scraping_progress(cc, company)),
       contact: contact_for(person),
       extra_contacts: Enum.map(extras, &contact_for/1) |> Enum.take(3),
       total_contacts: length(company.persons),
@@ -504,66 +474,55 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  # Mark every stage *before* the given one as :done, the stage itself as
-  # `state`, and everything after as :idle. Used for terminal snapshots on
-  # page reload so the user sees where the run stopped.
-  defp stages_up_to(stage, state) do
-    Enum.reduce(@stage_keys, {%{}, :before}, fn k, {acc, mode} ->
-      {label, next_mode} =
-        cond do
-          k == stage -> {state, :after}
-          mode == :before -> {:done, :before}
-          true -> {:idle, :after}
-        end
+  # Snapshot pills from the CC's own persisted state — no Oban job lookups.
+  # Maps a status to its frontier stage; reused by mount, new rows, and the
+  # terminal re-derivation in apply_patch.
+  defp stages_for(status, failed_stage, scraping_progress) do
+    case status do
+      :scraping -> stage_frontier(scraping_progress, :work)
+      :enriched -> stage_frontier(4, :done)
+      :no_website -> stage_frontier(0, :fall)
+      :rejected -> stage_frontier(1, :fall)
+      :no_contacts -> stage_frontier(2, :fall)
+      :verify_failed -> stage_frontier(3, :fail)
+      :failed when failed_stage in @stage_keys -> stage_frontier(stage_index(failed_stage), :fail)
+      _ -> stage_frontier(0, :idle)
+    end
+  end
 
-      {Map.put(acc, k, label), next_mode}
+  # The single source of truth for what the pills mean, shared by the snapshot
+  # (reload) and live `:stage` paths. The stage at `index` takes `state`,
+  # everything before it is :done, everything after :idle. Monotonic by
+  # construction: a later stage can never look further along than an earlier one.
+  defp stage_frontier(index, state) do
+    @stage_keys
+    |> Enum.with_index()
+    |> Map.new(fn {key, i} ->
+      cond do
+        i < index -> {key, :done}
+        i == index -> {key, state}
+        true -> {key, :idle}
+      end
     end)
-    |> elem(0)
   end
 
-  defp snapshot_stages(status, failed_stage, completed \\ MapSet.new())
+  defp stage_index(:website), do: 0
+  defp stage_index(:icp), do: 1
+  defp stage_index(:contact), do: 2
+  defp stage_index(:verify), do: 3
 
-  defp snapshot_stages(:pending, _, _), do: idle_stages()
-
-  # For in-flight rows, derive pills from which terminal-stage workers have
-  # completed. The next stage after the last :done becomes :work (pulsing),
-  # the rest stay idle.
-  defp snapshot_stages(:scraping, _, completed),
-    do: scraping_stages(completed)
-
-  defp snapshot_stages(:no_website, _, _), do: stages_up_to(:website, :fall)
-  defp snapshot_stages(:rejected, _, _), do: stages_up_to(:icp, :fall)
-  defp snapshot_stages(:no_contacts, _, _), do: stages_up_to(:contact, :fall)
-  defp snapshot_stages(:verify_failed, _, _), do: stages_up_to(:verify, :fail)
-
-  defp snapshot_stages(:enriched, _, _),
-    do: %{website: :done, icp: :done, contact: :done, verify: :done}
-
-  defp snapshot_stages(:failed, stage, _) when stage in @stage_keys,
-    do: stages_up_to(stage, :fail)
-
-  defp snapshot_stages(:failed, _, _), do: idle_stages()
-  defp snapshot_stages(_, _, _), do: idle_stages()
-
-  defp scraping_stages(completed) do
-    {map, _} =
-      Enum.reduce(@stage_keys, {%{}, false}, fn key, {acc, work_marked?} ->
-        cond do
-          MapSet.member?(completed, key) ->
-            {Map.put(acc, key, :done), work_marked?}
-
-          not work_marked? ->
-            {Map.put(acc, key, :work), true}
-
-          true ->
-            {Map.put(acc, key, :idle), work_marked?}
-        end
-      end)
-
-    map
+  # How many stages a scraping row has durably completed, read off the CC's
+  # own data (no shared Company fields that would bleed across campaigns).
+  # ai_summary lives on Company, but it *is* the website stage's output, so a
+  # cached summary correctly means website is done for this CC too.
+  defp scraping_progress(cc, company) do
+    cond do
+      cc.picked_person_id -> 3
+      cc.icp_reason -> 2
+      company.ai_summary -> 1
+      true -> 0
+    end
   end
-
-  defp idle_stages, do: Map.new(@stage_keys, &{&1, :idle})
 
   defp compute_stats(rows) do
     Enum.reduce(
