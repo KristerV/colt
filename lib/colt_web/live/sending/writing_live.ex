@@ -75,6 +75,17 @@ defmodule ColtWeb.Sending.WritingLive do
 
   def handle_event("approve", _params, socket) do
     actor = socket.assigns.current_user
+
+    if Colt.Accounts.User.paid?(actor) do
+      do_approve(socket)
+    else
+      {:noreply,
+       put_flash(socket, :error, gettext("Your plan is inactive — pick a plan to send."))}
+    end
+  end
+
+  defp do_approve(socket) do
+    actor = socket.assigns.current_user
     contact = socket.assigns.contact
 
     edits = %{
@@ -709,7 +720,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -           {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -            {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}

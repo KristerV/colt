@@ -216,9 +216,21 @@ defmodule Colt.Accounts.User do
   end
 
   calculations do
+    # Contacts delivered vs. the plan's monthly contact cap.
     calculate :remaining_capacity,
               :integer,
               expr(monthly_contact_capacity - enriched_this_period_count)
+
+    # Screening allowance is derived: 20 companies screened per contact of cap
+    # (the 20:1 pricing guardrail). Not stored — the contact cap is the single
+    # source of truth.
+    calculate :monthly_screening_capacity,
+              :integer,
+              expr(monthly_contact_capacity * 20)
+
+    calculate :remaining_screening,
+              :integer,
+              expr(monthly_contact_capacity * 20 - screened_this_period_count)
   end
 
   aggregates do
@@ -228,9 +240,29 @@ defmodule Colt.Accounts.User do
                  inserted_at >= parent(subscription_period_start)
              )
     end
+
+    # "Screenings used" = companies we fully evaluated against ICP this period
+    # (fit or not), excluding dead scrapes (no_website / failed), which are free.
+    count :screened_this_period_count, [:campaigns, :campaign_companies] do
+      filter expr(
+               status in [:rejected, :no_contacts, :verify_failed, :enriched] and
+                 inserted_at >= parent(subscription_period_start)
+             )
+    end
   end
 
   identities do
     identity :unique_email, [:email]
   end
+
+  @doc """
+  Whether the user currently has an active, paid plan — the gate for the
+  enrichment-trigger and sending features. An exhausted-but-active user is
+  still `paid?` (they keep app access; Topup just stops admitting work).
+  """
+  def paid?(%{subscription_status: :active, monthly_contact_capacity: cap})
+      when is_integer(cap) and cap > 0,
+      do: true
+
+  def paid?(_), do: false
 end

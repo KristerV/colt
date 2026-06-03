@@ -151,15 +151,24 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     case Campaign.update_filters(campaign, filters, actor: socket.assigns.current_user) do
       {:ok, campaign} ->
-        if campaign.status == :enriching do
-          {:ok, _} = Colt.Jobs.Enrichment.Topup.schedule(campaign.id, schedule_in: 0)
+        cond do
+          # Already enriching → just save the filter change and top up. Never
+          # redirect: this is an existing run, not new work.
+          campaign.status == :enriching ->
+            {:ok, _} = Colt.Jobs.Enrichment.Topup.schedule(campaign.id, schedule_in: 0)
 
-          {:noreply,
-           socket
-           |> assign(campaign: campaign, confirming?: false)
-           |> put_flash(:info, gettext("Filters updated — top-up scheduled."))}
-        else
-          {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
+            {:noreply,
+             socket
+             |> assign(campaign: campaign, confirming?: false)
+             |> put_flash(:info, gettext("Filters updated — top-up scheduled."))}
+
+          # Fresh campaign + no active plan → starting work needs a plan, so
+          # send them to pricing rather than into the target step.
+          not Colt.Accounts.User.paid?(socket.assigns.current_user) ->
+            {:noreply, push_navigate(socket, to: ~p"/pricing")}
+
+          true ->
+            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
         end
 
       {:error, err} ->

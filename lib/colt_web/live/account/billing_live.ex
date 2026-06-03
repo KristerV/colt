@@ -8,7 +8,16 @@ defmodule ColtWeb.Account.BillingLive do
   def mount(_params, _session, socket) do
     user =
       socket.assigns.current_user
-      |> Ash.load!([:remaining_capacity, :enriched_this_period_count], authorize?: false)
+      |> Ash.load!(
+        [
+          :remaining_capacity,
+          :enriched_this_period_count,
+          :monthly_screening_capacity,
+          :remaining_screening,
+          :screened_this_period_count
+        ],
+        authorize?: false
+      )
 
     {:ok,
      assign(socket,
@@ -30,15 +39,25 @@ defmodule ColtWeb.Account.BillingLive do
             {status_heading(@user)}
           </h1>
 
-          <div class="mt-8 grid grid-cols-1 md:grid-cols-4 gap-6">
-            <.stat label={gettext("Monthly cap")} value={fmt_int(@user.monthly_contact_capacity)} />
-            <.stat
-              label={gettext("Used this period")}
-              value={fmt_int(@user.enriched_this_period_count)}
+          <div
+            :if={exhausted?(@user)}
+            class="mt-6 border border-warn rounded-[2px] px-4 py-3 text-[13px] text-warn"
+          >
+            {gettext(
+              "You've hit a monthly limit — enrichment is paused until you upgrade or your plan renews."
+            )}
+          </div>
+
+          <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <.usage_stat
+              label={gettext("Contacts")}
+              remaining={max(@user.remaining_capacity || 0, 0)}
+              cap={@user.monthly_contact_capacity}
             />
-            <.stat
-              label={gettext("Remaining")}
-              value={fmt_int(max(@user.remaining_capacity || 0, 0))}
+            <.usage_stat
+              label={gettext("Screenings")}
+              remaining={max(@user.remaining_screening || 0, 0)}
+              cap={@user.monthly_screening_capacity}
             />
             <.stat label={gettext("Renews")} value={fmt_date(@user.subscription_period_end)} />
           </div>
@@ -67,16 +86,34 @@ defmodule ColtWeb.Account.BillingLive do
           </div>
         </section>
 
-        <section>
+        <section :if={@user.subscription_status != :active}>
           <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-4">
-            {if @user.subscription_status == :active,
-              do: gettext("Change plan"),
-              else: gettext("Pick a plan")}
+            {gettext("Pick a plan")}
           </div>
           <BillingComponents.plan_grid mode={:authed} prices={@prices} />
         </section>
       </div>
     </Layouts.app>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :remaining, :integer, required: true
+  attr :cap, :integer, required: true
+
+  defp usage_stat(assigns) do
+    ~H"""
+    <div>
+      <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+        {@label}
+      </div>
+      <div class="font-mono text-[28px] leading-none tracking-[-0.02em] text-ink">
+        {fmt_int(@remaining)}<span class="text-ink40">/{fmt_int(@cap)}</span>
+      </div>
+      <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink40 mt-1.5">
+        {gettext("remaining")}
+      </div>
+    </div>
     """
   end
 
@@ -107,6 +144,11 @@ defmodule ColtWeb.Account.BillingLive do
 
   defp status_heading(_),
     do: raw(gettext("Pick a <em class=\"text-accent\">plan</em> to start enriching."))
+
+  defp exhausted?(%{} = user) do
+    Colt.Accounts.User.paid?(user) and
+      (max(user.remaining_capacity || 0, 0) <= 0 or max(user.remaining_screening || 0, 0) <= 0)
+  end
 
   defp fmt_int(nil), do: "0"
   defp fmt_int(n) when is_integer(n), do: Integer.to_string(n)

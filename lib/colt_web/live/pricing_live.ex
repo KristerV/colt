@@ -24,7 +24,7 @@ defmodule ColtWeb.PricingLive do
           </h1>
           <p class="mt-6 text-[15px] md:text-[17px] leading-[1.55] text-ink70 max-w-[640px] text-pretty">
             {gettext(
-              "Pick a monthly enrichment cap. Everything else — ICP scoring, AI drafting, multi-domain sending, follow-ups — comes with every plan."
+              "Pick a monthly contact cap. We screen thousands of companies to find them, then draft, sequence and send from your own inboxes — ICP scoring, AI drafting, multi-domain sending and follow-ups included."
             )}
           </p>
         </section>

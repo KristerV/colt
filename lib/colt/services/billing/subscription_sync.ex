@@ -11,8 +11,8 @@ defmodule Colt.Services.Billing.SubscriptionSync do
   require Logger
 
   def run(%Stripe.Event{type: "checkout.session.completed", data: %{object: session}}) do
-    customer_id = session["customer"] || session[:customer]
-    user_id = session["client_reference_id"] || session[:client_reference_id]
+    customer_id = get(session, :customer)
+    user_id = get(session, :client_reference_id)
 
     cond do
       is_binary(customer_id) and is_binary(user_id) ->
@@ -39,7 +39,7 @@ defmodule Colt.Services.Billing.SubscriptionSync do
   end
 
   def run(%Stripe.Event{type: "invoice.paid", data: %{object: invoice}}) do
-    case invoice["subscription"] || invoice[:subscription] do
+    case get(invoice, :subscription) do
       sub_id when is_binary(sub_id) ->
         with {:ok, sub} <- Stripe.Subscription.retrieve(sub_id) do
           apply_subscription(sub)
@@ -61,8 +61,8 @@ defmodule Colt.Services.Billing.SubscriptionSync do
          capacity when is_integer(capacity) <- capacity_for(price_id) do
       attrs = %{
         monthly_contact_capacity: capacity,
-        subscription_period_start: to_utc(get(sub, :current_period_start)),
-        subscription_period_end: to_utc(get(sub, :current_period_end)),
+        subscription_period_start: to_utc(period_bound(sub, :current_period_start)),
+        subscription_period_end: to_utc(period_bound(sub, :current_period_end)),
         subscription_status: status_atom(get(sub, :status))
       }
 
@@ -95,18 +95,35 @@ defmodule Colt.Services.Billing.SubscriptionSync do
   end
 
   defp extract_price_id(sub) do
-    items = get(sub, :items)
-    data = (items && (items["data"] || items[:data])) || []
-
-    case data do
-      [first | _] ->
-        price = first["price"] || first[:price]
-        price && (price["id"] || price[:id])
-
-      _ ->
+    case first_item(sub) do
+      nil ->
         nil
+
+      item ->
+        price = get(item, :price)
+        price && get(price, :id)
     end
   end
+
+  # Stripe API 2025-03-31 (Basil) moved current_period_start/end off the
+  # subscription onto each subscription item. Read the item first, fall back
+  # to the legacy top-level field for older API versions.
+  defp period_bound(sub, key) do
+    item_bound(first_item(sub), key) || get(sub, key)
+  end
+
+  defp first_item(sub) do
+    items = get(sub, :items)
+    data = (items && get(items, :data)) || []
+
+    case data do
+      [first | _] -> first
+      _ -> nil
+    end
+  end
+
+  defp item_bound(nil, _key), do: nil
+  defp item_bound(item, key), do: get(item, key)
 
   defp capacity_for(price_id) do
     Application.get_env(:colt, Colt.Billing, [])
@@ -114,7 +131,12 @@ defmodule Colt.Services.Billing.SubscriptionSync do
     |> Map.get(price_id)
   end
 
-  defp get(map, key) when is_atom(key), do: Map.get(map, key) || Map.get(map, Atom.to_string(key))
+  # Stripe webhook objects arrive as typed structs (atom keys) via
+  # Stripe.Converter; our tests pass plain string-keyed maps. Reading through
+  # this helper supports both — never `obj["key"]`, which raises on structs.
+  defp get(map, key) when is_map(map) and is_atom(key),
+    do: Map.get(map, key) || Map.get(map, Atom.to_string(key))
+
   defp get(_, _), do: nil
 
   defp to_utc(nil), do: nil

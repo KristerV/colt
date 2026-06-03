@@ -8,6 +8,7 @@ defmodule ColtWeb.Components.Liid do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
+  alias Colt.Accounts.User
   alias Phoenix.LiveView.JS
 
   defp open_feedback do
@@ -593,6 +594,8 @@ defmodule ColtWeb.Components.Liid do
       <div class="flex-1 overflow-auto">
         <.sidebar_section items={@workspace_items} active={@active} variant={:workspace} />
 
+        <.usage_badge :if={@current_user} user={@current_user} />
+
         <.campaign_scope_header :if={@campaign} campaign={@campaign} />
 
         <.sidebar_section
@@ -666,6 +669,87 @@ defmodule ColtWeb.Components.Liid do
     </aside>
     """
   end
+
+  @doc false
+  attr :user, :map, required: true
+
+  def usage_badge(assigns) do
+    assigns = assign(assigns, :usage, usage_state(assigns.user))
+
+    ~H"""
+    <div :if={@usage.state != :hidden} class="px-[14px] py-3 border-b border-rule">
+      <.link
+        navigate="/pricing"
+        class={[
+          "block rounded-[2px] border px-3 py-2.5 no-underline hover:bg-paperAlt",
+          @usage.state == :exhausted && "border-warn",
+          @usage.state != :exhausted && "border-rule"
+        ]}
+      >
+        <%= case @usage.state do %>
+          <% :none -> %>
+            <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1">
+              {gettext("Plan")}
+            </div>
+            <div class="text-[12px] text-ink70">{gettext("Pick a plan")} →</div>
+          <% _ -> %>
+            <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1.5">
+              {gettext("Left this period")}
+            </div>
+            <div class="space-y-1">
+              <.usage_row label={gettext("Contacts")} value={@usage.contacts} />
+              <.usage_row label={gettext("Screenings")} value={@usage.screening} />
+            </div>
+            <div
+              :if={@usage.state == :exhausted}
+              class="mt-2 font-mono text-[10px] tracking-[0.04em] uppercase text-warn"
+            >
+              {gettext("Limit reached — upgrade")} →
+            </div>
+        <% end %>
+      </.link>
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+  attr :value, :integer, required: true
+
+  defp usage_row(assigns) do
+    ~H"""
+    <div class="flex items-baseline justify-between gap-2">
+      <span class="text-[11px] text-ink55">{@label}</span>
+      <span class="font-mono text-[12px] text-ink tabular-nums">{@value}</span>
+    </div>
+    """
+  end
+
+  # Derives the sidebar usage chip state from a (possibly unloaded) user.
+  #   :none      — no active paid plan → prompt to pick one
+  #   :exhausted — paid but a cap is used up → red, link to upgrade
+  #   :ok        — paid, capacity remaining
+  #   :hidden    — usage calcs not loaded (e.g. admin pages) → render nothing
+  defp usage_state(user) do
+    contacts = safe_int(Map.get(user, :remaining_capacity))
+    screening = safe_int(Map.get(user, :remaining_screening))
+
+    cond do
+      not User.paid?(user) ->
+        %{state: :none}
+
+      is_nil(contacts) or is_nil(screening) ->
+        %{state: :hidden}
+
+      contacts <= 0 or screening <= 0 ->
+        %{state: :exhausted, contacts: max(contacts, 0), screening: max(screening, 0)}
+
+      true ->
+        %{state: :ok, contacts: contacts, screening: screening}
+    end
+  end
+
+  defp safe_int(n) when is_integer(n), do: n
+  defp safe_int(_), do: nil
 
   defp enrichment_items_with_hrefs(nil), do: @enrichment_items
 

@@ -35,10 +35,14 @@ defmodule ColtWeb.Campaigns.TargetLive do
   def handle_event("confirm", _params, socket) do
     campaign = socket.assigns.campaign
     target = socket.assigns.draft
+    user = socket.assigns.current_user
 
-    case campaign.status do
-      s when s in [:draft, :collecting] ->
-        case EnrichmentStart.run(campaign, target, socket.assigns.current_user) do
+    cond do
+      campaign.status in [:draft, :collecting] and cap_reached?(user) ->
+        {:noreply, assign(socket, error: start_block_message(user))}
+
+      campaign.status in [:draft, :collecting] ->
+        case EnrichmentStart.run(campaign, target, user) do
           {:ok, %{campaign: c}} ->
             {:noreply, push_navigate(socket, to: ~p"/campaigns/#{c.id}/funnel")}
 
@@ -46,9 +50,8 @@ defmodule ColtWeb.Campaigns.TargetLive do
             {:noreply, assign(socket, error: inspect(err))}
         end
 
-      _ ->
-        with {:ok, c} <-
-               Campaign.update_target(campaign, target, actor: socket.assigns.current_user),
+      true ->
+        with {:ok, c} <- Campaign.update_target(campaign, target, actor: user),
              {:ok, _} <- Topup.schedule(c.id, schedule_in: 0) do
           {:noreply, assign(socket, campaign: c, saved?: true, error: nil)}
         else
@@ -74,6 +77,27 @@ defmodule ColtWeb.Campaigns.TargetLive do
   end
 
   defp parse_target(_), do: nil
+
+  # Admins bypass; otherwise block a *fresh* start when there's no plan or
+  # either monthly cap is spent. This never locks the view — existing data
+  # stays fully accessible; only starting new enrichment is gated. Not-loaded
+  # calcs don't block — Topup still enforces the hard limit.
+  defp cap_reached?(%{is_admin: true}), do: false
+
+  defp cap_reached?(user) do
+    reached?(Map.get(user, :remaining_capacity)) or reached?(Map.get(user, :remaining_screening))
+  end
+
+  defp reached?(n) when is_integer(n), do: n <= 0
+  defp reached?(_), do: false
+
+  defp start_block_message(user) do
+    if Colt.Accounts.User.paid?(user) do
+      gettext("Monthly limit reached — upgrade your plan or wait for it to renew to start more.")
+    else
+      gettext("You need an active plan to start enriching — pick one on the pricing page.")
+    end
+  end
 
   def render(assigns) do
     assigns = assign(assigns, presets: @presets)

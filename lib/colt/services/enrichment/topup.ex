@@ -22,6 +22,7 @@ defmodule Colt.Services.Enrichment.Topup do
 
   import Ecto.Query
 
+  alias Colt.Accounts.User
   alias Colt.Filters
   alias Colt.Jobs.Enrichment.CheckWebsite
   alias Colt.Repo
@@ -30,6 +31,9 @@ defmodule Colt.Services.Enrichment.Topup do
 
   @yield_multiplier 3
   @in_flight [:pending, :scraping]
+  # Effectively-unlimited stand-in so admins (and the cap arithmetic) need no
+  # special-casing in `step/2`.
+  @unlimited 1_000_000_000
 
   defp floor_batch, do: Application.fetch_env!(:colt, :topup_min_batch)
 
@@ -37,8 +41,9 @@ defmodule Colt.Services.Enrichment.Topup do
     Repo.transaction(fn ->
       with {:ok, campaign} <- lock_campaign(campaign_id),
            :enriching <- campaign.status,
+           {:ok, caps} <- owner_caps(campaign.owner_id),
            {enriched, in_flight} <- counts(campaign_id),
-           {:ok, result} <- step(campaign, enriched, in_flight) do
+           {:ok, result} <- step(campaign, caps, enriched, in_flight) do
         result
       else
         :draft -> :not_started
@@ -49,14 +54,39 @@ defmodule Colt.Services.Enrichment.Topup do
     end)
   end
 
-  defp step(campaign, enriched, in_flight) do
-    remaining = campaign.target_contact_count - enriched
+  # The admission window is bounded by BOTH the campaign target (limited to the
+  # user's remaining monthly contact allowance across all campaigns) and the
+  # user's remaining screening allowance. When either is exhausted we idle —
+  # the campaign quietly halts until the period renews or the plan is upgraded.
+  defp step(campaign, caps, enriched, in_flight) do
+    remaining = max(min(campaign.target_contact_count - enriched, caps.contacts), 0)
     need = max(remaining * @yield_multiplier, floor_batch()) - in_flight
+    need = min(need, caps.screening)
 
     cond do
       remaining <= 0 -> {:ok, :idle}
       need <= 0 -> {:ok, :idle}
       true -> sample_and_enqueue(campaign, need)
+    end
+  end
+
+  defp owner_caps(owner_id) do
+    case Ash.get(User, owner_id,
+           load: [:remaining_capacity, :remaining_screening],
+           authorize?: false
+         ) do
+      {:ok, %User{is_admin: true}} ->
+        {:ok, %{contacts: @unlimited, screening: @unlimited}}
+
+      {:ok, %User{} = user} ->
+        {:ok,
+         %{
+           contacts: max(user.remaining_capacity || 0, 0),
+           screening: max(user.remaining_screening || 0, 0)
+         }}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

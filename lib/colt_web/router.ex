@@ -36,7 +36,7 @@ defmodule ColtWeb.Router do
     pipe_through :browser
 
     ash_authentication_live_session :authenticated_routes,
-      on_mount: [ColtWeb.LiveLocale] do
+      on_mount: [ColtWeb.LiveLocale, ColtWeb.UsageAssign] do
       live "/", HomeLive
       live "/campaigns", Campaigns.IndexLive
       live "/campaigns/new", Campaigns.NewLive

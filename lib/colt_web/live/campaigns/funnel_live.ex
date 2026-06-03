@@ -168,7 +168,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       Process.send_after(self(), :tick, @tick_ms)
     end
 
-    {:noreply, assign(socket, meta: Stats.run(socket.assigns.campaign.finalized_at))}
+    {:noreply,
+     socket
+     |> assign(meta: Stats.run(socket.assigns.campaign.finalized_at))
+     |> assign(current_user: ColtWeb.UsageAssign.load_usage(socket.assigns.current_user))}
   end
 
   # Toggle expand/collapse. Streams don't re-render existing items when a
