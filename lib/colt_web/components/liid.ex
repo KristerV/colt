@@ -592,9 +592,9 @@ defmodule ColtWeb.Components.Liid do
       </div>
 
       <div class="flex-1 overflow-auto">
-        <.sidebar_section items={@workspace_items} active={@active} variant={:workspace} />
-
         <.usage_badge :if={@current_user} user={@current_user} />
+
+        <.sidebar_section items={@workspace_items} active={@active} variant={:workspace} />
 
         <.campaign_scope_header :if={@campaign} campaign={@campaign} />
 
@@ -677,34 +677,26 @@ defmodule ColtWeb.Components.Liid do
     assigns = assign(assigns, :usage, usage_state(assigns.user))
 
     ~H"""
-    <div :if={@usage.state != :hidden} class="px-[14px] py-3 border-b border-rule">
-      <.link
-        navigate="/pricing"
-        class={[
-          "block rounded-[2px] border px-3 py-2.5 no-underline hover:bg-paperAlt",
-          @usage.state == :exhausted && "border-warn",
-          @usage.state != :exhausted && "border-rule"
-        ]}
-      >
+    <div :if={@usage.state != :hidden} class="px-[18px] py-2.5 border-b border-rule">
+      <.link navigate="/pricing" class="block no-underline hover:opacity-80">
         <%= case @usage.state do %>
           <% :none -> %>
-            <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1">
-              {gettext("Plan")}
-            </div>
-            <div class="text-[12px] text-ink70">{gettext("Pick a plan")} →</div>
+            <span class="text-[12px] text-ink70">{gettext("Pick a plan")} →</span>
           <% _ -> %>
-            <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1.5">
-              {gettext("Left this period")}
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40">
+                {gettext("Left this period")}
+              </div>
+              <span
+                :if={@usage.state == :exhausted}
+                class="font-mono text-[9px] tracking-[0.04em] uppercase text-warn"
+              >
+                {gettext("upgrade")} →
+              </span>
             </div>
-            <div class="space-y-1">
-              <.usage_row label={gettext("Contacts")} value={@usage.contacts} />
-              <.usage_row label={gettext("Screenings")} value={@usage.screening} />
-            </div>
-            <div
-              :if={@usage.state == :exhausted}
-              class="mt-2 font-mono text-[10px] tracking-[0.04em] uppercase text-warn"
-            >
-              {gettext("Limit reached — upgrade")} →
+            <div class="mt-1 flex items-baseline gap-4">
+              <.usage_metric label={gettext("contacts")} value={@usage.contacts} />
+              <.usage_metric label={gettext("screenings")} value={@usage.screening} />
             </div>
         <% end %>
       </.link>
@@ -715,11 +707,11 @@ defmodule ColtWeb.Components.Liid do
   attr :label, :string, required: true
   attr :value, :integer, required: true
 
-  defp usage_row(assigns) do
+  defp usage_metric(assigns) do
     ~H"""
-    <div class="flex items-baseline justify-between gap-2">
+    <div class="flex items-baseline gap-1">
+      <span class="font-mono text-[13px] text-ink tabular-nums">{@value}</span>
       <span class="text-[11px] text-ink55">{@label}</span>
-      <span class="font-mono text-[12px] text-ink tabular-nums">{@value}</span>
     </div>
     """
   end
@@ -836,15 +828,12 @@ defmodule ColtWeb.Components.Liid do
 
   defp campaign_scope_header(assigns) do
     ~H"""
-    <div class="px-[18px] pt-4 pb-3 border-t border-b border-rule bg-paperAlt mb-2.5">
-      <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-1.5">
-        {gettext("Campaign")}
+    <div class="px-[18px] py-2.5 border-t border-b border-rule bg-paperAlt mb-2.5">
+      <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-0.5">
+        {gettext("Campaign")} · {to_string(@campaign.status)}
       </div>
-      <div class="font-serif text-[20px] leading-[1.1] tracking-[-0.015em] text-ink truncate">
+      <div class="font-serif text-[18px] leading-[1.1] tracking-[-0.015em] text-ink truncate">
         {@campaign.name}
-      </div>
-      <div class="mt-1.5 font-mono text-[10px] text-ink40 tracking-[0.04em]">
-        {to_string(@campaign.status)}
       </div>
     </div>
     """
