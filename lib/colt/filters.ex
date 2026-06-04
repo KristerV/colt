@@ -29,7 +29,8 @@ defmodule Colt.Filters do
          {:ok, count} <- count_filtered(filters),
          {:ok, preview} <- preview_filtered(filters),
          {:ok, buckets} <- bucket_totals(market),
-         {:ok, industries} <- top_industries(market) do
+         {:ok, industries} <- top_industries(market),
+         {:ok, categories} <- Company.top_categories(filters) do
       {:ok,
        %{
          count: count,
@@ -37,6 +38,7 @@ defmodule Colt.Filters do
          preview: preview,
          bucket_totals: buckets,
          top_industries: industries,
+         filtered_categories: categories,
          last_sync: last_sync_at()
        }}
     end

@@ -203,6 +203,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           preview: summary.preview,
           bucket_totals: summary.bucket_totals,
           top_industries: summary.top_industries,
+          filtered_categories: summary.filtered_categories,
           last_sync: summary.last_sync,
           pending?: false,
           reload_ref: nil
@@ -357,6 +358,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           </div>
 
           <.active_chips form={@form} />
+
+          <.top_categories categories={@filtered_categories} />
 
           <.preview_list preview={@preview} count={@count} pending?={@pending?} />
         </div>
@@ -787,6 +790,34 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     Enum.map(form.growth_buckets, fn b ->
       {"growth_buckets", to_string(b), gettext("Trajectory · %{label}", label: growth_label(b))}
     end)
+  end
+
+  attr :categories, :list, required: true
+
+  defp top_categories(assigns) do
+    ~H"""
+    <div :if={@categories != []} class="flex flex-wrap gap-1.5 items-center">
+      <span class="font-mono text-[10px] text-ink40 tracking-[0.12em] uppercase mr-1">
+        {gettext("top categories")}
+      </span>
+      <%= for cat <- @categories do %>
+        <span class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] bg-paperAlt border border-ink20 rounded-sharp">
+          <span class="truncate max-w-[180px]">{industry_label(cat.code)}</span>
+          <span class="font-mono text-[10px] text-ink55">{cat.count}</span>
+          <button
+            type="button"
+            phx-click="exclude_category"
+            phx-value-code={cat.code}
+            title={gettext("Exclude this category from the funnel")}
+            aria-label={gettext("Exclude this category from the funnel")}
+            class="shrink-0 text-ink40 hover:text-fail cursor-pointer"
+          >
+            <Liid.icon name="x" size={9} />
+          </button>
+        </span>
+      <% end %>
+    </div>
+    """
   end
 
   attr :preview, :list, required: true

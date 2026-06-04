@@ -21,6 +21,7 @@ defmodule Colt.Resources.Company do
     define :by_market, args: [:market]
     define :active
     define :filtered
+    define :top_categories
     define :set_website, args: [:website_url, :website_source]
     define :set_generic_email, args: [:generic_email]
     define :set_ai_summary, args: [:ai_summary]
@@ -218,6 +219,59 @@ defmodule Colt.Resources.Company do
              )
 
       prepare build(sort: [random_seed: :asc])
+    end
+
+    action :top_categories, {:array, :map} do
+      description """
+      Top industry categories (4-digit NACE) across the full filtered set,
+      ordered by company count desc. Mirrors :filtered's arguments and reuses
+      its filter; independent of the preview's random ordering.
+      Returns [%{code: "6201", count: 1240}, ...].
+      """
+
+      argument :market, :atom, allow_nil?: false
+      argument :industries, {:array, :string}, default: []
+      argument :industries_exclude, {:array, :string}, default: []
+      argument :growth_buckets, {:array, :atom}, default: []
+      argument :employees_min, :integer
+      argument :employees_max, :integer
+      argument :revenue_min, :integer
+      argument :revenue_max, :integer
+      argument :limit, :integer, default: 10
+
+      run fn input, context ->
+        import Ecto.Query
+
+        filter_args =
+          Map.take(input.arguments, [
+            :market,
+            :industries,
+            :industries_exclude,
+            :growth_buckets,
+            :employees_min,
+            :employees_max,
+            :revenue_min,
+            :revenue_max
+          ])
+
+        with {:ok, base} <-
+               __MODULE__
+               |> Ash.Query.for_read(:filtered, filter_args, actor: context.actor)
+               |> Ash.Query.unset(:sort)
+               |> Ash.Query.data_layer_query() do
+          rows =
+            Colt.Repo.all(
+              from c in subquery(base),
+                where: not is_nil(c.industry_code),
+                group_by: fragment("LEFT(?, 4)", c.industry_code),
+                order_by: [desc: count(c.id)],
+                limit: ^input.arguments.limit,
+                select: %{code: fragment("LEFT(?, 4)", c.industry_code), count: count(c.id)}
+            )
+
+          {:ok, rows}
+        end
+      end
     end
   end
 
