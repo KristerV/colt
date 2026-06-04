@@ -12,13 +12,20 @@ defmodule Colt.Jobs.Enrichment.CheckWebsite do
 
   alias Colt.Jobs.Enrichment.{FetchLanding, GoogleSearch}
   alias Colt.Resources.{CampaignCompany, Company}
-  alias Colt.Services.Enrichment.{CheckAlive, Freshness, Transition}
+  alias Colt.Services.Enrichment.{CheckAlive, Freshness, Suppression, Transition}
 
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"campaign_company_id" => id}}) do
     with {:ok, cc} <- CampaignCompany.get(id),
          {:ok, company} <- Company.get(cc.company_id) do
       cond do
+        # Already contacted (suppression list). Short-circuit before any
+        # liveness check, scraping, or AI spend.
+        Suppression.excluded?(cc.campaign_id, company.website_url) ->
+          Transition.stage(cc, :website, :fall)
+          {:ok, _} = Transition.terminate(cc, :excluded, reason: "already contacted")
+          :ok
+
         Freshness.company_fresh?(company) and is_binary(company.website_url) ->
           enqueue(FetchLanding, cc)
           :ok

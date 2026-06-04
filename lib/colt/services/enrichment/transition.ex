@@ -24,7 +24,7 @@ defmodule Colt.Services.Enrichment.Transition do
   Move CC to a terminal status and broadcast the row patch.
 
   `terminal` is one of
-    `:enriched | :rejected | :no_website | :no_contacts | :verify_failed | :failed`.
+    `:enriched | :rejected | :excluded | :no_website | :no_contacts | :verify_failed | :failed`.
 
   Pass `stage:` (one of `:website | :icp | :contact | :verify`) when
   terminating with `:failed` so the funnel can paint the right pill red on
@@ -45,6 +45,9 @@ defmodule Colt.Services.Enrichment.Transition do
 
         :rejected ->
           CampaignCompany.mark_rejected(cc, reason)
+
+        :excluded ->
+          CampaignCompany.mark_excluded(cc, reason)
 
         :no_contacts ->
           CampaignCompany.mark_no_contacts(cc, %{reason: reason})

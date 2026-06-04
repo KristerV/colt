@@ -383,7 +383,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   end
 
   defp terminal?(s),
-    do: s in [:enriched, :rejected, :no_website, :no_contacts, :verify_failed, :failed]
+    do: s in [:enriched, :rejected, :excluded, :no_website, :no_contacts, :verify_failed, :failed]
 
   defp patch_contact(row, key, value) do
     contact = row.contact || %{name: nil, title: nil, email: nil, phone: nil}
@@ -482,6 +482,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       :scraping -> stage_frontier(scraping_progress, :work)
       :enriched -> stage_frontier(4, :done)
       :no_website -> stage_frontier(0, :fall)
+      :excluded -> stage_frontier(0, :fall)
       :rejected -> stage_frontier(1, :fall)
       :no_contacts -> stage_frontier(2, :fall)
       :verify_failed -> stage_frontier(3, :fail)
@@ -527,7 +528,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp compute_stats(rows) do
     Enum.reduce(
       rows,
-      %{queued: 0, working: 0, enriched: 0, rejected: 0, failed: 0},
+      %{queued: 0, working: 0, enriched: 0, rejected: 0, excluded: 0, failed: 0},
       fn r, acc -> Map.update!(acc, bucket(r.status), &(&1 + 1)) end
     )
   end
@@ -536,6 +537,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket(:scraping), do: :working
   defp bucket(:enriched), do: :enriched
   defp bucket(:rejected), do: :rejected
+  defp bucket(:excluded), do: :excluded
   defp bucket(:no_website), do: :failed
   defp bucket(:no_contacts), do: :failed
   defp bucket(:verify_failed), do: :failed
@@ -549,6 +551,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp bucket_label(:working), do: gettext("Working")
   defp bucket_label(:enriched), do: gettext("Enriched")
   defp bucket_label(:rejected), do: gettext("ICP miss")
+  defp bucket_label(:excluded), do: gettext("Already contacted")
   defp bucket_label(:failed), do: gettext("Failed")
   defp bucket_label(_), do: ""
 
@@ -561,6 +564,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp empty_message(:rejected),
     do: gettext("No companies have been rejected on ICP fit yet.")
 
+  defp empty_message(:excluded),
+    do: gettext("No companies have been skipped as already contacted.")
+
   defp empty_message(:failed), do: gettext("Nothing has failed. Enjoy it.")
   defp empty_message(_), do: ""
 
@@ -569,7 +575,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     <Layouts.app
       flash={@flash}
       current_user={@current_user}
-      step={5}
+      step={6}
       campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}

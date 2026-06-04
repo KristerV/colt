@@ -44,6 +44,7 @@ defmodule ColtWeb.Router do
       live "/campaigns/:id/icp", Campaigns.IcpLive
       live "/campaigns/:id/market", Campaigns.MarketLive
       live "/campaigns/:id/filters", Campaigns.FiltersLive
+      live "/campaigns/:id/suppression", Campaigns.SuppressionLive
       live "/campaigns/:id/target", Campaigns.TargetLive
       live "/campaigns/:id/funnel", Campaigns.FunnelLive
       live "/campaigns/:id/pitch", Sending.PitchLive

@@ -106,14 +106,14 @@ defmodule ColtWeb.Campaigns.TargetLive do
     <Layouts.app
       flash={@flash}
       current_user={@current_user}
-      step={4}
+      step={5}
       campaign={@campaign}
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
       <div class="flex flex-col gap-6 max-w-[640px] mx-auto py-12">
         <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55">
-          {gettext("05 / Target · %{name}", name: @campaign.name)}
+          {gettext("06 / Target · %{name}", name: @campaign.name)}
         </div>
         <h1 class="font-serif font-normal text-[32px] md:text-[44px] leading-none tracking-[-0.02em] m-0">
           {raw(
@@ -157,10 +157,10 @@ defmodule ColtWeb.Campaigns.TargetLive do
 
         <div class="flex items-center gap-3 mt-4">
           <.link
-            navigate={~p"/campaigns/#{@campaign.id}/filters"}
+            navigate={~p"/campaigns/#{@campaign.id}/suppression"}
             class="inline-flex items-center gap-2 px-3 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
           >
-            <Liid.icon name="chev-l" size={11} /> {gettext("Back to filters")}
+            <Liid.icon name="chev-l" size={11} /> {gettext("Back to exclude")}
           </.link>
           <Liid.btn variant={:primary} mono phx-click="confirm">
             {confirm_label(@campaign.status, @draft)}

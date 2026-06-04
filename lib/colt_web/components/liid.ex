@@ -42,8 +42,6 @@ defmodule ColtWeb.Components.Liid do
     "refresh" => "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3"
   }
 
-  @stepper_steps ~w(Name ICP Market Filters Target Enrichment)
-
   attr :name, :string, required: true
   attr :size, :integer, default: 14
   attr :class, :string, default: nil
@@ -162,206 +160,6 @@ defmodule ColtWeb.Components.Liid do
         {@sub}
       </div>
     </div>
-    """
-  end
-
-  @doc """
-  Top bar — wordmark + stepper + campaign chip + avatar.
-
-  Pass `step` (0..4 or nil) to highlight a step. Pass `campaign_name` to show the right-side chip.
-  """
-  attr :step, :any, default: nil
-  attr :current_user, :map, default: nil
-  attr :campaign_name, :string, default: nil
-  attr :campaign_id, :any, default: nil
-  attr :campaign, :any, default: nil
-
-  def top_bar(assigns) do
-    assigns = assign(assigns, :steps, @stepper_steps)
-
-    ~H"""
-    <header class="flex items-center gap-3 md:gap-8 px-4 md:px-8 py-4 md:py-5 border-b border-rule">
-      <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink shrink-0">
-        <span class="font-serif text-[26px] leading-none tracking-[-0.02em]">Liid</span>
-        <span
-          class="inline-block w-1.5 h-1.5 rounded-full -translate-y-[3px]"
-          style="background: var(--accent);"
-        />
-      </.link>
-
-      <nav
-        :if={not is_nil(@step)}
-        class="hidden lg:flex items-center font-mono text-[11px] tracking-[0.04em]"
-      >
-        <% reachable = reachable_steps(@campaign, @step) %>
-        <%= for {label, i} <- Enum.with_index(@steps) do %>
-          <% state = step_state(i, @step) %>
-          <% href = if i in reachable, do: step_href_for(i, @campaign_id), else: nil %>
-          <.step_segment state={state} href={href} index={i} label={label} />
-          <span :if={i < length(@steps) - 1} class="w-[14px] h-px bg-ink20" />
-        <% end %>
-      </nav>
-
-      <nav
-        :if={not is_nil(@step)}
-        class="flex lg:hidden items-center gap-1.5 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55"
-      >
-        <span class="text-ink tnum">{String.pad_leading(Integer.to_string(@step), 2, "0")}</span>
-        <span>{Enum.at(@steps, @step)}</span>
-        <span class="text-ink40">· {length(@steps)}</span>
-      </nav>
-
-      <div class="flex-1" />
-
-      <div class="flex items-center gap-2 md:gap-3.5 text-[12px] text-ink55">
-        <span
-          :if={@campaign_name}
-          class="hidden md:inline font-mono tracking-[0.04em] truncate max-w-[200px]"
-        >
-          campaign: <span class="text-ink">{@campaign_name}</span>
-        </span>
-        <span :if={@campaign_name} class="hidden md:inline w-px h-3.5 bg-ink20" />
-        <%= if @current_user do %>
-          <button
-            type="button"
-            phx-click={open_feedback()}
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline cursor-pointer bg-transparent border-0 p-0"
-          >
-            feedback
-          </button>
-          <.link
-            navigate="/campaigns/new"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
-          >
-            campaigns
-          </.link>
-          <.link
-            :if={@current_user.is_admin}
-            href="/admin"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
-          >
-            admin
-          </.link>
-          <.link
-            href="/sign-out"
-            method="get"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
-          >
-            <span class="hidden sm:inline">sign out</span>
-            <span class="sm:hidden">out</span>
-          </.link>
-          <div
-            class="w-6 h-6 rounded-full bg-ink text-paper flex items-center justify-center text-[11px] font-semibold"
-            title={to_string(@current_user.email)}
-          >
-            {avatar_initial(@current_user)}
-          </div>
-        <% else %>
-          <.link
-            href="/sign-in"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
-          >
-            sign in
-          </.link>
-        <% end %>
-      </div>
-    </header>
-    """
-  end
-
-  defp step_state(_i, nil), do: :future
-  defp step_state(i, step) when i == step, do: :active
-  defp step_state(i, step) when i < step, do: :done
-  defp step_state(_i, _step), do: :future
-
-  defp step_color(:active), do: "text-ink"
-  defp step_color(:done), do: "text-ink55"
-  defp step_color(:future), do: "text-ink40"
-
-  defp step_href_for(0, _id), do: "/campaigns/new"
-  defp step_href_for(_, nil), do: nil
-  defp step_href_for(1, id), do: "/campaigns/#{id}/icp"
-  defp step_href_for(2, id), do: "/campaigns/#{id}/market"
-  defp step_href_for(3, id), do: "/campaigns/#{id}/filters"
-  defp step_href_for(4, id), do: "/campaigns/#{id}/target"
-  defp step_href_for(5, id), do: "/campaigns/#{id}/funnel"
-  defp step_href_for(_, _), do: nil
-
-  # Stages the user can navigate to. Past stages with saved data are always
-  # reachable. The current stage is reachable (no-op nav). Once enrichment
-  # has started, every stage is reachable for review.
-  defp reachable_steps(nil, current), do: List.wrap(current)
-
-  defp reachable_steps(campaign, current) do
-    enriching? = Map.get(campaign, :status) == :enriching
-
-    cond do
-      enriching? ->
-        [0, 1, 2, 3, 4, 5]
-
-      true ->
-        base = [0]
-        base = if present?(campaign, :icp_description), do: [1 | base], else: base
-        base = if present?(campaign, :market), do: [2 | base], else: base
-        base = if present_map?(campaign, :filters), do: [3 | base], else: base
-        base = if present_map?(campaign, :filters), do: [4 | base], else: base
-        [current | base] |> Enum.uniq() |> Enum.sort()
-    end
-  end
-
-  defp present?(campaign, key) do
-    case Map.get(campaign, key) do
-      nil -> false
-      "" -> false
-      _ -> true
-    end
-  end
-
-  defp present_map?(campaign, key) do
-    case Map.get(campaign, key) do
-      m when is_map(m) and map_size(m) > 0 -> true
-      _ -> false
-    end
-  end
-
-  attr :state, :atom, required: true
-  attr :href, :any, required: true
-  attr :index, :integer, required: true
-  attr :label, :string, required: true
-
-  defp step_segment(%{href: nil} = assigns) do
-    ~H"""
-    <div class={["flex items-center gap-2 px-3 py-1.5", step_color(@state)]}>
-      <.step_inner state={@state} index={@index} label={@label} />
-    </div>
-    """
-  end
-
-  defp step_segment(assigns) do
-    ~H"""
-    <.link
-      navigate={@href}
-      class={["flex items-center gap-2 px-3 py-1.5 no-underline hover:text-ink", step_color(@state)]}
-    >
-      <.step_inner state={@state} index={@index} label={@label} />
-    </.link>
-    """
-  end
-
-  attr :state, :atom, required: true
-  attr :index, :integer, required: true
-  attr :label, :string, required: true
-
-  defp step_inner(assigns) do
-    ~H"""
-    <span class={[
-      "tnum",
-      @state == :active && "font-semibold",
-      @state == :active && "text-[var(--accent)]"
-    ]}>
-      {String.pad_leading(Integer.to_string(@index), 2, "0")}
-    </span>
-    <span class="uppercase tracking-[0.08em]">{@label}</span>
     """
   end
 
@@ -527,8 +325,9 @@ defmodule ColtWeb.Components.Liid do
   defp step_to_active(1), do: :icp
   defp step_to_active(2), do: :market
   defp step_to_active(3), do: :filters
-  defp step_to_active(4), do: :target
-  defp step_to_active(5), do: :enrichment_funnel
+  defp step_to_active(4), do: :exclude
+  defp step_to_active(5), do: :target
+  defp step_to_active(6), do: :enrichment_funnel
   defp step_to_active(_), do: nil
 
   @workspace_items [
@@ -542,6 +341,7 @@ defmodule ColtWeb.Components.Liid do
     %{id: :icp, icon: "user"},
     %{id: :market, icon: "globe"},
     %{id: :filters, icon: "filter"},
+    %{id: :exclude, icon: "x"},
     %{id: :target, icon: "spark"},
     %{id: :enrichment_funnel, icon: "grid"}
   ]
@@ -561,6 +361,7 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:icp), do: gettext("ICP")
   defp nav_label(:market), do: gettext("Market")
   defp nav_label(:filters), do: gettext("Filters")
+  defp nav_label(:exclude), do: gettext("Exclude")
   defp nav_label(:target), do: gettext("Target")
   defp nav_label(:enrichment_funnel), do: gettext("Funnel")
   defp nav_label(:pitch), do: gettext("Pitch")
@@ -759,6 +560,7 @@ defmodule ColtWeb.Components.Liid do
   defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
   defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
   defp enrichment_href(:filters, id), do: "/campaigns/#{id}/filters"
+  defp enrichment_href(:exclude, id), do: "/campaigns/#{id}/suppression"
   defp enrichment_href(:target, id), do: "/campaigns/#{id}/target"
   defp enrichment_href(:enrichment_funnel, id), do: "/campaigns/#{id}/funnel"
 

@@ -171,12 +171,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
              |> put_flash(:info, gettext("Filters updated — top-up scheduled."))}
 
           # Fresh campaign + no active plan → starting work needs a plan, so
-          # send them to pricing rather than into the target step.
+          # send them to pricing rather than deeper into setup.
           not Colt.Accounts.User.paid?(socket.assigns.current_user) ->
             {:noreply, push_navigate(socket, to: ~p"/pricing")}
 
           true ->
-            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
+            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/suppression")}
         end
 
       {:error, err} ->
@@ -754,7 +754,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   end
 
   defp confirm_label(:enriching), do: gettext("Save filters")
-  defp confirm_label(_), do: gettext("Continue → Target")
+  defp confirm_label(_), do: gettext("Continue → Exclude")
 
   attr :form, :map, required: true
 

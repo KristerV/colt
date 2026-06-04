@@ -24,6 +24,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_scraping
     define :mark_enriched
     define :mark_no_website
+    define :mark_excluded, args: [:reason]
     define :mark_rejected, args: [:rejection_reason]
     define :mark_failed
     define :mark_no_contacts
@@ -80,6 +81,14 @@ defmodule Colt.Resources.CampaignCompany do
 
     update :mark_no_website do
       change set_attribute(:status, :no_website)
+      change set_attribute(:failure_detail, nil)
+    end
+
+    update :mark_excluded do
+      argument :reason, :string, allow_nil?: true
+
+      change set_attribute(:status, :excluded)
+      change set_attribute(:rejection_reason, arg(:reason))
       change set_attribute(:failure_detail, nil)
     end
 
@@ -191,6 +200,7 @@ defmodule Colt.Resources.CampaignCompany do
           :pending,
           :scraping,
           :rejected,
+          :excluded,
           :no_website,
           :no_contacts,
           :verify_failed,

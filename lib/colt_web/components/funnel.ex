@@ -43,6 +43,12 @@ defmodule ColtWeb.Components.Funnel do
       %{key: :working, label: gettext("Working"), color: "var(--accent)", pulse?: true},
       %{key: :enriched, label: enriched_label, color: "var(--accent)", pulse?: false},
       %{key: :rejected, label: gettext("ICP miss"), color: "var(--ink40)", pulse?: false},
+      %{
+        key: :excluded,
+        label: gettext("Already contacted"),
+        color: "var(--ink40)",
+        pulse?: false
+      },
       %{key: :failed, label: gettext("Failed"), color: "var(--fail)", pulse?: false}
     ]
 
