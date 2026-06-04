@@ -30,6 +30,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
     define :list_halt_eligible_for_thread, args: [:thread_id]
     define :list_user_edited_for_campaign, args: [:campaign_id, :limit]
+    define :list_committed_for_campaign, args: [:campaign_id]
 
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body]
@@ -164,6 +165,25 @@ defmodule Colt.Resources.OutboundEmail do
 
       prepare build(sort: [inserted_at: :desc])
       prepare build(limit: arg(:limit))
+    end
+
+    read :list_committed_for_campaign do
+      description """
+      Existence gate for the first-email rule: outbound rows in the
+      campaign that have been approved/scheduled/sent. When none exist,
+      the Writing view leaves the first contact's drafts blank so the
+      user writes the opener by hand (which then seeds the AI writer's
+      voice). Capped at 1 — callers only need to know if any exist.
+      """
+
+      argument :campaign_id, :uuid, allow_nil?: false
+
+      filter expr(
+               status in [:approved, :scheduled, :sent] and
+                 thread.campaign_contact.campaign_id == ^arg(:campaign_id)
+             )
+
+      prepare build(limit: 1)
     end
 
     read :list_halt_eligible_for_thread do

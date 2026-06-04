@@ -1635,7 +1635,7 @@ msgstr "Koduleht"
 #: lib/colt_web/live/campaigns/new_live.ex:47
 #, elixir-autogen, elixir-format
 msgid "What are we calling this <em>hunt</em>?"
-msgstr "Mis selle <em>jahi</em> nimi on?"
+msgstr "Mis selle <em>kampaania</em> nimi on?"
 
 #: lib/colt_web/live/campaigns/funnel_live.ex:920
 #, elixir-autogen, elixir-format

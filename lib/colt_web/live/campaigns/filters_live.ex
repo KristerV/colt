@@ -144,6 +144,11 @@ defmodule ColtWeb.Campaigns.FiltersLive do
      |> reload_filters_async()}
   end
 
+  def handle_event("exclude_category", %{"code" => code}, socket) do
+    form = Map.update!(socket.assigns.form, :industries_exclude, &add_unique(&1, code))
+    {:noreply, socket |> assign(form: form) |> reload_filters_async()}
+  end
+
   def handle_event("confirm", _params, socket) do
     socket = assign(socket, confirming?: true)
     campaign = socket.assigns.campaign
@@ -802,15 +807,26 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       </div>
       <div class="flex-1 overflow-auto">
         <%= for c <- @preview do %>
-          <div class="grid grid-cols-[1fr_60px_50px] sm:grid-cols-[1fr_140px_80px_60px] items-center gap-3 sm:gap-4 px-4 py-2.5 border-b border-rule text-[13px]">
+          <div class="group grid grid-cols-[1fr_60px_50px] sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.4fr)_72px_52px] items-center gap-3 sm:gap-4 px-4 py-2.5 border-b border-rule text-[13px]">
             <div class="min-w-0">
               <div class="text-ink font-medium truncate">{c.name}</div>
               <div class="text-ink55 text-[11px] truncate sm:hidden">
                 {industry_label(c.industry_code)}
               </div>
             </div>
-            <span class="hidden sm:block text-ink55 text-[12px] truncate">
-              {industry_label(c.industry_code)}
+            <span class="hidden sm:flex items-center gap-1.5 min-w-0 text-ink55 text-[12px]">
+              <span class="truncate">{industry_label(c.industry_code)}</span>
+              <button
+                :if={c.industry_code}
+                type="button"
+                phx-click="exclude_category"
+                phx-value-code={c.industry_code}
+                title={gettext("Exclude this category")}
+                aria-label={gettext("Exclude this category")}
+                class="shrink-0 text-ink40 hover:text-fail cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              >
+                <Liid.icon name="x" size={10} />
+              </button>
             </span>
             <span class="font-mono text-[11px] text-ink55 text-right tnum">
               {c.employees_latest || "—"}

@@ -12,7 +12,15 @@ defmodule ColtWeb.Sending.WritingLive do
 
   use ColtWeb, :live_view
 
-  alias Colt.Resources.{Campaign, CampaignCompany, CampaignContact, OutboundEmail, Sequence}
+  alias Colt.Resources.{
+    Campaign,
+    CampaignCompany,
+    CampaignContact,
+    OutboundEmail,
+    Sequence,
+    Thread
+  }
+
   alias Colt.Services.Sending.{ApproveContact, IngestEnriched}
   alias Colt.Services.Sending.EmailWriter
   alias Phoenix.PubSub
@@ -44,6 +52,7 @@ defmodule ColtWeb.Sending.WritingLive do
             subject: "",
             bodies: %{},
             enriched_available: 0,
+            first_email: false,
             saved_at: nil
           )
           |> load_next_contact()
@@ -202,18 +211,59 @@ defmodule ColtWeb.Sending.WritingLive do
     socket = assign(socket, email_steps: email_steps)
 
     cond do
-      missing == [] and drafts == [] ->
-        kick_off_writer(contact.id, actor)
-        assign(socket, state: :drafting, drafts: [])
+      missing == [] ->
+        socket
+        |> assign(drafts: drafts, state: :default, first_email: false)
+        |> seed_inputs_from_drafts(drafts)
 
-      missing != [] ->
-        kick_off_writer(contact.id, actor)
-        socket |> assign(drafts: drafts, state: :drafting) |> seed_inputs_from_drafts(drafts)
+      # Until the campaign has its first approved/scheduled/sent email, the
+      # opener is written by hand — we seed blank drafts and skip the AI
+      # writer so the user's own wording becomes the writer's voice example.
+      first_email_in_campaign?(contact.campaign_id, actor) ->
+        seed_blank_drafts(socket, missing)
 
       true ->
-        socket |> assign(drafts: drafts, state: :default) |> seed_inputs_from_drafts(drafts)
+        kick_off_writer(contact.id, actor)
+
+        socket
+        |> assign(drafts: drafts, state: :drafting, first_email: false)
+        |> seed_inputs_from_drafts(drafts)
     end
   end
+
+  defp first_email_in_campaign?(campaign_id, actor) do
+    case OutboundEmail.list_committed_for_campaign(campaign_id, actor: actor) do
+      {:ok, []} -> true
+      _ -> false
+    end
+  end
+
+  # Create empty :drafted rows for the missing email steps so the editor
+  # renders the full sequence with blank fields, ready for the user to type.
+  defp seed_blank_drafts(socket, missing_positions) do
+    actor = socket.assigns.current_user
+    contact = socket.assigns.contact
+    thread = ensure_thread(contact, actor)
+
+    Enum.each(missing_positions, fn pos ->
+      OutboundEmail.create_draft!(thread.id, pos, nil, nil,
+        actor: actor,
+        authorize?: actor != nil
+      )
+    end)
+
+    contact = %{contact | thread: thread}
+    drafts = list_outbound_drafts(contact, actor)
+
+    socket
+    |> assign(contact: contact, drafts: drafts, state: :default, first_email: true)
+    |> seed_inputs_from_drafts(drafts)
+  end
+
+  defp ensure_thread(%{thread: %Thread{} = thread}, _actor), do: thread
+
+  defp ensure_thread(contact, actor),
+    do: Thread.create_for_contact!(contact.id, actor: actor, authorize?: actor != nil)
 
   defp sequence_email_steps(campaign_id, actor) do
     case Sequence.get_for_campaign(campaign_id, load: [:sequence_steps], actor: actor) do
@@ -347,6 +397,7 @@ defmodule ColtWeb.Sending.WritingLive do
                 subject={@subject}
                 bodies={@bodies}
                 drafting={s == :drafting}
+                first_email={@first_email}
                 saved_at={@saved_at}
               />
           <% end %>
@@ -439,6 +490,7 @@ defmodule ColtWeb.Sending.WritingLive do
   attr :subject, :string, required: true
   attr :bodies, :map, required: true
   attr :drafting, :boolean, default: false
+  attr :first_email, :boolean, default: false
   attr :saved_at, :any, default: nil
 
   defp editor(assigns) do
@@ -476,6 +528,16 @@ defmodule ColtWeb.Sending.WritingLive do
       <div class="mt-1.5 font-mono text-[10px] text-ink40">
         {gettext("follow-ups re-use this subject as “re: …”")}
       </div>
+    </div>
+
+    <div
+      :if={@first_email}
+      class="mt-7 px-4 py-3 border border-rule border-l-2 bg-paperAlt rounded-[2px] text-[12.5px] leading-[1.55] text-ink70"
+      style="border-left-color: var(--accent);"
+    >
+      {gettext(
+        "Write this first sequence yourself. The AI writer stays out of the way until you've sent one — then it learns your voice from it and drafts the rest."
+      )}
     </div>
 
     <div class="mt-7 flex items-baseline justify-between">
@@ -720,7 +782,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -             {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -              {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
