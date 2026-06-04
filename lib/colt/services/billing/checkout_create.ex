@@ -39,6 +39,7 @@ defmodule Colt.Services.Billing.CheckoutCreate do
       cancel_url: cancel_url,
       line_items: [%{price: price_id, quantity: 1}],
       allow_promotion_codes: true,
+      automatic_tax: %{enabled: true},
       tax_id_collection: %{enabled: true},
       billing_address_collection: "auto",
       customer_update: %{name: "auto", address: "auto"}
