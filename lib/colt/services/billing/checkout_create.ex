@@ -40,7 +40,7 @@ defmodule Colt.Services.Billing.CheckoutCreate do
       line_items: [%{price: price_id, quantity: 1}],
       allow_promotion_codes: true,
       tax_id_collection: %{enabled: true},
-      billing_address_collection: "required",
+      billing_address_collection: "auto",
       customer_update: %{name: "auto", address: "auto"}
     })
   end
