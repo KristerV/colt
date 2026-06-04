@@ -145,7 +145,10 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   end
 
   def handle_event("exclude_category", %{"code" => code}, socket) do
-    form = Map.update!(socket.assigns.form, :industries_exclude, &add_unique(&1, code))
+    # The preview row carries the full 5-digit EMTAK code, but the filter
+    # (and every other exclude path) matches on the 4-digit NACE class.
+    prefix = String.slice(code, 0, 4)
+    form = Map.update!(socket.assigns.form, :industries_exclude, &add_unique(&1, prefix))
     {:noreply, socket |> assign(form: form) |> reload_filters_async()}
   end
 
@@ -791,6 +794,13 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   attr :pending?, :boolean, default: false
 
   defp preview_list(assigns) do
+    assigns =
+      assign(
+        assigns,
+        :grid,
+        "grid grid-cols-[1fr_52px_56px] sm:grid-cols-[1fr_2fr_56px_64px] items-center gap-3 sm:gap-4 px-4"
+      )
+
     ~H"""
     <div class="flex-1 min-h-0 flex flex-col border border-rule rounded-sharp relative">
       <div class="px-4 py-3 border-b border-rule flex items-center justify-between font-mono text-[11px] tracking-[0.04em] text-ink55">
@@ -805,9 +815,31 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           {gettext("showing %{shown} of %{total}", shown: length(@preview), total: format_int(@count))}
         </span>
       </div>
+
+      <div class={[
+        @grid,
+        "py-2 border-b border-rule font-mono text-[10px] tracking-[0.1em] uppercase text-ink40"
+      ]}>
+        <span>{gettext("Company")}</span>
+        <span class="hidden sm:block">{gettext("Category")}</span>
+        <span class="text-right" title={gettext("Employees — most recent annual filing")}>
+          {gettext("Emp")}
+        </span>
+        <span
+          class="text-right"
+          title={
+            gettext(
+              "Revenue trajectory over 3 fiscal years: 10× / 2× / ↗ growing / → flat / ↘ shrinking / — no data"
+            )
+          }
+        >
+          {gettext("Growth")}
+        </span>
+      </div>
+
       <div class="flex-1 overflow-auto">
         <%= for c <- @preview do %>
-          <div class="group grid grid-cols-[1fr_60px_50px] sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.4fr)_72px_52px] items-center gap-3 sm:gap-4 px-4 py-2.5 border-b border-rule text-[13px]">
+          <div class={["group border-b border-rule py-2.5 text-[13px]", @grid]}>
             <div class="min-w-0">
               <div class="text-ink font-medium truncate">{c.name}</div>
               <div class="text-ink55 text-[11px] truncate sm:hidden">
@@ -821,29 +853,38 @@ defmodule ColtWeb.Campaigns.FiltersLive do
                 type="button"
                 phx-click="exclude_category"
                 phx-value-code={c.industry_code}
-                title={gettext("Exclude this category")}
-                aria-label={gettext("Exclude this category")}
+                title={gettext("Exclude this category from the funnel")}
+                aria-label={gettext("Exclude this category from the funnel")}
                 class="shrink-0 text-ink40 hover:text-fail cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               >
                 <Liid.icon name="x" size={10} />
               </button>
             </span>
-            <span class="font-mono text-[11px] text-ink55 text-right tnum">
+            <span
+              class="font-mono text-[11px] text-ink55 text-right tnum"
+              title={gettext("Employees — most recent annual filing")}
+            >
               {c.employees_latest || "—"}
             </span>
-            <span class="font-mono text-[11px] text-right">
+            <span
+              class="font-mono text-[11px] text-right"
+              title={growth_title(c.revenue_growth_bucket)}
+            >
               {growth_glyph(c.revenue_growth_bucket)}
             </span>
           </div>
         <% end %>
       </div>
-      <div
-        class="absolute bottom-0 left-0 right-0 h-12 pointer-events-none"
-        style="background: linear-gradient(180deg, transparent, var(--paper));"
-      />
     </div>
     """
   end
+
+  defp growth_title(:growing_10x), do: gettext("Revenue grew ~10× over 3 fiscal years")
+  defp growth_title(:growing_2x), do: gettext("Revenue grew ~2× over 3 fiscal years")
+  defp growth_title(:slow), do: gettext("Revenue growing slowly")
+  defp growth_title(:stagnant), do: gettext("Revenue roughly flat")
+  defp growth_title(:declining), do: gettext("Revenue shrinking")
+  defp growth_title(_), do: gettext("No revenue-growth data")
 
   defp growth_glyph(:growing_10x), do: "10×"
   defp growth_glyph(:growing_2x), do: "2×"
