@@ -16,19 +16,40 @@ defmodule ColtWeb.Campaigns.TargetLive do
   @presets [50, 100, 250, 500, 1000]
 
   def mount(%{"id" => id}, _session, socket) do
-    case Campaign.get(id, actor: socket.assigns.current_user) do
+    user = socket.assigns.current_user
+
+    case Campaign.get(id, actor: user, load: [:done_count]) do
       {:ok, campaign} ->
+        max_target = max_target(campaign, user)
+        draft = min(campaign.target_contact_count || 100, max_target || 100)
+
         {:ok,
          assign(socket,
            page_title: gettext("Target — %{name}", name: campaign.name),
            campaign: campaign,
-           draft: campaign.target_contact_count || 100,
+           max_target: max_target,
+           draft: draft,
            saved?: false,
            error: nil
          )}
 
       {:error, _} ->
         {:ok, push_navigate(socket, to: ~p"/")}
+    end
+  end
+
+  # Highest target the owner can set right now: already-enriched contacts plus
+  # remaining monthly capacity. `nil` means uncapped (admins). Mirrors
+  # `CapacityGuard` so the UI never offers a value the action will reject.
+  defp max_target(_campaign, %{is_admin: true}), do: nil
+
+  defp max_target(campaign, user) do
+    case Ash.load(user, [:remaining_capacity], authorize?: false) do
+      {:ok, %{remaining_capacity: remaining}} when is_integer(remaining) ->
+        (campaign.done_count || 0) + max(remaining, 0)
+
+      _ ->
+        nil
     end
   end
 
@@ -47,7 +68,7 @@ defmodule ColtWeb.Campaigns.TargetLive do
             {:noreply, push_navigate(socket, to: ~p"/campaigns/#{c.id}/funnel")}
 
           {:error, err} ->
-            {:noreply, assign(socket, error: inspect(err))}
+            {:noreply, assign(socket, error: humanize_error(err))}
         end
 
       true ->
@@ -55,17 +76,38 @@ defmodule ColtWeb.Campaigns.TargetLive do
              {:ok, _} <- Topup.schedule(c.id, schedule_in: 0) do
           {:noreply, assign(socket, campaign: c, saved?: true, error: nil)}
         else
-          {:error, err} -> {:noreply, assign(socket, error: inspect(err))}
+          {:error, err} -> {:noreply, assign(socket, error: humanize_error(err))}
         end
     end
   end
 
+  # Pull a human-readable message out of an Ash error, dropping the internal
+  # `over_capacity:` prefix the change tags it with. Falls back to a generic
+  # line rather than dumping the whole struct.
+  defp humanize_error(%Ash.Error.Invalid{errors: errors}) do
+    errors
+    |> Enum.map_join(" ", &message_for/1)
+    |> case do
+      "" -> gettext("Something went wrong — please try again.")
+      msg -> String.trim_leading(msg, "over_capacity: ")
+    end
+  end
+
+  defp humanize_error(_), do: gettext("Something went wrong — please try again.")
+
+  defp message_for(%{message: msg}) when is_binary(msg), do: msg
+  defp message_for(_), do: ""
+
   def handle_event("pick", %{"target" => target}, socket) do
     case parse_target(target) do
       nil -> {:noreply, socket}
-      n -> {:noreply, assign(socket, draft: n, saved?: false)}
+      n -> {:noreply, assign(socket, draft: clamp(n, socket.assigns.max_target), saved?: false)}
     end
   end
+
+  defp clamp(n, nil), do: n
+  defp clamp(n, max) when n > max, do: max
+  defp clamp(n, _max), do: n
 
   defp parse_target(n) when is_integer(n) and n > 0, do: n
 
@@ -100,7 +142,10 @@ defmodule ColtWeb.Campaigns.TargetLive do
   end
 
   def render(assigns) do
-    assigns = assign(assigns, presets: @presets)
+    presets = Enum.filter(@presets, &(is_nil(assigns.max_target) or &1 <= assigns.max_target))
+    # Offer the cap itself when it isn't already one of the presets.
+    show_max? = not is_nil(assigns.max_target) and assigns.max_target not in presets
+    assigns = assign(assigns, presets: presets, show_max?: show_max?)
 
     ~H"""
     <Layouts.app
@@ -143,6 +188,19 @@ defmodule ColtWeb.Campaigns.TargetLive do
               {n}
             </button>
           <% end %>
+          <button
+            :if={@show_max?}
+            type="button"
+            phx-click="pick"
+            phx-value-target={@max_target}
+            class={[
+              "px-4 py-2 border font-mono text-[12px] rounded-sharp cursor-pointer",
+              @max_target == @draft && "border-ink bg-ink text-paper",
+              @max_target != @draft && "border-ink20 text-ink hover:border-ink"
+            ]}
+          >
+            {gettext("Max · %{n}", n: @max_target)}
+          </button>
           <form phx-change="pick" class="inline-flex">
             <input
               type="text"
