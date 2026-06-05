@@ -21,6 +21,12 @@ msgstr "Handlinger"
 msgid "Admin"
 msgstr "Admin"
 
+#: lib/colt_web/components/funnel.ex:48
+#: lib/colt_web/live/campaigns/funnel_live.ex:554
+#, elixir-autogen, elixir-format
+msgid "Already contacted"
+msgstr "Allerede kontaktet"
+
 #: lib/colt_web/components/layouts.ex:70
 #: lib/colt_web/components/layouts.ex:81
 #, elixir-autogen, elixir-format
@@ -827,8 +833,8 @@ msgstr "Feilet"
 
 #: lib/colt_web/live/campaigns/filters_live.ex:160
 #, elixir-autogen, elixir-format
-msgid "Filters updated — top-up scheduled."
-msgstr "Filtre oppdatert — påfyll planlagt."
+msgid "Filters updated."
+msgstr "Filtre oppdatert."
 
 #: lib/colt_web/live/campaigns/filters_live.ex:30
 #, elixir-autogen, elixir-format

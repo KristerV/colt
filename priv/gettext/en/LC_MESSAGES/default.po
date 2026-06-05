@@ -21,6 +21,12 @@ msgstr ""
 msgid "Admin"
 msgstr ""
 
+#: lib/colt_web/components/funnel.ex:48
+#: lib/colt_web/live/campaigns/funnel_live.ex:554
+#, elixir-autogen, elixir-format
+msgid "Already contacted"
+msgstr ""
+
 #: lib/colt_web/components/layouts.ex:70
 #: lib/colt_web/components/layouts.ex:81
 #, elixir-autogen, elixir-format
@@ -827,7 +833,7 @@ msgstr ""
 
 #: lib/colt_web/live/campaigns/filters_live.ex:160
 #, elixir-autogen, elixir-format
-msgid "Filters updated — top-up scheduled."
+msgid "Filters updated."
 msgstr ""
 
 #: lib/colt_web/live/campaigns/filters_live.ex:30

@@ -21,6 +21,12 @@ msgstr "Aðgerðir"
 msgid "Admin"
 msgstr "Stjórnandi"
 
+#: lib/colt_web/components/funnel.ex:48
+#: lib/colt_web/live/campaigns/funnel_live.ex:554
+#, elixir-autogen, elixir-format
+msgid "Already contacted"
+msgstr "Þegar haft samband"
+
 #: lib/colt_web/components/layouts.ex:70
 #: lib/colt_web/components/layouts.ex:81
 #, elixir-autogen, elixir-format
@@ -827,8 +833,8 @@ msgstr "Mistókst"
 
 #: lib/colt_web/live/campaigns/filters_live.ex:160
 #, elixir-autogen, elixir-format
-msgid "Filters updated — top-up scheduled."
-msgstr "Síur uppfærðar — áfylling á dagskrá."
+msgid "Filters updated."
+msgstr "Síur uppfærðar."
 
 #: lib/colt_web/live/campaigns/filters_live.ex:30
 #, elixir-autogen, elixir-format

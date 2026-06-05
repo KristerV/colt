@@ -21,6 +21,12 @@ msgstr "Veiksmai"
 msgid "Admin"
 msgstr "Administratorius"
 
+#: lib/colt_web/components/funnel.ex:48
+#: lib/colt_web/live/campaigns/funnel_live.ex:554
+#, elixir-autogen, elixir-format
+msgid "Already contacted"
+msgstr "Jau susisiekta"
+
 #: lib/colt_web/components/layouts.ex:70
 #: lib/colt_web/components/layouts.ex:81
 #, elixir-autogen, elixir-format
@@ -827,8 +833,8 @@ msgstr "Nepavyko"
 
 #: lib/colt_web/live/campaigns/filters_live.ex:160
 #, elixir-autogen, elixir-format
-msgid "Filters updated — top-up scheduled."
-msgstr "Filtrai atnaujinti — papildymas suplanuotas."
+msgid "Filters updated."
+msgstr "Filtrai atnaujinti."
 
 #: lib/colt_web/live/campaigns/filters_live.ex:30
 #, elixir-autogen, elixir-format

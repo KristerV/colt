@@ -168,7 +168,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             {:noreply,
              socket
              |> assign(campaign: campaign, confirming?: false)
-             |> put_flash(:info, gettext("Filters updated — top-up scheduled."))}
+             |> put_flash(:info, gettext("Filters updated."))}
 
           # Fresh campaign + no active plan → starting work needs a plan, so
           # send them to pricing rather than deeper into setup.
