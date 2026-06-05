@@ -167,7 +167,7 @@ defmodule ColtWeb.Campaigns.SuppressionLive do
 
         <div class="flex items-center gap-4">
           <.link
-            navigate={~p"/campaigns/#{@campaign.id}/filters"}
+            navigate={~p"/campaigns/#{@campaign.id}/icp"}
             class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
           >
             <Liid.icon name="chev-l" size={11} /> {gettext("Back")}

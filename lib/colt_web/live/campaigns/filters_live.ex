@@ -176,7 +176,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             {:noreply, push_navigate(socket, to: ~p"/pricing")}
 
           true ->
-            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/suppression")}
+            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/icp")}
         end
 
       {:error, err} ->
@@ -383,7 +383,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     ~H"""
     <div class="lg:basis-[360px] lg:shrink-0 flex flex-col min-h-0 gap-7">
-      <Liid.headline kicker={gettext("04 / Filters")}>
+      <Liid.headline kicker={gettext("03 / Filters")}>
         {raw(gettext("Narrow the <em>funnel</em>."))}
       </Liid.headline>
 
@@ -757,7 +757,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   end
 
   defp confirm_label(:enriching), do: gettext("Save filters")
-  defp confirm_label(_), do: gettext("Continue → Exclude")
+  defp confirm_label(_), do: gettext("Continue → ICP")
 
   attr :form, :map, required: true
 

@@ -95,9 +95,9 @@ defmodule ColtWeb.Campaigns.MarketLive do
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
-      <div class="flex flex-col flex-1 min-h-0 gap-10">
+      <div class="flex flex-col flex-1 min-h-0 gap-6">
         <Liid.headline
-          kicker={gettext("03 / Market")}
+          kicker={gettext("02 / Market")}
           sub={
             gettext(
               "One market per campaign. Liid hits the government registry and walks the resulting domain list. Greyed-out registries are scheduled for next quarter."
@@ -128,7 +128,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
 
         <div class="flex flex-wrap items-center gap-4">
           <.link
-            navigate={~p"/campaigns/#{@campaign.id}/icp"}
+            navigate={~p"/campaigns/#{@campaign.id}/name"}
             class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
           >
             <Liid.icon name="chev-l" size={11} /> Back
@@ -165,7 +165,7 @@ defmodule ColtWeb.Campaigns.MarketLive do
       phx-value-market={Atom.to_string(@market.market)}
       disabled={not @market.enabled}
       class={[
-        "flex flex-col justify-between p-6 pb-5 border rounded-sharp min-h-[200px] text-left",
+        "flex flex-col justify-between p-4 border rounded-sharp min-h-[128px] text-left",
         not @market.enabled && "opacity-45 cursor-not-allowed",
         @market.enabled && "cursor-pointer",
         @selected && "border-ink bg-paperAlt",
@@ -197,11 +197,11 @@ defmodule ColtWeb.Campaigns.MarketLive do
         </span>
       </div>
 
-      <div class="mt-5">
-        <div class="font-serif text-[38px] font-normal tracking-[-0.02em] leading-none text-ink">
+      <div class="mt-3">
+        <div class="font-serif text-[26px] font-normal tracking-[-0.02em] leading-none text-ink">
           {@market.name}
         </div>
-        <div class="mt-3.5 flex justify-between font-mono text-[11px] text-ink55 tracking-[0.04em]">
+        <div class="mt-2.5 flex justify-between font-mono text-[11px] text-ink55 tracking-[0.04em]">
           <span>{@market.api}</span>
           <span class="text-ink70">{@count}</span>
         </div>

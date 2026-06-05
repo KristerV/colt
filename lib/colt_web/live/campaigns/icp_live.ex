@@ -66,7 +66,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
             if socket.assigns.next_done? do
               {:noreply, assign(socket, campaign: campaign, saved?: true, error: nil)}
             else
-              {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/market")}
+              {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/suppression")}
             end
 
           {:error, err} ->
@@ -115,7 +115,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
       >
         <div class="lg:basis-[320px] lg:shrink-0">
           <Liid.headline
-            kicker={gettext("02 / ICP")}
+            kicker={gettext("04 / ICP")}
             sub={
               gettext(
                 "Plain English. The model reads this against every company's website to decide if it's a fit. Be specific about what disqualifies."
@@ -249,7 +249,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
 
           <div class="flex items-center gap-4 mt-2">
             <.link
-              navigate={~p"/campaigns/new"}
+              navigate={~p"/campaigns/#{@campaign.id}/filters"}
               class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
             >
               <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
@@ -258,7 +258,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
               <%= if @next_done? do %>
                 {gettext("Save")} <Liid.icon name="check" />
               <% else %>
-                {gettext("Continue → market")} <Liid.icon name="arrow" />
+                {gettext("Continue → exclude")} <Liid.icon name="arrow" />
               <% end %>
             </Liid.btn>
             <span :if={@saved?} class="font-mono text-[11px] text-ink55">{gettext("saved.")}</span>

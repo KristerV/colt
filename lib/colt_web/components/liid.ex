@@ -19,6 +19,7 @@ defmodule ColtWeb.Components.Liid do
 
   @icon_paths %{
     "arrow" => "M3 8h10M9 4l4 4-4 4",
+    "logout" => "M10 3H4v10h6M8 8h6M11 5l3 3-3 3",
     "chev" => "M5 6l3 3 3-3",
     "chev-r" => "M6 4l4 4-4 4",
     "chev-l" => "M10 4L6 8l4 4",
@@ -330,17 +331,11 @@ defmodule ColtWeb.Components.Liid do
   defp step_to_active(6), do: :enrichment_funnel
   defp step_to_active(_), do: nil
 
-  @workspace_items [
-    %{id: :campaigns, icon: "grid", href: "/campaigns"},
-    %{id: :email_accounts, icon: "mail", href: "/email-accounts"},
-    %{id: :billing, icon: "file", href: "/billing"}
-  ]
-
   @enrichment_items [
     %{id: :name, icon: "file"},
-    %{id: :icp, icon: "user"},
     %{id: :market, icon: "globe"},
     %{id: :filters, icon: "filter"},
+    %{id: :icp, icon: "user"},
     %{id: :exclude, icon: "x"},
     %{id: :target, icon: "spark"},
     %{id: :enrichment_funnel, icon: "grid"}
@@ -378,8 +373,6 @@ defmodule ColtWeb.Components.Liid do
   attr :panic_on, :boolean, default: false
 
   def sidebar(assigns) do
-    assigns = assign(assigns, :workspace_items, @workspace_items)
-
     ~H"""
     <aside class="w-[240px] shrink-0 sticky top-0 self-start h-screen border-r border-rule bg-paper flex flex-col">
       <div class="px-[22px] py-5 border-b border-rule flex items-baseline gap-1.5">
@@ -395,9 +388,7 @@ defmodule ColtWeb.Components.Liid do
       <div class="flex-1 overflow-auto">
         <.usage_badge :if={@current_user} user={@current_user} />
 
-        <.sidebar_section items={@workspace_items} active={@active} variant={:workspace} />
-
-        <.campaign_scope_header :if={@campaign} campaign={@campaign} />
+        <.campaign_scope_header campaign={@campaign} active={@active} />
 
         <.sidebar_section
           :if={@campaign}
@@ -424,6 +415,26 @@ defmodule ColtWeb.Components.Liid do
       </div>
 
       <div :if={@current_user} class="border-t border-rule">
+        <.link
+          navigate="/email-accounts"
+          class={[
+            "flex items-center gap-2.5 px-[18px] py-[7px] hover:text-ink hover:bg-paperAlt no-underline",
+            if(@active == :email_accounts, do: "text-ink bg-paperAlt", else: "text-ink70")
+          ]}
+        >
+          <.icon name="mail" size={13} class="text-ink55" />
+          <span class="text-[13px]">{gettext("Email accounts")}</span>
+        </.link>
+        <.link
+          navigate="/billing"
+          class={[
+            "flex items-center gap-2.5 px-[18px] py-[7px] hover:text-ink hover:bg-paperAlt no-underline",
+            if(@active == :billing, do: "text-ink bg-paperAlt", else: "text-ink70")
+          ]}
+        >
+          <.icon name="file" size={13} class="text-ink55" />
+          <span class="text-[13px]">{gettext("Billing")}</span>
+        </.link>
         <button
           type="button"
           phx-click={open_feedback()}
@@ -440,15 +451,6 @@ defmodule ColtWeb.Components.Liid do
           <.icon name="code" size={13} class="text-ink55" />
           <span class="text-[13px]">{gettext("Admin")}</span>
         </.link>
-        <.link
-          href="/sign-out"
-          method="get"
-          class="flex items-center gap-2.5 px-[18px] py-[7px] text-ink70 hover:text-ink hover:bg-paperAlt no-underline"
-        >
-          <.icon name="arrow" size={13} class="text-ink55" />
-          <span class="text-[13px]">{gettext("Sign out")}</span>
-        </.link>
-
         <div class="border-t border-rule px-[18px] py-3 flex items-center gap-2.5">
           <div
             class="w-[26px] h-[26px] rounded-full bg-ink text-paper flex items-center justify-center text-[11px] font-semibold shrink-0"
@@ -456,7 +458,15 @@ defmodule ColtWeb.Components.Liid do
           >
             {avatar_initial(@current_user)}
           </div>
-          <div class="text-[12px] text-ink truncate">{to_string(@current_user.email)}</div>
+          <div class="text-[12px] text-ink truncate flex-1">{to_string(@current_user.email)}</div>
+          <.link
+            href="/sign-out"
+            method="get"
+            title={gettext("Sign out")}
+            class="shrink-0 text-ink55 hover:text-ink no-underline"
+          >
+            <.icon name="logout" size={14} />
+          </.link>
         </div>
       </div>
       <div :if={!@current_user} class="border-t border-rule px-[18px] py-3.5">
@@ -478,7 +488,7 @@ defmodule ColtWeb.Components.Liid do
     assigns = assign(assigns, :usage, usage_state(assigns.user))
 
     ~H"""
-    <div :if={@usage.state != :hidden} class="px-[18px] py-2.5 border-b border-rule">
+    <div :if={@usage.state != :hidden} class="px-[18px] py-2.5">
       <.link navigate="/pricing" class="block no-underline hover:opacity-80">
         <%= case @usage.state do %>
           <% :none -> %>
@@ -626,17 +636,33 @@ defmodule ColtWeb.Components.Liid do
     """
   end
 
-  attr :campaign, :map, required: true
+  attr :campaign, :any, default: nil
+  attr :active, :atom, default: nil
 
   defp campaign_scope_header(assigns) do
     ~H"""
     <div class="px-[18px] py-2.5 border-t border-b border-rule bg-paperAlt mb-2.5">
-      <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 mb-0.5">
-        {gettext("Campaign")} · {to_string(@campaign.status)}
+      <div class="flex items-center justify-between mb-0.5">
+        <span class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40">
+          {gettext("Campaign")}
+        </span>
+        <.link
+          :if={@campaign}
+          navigate="/campaigns"
+          class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 hover:text-ink no-underline"
+        >
+          {gettext("Change")} →
+        </.link>
       </div>
-      <div class="font-serif text-[18px] leading-[1.1] tracking-[-0.015em] text-ink truncate">
-        {@campaign.name}
-      </div>
+      <.link
+        navigate="/campaigns"
+        class="block font-serif text-[18px] leading-[1.1] tracking-[-0.015em] truncate no-underline hover:opacity-80"
+      >
+        <span :if={@campaign} class="text-ink">{@campaign.name}</span>
+        <span :if={!@campaign} class={if(@active == :campaigns, do: "text-ink", else: "text-ink55")}>
+          {gettext("Choose campaign")} →
+        </span>
+      </.link>
     </div>
     """
   end

@@ -51,6 +51,7 @@ function StatusDot({ state, accent, size = 8 }) {
 function LiidIcon({ name, size = 14, color = 'currentColor' }) {
   const paths = {
     arrow:  'M3 8h10M9 4l4 4-4 4',
+    logout: 'M10 3H4v10h6M8 8h6M11 5l3 3-3 3',
     chev:   'M5 6l3 3 3-3',
     chevR:  'M6 4l4 4-4 4',
     chevL:  'M10 4L6 8l4 4',

@@ -24,7 +24,7 @@ defmodule ColtWeb.Campaigns.NewLive do
       true ->
         case Campaign.create_draft(name, actor: socket.assigns.current_user) do
           {:ok, campaign} ->
-            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/icp")}
+            {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/market")}
 
           {:error, _} = err ->
             {:noreply, assign(socket, error: inspect(err))}
