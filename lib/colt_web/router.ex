@@ -69,6 +69,8 @@ defmodule ColtWeb.Router do
     ash_authentication_live_session :public_routes,
       on_mount: [ColtWeb.LiveLocale, {ColtWeb.LiveUserAuth, :live_user_optional}] do
       live "/pricing", PricingLive
+      live "/privacy", PrivacyLive
+      live "/terms", TermsLive
     end
 
     post "/locale", LocaleController, :set

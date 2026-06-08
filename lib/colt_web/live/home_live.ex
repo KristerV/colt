@@ -580,6 +580,14 @@ defmodule ColtWeb.HomeLive do
       <span class="w-px h-3 bg-ink20" />
       <span>{DateTime.utc_now().year}</span>
       <span class="flex-1" />
+      <.link navigate={~p"/privacy"} class="hover:text-ink no-underline">
+        {gettext("privacy")}
+      </.link>
+      <span class="w-px h-3 bg-ink20" />
+      <.link navigate={~p"/terms"} class="hover:text-ink no-underline">
+        {gettext("terms")}
+      </.link>
+      <span class="w-px h-3 bg-ink20" />
       <.link
         :if={is_nil(@current_user)}
         href="/sign-in"
