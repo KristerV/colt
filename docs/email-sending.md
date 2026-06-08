@@ -10,7 +10,7 @@ This document is **both** the spec and the phased build plan for the feature. It
 
 These were confirmed before drafting:
 
-- **Provider**: **Nylas v3, EU region**. Unified API for Google Workspace / Microsoft 365 / generic IMAP+SMTP, native threading (`thread_id`), hosted OAuth, bounce + delivery events, public DPA, SOC 2 Type II, ISO 27001, EU data storage. Base URL `https://api.eu.nylas.com/v3`.
+- **Provider**: **Nylas v3, EU region**. Unified API for Google Workspace / Microsoft 365 / generic IMAP+SMTP, native threading (`thread_id`), hosted OAuth, bounce + delivery events, public DPA, SOC 2 Type II, ISO 27001, EU data storage. Base URL `https://api.eu.nylas.com/v3`. See `docs/email-provider-and-google-verification.md` for the provider-choice rationale, the Google CASA/verification path (incl. cheap assessors), and EmailEngine as the eventual alternative.
 - **Inbox routing**: sticky per contact. On approval a `CampaignContact` is bound to one `EmailAccount`; every step + followup for that contact ships from that inbox.
 - **Auto-approve**: disabled by default. Becomes *available* (toggle appears in campaign settings) after the user has accepted 10 AI-drafted sequences without modifying any subject or body. Counter is per-campaign, not global. Once unlocked the user flips it on/off manually.
 - **AI language**: per-campaign setting, defaults to English in v1. User picks per campaign in the sequence view. Applies to every generated subject + body in the campaign.
