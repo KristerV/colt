@@ -16,6 +16,7 @@ defmodule Colt.Application do
          Application.fetch_env!(:colt, :ash_domains),
          Application.fetch_env!(:colt, Oban)
        )},
+      Colt.Jobs.RescueOrphaned,
       {Phoenix.PubSub, name: Colt.PubSub},
       # Start a worker by calling: Colt.Worker.start_link(arg)
       # {Colt.Worker, arg},
