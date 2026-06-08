@@ -184,6 +184,77 @@ are unchanged.
 - **EmailEngine threading/bounce model** — validate it actually beats what burned
   us on Unipile before betting on it.
 
+## Setup runbooks (OAuth credentials for the Nylas connectors)
+
+Both providers: ~15 min each, free, no audit to *get going*. Redirect URI is the
+EU Nylas callback — confirm the exact string in the Nylas dashboard connector
+screen, but it's `https://api.eu.nylas.com/v3/connect/callback`.
+
+### Outlook / Microsoft 365
+
+1. **[portal.azure.com](https://portal.azure.com) → Microsoft Entra ID → App
+   registrations → New registration.**
+   - **Gotcha:** if you signed in with a bare personal MS account you'll hit
+     *"ability to create applications outside of a directory has been
+     deprecated."* Fix: sign up for **free Azure**
+     ([azure.microsoft.com/free](https://azure.microsoft.com/free), same account —
+     app registration is free, card is identity-only) to provision a default
+     Entra directory, then retry. (M365 Developer Program gives a free sandbox
+     tenant too, but those recycle — use real Azure for production.)
+2. **Name** `Liid` (shown on consent screen).
+3. **Supported account types →** *"Accounts in any organizational directory (Any
+   Entra ID tenant) **and** personal Microsoft accounts."* — the broadest;
+   covers business M365 **and** personal `@outlook.com`. (The other three options
+   each exclude one or the other.)
+4. **Redirect URI:** platform **Web** → the Nylas EU callback above. Register.
+5. **Overview →** copy **Application (client) ID**.
+6. **Certificates & secrets → New client secret** → 24-month expiry → **copy the
+   VALUE immediately** (shown once). ⚠️ Secrets max at 24 months and silently
+   kill all connections on expiry — set a rotation reminder.
+7. **API permissions → Microsoft Graph → Delegated** → add `Mail.ReadWrite`,
+   `Mail.Send`, `User.Read`, `offline_access`, `openid`, `email`, `profile` (+
+   `IMAP.AccessAsUser.All`, `SMTP.Send` if Nylas connects Outlook via IMAP/SMTP
+   rather than Graph — match the connector's model).
+8. Paste **Client ID + secret** into Nylas → Connectors → Microsoft.
+
+No CASA, no user cap, no mandatory publisher verification (it only removes the
+"unverified" warning — do it later in Partner Center).
+
+### Google (Gmail)
+
+1. **[console.cloud.google.com](https://console.cloud.google.com) → New Project**
+   `Liid` → select it.
+2. **APIs & Services → Library → Gmail API → Enable.** (Only this one — extra
+   APIs = extra scopes to justify later.)
+3. **OAuth consent screen** now opens the redesigned **"Google Auth Platform"**
+   with a left nav. The old single wizard is split across tabs:
+
+   | What you're setting | New tab |
+   |---|---|
+   | App name, logo, support email, domains, privacy URL | **Branding** |
+   | User type (External) + Test users + publish status | **Audience** |
+   | Scopes | **Data access** |
+   | OAuth client + redirect URIs | **Clients** |
+   | Submit for verification (later) | **Verification centre** |
+
+   - **Branding:** app name `Liid`, support email, app domain, privacy-policy URL,
+     authorized domains. (Privacy/terms URLs become required at verification time.)
+   - **Audience:** User type **External**; leave status **Testing**; add your
+     Gmail + testers under **Test users** (up to **100**, connect immediately, no
+     verification, no CASA — this is the runway).
+   - **Data access → Add or remove scopes:** `gmail.modify` (**restricted → the
+     CASA scope**, expected), `userinfo.email`, `userinfo.profile`, `openid`. Do
+     **not** add `https://mail.google.com/` unless Nylas requires it.
+   - **Clients → Create OAuth client:** type **Web application**, name
+     `Liid Nylas`, **Authorized redirect URIs** = Nylas EU callback. Create →
+     copy **Client ID + Client secret** (re-viewable later, unlike Azure).
+4. Paste **Client ID + secret** into Nylas → Connectors → Google.
+
+Differences vs Outlook: **100-user cap** until published+verified; test users see
+an **"unverified app"** warning (normal); **CASA (~$540 TAC)** only needed when you
+outgrow the cap or want to drop the warning — done via **Verification centre** +
+**Publish app**.
+
 ## Sources
 
 - Nylas: [data residency](https://developer.nylas.com/docs/dev-guide/platform/data-residency/),
