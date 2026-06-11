@@ -217,8 +217,91 @@ screen, but it's `https://api.eu.nylas.com/v3/connect/callback`.
    rather than Graph — match the connector's model).
 8. Paste **Client ID + secret** into Nylas → Connectors → Microsoft.
 
-No CASA, no user cap, no mandatory publisher verification (it only removes the
-"unverified" warning — do it later in Partner Center).
+No CASA, no user cap to *get connecting*. Publisher verification (the blue
+"verified" badge) is a **separate, harder** problem — **some enterprise clients
+require it before their IT will approve the app.** See the next section; it bit
+us and is currently blocked.
+
+### Microsoft publisher verification — the "verified publisher" badge (BLOCKED)
+
+**Last worked:** 2026-06-11. **Status: stalled — parked deliberately.**
+
+**Trigger.** A client's IT refused to connect their M365: *"this Nylas solution
+lacks Microsoft verification, so we won't approve it."* This is **not** about a
+TLS cert or an incomplete OAuth app — it's the **Entra publisher-verification
+badge** on the consent screen. Because we use **our own Azure app** (option 2 —
+our client ID/secret in the Nylas connector, not Nylas's shared connector), the
+verification is **ours to earn**, not Nylas's.
+
+**Two things people conflate — keep them separate:**
+- **Admin consent** — the client's IT admin approves our app *in their tenant*.
+  Works **today, no badge needed**. This is the pragmatic unblock (see below).
+- **Publisher verification** — the global blue "verified" badge. What the client
+  literally asked for. Requires a **vetted Partner Center (MPN) account**. Blocked.
+
+**What the badge requires (all three):**
+1. A **Partner Center** account enrolled in the **Microsoft AI Cloud Partner
+   Program** (renamed MPN) that has **passed business vetting** → yields a numeric
+   **Partner One ID / MPN ID**. ⚠️ The "MPN ID" field in Entra wants that
+   **number**, not an email — easy mistake.
+2. The Partner ID linked in **Entra → App registrations → Liid → Branding &
+   properties → "Add MPN ID to verify publisher"**.
+3. **Prereq #3:** a **custom domain verified in the Entra tenant via DNS TXT**
+   (Entra → Custom domain names → Add `liid.ee`) that **matches the domain used
+   during Partner Center vetting**. This is *stricter* than the well-known file
+   below — the file alone does **not** earn the badge.
+
+**Done already:**
+- **Publisher domain file** deployed: `priv/static/.well-known/microsoft-identity-association.json`
+  holding our client ID `5798cb4f-bc70-4cad-9fbb-6637cd9e3d42`. Served publicly via
+  the `.well-known` entry added to `static_paths` in `lib/colt_web.ex`. Live and
+  returning 200 + `application/json` at
+  `https://liid.ee/.well-known/microsoft-identity-association.json`. (Satisfies the
+  *publisher-domain* field, **not** prereq #3's DNS-verified tenant domain.)
+- Created a **work account** `krister@kristerviirsaargmail.onmicrosoft.com` (Entra
+  member user in the auto-provisioned tenant — a `.onmicrosoft.com` identity is a
+  valid "work account"; **no mailbox / Exchange needed**, it's just a login).
+
+**The wall.** Partner Center **business verification was auto-blocked** at the
+Company Information step — the *"Microsoft runs on trust… your request was
+blocked"* screen. Business data is fine (entity **Täp OÜ** + valid **DUNS**), so
+the block is almost certainly the **low-trust profile: a brand-new tenant spun off
+a personal gmail account.** Reference handles for any support contact:
+- Reference number **715-123160**
+- Transaction ID **e6ec3ce2-4c52-4fce-9c6f-5d160c791a97**
+- Correlation ID **aae01272-ab92-4c5b-b7c1-65ea104095a9**
+
+**Support is a maze (all dead-ended so far):**
+- The Copilot support chat just loops ("confirm the program name…"). Program name
+  is **Microsoft AI Cloud Partner Program**. It cannot look up vetting blocks.
+- "Contact support" → in-product ticket form **requires a Workspace**, but a
+  blocked account is **never provisioned**, so the dropdown is **empty** →
+  unfillable. Chicken-and-egg.
+- Real escalation routes (untried / "looked useless" but are where MS staff
+  actually respond): **Microsoft Q&A** under the Partner Center verification tag
+  (others with near-consecutive ref `715-123225` posted there), the **Partner
+  Compliance Forum** on Tech Community, **Account settings → Legal Info →
+  Verification Summary → "Resolve"**, and emailing **teamsubm@microsoft.com** with
+  the IDs above.
+
+**When resuming — two tracks:**
+1. **Unblock the client *now* without the badge (preferred):** ask their IT to
+   **grant admin consent**. Send their **Global Admin / Privileged Role Admin /
+   Application Admin** this URL (swap `common` for their tenant domain to route
+   straight there):
+   `https://login.microsoftonline.com/common/adminconsent?client_id=5798cb4f-bc70-4cad-9fbb-6637cd9e3d42`
+   Admin signs in → reviews permissions → **Accept** → app provisioned + consented
+   tenant-wide; all their users can connect. Bare URL = no redirect needed (lands
+   on a MS success page); if a redirect is added it must be a **registered redirect
+   URI** (our Nylas EU callback). ⚠️ Only fails if the client's policy *literally*
+   mandates the verified-publisher badge — **confirm with them which they mean**
+   before assuming the badge is non-negotiable.
+2. **Earn the badge for real (for future clients too):** raise the tenant's trust
+   *before* re-submitting — **verify `liid.ee`/`tap.ee` as a custom domain in the
+   tenant via DNS TXT, let the account age**, then re-run Partner Center vetting
+   with **exact registered Täp OÜ name + address + DUNS**. Escalate the existing
+   block via the Q&A/forum routes in parallel; these fresh-tenant blocks generally
+   *do* clear on manual MS review.
 
 ### Google (Gmail)
 

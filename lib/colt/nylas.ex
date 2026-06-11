@@ -21,6 +21,7 @@ defmodule Colt.Nylas do
 
   @auth_path "/v3/connect/auth"
   @token_path "/v3/connect/token"
+  @custom_path "/v3/connect/custom"
 
   # ── Public API ──────────────────────────────────────────────────────
 
@@ -69,6 +70,25 @@ defmodule Colt.Nylas do
     |> Kernel.<>(@token_path)
     |> Req.post(json: body, retry: false, receive_timeout: 30_000)
     |> handle(:exchange)
+  end
+
+  @doc """
+  Create a grant from raw IMAP/SMTP credentials via custom authentication
+  (`POST /v3/connect/custom`) — no hosted-auth redirect. Used for bulk CSV
+  import of inboxes (including Google Workspace accounts connected over IMAP
+  with an app password).
+
+  `settings` is the Nylas IMAP settings map with string keys:
+  `imap_username`, `imap_password`, `imap_host`, `imap_port` and the matching
+  `smtp_*` fields. Nylas only returns a grant if it can actually log in, so a
+  `{:error, _}` here means bad creds / unreachable host.
+
+  Returns the grant object `{:ok, %{"id" => grant_id, "email" => ..., ...}}`.
+  """
+  @spec create_imap_grant(map()) :: {:ok, map()} | {:error, term()}
+  def create_imap_grant(settings) when is_map(settings) do
+    request(:post, @custom_path, json: %{provider: "imap", settings: settings})
+    |> handle(:create_grant)
   end
 
   @doc """

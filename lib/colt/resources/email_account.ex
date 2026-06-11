@@ -21,6 +21,7 @@ defmodule Colt.Resources.EmailAccount do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :get_by_grant, args: [:nylas_grant_id]
+    define :get_active_for_address, args: [:user_id, :address]
     define :list_for_user, args: [:user_id]
     define :list_all
     define :list_healthy
@@ -41,6 +42,18 @@ defmodule Colt.Resources.EmailAccount do
     read :get_by_grant do
       argument :nylas_grant_id, :string, allow_nil?: false
       filter expr(nylas_grant_id == ^arg(:nylas_grant_id))
+      get? true
+    end
+
+    read :get_active_for_address do
+      description "Dedup guard for CSV import — find a still-connected inbox by user + address."
+      argument :user_id, :uuid, allow_nil?: false
+      argument :address, :string, allow_nil?: false
+
+      filter expr(
+               user_id == ^arg(:user_id) and address == ^arg(:address) and status != :disconnected
+             )
+
       get? true
     end
 

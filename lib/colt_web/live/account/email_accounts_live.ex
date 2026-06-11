@@ -1,18 +1,31 @@
 defmodule ColtWeb.Account.EmailAccountsLive do
   use ColtWeb, :live_view
 
+  alias Colt.Jobs.ImportMailbox
   alias Colt.Nylas
   alias Colt.Resources.EmailAccount
+  alias Colt.Services.EmailAccount.ImportMailboxes
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+
+  @max_csv_size 2_000_000
 
   def mount(_params, _session, socket) do
     {:ok,
      socket
      |> assign(page_title: gettext("Email accounts"))
+     |> allow_upload(:mailboxes,
+       accept: ~w(.csv text/csv),
+       max_entries: 1,
+       max_file_size: @max_csv_size,
+       auto_upload: true,
+       progress: &handle_import_progress/3
+     )
      |> load_accounts()}
   end
+
+  def handle_event("validate_import", _params, socket), do: {:noreply, socket}
 
   def handle_event("disconnect", %{"id" => id}, socket) do
     user = socket.assigns.current_user
@@ -54,6 +67,47 @@ defmodule ColtWeb.Account.EmailAccountsLive do
       _ -> {:noreply, socket}
     end
   end
+
+  # Auto-import fires once the upload finishes; nothing to do until then.
+  defp handle_import_progress(:mailboxes, %{done?: false}, socket), do: {:noreply, socket}
+
+  defp handle_import_progress(:mailboxes, %{done?: true}, socket) do
+    user = socket.assigns.current_user
+
+    [parsed] =
+      consume_uploaded_entries(socket, :mailboxes, fn %{path: path}, _entry ->
+        {:ok, ImportMailboxes.run(File.read!(path))}
+      end)
+
+    {:noreply, flash_import_result(socket, user, parsed)}
+  end
+
+  defp flash_import_result(socket, user, {:ok, [_ | _] = mailboxes}) do
+    Enum.each(mailboxes, &ImportMailbox.enqueue(user.id, &1))
+
+    put_flash(
+      socket,
+      :info,
+      gettext(
+        "Importing %{n} inbox(es). They'll appear here as Nylas validates each login.",
+        n: length(mailboxes)
+      )
+    )
+  end
+
+  defp flash_import_result(socket, _user, {:ok, []}),
+    do: put_flash(socket, :error, gettext("No inboxes found in that CSV."))
+
+  defp flash_import_result(socket, _user, {:error, :unknown_format}),
+    do:
+      put_flash(
+        socket,
+        :error,
+        gettext("Unrecognized CSV — expected a mailboxes or Google Workspace export.")
+      )
+
+  defp flash_import_result(socket, _user, _other),
+    do: put_flash(socket, :error, gettext("Could not read that CSV."))
 
   defp load_accounts(socket) do
     accounts =
@@ -102,6 +156,16 @@ defmodule ColtWeb.Account.EmailAccountsLive do
               {gettext("Connect IMAP")} <Liid.icon name="arrow" />
             </Liid.btn>
           </.link>
+
+          <form phx-change="validate_import" class="contents">
+            <.live_file_input upload={@uploads.mailboxes} class="sr-only" />
+            <label
+              for={@uploads.mailboxes.ref}
+              class="inline-flex items-center gap-2 border border-ink20 rounded-[2px] font-medium font-mono tracking-[0.04em] cursor-pointer px-[18px] py-[10px] text-[13px] bg-transparent text-ink hover:border-ink"
+            >
+              {gettext("Import from CSV")} <Liid.icon name="file" size={13} />
+            </label>
+          </form>
         </div>
 
         <div
