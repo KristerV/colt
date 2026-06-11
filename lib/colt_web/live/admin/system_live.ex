@@ -47,7 +47,7 @@ defmodule ColtWeb.Admin.SystemLive do
           <p class="text-xs opacity-60 mt-1 font-mono">refreshing every {@tick_ms}ms</p>
         </div>
 
-        <section class="grid grid-cols-3 gap-4">
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <.summary label="CPU" value={pct(@stats.cpu.busy)} accent={busy_accent(@stats.cpu.busy)} />
           <.summary
             label="RAM"
@@ -168,7 +168,8 @@ defmodule ColtWeb.Admin.SystemLive do
             %util = fraction of time the device had I/O in flight. ~100% means saturated.
           </p>
 
-          <table class="text-sm font-mono w-full max-w-4xl">
+          <div class="overflow-x-auto max-w-4xl">
+          <table class="text-sm font-mono w-full min-w-[520px]">
             <thead>
               <tr class="text-xs uppercase tracking-wider opacity-60">
                 <th class="text-left py-1">device</th>
@@ -197,6 +198,7 @@ defmodule ColtWeb.Admin.SystemLive do
               </tr>
             </tbody>
           </table>
+          </div>
         </section>
 
         <section :if={@stats.db.ok?} class="space-y-3">

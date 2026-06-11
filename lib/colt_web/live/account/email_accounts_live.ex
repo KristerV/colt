@@ -127,7 +127,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:email_accounts}>
       <div class="max-w-[860px] w-full">
-        <div class="flex items-end justify-between gap-6 mb-10">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6 mb-10">
           <Liid.headline
             kicker={gettext("Account · Email accounts")}
             sub={
@@ -182,12 +182,12 @@ defmodule ColtWeb.Account.EmailAccountsLive do
 
         <ul :if={@accounts != []} class="border-t border-rule">
           <li :for={a <- @accounts} class="border-b border-rule">
-            <div class="flex items-center gap-6 py-4 px-2">
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:gap-6 py-4 px-2">
               <div class="flex-1 min-w-0">
                 <div class="font-serif text-[20px] tracking-[-0.015em] truncate">
                   {a.address}
                 </div>
-                <div class="mt-1 font-mono text-[11px] text-ink40 tracking-[0.04em] flex items-center gap-3">
+                <div class="mt-1 font-mono text-[11px] text-ink40 tracking-[0.04em] flex items-center gap-3 flex-wrap">
                   <span class="uppercase">{a.provider}</span>
                   <span>·</span>
                   <span class="uppercase">{a.status}</span>
@@ -195,11 +195,12 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   <span :if={a.tz}>{a.tz}</span>
                 </div>
               </div>
-              <form
-                :if={a.status != :disconnected}
-                phx-change="set_quota"
-                class="flex items-center gap-2"
-              >
+              <div class="flex items-center gap-3 flex-wrap">
+                <form
+                  :if={a.status != :disconnected}
+                  phx-change="set_quota"
+                  class="flex items-center gap-2"
+                >
                 <input type="hidden" name="id" value={a.id} />
                 <label class="font-mono text-[10px] tracking-[0.08em] uppercase text-ink55">
                   {gettext("quota")}
@@ -231,6 +232,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
               >
                 {gettext("Disconnect")}
               </Liid.btn>
+              </div>
             </div>
           </li>
         </ul>

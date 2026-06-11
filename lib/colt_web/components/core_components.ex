@@ -360,6 +360,7 @@ defmodule ColtWeb.CoreComponents do
       end
 
     ~H"""
+    <div class="overflow-x-auto">
     <table class="table table-zebra">
       <thead>
         <tr>
@@ -388,6 +389,7 @@ defmodule ColtWeb.CoreComponents do
         </tr>
       </tbody>
     </table>
+    </div>
     """
   end
 

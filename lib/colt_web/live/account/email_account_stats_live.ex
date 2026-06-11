@@ -139,7 +139,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:email_accounts}>
       <div class="max-w-[900px] w-full pb-16">
-        <div class="flex items-end justify-between gap-6 mb-10">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6 mb-10">
           <Liid.headline kicker={gettext("Account · %{address}", address: @account.address)}>
             {raw(gettext("Sending <em>pattern</em>."))}
           </Liid.headline>
@@ -151,7 +151,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           </.link>
         </div>
 
-        <div class="mb-7 grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
+        <div class="mb-7 grid grid-cols-1 sm:grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
           <.stat_tile
             label={gettext("Sent · 28d window")}
             big={"#{@window_sent}"}

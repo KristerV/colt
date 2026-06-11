@@ -20,7 +20,7 @@ defmodule ColtWeb.Campaigns.IndexLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:campaigns}>
       <div class="max-w-[960px] w-full">
-        <div class="flex items-end justify-between gap-6 mb-10">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6 mb-10">
           <Liid.headline
             kicker={gettext("Workspace")}
             sub={gettext("Every search you've started, newest first.")}

@@ -92,6 +92,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     {:noreply, socket}
   end
 
+  def handle_event("deselect_contact", _params, socket) do
+    {:noreply, assign(socket, selected: nil)}
+  end
+
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in ["reply", "note"] do
     {:noreply, assign(socket, active_tab: String.to_existing_atom(tab))}
   end
@@ -399,13 +403,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           :if={@campaign.panic_switch_on and @stats.bounce_rate >= 5.0}
           rate={@stats.bounce_rate}
         />
-        <div class="px-7 pt-6 pb-4">
+        <div class="px-4 md:px-7 pt-6 pb-4">
           <Liid.headline kicker={gettext("Sending · Funnel")}>
             {raw(gettext("Where the <em class=\"text-accent\">conversation</em> is going."))}
           </Liid.headline>
         </div>
 
-        <div class="px-7 pb-4">
+        <div class="px-4 md:px-7 pb-4">
           <.bucket_strip stats={@stats} selected_bucket={@selected_bucket} />
         </div>
 
@@ -415,12 +419,14 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           stats={@stats}
         />
 
-        <div class="grid grid-cols-[360px_1fr] flex-1 min-h-0 border-t border-rule">
-          <.contact_list
-            contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
-            selected={@selected}
-            selected_bucket={@selected_bucket}
-          />
+        <div class="grid grid-cols-1 md:grid-cols-[360px_1fr] flex-1 min-h-0 border-t border-rule">
+          <div class={["min-h-0 flex flex-col", @selected && "hidden md:flex"]}>
+            <.contact_list
+              contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
+              selected={@selected}
+              selected_bucket={@selected_bucket}
+            />
+          </div>
           <%= if @selected do %>
             <.thread_pane
               contact={@selected}
@@ -435,7 +441,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               campaign_id={@campaign.id}
             />
           <% else %>
-            <.empty_pane bucket={@selected_bucket} campaign_id={@campaign.id} />
+            <div class="hidden md:flex flex-col min-h-0">
+              <.empty_pane bucket={@selected_bucket} campaign_id={@campaign.id} />
+            </div>
           <% end %>
         </div>
       </div>
@@ -543,15 +551,14 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     assigns = assign(assigns, tiles: tiles)
 
     ~H"""
-    <div class="grid grid-cols-6 border border-rule rounded-[2px] bg-paper">
-      <%= for {t, i} <- Enum.with_index(@tiles) do %>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-px border border-rule rounded-[2px] bg-rule overflow-hidden">
+      <%= for {t, _i} <- Enum.with_index(@tiles) do %>
         <% active? = @selected_bucket == t.k %>
         <button
           phx-click="select_bucket"
           phx-value-bucket={t.k}
           class={[
-            "text-left p-4 cursor-pointer relative",
-            i < length(@tiles) - 1 && "border-r border-rule",
+            "text-left p-4 cursor-pointer relative bg-paper",
             active? && "bg-paperAlt"
           ]}
         >
@@ -631,7 +638,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp tracking_strip(assigns) do
     ~H"""
-    <div class="px-7 pb-4">
+    <div class="px-4 md:px-7 pb-4">
       <div class="grid grid-cols-2 border border-rule rounded-[2px] bg-paper">
         <div :if={@campaign.tracking_opens?} class="p-4 border-r border-rule">
           <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
@@ -675,7 +682,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp contact_list(assigns) do
     ~H"""
-    <div class="border-r border-rule overflow-y-auto bg-paper">
+    <div class="flex-1 min-h-0 md:border-r border-rule overflow-y-auto bg-paper">
       <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10">
         {gettext("%{n} contacts", n: length(@contacts))}
       </div>
@@ -736,7 +743,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     ~H"""
     <div class="flex flex-col min-h-0 bg-paper">
-      <div class="px-7 py-4 border-b border-rule flex items-start gap-4">
+      <div class="px-4 md:px-7 py-4 border-b border-rule flex items-start gap-3 md:gap-4 flex-wrap">
+        <button
+          type="button"
+          phx-click="deselect_contact"
+          aria-label={gettext("Back to list")}
+          class="md:hidden shrink-0 -ml-1 mt-0.5 p-1 text-ink55 hover:text-ink cursor-pointer bg-transparent border-0"
+        >
+          <Liid.icon name="chev-l" size={18} />
+        </button>
         <div class="flex-1 min-w-0">
           <div class="flex items-baseline gap-3 flex-wrap">
             <span class="font-serif text-[24px] text-ink leading-none">

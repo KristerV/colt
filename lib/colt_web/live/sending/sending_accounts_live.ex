@@ -174,7 +174,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
       campaign_name={@campaign.name}
     >
       <div class="w-full max-w-[900px] mx-auto pb-16">
-        <div class="flex items-end justify-between gap-6 mb-10">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6 mb-10">
           <Liid.headline kicker={gettext("Sending · Accounts")}>
             {raw(gettext("Which inboxes this campaign <em>sends through</em>."))}
           </Liid.headline>
@@ -190,7 +190,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         </div>
 
         <div class="border border-rule rounded-[2px] overflow-hidden">
-          <div class="grid grid-cols-[1fr_120px_140px_160px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
+          <div class="hidden md:grid grid-cols-[1fr_120px_140px_160px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
             <div class="px-[18px] py-3">{gettext("Account")}</div>
             <div class="px-[14px] py-3 text-right">{gettext("Quota")}</div>
             <div class="px-[14px] py-3">{gettext("Status")}</div>
@@ -210,7 +210,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           <% end %>
         </div>
 
-        <div class="mt-7 grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
+        <div class="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
           <.capacity_tile
             label={gettext("Daily capacity")}
             big={"~#{@cap.daily}"}
@@ -255,7 +255,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
       campaign_name={@campaign.name}
     >
       <div class="w-full max-w-[900px] mx-auto pb-16">
-        <div class="flex items-end justify-between gap-6 mb-10">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6 mb-10">
           <Liid.headline
             kicker={gettext("Sending · Accounts · Add")}
             sub={
@@ -291,7 +291,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
         </div>
 
         <div class="border border-rule rounded-[2px] overflow-hidden">
-          <div class="grid grid-cols-[36px_1fr_100px_140px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
+          <div class="hidden md:grid grid-cols-[36px_1fr_100px_140px] bg-paperAlt border-b border-rule font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
             <div class="py-3"></div>
             <div class="px-[14px] py-3">{gettext("Account")}</div>
             <div class="px-[14px] py-3 text-right">{gettext("Quota")}</div>
@@ -348,24 +348,27 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
   defp enrolled_row(assigns) do
     ~H"""
     <div class={[
-      "grid grid-cols-[1fr_120px_140px_160px] items-center",
+      "flex flex-col gap-2.5 px-4 py-3.5 md:grid md:grid-cols-[1fr_120px_140px_160px] md:items-center md:gap-0 md:p-0",
       !@last && "border-b border-rule"
     ]}>
-      <div class="px-[18px] py-3.5">
-        <div class="font-mono text-[13px] text-ink font-medium">{@account.address}</div>
+      <div class="md:px-[18px] md:py-3.5">
+        <div class="font-mono text-[13px] text-ink font-medium break-all">{@account.address}</div>
         <div :if={@enrollment.paused_reason} class="text-[11px] text-ink55 mt-0.5">
           {@enrollment.paused_reason}
         </div>
       </div>
-      <div class="px-[14px] py-3.5 text-right">
+      <div class="flex items-center justify-between md:block md:px-[14px] md:py-3.5 md:text-right">
+        <span class="md:hidden font-mono text-[10px] tracking-[0.12em] uppercase text-ink40">
+          {gettext("Quota")}
+        </span>
         <span class="font-mono text-[12px] text-ink70 tabular-nums">
           {gettext("%{quota}/day", quota: @account.daily_quota)}
         </span>
       </div>
-      <div class="px-[14px] py-3.5">
+      <div class="md:px-[14px] md:py-3.5">
         <.status_pill enrollment={@enrollment} account={@account} />
       </div>
-      <div class="px-[14px] py-3.5 text-right flex items-center justify-end gap-2">
+      <div class="md:px-[14px] md:py-3.5 md:text-right flex items-center md:justify-end gap-2">
         <.link
           navigate={~p"/email-accounts/#{@account.id}/stats"}
           class="no-underline px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] hover:text-ink hover:border-ink40"
@@ -466,11 +469,11 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
 
     ~H"""
     <div class={[
-      "grid grid-cols-[36px_1fr_100px_140px] items-center",
+      "flex items-start gap-1 px-3.5 py-3.5 md:grid md:grid-cols-[36px_1fr_100px_140px] md:items-center md:gap-0 md:p-0",
       !@last && "border-b border-rule",
       @row_class
     ]}>
-      <div class="py-3.5 pl-3.5">
+      <div class="md:py-3.5 md:pl-3.5">
         <button
           type="button"
           phx-click={@selectable && "toggle_pick"}
@@ -488,21 +491,29 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           <Liid.icon :if={@selected} name="check" size={10} />
         </button>
       </div>
-      <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
-        <div class="font-mono text-[13px] text-ink font-medium">{@account.address}</div>
-        <div :if={!@selectable} class="text-[11px] text-fail mt-0.5">
-          {if @account.status == :disconnected,
-            do: gettext("disconnected — re-auth in Email accounts first"),
-            else: gettext("auth error — re-auth in Email accounts")}
+      <div class="flex-1 min-w-0 flex flex-col gap-2 md:contents">
+        <div class={["min-w-0 md:px-[14px] md:py-3.5", !@selectable && "opacity-60"]}>
+          <div class="font-mono text-[13px] text-ink font-medium break-all">{@account.address}</div>
+          <div :if={!@selectable} class="text-[11px] text-fail mt-0.5">
+            {if @account.status == :disconnected,
+              do: gettext("disconnected — re-auth in Email accounts first"),
+              else: gettext("auth error — re-auth in Email accounts")}
+          </div>
         </div>
-      </div>
-      <div class={["px-[14px] py-3.5 text-right", !@selectable && "opacity-60"]}>
-        <span class="font-mono text-[12px] text-ink70 tabular-nums">
-          {gettext("%{quota}/day", quota: @account.daily_quota)}
-        </span>
-      </div>
-      <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
-        <.status_pill_static status={@account.status} />
+        <div class={[
+          "flex items-center justify-between md:block md:px-[14px] md:py-3.5 md:text-right",
+          !@selectable && "opacity-60"
+        ]}>
+          <span class="md:hidden font-mono text-[10px] tracking-[0.12em] uppercase text-ink40">
+            {gettext("Quota")}
+          </span>
+          <span class="font-mono text-[12px] text-ink70 tabular-nums">
+            {gettext("%{quota}/day", quota: @account.daily_quota)}
+          </span>
+        </div>
+        <div class={["md:px-[14px] md:py-3.5", !@selectable && "opacity-60"]}>
+          <.status_pill_static status={@account.status} />
+        </div>
       </div>
     </div>
     """

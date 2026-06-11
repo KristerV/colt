@@ -770,13 +770,11 @@ defmodule ColtWeb.Sending.WritingLive do
 
   defp gmail_row(assigns) do
     ~H"""
-    <div
-      class="grid items-center gap-3.5 px-5 py-2.5 border-b border-rule bg-paper"
-      style={
-        "grid-template-columns: 18px 18px 180px 1fr 70px;" <>
-          if @highlight, do: " box-shadow: inset 2px 0 0 var(--accent);", else: ""
-      }
-    >
+    <div class={[
+      "grid items-center gap-2 md:gap-3.5 px-3 md:px-5 py-2.5 border-b border-rule bg-paper",
+      "grid-cols-[18px_18px_minmax(0,110px)_1fr_56px] md:grid-cols-[18px_18px_180px_1fr_70px]",
+      @highlight && "shadow-[inset_2px_0_0_var(--accent)]"
+    ]}>
       <div class="w-[14px] h-[14px] rounded-[2px] border border-ink40" />
       <span class="text-ink40">☆</span>
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
