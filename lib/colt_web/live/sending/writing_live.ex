@@ -28,7 +28,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
   @pubsub Colt.PubSub
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
 
   def mount(%{"id" => id}, _session, socket) do
@@ -782,7 +782,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                 {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -                  {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}

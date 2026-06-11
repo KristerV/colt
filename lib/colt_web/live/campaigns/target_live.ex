@@ -11,7 +11,7 @@ defmodule ColtWeb.Campaigns.TargetLive do
   alias Colt.Services.Enrichment.Start, as: EnrichmentStart
   alias ColtWeb.Components.Liid
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
 
   @presets [50, 100, 250, 500, 1000]
 

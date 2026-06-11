@@ -4,7 +4,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
   alias Colt.Resources.{Campaign, CampaignEmailAccount, EmailAccount, Sequence, SequenceStep}
   alias ColtWeb.Components.Liid
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
 
   @work_days_per_month 22

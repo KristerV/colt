@@ -59,7 +59,9 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
     assert html =~ "of 6"
   end
 
-  test "confirm saves filters and redirects to target (status stays :collecting)", %{conn: conn} do
+  # seed_user is the first user in an empty table → auto-promoted to admin,
+  # so it clears the pricing gate and proceeds into setup.
+  test "confirm saves filters and redirects to icp (status stays :collecting)", %{conn: conn} do
     seed_companies()
     user = seed_user()
     c = setup_campaign(user)
@@ -69,7 +71,7 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
 
     {:error, {:live_redirect, %{to: to}}} = render_click(view, "confirm", %{})
 
-    assert to == "/campaigns/#{c.id}/target"
+    assert to == "/campaigns/#{c.id}/icp"
 
     {:ok, fresh} = Campaign.get(c.id, actor: user)
     assert fresh.status == :collecting

@@ -11,7 +11,7 @@ defmodule ColtWeb.Campaigns.SuppressionLive do
   alias Colt.Services.Enrichment.Suppression
   alias ColtWeb.Components.Liid
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
 
   @max_file_size 20_000_000
 

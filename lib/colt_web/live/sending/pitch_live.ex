@@ -16,7 +16,7 @@ defmodule ColtWeb.Sending.PitchLive do
 
   @pubsub Colt.PubSub
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
 
   def mount(%{"id" => id}, _session, socket) do

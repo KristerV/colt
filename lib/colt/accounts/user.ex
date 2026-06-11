@@ -256,10 +256,14 @@ defmodule Colt.Accounts.User do
   end
 
   @doc """
-  Whether the user currently has an active, paid plan — the gate for the
+  Whether the user may use the paid features — the gate for the
   enrichment-trigger and sending features. An exhausted-but-active user is
   still `paid?` (they keep app access; Topup just stops admitting work).
+
+  Admins bypass the paywall entirely: they never need to buy a package.
   """
+  def paid?(%{is_admin: true}), do: true
+
   def paid?(%{subscription_status: :active, monthly_contact_capacity: cap})
       when is_integer(cap) and cap > 0,
       do: true

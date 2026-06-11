@@ -4,7 +4,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
   alias Colt.Resources.{Campaign, IcpLearning}
   alias ColtWeb.Components.Liid
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
 
   def mount(%{"id" => id}, _session, socket) do
     case Campaign.get(id, actor: socket.assigns.current_user) do

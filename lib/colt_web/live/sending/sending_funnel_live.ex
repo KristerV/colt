@@ -23,7 +23,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   alias ColtWeb.Components.Liid
   alias Phoenix.PubSub
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
 
   @pubsub Colt.PubSub

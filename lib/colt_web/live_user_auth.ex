@@ -29,6 +29,23 @@ defmodule ColtWeb.LiveUserAuth do
     end
   end
 
+  # Requires a signed-in user with an active plan (admins always pass — see
+  # `Colt.Accounts.User.paid?/1`). Guards the post-pricing campaign steps so an
+  # unpaid user can't skip the pricing gate by navigating there via the menu.
+  def on_mount(:live_plan_required, _params, _session, socket) do
+    case socket.assigns[:current_user] do
+      nil ->
+        {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/sign-in")}
+
+      user ->
+        if Colt.Accounts.User.paid?(user) do
+          {:cont, socket}
+        else
+          {:halt, Phoenix.LiveView.redirect(socket, to: ~p"/pricing")}
+        end
+    end
+  end
+
   def on_mount(:live_admin_required, _params, _session, socket) do
     case socket.assigns[:current_user] do
       %{is_admin: true} -> {:cont, socket}

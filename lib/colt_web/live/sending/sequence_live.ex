@@ -4,7 +4,7 @@ defmodule ColtWeb.Sending.SequenceLive do
   alias Colt.Resources.{Campaign, Sequence, SequenceStep}
   alias ColtWeb.Components.Liid
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
 
   defp languages do

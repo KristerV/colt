@@ -20,7 +20,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   alias Colt.Services.Export.Csv, as: ExportCsv
   alias ColtWeb.Components.{ApiCallLog, Funnel, Liid}
 
-  on_mount {ColtWeb.LiveUserAuth, :live_user_required}
+  on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
 
   @stage_keys ~w(website icp contact verify)a
 

@@ -537,6 +537,9 @@ defmodule ColtWeb.Components.Liid do
     screening = safe_int(Map.get(user, :remaining_screening))
 
     cond do
+      Map.get(user, :is_admin) == true ->
+        %{state: :hidden}
+
       not User.paid?(user) ->
         %{state: :none}
 
