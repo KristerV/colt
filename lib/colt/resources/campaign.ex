@@ -267,5 +267,15 @@ defmodule Colt.Resources.Campaign do
     count :total_count, :campaign_companies
     count :done_count, :campaign_companies, filter: expr(status == :enriched)
     sum :cost_usd, :api_calls, :cost_usd
+
+    # Per-bucket counts for the funnel stats strip — let the DB tally each
+    # status group instead of loading every CampaignCompany into the LiveView.
+    count :queued_count, :campaign_companies, filter: expr(status == :pending)
+    count :working_count, :campaign_companies, filter: expr(status == :scraping)
+    count :rejected_count, :campaign_companies, filter: expr(status == :rejected)
+    count :excluded_count, :campaign_companies, filter: expr(status == :excluded)
+
+    count :failed_count, :campaign_companies,
+      filter: expr(status in [:no_website, :no_contacts, :verify_failed, :failed])
   end
 end

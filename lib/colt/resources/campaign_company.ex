@@ -32,7 +32,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :set_icp_reason, args: [:icp_reason]
     define :set_picked_person, args: [:picked_person_id]
     define :list_for_campaign, args: [:campaign_id]
-    define :list_by_ids, args: [:ids]
+    define :page_for_funnel, args: [:campaign_id, :statuses]
     define :list_for_export, args: [:campaign_id]
     define :reset
     define :reset_for_icp_recheck
@@ -52,9 +52,20 @@ defmodule Colt.Resources.CampaignCompany do
       filter expr(campaign_id == ^arg(:campaign_id))
     end
 
-    read :list_by_ids do
-      argument :ids, {:array, :uuid}, allow_nil?: false
-      filter expr(id in ^arg(:ids))
+    read :page_for_funnel do
+      description """
+      Keyset-paginated rows for one funnel bucket. The funnel only ever shows
+      one status group at a time, so paging per-bucket keeps the LiveView from
+      loading thousands of companies (and their pages/persons) into memory.
+      """
+
+      argument :campaign_id, :uuid, allow_nil?: false
+      argument :statuses, {:array, :atom}, allow_nil?: false
+
+      filter expr(campaign_id == ^arg(:campaign_id) and status in ^arg(:statuses))
+      prepare build(sort: [inserted_at: :asc, id: :asc])
+
+      pagination offset?: true, default_limit: 100, required?: false
     end
 
     read :list_for_export do

@@ -26,17 +26,39 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   @tick_ms 4_000
 
+  @page_size 100
+
+  # Funnel bucket → underlying CampaignCompany statuses. Drives both the
+  # per-bucket page query and the stats-strip count mapping.
+  @bucket_statuses %{
+    queued: [:pending],
+    working: [:scraping],
+    enriched: [:enriched],
+    rejected: [:rejected],
+    excluded: [:excluded],
+    failed: [:no_website, :no_contacts, :verify_failed, :failed]
+  }
+
+  # Campaign aggregates that back the stats strip — one COUNT each, no rows.
+  @count_aggregates [
+    :total_count,
+    :queued_count,
+    :working_count,
+    :done_count,
+    :rejected_count,
+    :excluded_count,
+    :failed_count
+  ]
+
   def mount(%{"id" => id}, _session, socket) do
-    case Campaign.get(id, actor: socket.assigns.current_user) do
+    case Campaign.get(id, actor: socket.assigns.current_user, load: @count_aggregates) do
       {:ok, %{status: s} = campaign} when s in [:draft, :collecting] ->
         {:ok, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
 
       {:ok, campaign} ->
-        all_rows = load_rows(campaign)
-        rows_index = Map.new(all_rows, &{&1.cc_id, &1})
-        stats = compute_stats(all_rows)
         selected_bucket = :enriched
-        rows = Enum.filter(all_rows, &(bucket(&1.status) == selected_bucket))
+        rows = load_page(campaign.id, selected_bucket, 1)
+        rows_index = Map.new(rows, &{&1.cc_id, &1})
 
         if connected?(socket) do
           Broadcast.subscribe(campaign.id)
@@ -50,9 +72,11 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             campaign: campaign,
             rows_index: rows_index,
             expanded_id: nil,
-            stats: stats,
+            stats: stats_from_campaign(campaign),
             selected_bucket: selected_bucket,
-            total: length(all_rows),
+            total: campaign.total_count,
+            page: 1,
+            page_rows: length(rows),
             meta: Stats.run(campaign.finalized_at),
             show_export?: false,
             export_preview: nil,
@@ -74,31 +98,12 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  def handle_info({:rows_added, cc_ids}, socket) do
-    new_rows = load_rows_for_ids(cc_ids)
-
-    rows_index =
-      Enum.reduce(new_rows, socket.assigns.rows_index, fn r, acc ->
-        Map.put(acc, r.cc_id, r)
-      end)
-
-    socket =
-      Enum.reduce(new_rows, socket, fn r, s ->
-        if bucket(r.status) == s.assigns.selected_bucket do
-          stream_insert(s, :rows, r)
-        else
-          s
-        end
-      end)
-
-    new_total = socket.assigns.total + length(new_rows)
-
-    new_stats =
-      Enum.reduce(new_rows, socket.assigns.stats, fn r, acc ->
-        Map.update(acc, bucket(r.status), 1, &(&1 + 1))
-      end)
-
-    {:noreply, assign(socket, rows_index: rows_index, total: new_total, stats: new_stats)}
+  # New companies were scaffolded into the campaign. They land in the queued
+  # bucket; rather than splice each one into a paginated stream at the right
+  # spot, just re-tally the counts so the strip reflects the growth. The rows
+  # themselves surface when the user opens that bucket.
+  def handle_info({:rows_added, _cc_ids}, socket) do
+    {:noreply, refresh_counts(socket)}
   end
 
   def handle_info({:stage, cc_id, stage, state}, socket) do
@@ -124,13 +129,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
       row ->
         new_row = apply_patch(row, patch)
-
-        socket =
-          socket
-          |> replace_row(new_row)
-          |> maybe_recompute_stats(row.status, new_row.status)
-
-        {:noreply, socket}
+        {:noreply, replace_row(socket, new_row)}
     end
   end
 
@@ -172,6 +171,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
     {:noreply,
      socket
+     |> refresh_counts()
      |> assign(meta: Stats.run(socket.assigns.campaign.finalized_at))
      |> assign(current_user: ColtWeb.UsageAssign.load_usage(socket.assigns.current_user))}
   end
@@ -181,9 +181,38 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
   # previous row when opening a new one.
   def handle_event("select_bucket", %{"bucket" => bucket}, socket) do
-    bucket_atom = String.to_existing_atom(bucket)
-    rows = filtered_rows(socket.assigns.rows_index, bucket_atom)
-    {:noreply, socket |> assign(selected_bucket: bucket_atom) |> stream(:rows, rows, reset: true)}
+    {:noreply, load_into_stream(socket, String.to_existing_atom(bucket), 1)}
+  end
+
+  def handle_event("prev_page", _params, socket) do
+    {:noreply, load_into_stream(socket, socket.assigns.selected_bucket, socket.assigns.page - 1)}
+  end
+
+  def handle_event("next_page", _params, socket) do
+    {:noreply, load_into_stream(socket, socket.assigns.selected_bucket, socket.assigns.page + 1)}
+  end
+
+  def handle_event("goto_page", %{"page" => page}, socket) do
+    {:noreply, load_into_stream(socket, socket.assigns.selected_bucket, String.to_integer(page))}
+  end
+
+  # Clamp the target page to the bucket's available pages, load it, and reset
+  # the stream. Only the current page's rows live in memory.
+  defp load_into_stream(socket, bucket, page) do
+    count = Map.get(socket.assigns.stats, bucket, 0)
+    page = page |> max(1) |> min(page_count(count))
+    rows = load_page(socket.assigns.campaign.id, bucket, page)
+    rows_index = Map.new(rows, &{&1.cc_id, &1})
+
+    socket
+    |> assign(
+      selected_bucket: bucket,
+      rows_index: rows_index,
+      page: page,
+      page_rows: length(rows),
+      expanded_id: nil
+    )
+    |> stream(:rows, rows, reset: true)
   end
 
   def handle_event("open_export", _params, socket) do
@@ -304,12 +333,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           stages: stages_for(:pending, nil, 0)
         })
 
-      socket =
-        socket
-        |> replace_row(row)
-        |> maybe_recompute_stats(socket.assigns.rows_index[id].status, :pending)
-
-      {:noreply, socket}
+      {:noreply, replace_row(socket, row)}
     else
       {:noreply, socket}
     end
@@ -328,30 +352,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  defp filtered_rows(rows_index, bucket_atom) do
-    rows_index
-    |> Map.values()
-    |> Enum.filter(&(bucket(&1.status) == bucket_atom))
-  end
-
   defp replace_row(socket, id, fields) when is_binary(id) do
     row = Map.fetch!(socket.assigns.rows_index, id) |> Map.merge(Map.new(fields))
     replace_row(socket, row)
-  end
-
-  defp maybe_recompute_stats(socket, same, same), do: socket
-
-  defp maybe_recompute_stats(socket, old_status, new_status) do
-    stats = socket.assigns.stats
-    bucket_old = bucket(old_status)
-    bucket_new = bucket(new_status)
-
-    stats =
-      stats
-      |> Map.update(bucket_old, 0, &max(&1 - 1, 0))
-      |> Map.update(bucket_new, 0, &(&1 + 1))
-
-    assign(socket, stats: stats)
   end
 
   defp apply_patch(row, patch) do
@@ -390,27 +393,45 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     %{row | contact: Map.put(contact, key, value)}
   end
 
-  defp load_rows(campaign) do
-    {:ok, ccs} =
-      CampaignCompany.list_for_campaign(campaign.id,
-        actor: nil,
+  # Load one page (1-based) of a bucket as row maps.
+  defp load_page(campaign_id, bucket, page) do
+    offset = (page - 1) * @page_size
+
+    page =
+      CampaignCompany.page_for_funnel!(campaign_id, statuses_for(bucket),
         authorize?: false,
-        load: [company: [:persons, :pages]]
+        load: [company: [:persons, :pages]],
+        page: [limit: @page_size, offset: offset]
       )
 
-    Enum.map(ccs, &row_for/1)
+    Enum.map(page.results, &row_for/1)
   end
 
-  defp load_rows_for_ids([]), do: []
+  defp statuses_for(bucket), do: Map.fetch!(@bucket_statuses, bucket)
 
-  defp load_rows_for_ids(cc_ids) do
-    {:ok, ccs} =
-      CampaignCompany.list_by_ids(cc_ids,
-        authorize?: false,
-        load: [company: [:persons, :pages]]
-      )
+  defp page_count(count), do: max(1, ceil(count / @page_size))
 
-    Enum.map(ccs, &row_for/1)
+  # Re-tally the per-bucket counts straight from the DB (cheap COUNT aggregates,
+  # no rows loaded) and refresh the strip + header total.
+  defp refresh_counts(socket) do
+    campaign = Ash.load!(socket.assigns.campaign, @count_aggregates, authorize?: false)
+
+    assign(socket,
+      campaign: campaign,
+      stats: stats_from_campaign(campaign),
+      total: campaign.total_count
+    )
+  end
+
+  defp stats_from_campaign(c) do
+    %{
+      queued: c.queued_count,
+      working: c.working_count,
+      enriched: c.done_count,
+      rejected: c.rejected_count,
+      excluded: c.excluded_count,
+      failed: c.failed_count
+    }
   end
 
   defp row_for(cc) do
@@ -525,14 +546,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  defp compute_stats(rows) do
-    Enum.reduce(
-      rows,
-      %{queued: 0, working: 0, enriched: 0, rejected: 0, excluded: 0, failed: 0},
-      fn r, acc -> Map.update!(acc, bucket(r.status), &(&1 + 1)) end
-    )
-  end
-
   defp bucket(:pending), do: :queued
   defp bucket(:scraping), do: :working
   defp bucket(:enriched), do: :enriched
@@ -621,7 +634,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           target={@campaign.target_contact_count}
         />
 
-        <Funnel.meta_strip meta={@meta} visible={@total} total={@total} />
+        <Funnel.meta_strip meta={@meta} visible={@page_rows} total={@total} />
 
         <div class="flex-1 min-h-0 flex flex-col md:border md:border-rule md:rounded-sharp -mx-4 md:mx-0">
           <Funnel.funnel_header />
@@ -636,20 +649,52 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               </div>
             </div>
           </div>
-          <div
-            :if={bucket_count > 0}
-            class="flex-1 overflow-auto"
-            id="funnel-body"
-            phx-update="stream"
-          >
-            <Funnel.funnel_row
-              :for={{dom_id, row} <- @streams.rows}
-              id={dom_id}
-              row={row}
-              expanded?={row.expanded?}
-              admin?={@current_user.is_admin}
-            />
+          <div :if={bucket_count > 0} class="flex-1 overflow-auto" id="funnel-scroll">
+            <div id="funnel-body" phx-update="stream">
+              <Funnel.funnel_row
+                :for={{dom_id, row} <- @streams.rows}
+                id={dom_id}
+                row={row}
+                expanded?={row.expanded?}
+                admin?={@current_user.is_admin}
+              />
+            </div>
           </div>
+          <% total_pages = page_count(bucket_count) %>
+          <nav
+            :if={bucket_count > 0 and total_pages > 1}
+            class="flex items-center justify-center gap-1 flex-wrap px-4 py-3 border-t border-rule"
+          >
+            <button
+              type="button"
+              phx-click="prev_page"
+              disabled={@page <= 1}
+              class="inline-flex items-center justify-center w-7 h-7 border border-rule rounded-[2px] text-ink55 hover:text-ink hover:border-ink40 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+            >
+              <Liid.icon name="chev-l" size={11} />
+            </button>
+            <button
+              :for={p <- 1..total_pages}
+              type="button"
+              phx-click="goto_page"
+              phx-value-page={p}
+              class={[
+                "inline-flex items-center justify-center min-w-7 h-7 px-2 border rounded-[2px] font-mono text-[11px] tnum cursor-pointer",
+                p == @page && "bg-ink text-paper border-ink",
+                p != @page && "border-rule text-ink55 hover:text-ink hover:border-ink40"
+              ]}
+            >
+              {p}
+            </button>
+            <button
+              type="button"
+              phx-click="next_page"
+              disabled={@page >= total_pages}
+              class="inline-flex items-center justify-center w-7 h-7 border border-rule rounded-[2px] text-ink55 hover:text-ink hover:border-ink40 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+            >
+              <Liid.icon name="chev-r" size={11} />
+            </button>
+          </nav>
         </div>
       </div>
 
