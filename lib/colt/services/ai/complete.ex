@@ -39,6 +39,7 @@ defmodule Colt.Services.Ai.Complete do
   """
   require Logger
 
+  alias Colt.Services.Ai.PauseOnCreditExhaustion
   alias Colt.Services.Costs.Track
 
   @endpoint "https://openrouter.ai/api/v1/chat/completions"
@@ -240,6 +241,13 @@ defmodule Colt.Services.Ai.Complete do
         track_error(ctx, err)
         {:error, err}
     end
+  end
+
+  defp handle_result({:ok, %Req.Response{status: 402, body: body}}, ctx) do
+    err = "openrouter http 402 (insufficient credits): #{inspect(body)}"
+    track_error(ctx, err)
+    PauseOnCreditExhaustion.run(err)
+    {:error, err}
   end
 
   defp handle_result({:ok, %Req.Response{status: status, body: body}}, ctx) do
