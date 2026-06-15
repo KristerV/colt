@@ -1,8 +1,9 @@
 defmodule Colt.Services.Sending.HaltSequence do
   @moduledoc """
-  Flip every outbound `:drafted` / `:scheduled` Email on a thread to
-  `:skipped`. Used by the reply categorizer and by manual "Stop sequence"
-  actions (E7).
+  Flip every in-flight outbound Email on a thread (`:drafted`, `:approved`,
+  `:scheduled`) to `:skipped`. Used by the reply categorizer and by manual
+  "Stop sequence" actions (E7). Approved-but-unscheduled followups are
+  swept too, so a reply leaves no orphaned queued steps behind.
   """
 
   alias Colt.Resources.OutboundEmail

@@ -884,7 +884,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     manual? = kind == :manual_outbound
     status = assigns.item.email.status
     sent? = outbound? and status == :sent
-    draft? = outbound? and status in [:drafted, :approved]
+    draft? = outbound? and status == :drafted
+    queued? = outbound? and status == :approved
 
     chip =
       cond do
@@ -928,6 +929,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         inbound?: inbound?,
         sent?: sent?,
         draft?: draft?,
+        queued?: queued?,
         chip: chip,
         chip_style: chip_style,
         body: body,
@@ -949,6 +951,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <span :if={@item.at}>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
         <span :if={@sent?} class="font-semibold" style="color:var(--accent);">
           {gettext("· sent")}
+        </span>
+        <span :if={@queued?} class="text-ink40">
+          {gettext("· queued")}
         </span>
         <span :if={@draft?} class="text-ink40">
           {gettext("· draft")}

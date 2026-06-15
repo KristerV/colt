@@ -187,10 +187,10 @@ defmodule Colt.Resources.OutboundEmail do
     end
 
     read :list_halt_eligible_for_thread do
-      description "Outbound rows to cancel on reply/halt: drafted + scheduled."
+      description "Outbound rows to cancel on reply/halt: drafted + approved + scheduled."
       argument :thread_id, :uuid, allow_nil?: false
 
-      filter expr(thread_id == ^arg(:thread_id) and status in [:drafted, :scheduled])
+      filter expr(thread_id == ^arg(:thread_id) and status in [:drafted, :approved, :scheduled])
     end
 
     create :create_manual_reply do
