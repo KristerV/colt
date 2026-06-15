@@ -25,7 +25,7 @@ msgstr "Admin"
 #: lib/colt_web/live/campaigns/funnel_live.ex:554
 #, elixir-autogen, elixir-format
 msgid "Already contacted"
-msgstr "Juba kontaktitud"
+msgstr "Juba kontakteeritud"
 
 #: lib/colt_web/components/layouts.ex:70
 #: lib/colt_web/components/layouts.ex:81
