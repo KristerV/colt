@@ -754,23 +754,23 @@ defmodule ColtWeb.Sending.WritingLive do
         {@company.ai_summary}
       </div>
       <div :if={@reports != []} class="mt-3 border-t border-rule pt-3">
-        <table class="w-full font-mono text-[11px]">
+        <table class="w-full font-mono text-[11px] tabular-nums">
           <thead>
             <tr class="text-ink40 text-[9px] tracking-[0.08em] uppercase">
               <th class="text-left font-normal pb-1">{gettext("Year")}</th>
               <th class="text-right font-normal pb-1">{gettext("Revenue")}</th>
-              <th class="text-right font-normal pb-1">{gettext("Employees")}</th>
+              <th class="text-right font-normal pb-1 pl-2"></th>
+              <th class="text-right font-normal pb-1 pl-3">{gettext("Employees")}</th>
+              <th class="text-right font-normal pb-1 pl-2"></th>
             </tr>
           </thead>
           <tbody>
             <tr :for={r <- @reports} class="text-ink70">
               <td class="text-left py-0.5 text-ink">{r.year}</td>
-              <td class="text-right py-0.5">
-                {format_eur(r.revenue)} <.delta_badge value={r.rev_delta} suffix="%" />
-              </td>
-              <td class="text-right py-0.5">
-                {r.employees || "—"} <.delta_badge value={r.emp_delta} suffix="" />
-              </td>
+              <td class="text-right py-0.5">{format_eur(r.revenue)}</td>
+              <td class="text-right py-0.5 pl-2"><.delta_badge value={r.rev_delta} suffix="%" /></td>
+              <td class="text-right py-0.5 pl-3">{r.employees || "—"}</td>
+              <td class="text-right py-0.5 pl-2"><.delta_badge value={r.emp_delta} suffix="%" /></td>
             </tr>
           </tbody>
         </table>
@@ -807,7 +807,7 @@ defmodule ColtWeb.Sending.WritingLive do
         revenue: r.revenue_eur,
         employees: r.employees,
         rev_delta: pct_delta(r.revenue_eur, prev && prev.revenue_eur),
-        emp_delta: abs_delta(r.employees, prev && prev.employees)
+        emp_delta: pct_delta(r.employees, prev && prev.employees)
       }
     end)
     |> Enum.take(3)
@@ -819,13 +819,12 @@ defmodule ColtWeb.Sending.WritingLive do
   defp pct_delta(_, nil), do: nil
 
   defp pct_delta(cur, prev) do
-    prev_f = Decimal.to_float(prev)
-    if prev_f == 0.0, do: nil, else: round((Decimal.to_float(cur) - prev_f) / prev_f * 100)
+    prev_f = to_float(prev)
+    if prev_f == 0.0, do: nil, else: round((to_float(cur) - prev_f) / prev_f * 100)
   end
 
-  defp abs_delta(nil, _), do: nil
-  defp abs_delta(_, nil), do: nil
-  defp abs_delta(cur, prev), do: cur - prev
+  defp to_float(%Decimal{} = d), do: Decimal.to_float(d)
+  defp to_float(n) when is_number(n), do: n / 1
 
   defp format_eur(nil), do: "—"
 
@@ -1007,7 +1006,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                      {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -                        {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
@@ -1021,7 +1020,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
   defp action_bar(assigns) do
     ~H"""
-    <div class="mt-8 pt-5 border-t border-ink20 flex items-center justify-between">
+    <div class="mt-8 pt-5 border-t border-ink20 flex items-center justify-end gap-3">
       <button
         type="button"
         phx-click="open_learning"

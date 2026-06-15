@@ -736,8 +736,10 @@ defmodule ColtWeb.Components.Funnel do
 
         <form phx-submit="submit_learning" class="flex flex-col gap-4">
           <textarea
+            id="learning-reason"
             name="reason"
             autofocus
+            phx-update="ignore"
             placeholder={learning_placeholder(@mode)}
             class="w-full min-h-[120px] px-[16px] py-3 border border-ink20 bg-paperAlt text-[14px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
           ></textarea>
