@@ -131,36 +131,46 @@ defmodule Colt.Services.Sending.EmailWriter do
 
     examples =
       rows
-      |> Enum.map(&example_from/1)
+      |> Enum.group_by(& &1.thread_id)
+      |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
       |> Enum.reject(&is_nil/1)
+      # newest contacts first (rows already arrive inserted_at desc)
+      |> Enum.sort_by(& &1.recency, {:desc, DateTime})
 
     {:ok, Map.put(ctx, :examples, examples)}
   end
 
-  defp example_from(email) do
-    contact = email.thread && email.thread.campaign_contact
+  # One prior contact = the whole edited sequence (opener + followups),
+  # AI draft vs user-edited, in step order. Company/person shown once.
+  defp contact_example(emails) do
+    first = List.first(emails)
+    contact = first && first.thread && first.thread.campaign_contact
     person = contact && contact.person
     company = person && person.company
 
-    after_subject = email.user_subject || email.ai_subject
-    after_body = email.user_body || email.ai_body
+    steps =
+      emails
+      |> Enum.sort_by(&(&1.step_position || 999))
+      |> Enum.map(fn e ->
+        %{
+          position: e.step_position,
+          ai: %{subject: e.ai_subject, body: e.ai_body},
+          user: %{subject: e.user_subject || e.ai_subject, body: e.user_body || e.ai_body}
+        }
+      end)
 
-    if after_subject || after_body do
+    if steps != [] do
       %{
-        id: email.id,
-        step_position: email.step_position,
-        before_ai: %{subject: email.ai_subject, body: email.ai_body},
-        after_user: %{subject: after_subject, body: after_body},
-        person_brief: %{
-          name: person && person.name,
-          title: person && person.title
-        },
+        ids: Enum.map(emails, & &1.id),
+        recency: first.inserted_at,
+        person_brief: %{name: person && person.name, title: person && person.title},
         company_brief: %{
           name: company && company.name,
           industry: company && company.industry_code,
           employees: company && company.employees_latest,
           summary: company && company.ai_summary
-        }
+        },
+        steps: steps
       }
     end
   end
@@ -210,7 +220,8 @@ defmodule Colt.Services.Sending.EmailWriter do
     this language).
     """
 
-    {:ok, %{system: system, user: user, seed: seed, example_ids: Enum.map(examples, & &1.id)}}
+    {:ok,
+     %{system: system, user: user, seed: seed, example_ids: Enum.flat_map(examples, & &1.ids)}}
   end
 
   defp company_block(nil), do: "- (no company data)"
@@ -277,35 +288,43 @@ defmodule Colt.Services.Sending.EmailWriter do
     rendered =
       examples
       |> Enum.with_index()
-      |> Enum.map(fn {ex, i} ->
-        """
-        Example #{i} (id #{ex.id}, #{step_label(ex.step_position)}):
-          Person: #{ex.person_brief.title} at #{ex.company_brief.name} (#{ex.company_brief.industry}, #{ex.company_brief.employees} employees)
-          Company summary: #{trunc_text(ex.company_brief.summary, 240)}
-          AI draft subject: #{ex.before_ai.subject}
-          AI draft body:
-        #{indent(trunc_text(ex.before_ai.body, 400))}
-          User-edited subject: #{ex.after_user.subject}
-          User-edited body:
-        #{indent(trunc_text(ex.after_user.body, 400))}
-        """
-      end)
+      |> Enum.map(fn {ex, i} -> render_example(ex, i) end)
       |> Enum.join("\n")
 
     """
     Few-shot examples (#{length(examples)} prior contacts the user edited):
     #{rendered}
-
     Seed: #{seed}
-    Instruction: scan the examples above. Each is tagged with the step it
-    came from (opener vs followup N). When writing a given step, prefer
-    examples from the same step — learn opener style from openers and
-    followup style from followups; do not copy an opener's structure into
-    a followup. Among examples for the same step, if one or more closely
-    match the target's industry, company size, or person title, follow the
-    style of those. If multiple match, pick deterministically using
-    `seed mod N` where N is the count of matching examples. If none match,
-    write fresh in the user's tone.
+    Instruction: each example is a full prior sequence — every step shows
+    the AI draft next to what the user changed it to. Learn the user's
+    tone per step: opener style from openers, followup style from
+    followups. Among examples that match the target's industry, company
+    size, or person title, follow those; if several match, pick
+    deterministically using `seed mod N` where N is the count of matching
+    examples. If none match, write fresh in the user's tone.
+    """
+  end
+
+  defp render_example(ex, i) do
+    steps =
+      ex.steps
+      |> Enum.map(fn s ->
+        """
+          #{step_label(s.position)}:
+            AI subject: #{s.ai.subject}
+            AI body:
+        #{indent(trunc_text(s.ai.body, 400))}
+            User-edited subject: #{s.user.subject}
+            User-edited body:
+        #{indent(trunc_text(s.user.body, 400))}\
+        """
+      end)
+      |> Enum.join("\n")
+
+    """
+    Example #{i} — #{ex.person_brief.title} at #{ex.company_brief.name} (#{ex.company_brief.industry}, #{ex.company_brief.employees} employees):
+      Company summary: #{trunc_text(ex.company_brief.summary, 240)}
+    #{steps}\
     """
   end
 
