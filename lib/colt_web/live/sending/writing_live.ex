@@ -223,7 +223,7 @@ defmodule ColtWeb.Sending.WritingLive do
         case CampaignContact.next_pending(campaign.id, actor: actor) do
           {:ok, %_{} = contact} ->
             contact =
-              Ash.load!(contact, [person: [:company], thread: []],
+              Ash.load!(contact, [person: [company: [:annual_reports]], thread: []],
                 actor: actor,
                 authorize?: true
               )
@@ -659,8 +659,20 @@ defmodule ColtWeb.Sending.WritingLive do
   attr :company, :map, default: nil
 
   defp contact_header(assigns) do
+    assigns = assign(assigns, :reports, recent_reports(assigns[:company]))
+
     ~H"""
     <div class="p-5 border border-rule bg-paper rounded-[2px]">
+      <div
+        :if={@company && @company.status != :registered}
+        class={[
+          "mb-3 font-mono text-[10px] tracking-[0.06em] uppercase rounded-[2px] px-2 py-1 border",
+          (@company.status == :other && "text-warn border-warn/40 bg-warn/10") ||
+            "text-fail border-fail/40 bg-fail/10"
+        ]}
+      >
+        ⚠ {status_label(@company.status)}
+      </div>
       <div class="flex items-baseline justify-between gap-4">
         <div>
           <div class="font-serif text-[28px] tracking-[-0.02em] leading-none text-ink">
@@ -684,6 +696,15 @@ defmodule ColtWeb.Sending.WritingLive do
             |> Enum.reject(&(&1 in [nil, ""]))
             |> Enum.join(" · ")}
           </div>
+          <a
+            :if={@company.website_url}
+            href={href_url(@company.website_url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-block mt-1 font-mono text-[10px] text-accent hover:underline"
+          >
+            ↗ {display_host(@company.website_url)}
+          </a>
         </div>
       </div>
       <div
@@ -692,8 +713,108 @@ defmodule ColtWeb.Sending.WritingLive do
       >
         {@company.ai_summary}
       </div>
+      <div :if={@reports != []} class="mt-3 border-t border-rule pt-3">
+        <table class="w-full font-mono text-[11px]">
+          <thead>
+            <tr class="text-ink40 text-[9px] tracking-[0.08em] uppercase">
+              <th class="text-left font-normal pb-1">{gettext("Year")}</th>
+              <th class="text-right font-normal pb-1">{gettext("Revenue")}</th>
+              <th class="text-right font-normal pb-1">{gettext("Employees")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr :for={r <- @reports} class="text-ink70">
+              <td class="text-left py-0.5 text-ink">{r.year}</td>
+              <td class="text-right py-0.5">
+                {format_eur(r.revenue)} <.delta_badge value={r.rev_delta} suffix="%" />
+              </td>
+              <td class="text-right py-0.5">
+                {r.employees || "—"} <.delta_badge value={r.emp_delta} suffix="" />
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
     """
+  end
+
+  attr :value, :any, required: true
+  attr :suffix, :string, default: ""
+
+  defp delta_badge(assigns) do
+    ~H"""
+    <span
+      :if={@value not in [nil, 0]}
+      class={["font-mono text-[9px] ml-1", (@value > 0 && "text-accent") || "text-fail"]}
+    >
+      {(@value > 0 && "▲") || "▼"}{abs(@value)}{@suffix}
+    </span>
+    """
+  end
+
+  # Latest 3 annual reports, newest first, each with a delta against the next older year.
+  defp recent_reports(%{annual_reports: reports}) when is_list(reports) do
+    sorted = Enum.sort_by(reports, & &1.year, :desc)
+
+    sorted
+    |> Enum.with_index()
+    |> Enum.map(fn {r, i} ->
+      prev = Enum.at(sorted, i + 1)
+
+      %{
+        year: r.year,
+        revenue: r.revenue_eur,
+        employees: r.employees,
+        rev_delta: pct_delta(r.revenue_eur, prev && prev.revenue_eur),
+        emp_delta: abs_delta(r.employees, prev && prev.employees)
+      }
+    end)
+    |> Enum.take(3)
+  end
+
+  defp recent_reports(_), do: []
+
+  defp pct_delta(nil, _), do: nil
+  defp pct_delta(_, nil), do: nil
+
+  defp pct_delta(cur, prev) do
+    prev_f = Decimal.to_float(prev)
+    if prev_f == 0.0, do: nil, else: round((Decimal.to_float(cur) - prev_f) / prev_f * 100)
+  end
+
+  defp abs_delta(nil, _), do: nil
+  defp abs_delta(_, nil), do: nil
+  defp abs_delta(cur, prev), do: cur - prev
+
+  defp format_eur(nil), do: "—"
+
+  defp format_eur(d) do
+    n = Decimal.to_float(d)
+
+    cond do
+      n >= 1_000_000 -> "€#{trim_decimal(n / 1_000_000)}M"
+      n >= 1_000 -> "€#{trim_decimal(n / 1_000)}K"
+      true -> "€#{round(n)}"
+    end
+  end
+
+  defp trim_decimal(x) do
+    x |> Float.round(1) |> :erlang.float_to_binary(decimals: 1) |> String.replace_suffix(".0", "")
+  end
+
+  defp status_label(:liquidation), do: gettext("In liquidation")
+  defp status_label(:deleted), do: gettext("Deleted from registry")
+  defp status_label(_), do: gettext("Inactive")
+
+  defp href_url("http" <> _ = url), do: url
+  defp href_url(url), do: "https://" <> url
+
+  defp display_host(url) do
+    url
+    |> String.replace(~r{^https?://}i, "")
+    |> String.replace(~r{/.*$}, "")
+    |> String.replace_prefix("www.", "")
   end
 
   attr :days, :integer, required: true
@@ -846,7 +967,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                   {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -                     {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
