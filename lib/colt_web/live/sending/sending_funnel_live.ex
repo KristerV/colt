@@ -78,7 +78,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     socket =
       socket
       |> assign(selected_bucket: bucket)
-      |> assign(selected: List.first(visible) || socket.assigns.selected)
+      |> assign(selected: List.first(visible))
       |> load_thread_data()
 
     {:noreply, socket}
