@@ -77,6 +77,10 @@ defmodule ColtWeb.Sending.PitchLive do
     end
   end
 
+  def handle_event("continue", _params, socket) do
+    {:noreply, push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sequence")}
+  end
+
   def handle_info({:pitch_updated, pitch_id}, socket) do
     if socket.assigns.pitch.id == pitch_id do
       actor = socket.assigns.current_user
@@ -201,8 +205,19 @@ defmodule ColtWeb.Sending.PitchLive do
           </div>
         </div>
 
-        <div :if={@saved_at} class="mt-10 font-mono text-[11px] text-ink40">
-          {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
+        <div class="mt-10 flex flex-wrap items-center gap-4">
+          <.link
+            navigate={~p"/campaigns/#{@campaign.id}/funnel"}
+            class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+          >
+            <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
+          </.link>
+          <Liid.btn variant={:primary} mono phx-click="continue">
+            {gettext("Continue → sequence")} <Liid.icon name="arrow" />
+          </Liid.btn>
+          <span :if={@saved_at} class="font-mono text-[11px] text-ink40">
+            {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
+          </span>
         </div>
       </div>
     </Layouts.app>

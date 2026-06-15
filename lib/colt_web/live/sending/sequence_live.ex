@@ -41,6 +41,11 @@ defmodule ColtWeb.Sending.SequenceLive do
     end
   end
 
+  def handle_event("continue", _params, socket) do
+    {:noreply,
+     push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sending-accounts")}
+  end
+
   def handle_event("set_language", %{"language" => lang}, socket) do
     {:ok, sequence} =
       Sequence.set_language(socket.assigns.sequence, lang, actor: socket.assigns.current_user)
@@ -296,8 +301,19 @@ defmodule ColtWeb.Sending.SequenceLive do
         <.section_divider label={gettext("Approval")} />
         <.auto_approve_row campaign={@campaign} />
 
-        <div :if={@saved_at} class="mt-10 font-mono text-[11px] text-ink40">
-          {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
+        <div class="mt-10 flex flex-wrap items-center gap-4">
+          <.link
+            navigate={~p"/campaigns/#{@campaign.id}/pitch"}
+            class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+          >
+            <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
+          </.link>
+          <Liid.btn variant={:primary} mono phx-click="continue">
+            {gettext("Continue → sending accounts")} <Liid.icon name="arrow" />
+          </Liid.btn>
+          <span :if={@saved_at} class="font-mono text-[11px] text-ink40">
+            {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
+          </span>
         </div>
       </div>
     </Layouts.app>
