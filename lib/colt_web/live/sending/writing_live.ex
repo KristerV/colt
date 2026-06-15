@@ -76,12 +76,14 @@ defmodule ColtWeb.Sending.WritingLive do
   end
 
   def handle_event("set_subject", %{"value" => v}, socket) do
+    socket = persist_subject(socket, v)
     {:noreply, assign(socket, subject: v) |> mark_saved()}
   end
 
   def handle_event("set_body", %{"position" => pos, "value" => v}, socket) do
     pos = String.to_integer(pos)
     bodies = Map.put(socket.assigns.bodies, pos, v)
+    socket = persist_body(socket, pos, v)
     {:noreply, assign(socket, bodies: bodies) |> mark_saved()}
   end
 
@@ -401,6 +403,44 @@ defmodule ColtWeb.Sending.WritingLive do
 
       _ ->
         0
+    end
+  end
+
+  # Subject is shared across the whole sequence, so persist it onto every draft
+  # (mirrors how ApproveContact applies edits).
+  defp persist_subject(socket, v) do
+    actor = socket.assigns.current_user
+
+    drafts =
+      Enum.map(socket.assigns.drafts, fn email ->
+        save_user_fields(email, v, email.user_body, actor)
+      end)
+
+    assign(socket, drafts: drafts)
+  end
+
+  defp persist_body(socket, pos, v) do
+    actor = socket.assigns.current_user
+
+    drafts =
+      Enum.map(socket.assigns.drafts, fn email ->
+        if email.step_position == pos do
+          save_user_fields(email, email.user_subject, v, actor)
+        else
+          email
+        end
+      end)
+
+    assign(socket, drafts: drafts)
+  end
+
+  defp save_user_fields(email, user_subject, user_body, actor) do
+    case OutboundEmail.update_user_fields(email, user_subject, user_body,
+           actor: actor,
+           authorize?: actor != nil
+         ) do
+      {:ok, updated} -> updated
+      {:error, _} -> email
     end
   end
 
@@ -967,7 +1007,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                     {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -                      {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
