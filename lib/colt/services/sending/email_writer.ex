@@ -83,7 +83,7 @@ defmodule Colt.Services.Sending.EmailWriter do
 
   defp load_context(contact, actor) do
     contact =
-      Ash.load!(contact, [person: [:company], thread: []],
+      Ash.load!(contact, [person: [company: [:annual_reports]], thread: []],
         actor: actor,
         authorize?: actor != nil
       )
@@ -148,6 +148,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     if after_subject || after_body do
       %{
         id: email.id,
+        step_position: email.step_position,
         before_ai: %{subject: email.ai_subject, body: email.ai_body},
         after_user: %{subject: after_subject, body: after_body},
         person_brief: %{
@@ -198,12 +199,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     - Email: #{ctx.person && ctx.person.email}
 
     Target company:
-    - Name: #{ctx.company && ctx.company.name}
-    - Industry code: #{ctx.company && ctx.company.industry_code}
-    - Employees: #{ctx.company && ctx.company.employees_latest}
-    - Region: #{ctx.company && ctx.company.region}
-    - Summary:
-    #{ctx.company && ctx.company.ai_summary}
+    #{company_block(ctx.company)}
 
     Sequence skeleton (write one subject+body per email step):
     #{skeleton_lines(ctx.all_steps)}
@@ -217,6 +213,64 @@ defmodule Colt.Services.Sending.EmailWriter do
     {:ok, %{system: system, user: user, seed: seed, example_ids: Enum.map(examples, & &1.id)}}
   end
 
+  defp company_block(nil), do: "- (no company data)"
+
+  defp company_block(company) do
+    """
+    - Name: #{company.name}
+    - Industry code: #{company.industry_code}
+    - Region: #{company.region}
+    - Website: #{company.website_url || "—"}
+    - Registry status: #{company.status}
+    - Employees (latest): #{company.employees_latest}
+    - Revenue (latest): #{format_eur(company.revenue_latest)}
+    - Revenue growth: #{company.revenue_growth_bucket || "—"}
+    - Recent annual figures:
+    #{financials_block(company)}
+    - Summary:
+    #{company.ai_summary}\
+    """
+  end
+
+  defp financials_block(company) do
+    case recent_reports(company) do
+      [] ->
+        "    (no filed reports)"
+
+      reports ->
+        reports
+        |> Enum.map(fn r ->
+          "    #{r.year}: revenue #{format_eur(r.revenue)}, employees #{r.employees || "—"}"
+        end)
+        |> Enum.join("\n")
+    end
+  end
+
+  defp recent_reports(%{annual_reports: reports}) when is_list(reports) do
+    reports
+    |> Enum.sort_by(& &1.year, :desc)
+    |> Enum.take(3)
+    |> Enum.map(&%{year: &1.year, revenue: &1.revenue_eur, employees: &1.employees})
+  end
+
+  defp recent_reports(_), do: []
+
+  defp format_eur(nil), do: "—"
+
+  defp format_eur(d) do
+    n = Decimal.to_float(d)
+
+    cond do
+      n >= 1_000_000 -> "€#{trim_decimal(n / 1_000_000)}M"
+      n >= 1_000 -> "€#{trim_decimal(n / 1_000)}K"
+      true -> "€#{round(n)}"
+    end
+  end
+
+  defp trim_decimal(x) do
+    x |> Float.round(1) |> :erlang.float_to_binary(decimals: 1) |> String.replace_suffix(".0", "")
+  end
+
   defp examples_block([], _seed), do: ""
 
   defp examples_block(examples, seed) do
@@ -225,7 +279,7 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.with_index()
       |> Enum.map(fn {ex, i} ->
         """
-        Example #{i} (id #{ex.id}):
+        Example #{i} (id #{ex.id}, #{step_label(ex.step_position)}):
           Person: #{ex.person_brief.title} at #{ex.company_brief.name} (#{ex.company_brief.industry}, #{ex.company_brief.employees} employees)
           Company summary: #{trunc_text(ex.company_brief.summary, 240)}
           AI draft subject: #{ex.before_ai.subject}
@@ -243,13 +297,21 @@ defmodule Colt.Services.Sending.EmailWriter do
     #{rendered}
 
     Seed: #{seed}
-    Instruction: scan the examples above. If one or more closely match the
-    target's industry, company size, or person title, follow the style
-    of those. If multiple match, pick deterministically using `seed mod N`
-    where N is the count of matching examples. If none match, write
-    fresh in the user's tone.
+    Instruction: scan the examples above. Each is tagged with the step it
+    came from (opener vs followup N). When writing a given step, prefer
+    examples from the same step — learn opener style from openers and
+    followup style from followups; do not copy an opener's structure into
+    a followup. Among examples for the same step, if one or more closely
+    match the target's industry, company size, or person title, follow the
+    style of those. If multiple match, pick deterministically using
+    `seed mod N` where N is the count of matching examples. If none match,
+    write fresh in the user's tone.
     """
   end
+
+  defp step_label(nil), do: "manual reply"
+  defp step_label(0), do: "opener"
+  defp step_label(n) when is_integer(n), do: "followup #{n}"
 
   defp trunc_text(nil, _), do: ""
 
