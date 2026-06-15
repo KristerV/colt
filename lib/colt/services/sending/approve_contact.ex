@@ -30,10 +30,29 @@ defmodule Colt.Services.Sending.ApproveContact do
          {:ok, contact} <- approve_contact(contact, inbox, snapshot, sequence.version, actor),
          {:ok, _} <- schedule_step_one(drafts, inbox, actor),
          {:ok, _} <- approve_other_steps(drafts, actor),
-         {:ok, _} <- maybe_bump_streak(contact.campaign_id, drafts, actor) do
+         {:ok, _} <- maybe_bump_streak(contact.campaign_id, drafts, actor),
+         {:ok, _} <- label_opener(drafts) do
       {:ok, %{contact_id: contact.id, inbox_id: inbox.id}}
     end
   end
+
+  # Classify the opener's approach off the request path (§6.2) — but only when
+  # the user actually rewrote the opener. An unedited opener is just the AI
+  # reusing an existing template; it carries no new approach to learn.
+  # Best-effort: a failed enqueue must never block approval.
+  defp label_opener(drafts) do
+    case Enum.find(drafts, &(&1.step_position == 0)) do
+      %{id: opener_id} = opener ->
+        if opener_edited?(opener), do: Colt.Jobs.LabelTemplate.enqueue(opener_id)
+
+      _ ->
+        :ok
+    end
+
+    {:ok, :ok}
+  end
+
+  defp opener_edited?(%{user_subject: s, user_body: b}), do: not (is_nil(s) and is_nil(b))
 
   defp load_contact(id, actor) do
     Ash.get(CampaignContact, id,

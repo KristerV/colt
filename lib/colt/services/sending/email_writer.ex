@@ -119,9 +119,65 @@ defmodule Colt.Services.Sending.EmailWriter do
      }}
   end
 
+  @example_window 250
+  @max_examples 50
+
+  # Each contact = one whole approach ("template"). The labeler tags every
+  # approved opener with a template_label; here we pick ONE label at random and
+  # feed only that approach's sequences, so the writer commits to a single
+  # approach per contact instead of averaging them into mush. Until a campaign
+  # has labeled openers, fall back to the newest user-edited sequences.
   defp collect_examples(ctx) do
+    case pick_template(ctx) do
+      {:ok, template, examples} ->
+        {:ok, ctx |> Map.put(:examples, examples) |> Map.put(:chosen_template, template)}
+
+      :none ->
+        {:ok, ctx |> Map.put(:examples, fallback_examples(ctx)) |> Map.put(:chosen_template, nil)}
+    end
+  end
+
+  defp pick_template(ctx) do
+    openers =
+      OutboundEmail.list_labeled_openers_for_campaign!(ctx.contact.campaign_id,
+        load: [thread: [:outbound_emails, campaign_contact: [person: [:company]]]],
+        authorize?: false
+      )
+
+    case Enum.group_by(openers, & &1.template_label) do
+      groups when map_size(groups) == 0 ->
+        :none
+
+      groups ->
+        # Uniform pick across distinct approaches — every template gets used,
+        # so a majority approach can't starve a minority one (or vice versa).
+        {label, label_openers} = Enum.random(groups)
+
+        examples =
+          label_openers
+          |> Enum.map(&example_from_opener/1)
+          |> Enum.reject(&is_nil/1)
+          |> Enum.sort_by(& &1.recency, {:desc, DateTime})
+          |> Enum.take(@max_examples)
+
+        template = template_axes(label, label_openers)
+
+        if examples == [], do: :none, else: {:ok, template, examples}
+    end
+  end
+
+  defp template_axes(label, [opener | _]) do
+    %{
+      label: label,
+      angle: opener.template_angle,
+      ask: opener.template_ask,
+      offer: opener.template_offer
+    }
+  end
+
+  defp fallback_examples(ctx) do
     rows =
-      case OutboundEmail.list_user_edited_for_campaign(ctx.contact.campaign_id, 20,
+      case OutboundEmail.list_user_edited_for_campaign(ctx.contact.campaign_id, @example_window,
              load: [thread: [campaign_contact: [person: [:company]]]],
              authorize?: false
            ) do
@@ -129,23 +185,44 @@ defmodule Colt.Services.Sending.EmailWriter do
         _ -> []
       end
 
-    examples =
-      rows
-      |> Enum.group_by(& &1.thread_id)
-      |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
-      |> Enum.reject(&is_nil/1)
-      # newest contacts first (rows already arrive inserted_at desc)
-      |> Enum.sort_by(& &1.recency, {:desc, DateTime})
-
-    {:ok, Map.put(ctx, :examples, examples)}
+    rows
+    |> Enum.group_by(& &1.thread_id)
+    |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
+    |> Enum.reject(&is_nil/1)
+    # newest contacts first (rows already arrive inserted_at desc)
+    |> Enum.sort_by(& &1.recency, {:desc, DateTime})
+    |> Enum.take(@max_examples)
   end
 
-  # One prior contact = the whole edited sequence (opener + followups),
-  # AI draft vs user-edited, in step order. Company/person shown once.
+  # Template path: a labeled opener carries its whole thread (the sequence).
+  defp example_from_opener(opener) do
+    thread = opener.thread
+    contact = thread && thread.campaign_contact
+    person = contact && contact.person
+
+    emails =
+      ((thread && thread.outbound_emails) || [])
+      |> Enum.reject(&(is_nil(&1.step_position) or &1.is_manual_reply))
+
+    build_example(person, emails, opener.inserted_at)
+  end
+
+  # Fallback path: a thread's user-edited rows, grouped upstream.
   defp contact_example(emails) do
     first = List.first(emails)
     contact = first && first.thread && first.thread.campaign_contact
     person = contact && contact.person
+
+    build_example(person, emails, first && first.inserted_at)
+  end
+
+  # One prior contact = the whole sequence (opener + followups) in step order,
+  # using only the user's final sent text — never the AI draft. Showing the
+  # draft next to the edit trains the model to "correct away" from its own
+  # instinct, which collapses approach diversity over time.
+  defp build_example(_person, [], _recency), do: nil
+
+  defp build_example(person, emails, recency) do
     company = person && person.company
 
     steps =
@@ -154,25 +231,23 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.map(fn e ->
         %{
           position: e.step_position,
-          ai: %{subject: e.ai_subject, body: e.ai_body},
-          user: %{subject: e.user_subject || e.ai_subject, body: e.user_body || e.ai_body}
+          subject: e.user_subject || e.ai_subject,
+          body: e.user_body || e.ai_body
         }
       end)
 
-    if steps != [] do
-      %{
-        ids: Enum.map(emails, & &1.id),
-        recency: first.inserted_at,
-        person_brief: %{name: person && person.name, title: person && person.title},
-        company_brief: %{
-          name: company && company.name,
-          industry: company && company.industry_code,
-          employees: company && company.employees_latest,
-          summary: company && company.ai_summary
-        },
-        steps: steps
-      }
-    end
+    %{
+      ids: Enum.map(emails, & &1.id),
+      recency: recency,
+      person_brief: %{name: person && person.name, title: person && person.title},
+      company_brief: %{
+        name: company && company.name,
+        industry: company && company.industry_code,
+        employees: company && company.employees_latest,
+        summary: company && company.ai_summary
+      },
+      steps: steps
+    }
   end
 
   defp build_prompt(ctx) do
@@ -197,7 +272,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     """
 
     examples = Map.get(ctx, :examples, [])
-    seed = :rand.uniform(100) - 1
+    template = Map.get(ctx, :chosen_template)
 
     user = """
     Sender context (what we sell):
@@ -214,14 +289,19 @@ defmodule Colt.Services.Sending.EmailWriter do
     Sequence skeleton (write one subject+body per email step):
     #{skeleton_lines(ctx.all_steps)}
 
-    #{examples_block(examples, seed)}
+    #{examples_block(examples, template)}
 
     Language: #{language_name(ctx.language)} (write the whole email in
     this language).
     """
 
     {:ok,
-     %{system: system, user: user, seed: seed, example_ids: Enum.flat_map(examples, & &1.ids)}}
+     %{
+       system: system,
+       user: user,
+       chosen_template: template && template.label,
+       example_ids: Enum.flat_map(examples, & &1.ids)
+     }}
   end
 
   defp company_block(nil), do: "- (no company data)"
@@ -282,27 +362,47 @@ defmodule Colt.Services.Sending.EmailWriter do
     x |> Float.round(1) |> :erlang.float_to_binary(decimals: 1) |> String.replace_suffix(".0", "")
   end
 
-  defp examples_block([], _seed), do: ""
+  defp examples_block([], _template), do: ""
 
-  defp examples_block(examples, seed) do
-    rendered =
-      examples
-      |> Enum.with_index()
-      |> Enum.map(fn {ex, i} -> render_example(ex, i) end)
-      |> Enum.join("\n")
+  # Template path: the approach is already chosen (in code). Feed only that
+  # one approach's sequences and tell the model to commit to it.
+  defp examples_block(examples, %{} = template) do
+    """
+    All examples below are ONE outreach approach the user uses — template
+    "#{template.label}":
+    - angle (reason for reaching out): #{template.angle}
+    - ask (call to action): #{template.ask}
+    - offer (value framing): #{template.offer}
 
+    #{rendered_examples(examples)}
+    Instruction: every example is a full sequence the user actually sent in
+    this one approach — real, finished writing in their voice, not
+    corrections. Write this contact's whole sequence in exactly this
+    approach: same angle and same call to action, with fresh wording
+    tailored to this company. Match the user's tone per step (opener style
+    from openers, followup style from followups). Do not switch to a
+    different angle or CTA.
     """
-    Few-shot examples (#{length(examples)} prior contacts the user edited):
-    #{rendered}
-    Seed: #{seed}
-    Instruction: each example is a full prior sequence — every step shows
-    the AI draft next to what the user changed it to. Learn the user's
-    tone per step: opener style from openers, followup style from
-    followups. Among examples that match the target's industry, company
-    size, or person title, follow those; if several match, pick
-    deterministically using `seed mod N` where N is the count of matching
-    examples. If none match, write fresh in the user's tone.
+  end
+
+  # Fallback path (campaign has no labeled templates yet): just learn the
+  # user's voice from their recent edited sequences.
+  defp examples_block(examples, nil) do
     """
+    Few-shot examples (#{length(examples)} prior sequences the user sent):
+    #{rendered_examples(examples)}
+    Instruction: every example is a full sequence the user actually sent —
+    real, finished writing in their own voice, not corrections. Write this
+    contact's sequence in the same voice and tone, with fresh wording
+    tailored to this company.
+    """
+  end
+
+  defp rendered_examples(examples) do
+    examples
+    |> Enum.with_index()
+    |> Enum.map(fn {ex, i} -> render_example(ex, i) end)
+    |> Enum.join("\n")
   end
 
   defp render_example(ex, i) do
@@ -311,12 +411,9 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.map(fn s ->
         """
           #{step_label(s.position)}:
-            AI subject: #{s.ai.subject}
-            AI body:
-        #{indent(s.ai.body || "")}
-            User-edited subject: #{s.user.subject}
-            User-edited body:
-        #{indent(s.user.body || "")}\
+            Subject: #{s.subject}
+            Body:
+        #{indent(s.body || "")}\
         """
       end)
       |> Enum.join("\n")
@@ -426,7 +523,7 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> MapSet.new(& &1.step_position)
 
     meta = %{
-      "seed" => prompt.seed,
+      "chosen_template" => prompt.chosen_template,
       "example_ids" => prompt.example_ids,
       "prompt_chars" => String.length(prompt.user) + String.length(prompt.system)
     }
