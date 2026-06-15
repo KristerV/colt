@@ -48,3 +48,6 @@ npm-debug.log
 /priv/ingest_cache_lt_sodra/
 /priv/ingest_cache_dk/
 /priv/ingest_cache_no/
+
+# Playwright MCP browser artifacts
+/.playwright-mcp/
