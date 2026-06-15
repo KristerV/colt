@@ -711,6 +711,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   attr :contacts, :list, required: true
   attr :selected, :map, default: nil
   attr :selected_bucket, :any, default: nil
+  attr :sent_steps, :map, default: %{}
+  attr :total_steps, :integer, default: 0
 
   defp contact_list(assigns) do
     ~H"""
@@ -905,6 +907,21 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     sender = if inbound?, do: assigns.item.email.from_address, else: gettext("you")
 
+    # Accent everywhere in this component is applied via CSS vars in inline
+    # styles (inbound chip, sent border, "· sent" label) — keep the chip on
+    # the same footing rather than mixing in a `bg-accent` utility.
+    chip_style =
+      cond do
+        sent? ->
+          "background:var(--accent);color:var(--paper);"
+
+        outbound? ->
+          "background:var(--ink);color:var(--paper);"
+
+        true ->
+          "background:color-mix(in oklch, var(--accent) 12%, transparent);color:var(--accent);"
+      end
+
     assigns =
       assign(assigns,
         outbound?: outbound?,
@@ -912,6 +929,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         sent?: sent?,
         draft?: draft?,
         chip: chip,
+        chip_style: chip_style,
         body: body,
         subject: subject,
         sender: sender
@@ -921,16 +939,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     <div class={["my-4 max-w-[720px]", if(@outbound?, do: "mr-auto", else: "ml-auto")]}>
       <div class="flex items-center gap-2 mb-1.5 font-mono text-[10px] text-ink55">
         <span
-          class={[
-            "inline-flex items-center px-2 py-0.5 rounded-[2px] uppercase font-semibold",
-            @outbound? && not @sent? && "bg-ink text-paper",
-            @sent? && "bg-accent text-paper"
-          ]}
-          style={
-            unless @outbound?,
-              do:
-                "background:color-mix(in oklch, var(--accent) 12%, transparent);color:var(--accent);"
-          }
+          class="inline-flex items-center px-2 py-0.5 rounded-[2px] uppercase font-semibold"
+          style={@chip_style}
         >
           {@chip}
         </span>
