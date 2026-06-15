@@ -15,7 +15,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     CampaignContact,
     InboundEmail,
     Note,
-    OutboundEmail
+    OutboundEmail,
+    Sequence
   }
 
   alias Colt.Services.Sending.{ManualOverride, SendManualReply, Stats, StopSequence}
@@ -39,6 +40,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         selected = pick_contact(contacts, params["contact_id"])
         stats = Stats.for(campaign.id)
         sent_steps = compute_sent_steps(contacts)
+        total_steps = count_email_steps(campaign.id, actor)
 
         socket =
           socket
@@ -50,6 +52,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             selected_bucket: :interested,
             stats: stats,
             sent_steps: sent_steps,
+            total_steps: total_steps,
             active_tab: :reply,
             reply_html: "",
             reply_nonce: 0,
@@ -252,21 +255,23 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     |> load_thread_data()
   end
 
-  # Map contact_id → max sent step_position. Used both for bucket
-  # filtering and the contact-list status chip. Cheap enough at v1
-  # scale; Stats memoization covers the heavier metric computation.
+  # Map contact_id → count of distinct sequence steps actually sent.
+  # Drives the "n/total" progress badge in the contact list. Cheap enough
+  # at v1 scale; Stats memoization covers the heavier metric computation.
   defp compute_sent_steps(contacts) do
     Enum.reduce(contacts, %{}, fn c, acc ->
       case c.thread do
         %{id: tid} ->
           case OutboundEmail.list_for_thread(tid, authorize?: false) do
             {:ok, rows} ->
-              sent = rows |> Enum.filter(&(&1.status == :sent and &1.step_position != nil))
+              count =
+                rows
+                |> Enum.filter(&(&1.status == :sent and &1.step_position != nil))
+                |> Enum.map(& &1.step_position)
+                |> Enum.uniq()
+                |> length()
 
-              case sent do
-                [] -> acc
-                _ -> Map.put(acc, c.id, sent |> Enum.map(& &1.step_position) |> Enum.max())
-              end
+              if count > 0, do: Map.put(acc, c.id, count), else: acc
 
             _ ->
               acc
@@ -276,6 +281,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           acc
       end
     end)
+  end
+
+  # Total number of email steps in the campaign's sequence — the
+  # denominator of the "n/total" contact-list badge.
+  defp count_email_steps(campaign_id, actor) do
+    case Sequence.get_for_campaign(campaign_id, load: [:sequence_steps], actor: actor) do
+      {:ok, %{sequence_steps: steps}} -> Enum.count(steps, &(&1.kind == :email))
+      _ -> 0
+    end
   end
 
   defp visible_contacts(contacts, nil, _sent_map), do: contacts
@@ -323,24 +337,47 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     end
   end
 
+  # A sequence step that's neither sent nor scheduled has no real moment
+  # in time — its inserted_at is just when the draft row was written, which
+  # scrambles the timeline (step 3 drafted before step 1 ⇒ step 3 jumps
+  # ahead). Pin those to the very end, in step order, with no display date.
+  @unscheduled_sentinel ~U[9999-01-01 00:00:00.000000Z]
+
   defp build_timeline(outbound, inbound, notes) do
     out_items =
       outbound
       |> Enum.reject(&(&1.status == :skipped))
       |> Enum.map(fn e ->
+        at = outbound_at(e)
+
         %{
           kind: if(e.is_manual_reply, do: :manual_outbound, else: :outbound),
-          at: e.sent_at || e.scheduled_at || e.inserted_at,
+          at: at,
+          sort_at: at || @unscheduled_sentinel,
+          sort_pos: e.step_position || 0,
           email: e
         }
       end)
 
-    in_items = Enum.map(inbound, fn e -> %{kind: :inbound, at: e.received_at, email: e} end)
-    note_items = Enum.map(notes, fn n -> %{kind: :note, at: n.inserted_at, note: n} end)
+    in_items =
+      Enum.map(inbound, fn e ->
+        %{kind: :inbound, at: e.received_at, sort_at: e.received_at, sort_pos: 0, email: e}
+      end)
+
+    note_items =
+      Enum.map(notes, fn n ->
+        %{kind: :note, at: n.inserted_at, sort_at: n.inserted_at, sort_pos: 0, note: n}
+      end)
 
     (out_items ++ in_items ++ note_items)
-    |> Enum.sort_by(& &1.at, {:asc, DateTime})
+    |> Enum.sort_by(&{DateTime.to_unix(&1.sort_at, :microsecond), &1.sort_pos})
   end
+
+  # Real clock for an outbound row: when it was sent, else when it's
+  # scheduled to send. A bare draft (drafted/approved) returns nil.
+  defp outbound_at(%{sent_at: at}) when not is_nil(at), do: at
+  defp outbound_at(%{scheduled_at: at}) when not is_nil(at), do: at
+  defp outbound_at(_), do: nil
 
   defp strip_html(html) when is_binary(html) do
     html
@@ -420,6 +457,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
             selected={@selected}
             selected_bucket={@selected_bucket}
+            sent_steps={@sent_steps}
+            total_steps={@total_steps}
           />
           <%= if @selected do %>
             <.thread_pane
@@ -701,8 +740,11 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             </span>
             <span class={"font-mono text-[10px] text-#{tone}"}>{label}</span>
           </div>
-          <div class="flex justify-between text-[11px] text-ink55">
+          <div class="flex justify-between items-baseline text-[11px] text-ink55 gap-2">
             <span class="truncate">{(c.person && c.person.title) || ""}</span>
+            <span :if={@total_steps > 0} class="font-mono text-[10px] text-ink40 shrink-0">
+              {Map.get(@sent_steps, c.id, 0)}/{@total_steps}
+            </span>
           </div>
         </button>
       <% end %>
@@ -838,6 +880,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     outbound? = kind in [:outbound, :manual_outbound]
     inbound? = kind == :inbound
     manual? = kind == :manual_outbound
+    status = assigns.item.email.status
+    sent? = outbound? and status == :sent
+    draft? = outbound? and status in [:drafted, :approved]
 
     chip =
       cond do
@@ -864,6 +909,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       assign(assigns,
         outbound?: outbound?,
         inbound?: inbound?,
+        sent?: sent?,
+        draft?: draft?,
         chip: chip,
         body: body,
         subject: subject,
@@ -876,7 +923,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <span
           class={[
             "inline-flex items-center px-2 py-0.5 rounded-[2px] uppercase font-semibold",
-            @outbound? && "bg-ink text-paper"
+            @outbound? && not @sent? && "bg-ink text-paper",
+            @sent? && "bg-accent text-paper"
           ]}
           style={
             unless @outbound?,
@@ -887,8 +935,14 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           {@chip}
         </span>
         <span>{@sender}</span>
-        <span>·</span>
-        <span>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
+        <span :if={@item.at}>·</span>
+        <span :if={@item.at}>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
+        <span :if={@sent?} class="font-semibold" style="color:var(--accent);">
+          {gettext("· sent")}
+        </span>
+        <span :if={@draft?} class="text-ink40">
+          {gettext("· draft")}
+        </span>
         <span :if={@outbound? and @item.email.status == :scheduled} class="text-ink40">
           {gettext("· scheduled")}
         </span>
@@ -907,7 +961,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           "p-4 border border-rule rounded-[2px]",
           if(@outbound?, do: "bg-paper", else: "bg-paperAlt")
         ]}
-        style={if(@inbound?, do: "border-left:2px solid var(--accent);")}
+        style={if(@inbound? or @sent?, do: "border-left:2px solid var(--accent);")}
       >
         <div :if={@subject} class="text-[13px] font-semibold text-ink mb-2">{@subject}</div>
         <div class="text-[13px] leading-[1.6] text-ink70 whitespace-pre-wrap">
