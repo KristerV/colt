@@ -76,28 +76,30 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     titles = Enum.map(persons, & &1.title)
     picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id, cc.id)
 
-    picked_person =
-      case picked_idx do
-        i when is_integer(i) -> Enum.at(persons, i)
-        _ -> List.first(persons)
-      end
+    case picked_idx do
+      i when is_integer(i) ->
+        picked_person = Enum.at(persons, i)
+        {:ok, _} = CampaignCompany.set_picked_person(cc, picked_person.id)
+        Transition.stage(cc, :contact, :done)
 
-    {:ok, _} =
-      CampaignCompany.set_picked_person(cc, (picked_person || %{id: nil}).id)
+        broadcast_contact(cc, %{
+          contact_name: picked_person.name,
+          contact_title: picked_person.title,
+          contact_email: picked_person.email,
+          contact_phone: picked_person.phone
+        })
 
-    Transition.stage(cc, :contact, :done)
+        enqueue_verify(cc)
+        :ok
 
-    if picked_person do
-      broadcast_contact(cc, %{
-        contact_name: picked_person.name,
-        contact_title: picked_person.title,
-        contact_email: picked_person.email,
-        contact_phone: picked_person.phone
-      })
+      :none ->
+        Transition.stage(cc, :contact, :fall)
+
+        {:ok, _} =
+          Transition.terminate(cc, :no_contacts, reason: no_match_reason(campaign, titles))
+
+        :ok
     end
-
-    enqueue_verify(cc)
-    :ok
   end
 
   defp run(cc, company, campaign, pages, haystack) do
@@ -167,30 +169,39 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
         person
       end)
 
-    picked_person =
-      case picked_idx do
-        i when is_integer(i) -> Enum.at(persisted, i)
-        _ -> nil
-      end
-
-    if picked_person do
-      {:ok, _} = CampaignCompany.set_picked_person(cc, picked_person.id)
-    end
-
+    # Always touch the company so the persisted people seed the freshness cache,
+    # even when none match this campaign's target.
     {:ok, _} = Company.touch_enriched(company)
-    Transition.stage(cc, :contact, :done)
 
-    if picked_person do
-      broadcast_contact(cc, %{
-        contact_name: picked_person.name,
-        contact_title: picked_person.title,
-        contact_email: picked_person.email,
-        contact_phone: picked_person.phone
-      })
+    case picked_idx do
+      i when is_integer(i) ->
+        picked_person = Enum.at(persisted, i)
+        {:ok, _} = CampaignCompany.set_picked_person(cc, picked_person.id)
+        Transition.stage(cc, :contact, :done)
+
+        broadcast_contact(cc, %{
+          contact_name: picked_person.name,
+          contact_title: picked_person.title,
+          contact_email: picked_person.email,
+          contact_phone: picked_person.phone
+        })
+
+        enqueue_verify(cc)
+        :ok
+
+      :none ->
+        Transition.stage(cc, :contact, :fall)
+
+        {:ok, _} =
+          Transition.terminate(cc, :no_contacts, reason: no_match_reason(campaign, titles))
+
+        :ok
     end
+  end
 
-    enqueue_verify(cc)
-    :ok
+  defp no_match_reason(campaign, titles) do
+    target = campaign.target_job_title || "target role"
+    "found #{length(titles)} contact(s) but none match \"#{target}\""
   end
 
   defp enqueue_verify(cc) do
@@ -205,10 +216,11 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
     |> Oban.insert!()
   end
 
-  # ICP-validated companies must always have a picked contact. If the model
-  # declines or errors, fall back to index 0 so downstream (UI + export)
-  # always has someone to email.
-  defp pick_index(_target, [], _campaign_id, _cc_id), do: nil
+  # Returns the index of the contact matching the campaign's target job title,
+  # or :none when no candidate is in the target function. We deliberately do
+  # NOT fall back to a random contact — a company with people but no on-target
+  # contact should become :no_contacts, not get a wrong person attached.
+  defp pick_index(_target, [], _campaign_id, _cc_id), do: :none
 
   defp pick_index(target, titles, campaign_id, cc_id) do
     case PickBestContact.run(target, titles,
@@ -216,7 +228,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
            subject: {:campaign_company, cc_id}
          ) do
       {:ok, i} when is_integer(i) -> i
-      _ -> 0
+      _ -> :none
     end
   end
 

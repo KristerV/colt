@@ -12,27 +12,45 @@ defmodule Colt.Services.Enrichment.PickBestContact do
   alias Colt.Services.Ai.Complete
 
   @system """
-  You pick the single best contact from a list of people at a company.
+  You pick the single best contact from a list of people at a company, given
+  a target job title. Your job is to find someone in the SAME FUNCTION as the
+  target — not just anyone at the company.
 
   The target may be a single title or a comma-separated list in order of
   importance ("Sales Manager, COO, CEO" means try Sales Manager first, fall
   back to COO, then CEO). Pick the highest-priority match that exists.
 
-  Match generously across synonyms AND languages. Titles may be in any
-  language — Estonian "juhataja" / "Juhatuse liige" = Managing Director ≈ CEO,
-  Finnish "toimitusjohtaja" = CEO, German "Geschäftsführer" = Managing
-  Director, etc. "Head of Engineering" matches "CTO", "VP Sales" matches
-  "Head of Sales". A junior IC role does not match a leadership target.
+  Match by FUNCTION, generously, across seniority, synonyms, and languages:
+
+  - Leadership target (CEO, Founder, Owner, Managing Director, COO, President):
+    any top decision-maker counts. Estonian "juhataja"/"Juhatuse liige",
+    Finnish "toimitusjohtaja", German "Geschäftsführer", Polish "Prezes
+    Zarządu" all match.
+  - Sales target (Head of Sales, Sales Manager, Sales Director, CSO): ANY
+    sales role counts, including junior ones — "Sales Manager", "Sales
+    Representative", "Account Manager", "Account Executive", "Business
+    Development", "Sales Agent" are all fine matches. Be vague here: a sales
+    rep is a perfectly good match for a "Head of Sales" target.
+  - Marketing, Engineering/Tech, HR, Finance, etc.: same idea — match anyone
+    whose function is the same as the target, at any seniority.
+
+  Be vague, not stupid. Do NOT match across functions. For a Sales or CEO
+  target, an unrelated specialist is NOT a match: e.g. "Construction
+  Engineer", "Head of Electrical Works Department", "Project Engineer",
+  "Site Supervisor", "Accountant", "Warehouse Manager" do NOT match a sales
+  or leadership target. A CEO/owner is always an acceptable fallback for any
+  business target, but a random department head is not.
+
+  If, and only if, NO candidate is in the target function (and there is no
+  CEO/owner to fall back to), return {"index": null}. Returning null is the
+  correct, expected outcome when the company simply has no contact of the
+  type we want — downstream this marks the company as "no contact found",
+  which is fine. Do not force a wrong pick just to avoid null.
 
   If no target is provided, pick the most senior decision-maker (CEO,
   Founder, Managing Director > VP/Head > Director > Manager > IC).
 
   If multiple candidates are equally good, pick the lowest-numbered one.
-
-  Almost always pick someone. If you return null, the system falls back to
-  the first listed person — so unless the list is empty or every candidate
-  is clearly wrong (e.g. all interns for a CEO target), your pick will be
-  better than that default. Only return null as a last resort.
 
   Return JSON only.
   """
