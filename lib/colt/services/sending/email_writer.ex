@@ -313,10 +313,10 @@ defmodule Colt.Services.Sending.EmailWriter do
           #{step_label(s.position)}:
             AI subject: #{s.ai.subject}
             AI body:
-        #{indent(trunc_text(s.ai.body, 400))}
+        #{indent(s.ai.body || "")}
             User-edited subject: #{s.user.subject}
             User-edited body:
-        #{indent(trunc_text(s.user.body, 400))}\
+        #{indent(s.user.body || "")}\
         """
       end)
       |> Enum.join("\n")
