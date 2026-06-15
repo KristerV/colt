@@ -705,7 +705,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         preview={@export_preview}
       />
 
-      <.learning_modal
+      <Funnel.learning_modal
         :if={@learning_row}
         row={@learning_row}
         mode={@learning_mode}
@@ -854,90 +854,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     </div>
     """
   end
-
-  attr :row, :map, required: true
-  attr :mode, :atom, required: true
-  attr :saving?, :boolean, default: false
-  attr :error, :string, default: nil
-
-  defp learning_modal(assigns) do
-    ~H"""
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
-      style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
-    >
-      <div
-        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[560px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
-        style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
-        phx-click-away="close_learning"
-        phx-window-keydown="close_learning"
-        phx-key="escape"
-      >
-        <div class="flex justify-between items-start gap-3 mb-5">
-          <div class="min-w-0">
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
-              {learning_eyebrow(@mode)} · {@row.name}
-            </div>
-            <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
-              {Phoenix.HTML.raw(learning_heading(@mode))}
-            </h2>
-            <div class="text-[12px] text-ink55 mt-2 leading-[1.55]">
-              {gettext(
-                "Tell us in your own words. We'll save it as a rule and apply it next time you re-check ICP — no other companies move until you do."
-              )}
-            </div>
-          </div>
-          <button
-            type="button"
-            class="w-6 h-6 flex items-center justify-center cursor-pointer"
-            phx-click="close_learning"
-          >
-            <Liid.icon name="x" size={14} />
-          </button>
-        </div>
-
-        <form phx-submit="submit_learning" class="flex flex-col gap-4">
-          <textarea
-            name="reason"
-            autofocus
-            placeholder={learning_placeholder(@mode)}
-            class="w-full min-h-[120px] px-[16px] py-3 border border-ink20 bg-paperAlt text-[14px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
-          ></textarea>
-
-          <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
-
-          <div class="flex items-center gap-3 justify-end">
-            <Liid.btn size={:small} type="button" phx-click="close_learning">
-              {gettext("Cancel")}
-            </Liid.btn>
-            <Liid.btn
-              size={:small}
-              variant={:primary}
-              mono
-              type="submit"
-              disabled={@saving?}
-            >
-              {if @saving?, do: gettext("Saving…"), else: gettext("Save learning")}
-            </Liid.btn>
-          </div>
-        </form>
-      </div>
-    </div>
-    """
-  end
-
-  defp learning_eyebrow(:exclude), do: gettext("Not a good fit")
-  defp learning_eyebrow(:include), do: gettext("Actually a good fit")
-
-  defp learning_heading(:exclude), do: gettext("What makes this a <em>miss</em>?")
-  defp learning_heading(:include), do: gettext("What makes this a <em>match</em>?")
-
-  defp learning_placeholder(:exclude),
-    do: gettext("e.g. They're a pure reseller — we sell to manufacturers, not distributors.")
-
-  defp learning_placeholder(:include),
-    do:
-      gettext("e.g. They manufacture in-house — the site just emphasises their distribution arm.")
 
   attr :row, :map, required: true
   attr :calls, :list, required: true

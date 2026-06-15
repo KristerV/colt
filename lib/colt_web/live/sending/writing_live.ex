@@ -21,10 +21,10 @@ defmodule ColtWeb.Sending.WritingLive do
     Thread
   }
 
-  alias Colt.Services.Sending.{ApproveContact, IngestEnriched}
+  alias Colt.Services.Sending.{ApproveContact, IngestEnriched, RejectContactIcp}
   alias Colt.Services.Sending.EmailWriter
   alias Phoenix.PubSub
-  alias ColtWeb.Components.Liid
+  alias ColtWeb.Components.{Funnel, Liid}
 
   @pubsub Colt.PubSub
 
@@ -53,7 +53,10 @@ defmodule ColtWeb.Sending.WritingLive do
             bodies: %{},
             enriched_available: 0,
             first_email: false,
-            saved_at: nil
+            saved_at: nil,
+            learning_open?: false,
+            learning_saving?: false,
+            learning_error: nil
           )
           |> load_next_contact()
 
@@ -93,6 +96,34 @@ defmodule ColtWeb.Sending.WritingLive do
     end
   end
 
+  # ── Skip contact: "Not a good fit" ─────────────────────────────────────
+
+  def handle_event("open_learning", _params, socket) do
+    {:noreply, assign(socket, learning_open?: true, learning_error: nil)}
+  end
+
+  def handle_event("close_learning", _params, socket) do
+    {:noreply,
+     assign(socket, learning_open?: false, learning_error: nil, learning_saving?: false)}
+  end
+
+  def handle_event("submit_learning", %{"reason" => reason}, socket) do
+    reason = String.trim(reason || "")
+
+    cond do
+      socket.assigns.contact == nil ->
+        {:noreply, socket}
+
+      reason == "" ->
+        {:noreply,
+         assign(socket, learning_error: gettext("Tell us why so we can learn the rule."))}
+
+      true ->
+        send(self(), {:save_learning, socket.assigns.contact.id, reason})
+        {:noreply, assign(socket, learning_saving?: true, learning_error: nil)}
+    end
+  end
+
   defp do_approve(socket) do
     actor = socket.assigns.current_user
     contact = socket.assigns.contact
@@ -125,6 +156,26 @@ defmodule ColtWeb.Sending.WritingLive do
            socket,
            :error,
            gettext("Couldn't approve: %{reason}", reason: inspect(reason))
+         )}
+    end
+  end
+
+  def handle_info({:save_learning, contact_id, reason}, socket) do
+    actor = socket.assigns.current_user
+
+    case RejectContactIcp.run(contact_id, reason, actor: actor) do
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> assign(learning_open?: false, learning_saving?: false, learning_error: nil)
+         |> put_flash(:info, gettext("Marked as ICP miss and removed from sending."))
+         |> load_next_contact()}
+
+      {:error, _reason} ->
+        {:noreply,
+         assign(socket,
+           learning_saving?: false,
+           learning_error: gettext("Couldn't save that. Try again.")
          )}
     end
   end
@@ -408,6 +459,19 @@ defmodule ColtWeb.Sending.WritingLive do
         :if={@state in [:default, :drafting]}
         drafting={@state == :drafting}
         can_approve={can_approve?(@subject, @bodies, @drafts)}
+      />
+
+      <Funnel.learning_modal
+        :if={@learning_open? && @company}
+        row={%{name: @company.name}}
+        mode={:exclude}
+        saving?={@learning_saving?}
+        error={@learning_error}
+        note={
+          gettext(
+            "Tell us in your own words. We'll save it as an ICP rule and drop this contact from sending for good."
+          )
+        }
       />
     </Layouts.app>
     """
@@ -782,7 +846,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                  {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -                   {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}
@@ -796,7 +860,15 @@ defmodule ColtWeb.Sending.WritingLive do
 
   defp action_bar(assigns) do
     ~H"""
-    <div class="mt-8 pt-5 border-t border-ink20 flex items-center justify-end">
+    <div class="mt-8 pt-5 border-t border-ink20 flex items-center justify-between">
+      <button
+        type="button"
+        phx-click="open_learning"
+        class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+      >
+        <Liid.icon name="x" size={11} /> {gettext("Not a good fit")}
+      </button>
+
       <Liid.btn
         variant={:primary}
         phx-click="approve"
