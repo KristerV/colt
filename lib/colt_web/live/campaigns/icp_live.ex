@@ -92,7 +92,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
   defp parse_business_model(_, fallback), do: fallback
 
   defp load_learnings(campaign_id) do
-    case IcpLearning.list_for_campaign(campaign_id, authorize?: false) do
+    case IcpLearning.list_by_target(campaign_id, :company, authorize?: false) do
       {:ok, learnings} -> learnings
       _ -> []
     end

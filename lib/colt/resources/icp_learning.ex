@@ -1,8 +1,13 @@
 defmodule Colt.Resources.IcpLearning do
   @moduledoc """
-  A campaign-scoped exclusion rule, derived from a user's "not a good fit"
-  feedback on a specific company. Appended to the ICP prompt at classify-time
-  without rewriting the user's original `campaign.icp_description`.
+  A campaign-scoped learning rule, derived from a user's "not a good fit"
+  feedback on a specific company/contact. Appended to the relevant AI prompt
+  at decision-time without rewriting the user's original ICP inputs.
+
+  `target` says which decision the rule refines:
+
+    * `:company` — refines the ICP company filter (`ClassifyIcp`).
+    * `:contact` — refines who the contact picker chooses (`PickBestContact`).
   """
   use Ash.Resource,
     otp_app: :colt,
@@ -21,8 +26,9 @@ defmodule Colt.Resources.IcpLearning do
 
   code_interface do
     define :get, action: :read, get_by: [:id]
-    define :create, args: [:campaign_id, :body, :kind, :source_company_id]
+    define :create, args: [:campaign_id, :body, :kind, :source_company_id, :target]
     define :list_for_campaign, args: [:campaign_id]
+    define :list_by_target, args: [:campaign_id, :target]
     define :destroy, action: :destroy
   end
 
@@ -31,12 +37,19 @@ defmodule Colt.Resources.IcpLearning do
     default_accept []
 
     create :create do
-      accept [:campaign_id, :body, :kind, :source_company_id]
+      accept [:campaign_id, :body, :kind, :source_company_id, :target]
     end
 
     read :list_for_campaign do
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id))
+      prepare build(sort: [inserted_at: :asc])
+    end
+
+    read :list_by_target do
+      argument :campaign_id, :uuid, allow_nil?: false
+      argument :target, :atom, allow_nil?: false
+      filter expr(campaign_id == ^arg(:campaign_id) and target == ^arg(:target))
       prepare build(sort: [inserted_at: :asc])
     end
   end
@@ -49,6 +62,13 @@ defmodule Colt.Resources.IcpLearning do
     attribute :kind, :atom do
       constraints one_of: [:exclude, :include]
       default :exclude
+      allow_nil? false
+      public? true
+    end
+
+    attribute :target, :atom do
+      constraints one_of: [:company, :contact]
+      default :company
       allow_nil? false
       public? true
     end

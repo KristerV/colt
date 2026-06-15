@@ -21,7 +21,13 @@ defmodule ColtWeb.Sending.WritingLive do
     Thread
   }
 
-  alias Colt.Services.Sending.{ApproveContact, IngestEnriched, RejectContactIcp}
+  alias Colt.Services.Sending.{
+    ApproveContact,
+    IngestEnriched,
+    RejectContactIcp,
+    RejectContactPick
+  }
+
   alias Colt.Services.Sending.EmailWriter
   alias Phoenix.PubSub
   alias ColtWeb.Components.{Funnel, Liid}
@@ -109,8 +115,9 @@ defmodule ColtWeb.Sending.WritingLive do
      assign(socket, learning_open?: false, learning_error: nil, learning_saving?: false)}
   end
 
-  def handle_event("submit_learning", %{"reason" => reason}, socket) do
+  def handle_event("submit_learning", %{"reason" => reason} = params, socket) do
     reason = String.trim(reason || "")
+    scope = if params["scope"] == "company", do: :company, else: :contact
 
     cond do
       socket.assigns.contact == nil ->
@@ -121,7 +128,7 @@ defmodule ColtWeb.Sending.WritingLive do
          assign(socket, learning_error: gettext("Tell us why so we can learn the rule."))}
 
       true ->
-        send(self(), {:save_learning, socket.assigns.contact.id, reason})
+        send(self(), {:save_learning, scope, socket.assigns.contact.id, reason})
         {:noreply, assign(socket, learning_saving?: true, learning_error: nil)}
     end
   end
@@ -162,15 +169,27 @@ defmodule ColtWeb.Sending.WritingLive do
     end
   end
 
-  def handle_info({:save_learning, contact_id, reason}, socket) do
+  defp learning_saved_flash(:company),
+    do: gettext("Marked as ICP miss and removed from sending.")
+
+  defp learning_saved_flash(:contact),
+    do: gettext("Saved — we'll pick a better contact next time. Removed from sending.")
+
+  def handle_info({:save_learning, scope, contact_id, reason}, socket) do
     actor = socket.assigns.current_user
 
-    case RejectContactIcp.run(contact_id, reason, actor: actor) do
+    result =
+      case scope do
+        :company -> RejectContactIcp.run(contact_id, reason, actor: actor)
+        :contact -> RejectContactPick.run(contact_id, reason, actor: actor)
+      end
+
+    case result do
       {:ok, _} ->
         {:noreply,
          socket
          |> assign(learning_open?: false, learning_saving?: false, learning_error: nil)
-         |> put_flash(:info, gettext("Marked as ICP miss and removed from sending."))
+         |> put_flash(:info, learning_saved_flash(scope))
          |> load_next_contact()}
 
       {:error, _reason} ->
@@ -504,12 +523,12 @@ defmodule ColtWeb.Sending.WritingLive do
       <Funnel.learning_modal
         :if={@learning_open? && @company}
         row={%{name: @company.name}}
-        mode={:exclude}
+        mode={:reject}
         saving?={@learning_saving?}
         error={@learning_error}
         note={
           gettext(
-            "Tell us in your own words. We'll save it as an ICP rule and drop this contact from sending for good."
+            "Tell us why in your own words, then pick which it is. Wrong contact teaches the picker who to choose; wrong company adds an ICP rule. Either way this contact drops from sending."
           )
         }
       />
@@ -1006,7 +1025,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                           {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55"> -                            {@preview}</span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}

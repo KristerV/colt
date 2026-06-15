@@ -149,7 +149,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
              campaign_id: campaign.id,
              subject: {:campaign_company, cc_id}
            ),
-         {:ok, _} <- IcpLearning.create(campaign.id, rule, mode, cc.company_id) do
+         {:ok, _} <- IcpLearning.create(campaign.id, rule, mode, cc.company_id, :company) do
       {:noreply, assign(socket, learning_row: nil, learning_saving?: false, learning_error: nil)}
     else
       nil ->

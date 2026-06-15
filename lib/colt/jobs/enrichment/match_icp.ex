@@ -80,7 +80,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
   end
 
   defp load_learnings(campaign_id) do
-    case IcpLearning.list_for_campaign(campaign_id, authorize?: false) do
+    case IcpLearning.list_by_target(campaign_id, :company, authorize?: false) do
       {:ok, learnings} -> Enum.map(learnings, &%{body: &1.body, kind: &1.kind})
       _ -> []
     end

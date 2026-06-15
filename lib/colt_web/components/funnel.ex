@@ -750,15 +750,40 @@ defmodule ColtWeb.Components.Funnel do
             <Liid.btn size={:small} type="button" phx-click="close_learning">
               {gettext("Cancel")}
             </Liid.btn>
-            <Liid.btn
-              size={:small}
-              variant={:primary}
-              mono
-              type="submit"
-              disabled={@saving?}
-            >
-              {if @saving?, do: gettext("Saving…"), else: gettext("Save learning")}
-            </Liid.btn>
+
+            <%= if @mode == :reject do %>
+              <Liid.btn
+                size={:small}
+                mono
+                type="submit"
+                name="scope"
+                value="company"
+                disabled={@saving?}
+              >
+                {gettext("Wrong company")}
+              </Liid.btn>
+              <Liid.btn
+                size={:small}
+                variant={:primary}
+                mono
+                type="submit"
+                name="scope"
+                value="contact"
+                disabled={@saving?}
+              >
+                {if @saving?, do: gettext("Saving…"), else: gettext("Wrong contact")}
+              </Liid.btn>
+            <% else %>
+              <Liid.btn
+                size={:small}
+                variant={:primary}
+                mono
+                type="submit"
+                disabled={@saving?}
+              >
+                {if @saving?, do: gettext("Saving…"), else: gettext("Save learning")}
+              </Liid.btn>
+            <% end %>
           </div>
         </form>
       </div>
@@ -774,9 +799,11 @@ defmodule ColtWeb.Components.Funnel do
 
   defp learning_eyebrow(:exclude), do: gettext("Not a good fit")
   defp learning_eyebrow(:include), do: gettext("Actually a good fit")
+  defp learning_eyebrow(:reject), do: gettext("Not a good fit")
 
   defp learning_heading(:exclude), do: gettext("What makes this a <em>miss</em>?")
   defp learning_heading(:include), do: gettext("What makes this a <em>match</em>?")
+  defp learning_heading(:reject), do: gettext("What's <em>wrong</em> here?")
 
   defp learning_placeholder(:exclude),
     do: gettext("e.g. They're a pure reseller — we sell to manufacturers, not distributors.")
@@ -784,4 +811,10 @@ defmodule ColtWeb.Components.Funnel do
   defp learning_placeholder(:include),
     do:
       gettext("e.g. They manufacture in-house — the site just emphasises their distribution arm.")
+
+  defp learning_placeholder(:reject),
+    do:
+      gettext(
+        "e.g. Wrong person — this is a purchasing manager, not sales. Or: wrong company — they're a pure reseller."
+      )
 end

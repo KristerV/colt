@@ -76,7 +76,7 @@ defmodule Colt.Services.Enrichment.PickBestContact do
 
     user = """
     Target title: #{target_title || "(none — pick the most senior decision-maker)"}
-
+    #{learnings_clause(opts[:learnings])}
     Candidates:
     #{listing}
 
@@ -101,5 +101,20 @@ defmodule Colt.Services.Enrichment.PickBestContact do
       {:error, _} = err ->
         err
     end
+  end
+
+  defp learnings_clause(nil), do: ""
+  defp learnings_clause([]), do: ""
+
+  defp learnings_clause(learnings) when is_list(learnings) do
+    bullets = Enum.map_join(learnings, "\n", fn %{body: body} -> "- #{body}" end)
+
+    """
+
+    Contact-selection rules the user added after reviewing earlier picks —
+    treat with the same weight as the target above. Avoid picking people who
+    match these; if every candidate is ruled out by them, return null:
+    #{bullets}
+    """
   end
 end

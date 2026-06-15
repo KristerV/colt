@@ -11,7 +11,7 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   use Oban.Worker, queue: :ai, max_attempts: 2, priority: 1
 
   alias Colt.Jobs.Enrichment.VerifyEmail, as: VerifyEmailJob
-  alias Colt.Resources.{Campaign, CampaignCompany, Company, Page, Person}
+  alias Colt.Resources.{Campaign, CampaignCompany, Company, IcpLearning, Page, Person}
 
   alias Colt.Services.Enrichment, as: Svc
 
@@ -225,10 +225,18 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   defp pick_index(target, titles, campaign_id, cc_id) do
     case PickBestContact.run(target, titles,
            campaign_id: campaign_id,
-           subject: {:campaign_company, cc_id}
+           subject: {:campaign_company, cc_id},
+           learnings: contact_learnings(campaign_id)
          ) do
       {:ok, i} when is_integer(i) -> i
       _ -> :none
+    end
+  end
+
+  defp contact_learnings(campaign_id) do
+    case IcpLearning.list_by_target(campaign_id, :contact, authorize?: false) do
+      {:ok, learnings} -> Enum.map(learnings, &%{body: &1.body})
+      _ -> []
     end
   end
 
