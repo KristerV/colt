@@ -684,83 +684,78 @@ defmodule ColtWeb.Sending.WritingLive do
       <% end %>
     </div>
 
-    <div class="mt-7">
-      <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
-        {gettext("How it lands in %{name}'s inbox", name: first_name(@person))}
+    <%= if @drafting do %>
+      <.generating_notice />
+    <% else %>
+      <div class="mt-7">
+        <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
+          {gettext("How it lands in %{name}'s inbox", name: first_name(@person))}
+        </div>
+        <.inbox_preview subject={@subject} from={sender_from(@sender)} />
       </div>
-      <.inbox_preview subject={@subject} from={sender_from(@sender)} />
-    </div>
 
-    <div class="mt-8">
-      <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
-        {gettext("Subject")}
+      <div class="mt-8">
+        <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
+          {gettext("Subject")}
+        </div>
+        <form phx-change="set_subject" class="block">
+          <input
+            type="text"
+            name="value"
+            value={@subject}
+            phx-debounce="400"
+            placeholder={gettext("subject line")}
+            class="w-full px-5 py-3 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[13.5px] text-ink outline-none placeholder:text-ink40"
+            style="border-left-color: var(--accent);"
+          />
+        </form>
+        <div class="mt-1.5 font-mono text-[10px] text-ink40">
+          {gettext("follow-ups re-use this subject as “re: …”")}
+        </div>
       </div>
-      <form phx-change="set_subject" class="block">
-        <input
-          type="text"
-          name="value"
-          value={@subject}
-          phx-debounce="400"
-          placeholder={gettext("subject line")}
-          disabled={@drafting}
-          class="w-full px-5 py-3 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[13.5px] text-ink outline-none placeholder:text-ink40"
-          style="border-left-color: var(--accent);"
-        />
-      </form>
-      <div class="mt-1.5 font-mono text-[10px] text-ink40">
-        {gettext("follow-ups re-use this subject as “re: …”")}
-      </div>
-    </div>
 
-    <div
-      :if={@first_email}
-      class="mt-7 px-4 py-3 border border-rule border-l-2 bg-paperAlt rounded-[2px] text-[12.5px] leading-[1.55] text-ink70"
-      style="border-left-color: var(--accent);"
-    >
-      {gettext(
-        "Write this first sequence yourself. The AI writer stays out of the way until you've sent one — then it learns your voice from it and drafts the rest."
-      )}
-    </div>
-
-    <div class="mt-7 flex items-baseline justify-between">
-      <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
-        {gettext("Sequence draft")}
-      </div>
       <div
-        :if={@drafting}
-        class="font-mono text-[10px] tracking-[0.06em] inline-flex items-center gap-1.5"
-        style="color: var(--accent);"
+        :if={@first_email}
+        class="mt-7 px-4 py-3 border border-rule border-l-2 bg-paperAlt rounded-[2px] text-[12.5px] leading-[1.55] text-ink70"
+        style="border-left-color: var(--accent);"
       >
-        <span
-          class="w-[5px] h-[5px] rounded-full"
-          style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-        /> {gettext("drafting…")}
+        {gettext(
+          "Write this first sequence yourself. The AI writer stays out of the way until you've sent one — then it learns your voice from it and drafts the rest."
+        )}
       </div>
-    </div>
 
-    <div class="mt-3 flex flex-col gap-5">
-      <%= cond do %>
-        <% @drafting and @drafts == [] -> %>
-          <.step_skeleton position={0} />
-          <.wait_marker days={Map.get(@delay_by_position, 1, 2)} />
-          <.step_skeleton position={1} />
-          <.wait_marker days={Map.get(@delay_by_position, 2, 2)} />
-          <.step_skeleton position={2} />
-        <% true -> %>
-          <%= for {email, idx} <- Enum.with_index(@drafts) do %>
-            <.wait_marker :if={idx > 0} days={Map.get(@delay_by_position, email.step_position, 2)} />
-            <.step_card
-              email={email}
-              idx={idx}
-              body={Map.get(@bodies, email.step_position, email.user_body || email.ai_body || "")}
-              disabled={@drafting}
-            />
-          <% end %>
-      <% end %>
-    </div>
+      <div class="mt-7 flex items-baseline justify-between">
+        <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
+          {gettext("Sequence draft")}
+        </div>
+      </div>
 
-    <div :if={@saved_at} class="mt-6 font-mono text-[11px] text-ink40">
-      {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
+      <div class="mt-3 flex flex-col gap-5">
+        <%= for {email, idx} <- Enum.with_index(@drafts) do %>
+          <.wait_marker :if={idx > 0} days={Map.get(@delay_by_position, email.step_position, 2)} />
+          <.step_card
+            email={email}
+            idx={idx}
+            body={Map.get(@bodies, email.step_position, email.user_body || email.ai_body || "")}
+            disabled={false}
+          />
+        <% end %>
+      </div>
+
+      <div :if={@saved_at} class="mt-6 font-mono text-[11px] text-ink40">
+        {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
+      </div>
+    <% end %>
+    """
+  end
+
+  defp generating_notice(assigns) do
+    ~H"""
+    <div class="mt-10 flex items-center gap-2.5 font-mono text-[11px] tracking-[0.06em] text-ink55">
+      <span
+        class="w-[6px] h-[6px] rounded-full"
+        style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
+      /> {gettext("generating sequence…")}
     </div>
     """
   end
@@ -1017,33 +1012,6 @@ defmodule ColtWeb.Sending.WritingLive do
           style="field-sizing: content;"
         >{@body}</textarea>
       </form>
-    </div>
-    """
-  end
-
-  attr :position, :integer, required: true
-
-  defp step_skeleton(assigns) do
-    ~H"""
-    <div class="border border-rule rounded-[2px] px-5 py-4">
-      <div class="flex items-center gap-3 mb-3">
-        <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink40">
-          {gettext("Step %{n}", n: @position + 1)}
-        </span>
-        <span
-          class="inline-flex items-center gap-1.5 font-mono text-[10px]"
-          style="color: var(--accent);"
-        >
-          <span
-            class="w-[5px] h-[5px] rounded-full"
-            style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-          /> {gettext("drafting…")}
-        </span>
-      </div>
-      <div class="h-3 w-[60%] bg-ink10 mb-2" />
-      <div class="h-2.5 w-[95%] bg-ink10 mb-1.5" />
-      <div class="h-2.5 w-[90%] bg-ink10 mb-1.5" />
-      <div class="h-2.5 w-[70%] bg-ink10" />
     </div>
     """
   end
