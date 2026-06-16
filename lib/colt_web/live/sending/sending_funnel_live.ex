@@ -37,9 +37,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         if connected?(socket), do: PubSub.subscribe(@pubsub, "campaign:#{campaign.id}")
 
         contacts = load_contacts(campaign.id, actor)
-        selected = pick_contact(contacts, params["contact_id"])
-        stats = Stats.for(campaign.id)
         sent_steps = compute_sent_steps(contacts)
+        visible = visible_contacts(contacts, :interested, sent_steps)
+        selected = pick_contact(visible, params["contact_id"])
+        stats = Stats.for(campaign.id)
         total_steps = count_email_steps(campaign.id, actor)
 
         socket =
