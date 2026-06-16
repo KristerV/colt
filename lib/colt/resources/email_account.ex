@@ -33,6 +33,7 @@ defmodule Colt.Resources.EmailAccount do
     define :touch_sync, args: [:last_sync_at]
     define :disconnect
     define :set_quota, args: [:daily_quota]
+    define :update_details, args: [:display_name]
   end
 
   actions do
@@ -105,6 +106,12 @@ defmodule Colt.Resources.EmailAccount do
     update :set_quota do
       description "Set the global daily send ceiling for this inbox."
       accept [:daily_quota]
+      require_atomic? false
+    end
+
+    update :update_details do
+      description "Edit the sender display name shown on outgoing mail."
+      accept [:display_name]
       require_atomic? false
     end
   end

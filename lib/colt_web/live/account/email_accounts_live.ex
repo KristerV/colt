@@ -51,6 +51,19 @@ defmodule ColtWeb.Account.EmailAccountsLive do
     end
   end
 
+  def handle_event("set_name", %{"id" => id, "value" => raw}, socket) do
+    name = raw |> to_string() |> String.trim()
+    name = if name == "", do: nil, else: name
+    user = socket.assigns.current_user
+
+    with {:ok, account} <- EmailAccount.get(id, actor: user),
+         {:ok, _} <- EmailAccount.update_details(account, name, actor: user) do
+      {:noreply, load_accounts(socket)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
   def handle_event("set_quota", %{"id" => id, "value" => raw}, socket) do
     quota =
       case Integer.parse(to_string(raw)) do
@@ -194,6 +207,24 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   <span :if={a.tz}>·</span>
                   <span :if={a.tz}>{a.tz}</span>
                 </div>
+                <form
+                  :if={a.status != :disconnected}
+                  phx-change="set_name"
+                  class="mt-2 flex items-center gap-2"
+                >
+                  <input type="hidden" name="id" value={a.id} />
+                  <label class="font-mono text-[10px] tracking-[0.08em] uppercase text-ink55">
+                    {gettext("sender name")}
+                  </label>
+                  <input
+                    type="text"
+                    name="value"
+                    value={a.display_name}
+                    placeholder={gettext("e.g. Jane Doe")}
+                    phx-debounce="500"
+                    class="w-[220px] px-2 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] bg-paper text-ink outline-none focus:border-ink40"
+                  />
+                </form>
               </div>
               <form
                 :if={a.status != :disconnected}

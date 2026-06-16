@@ -83,7 +83,9 @@ defmodule Colt.Services.Sending.EmailWriter do
 
   defp load_context(contact, actor) do
     contact =
-      Ash.load!(contact, [person: [company: [:annual_reports]], thread: []],
+      Ash.load!(
+        contact,
+        [person: [company: [:annual_reports]], thread: [], assigned_email_account: []],
         actor: actor,
         authorize?: actor != nil
       )
@@ -109,6 +111,7 @@ defmodule Colt.Services.Sending.EmailWriter do
      %{
        contact: contact,
        person: contact.person,
+       sender: contact.assigned_email_account,
        company: contact.person && contact.person.company,
        sequence: sequence,
        email_steps: Enum.filter(sequence.sequence_steps, &(&1.kind == :email)),
@@ -257,9 +260,18 @@ defmodule Colt.Services.Sending.EmailWriter do
     plain, direct, no marketing fluff. Output plain text only; no
     Markdown, no HTML, no signatures (the inbox appends those).
 
+    Sender identity:
+    - You are writing AS the sender named under "Sender" below. When you
+      introduce yourself or sign off, use THAT name — never a name that
+      appears in the examples (those were written by other senders).
+    - Keep whatever name format the examples use: if they sign with a
+      first name only, use only the sender's first name; if they use the
+      full name, use the sender's full name.
+
     Sequence rules:
-    - Step 1 opens cold; introduce yourself briefly and state the reason
-      for reaching out tied to the recipient's role and company.
+    - Step 1 opens cold; introduce yourself briefly (using the sender's
+      name) and state the reason for reaching out tied to the recipient's
+      role and company.
     - Followup steps reference the previous email obliquely; do not
       repeat the pitch verbatim. Each followup ships some days after
       the previous one (see "Sequence" below for exact delays).
@@ -275,6 +287,9 @@ defmodule Colt.Services.Sending.EmailWriter do
     template = Map.get(ctx, :chosen_template)
 
     user = """
+    Sender (write as this person — use this name to introduce/sign):
+    #{sender_block(ctx.sender)}
+
     Sender context (what we sell):
     #{pitch_block(ctx.pitch)}
 
@@ -438,6 +453,36 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp indent(text) do
     text |> String.split("\n") |> Enum.map(&("    " <> &1)) |> Enum.join("\n")
   end
+
+  defp sender_block(nil),
+    do: "- (no sender assigned yet — introduce yourself generically, no invented name)"
+
+  defp sender_block(%{address: address} = sender) do
+    "- Name: #{sender_name_or_local(sender)}\n- Email: #{address}"
+  end
+
+  # Prefer the configured display name; otherwise humanize the email local-part
+  # so the writer still has a plausible name instead of inventing one.
+  defp sender_name(%{display_name: name}) when is_binary(name) do
+    if String.trim(name) == "", do: nil, else: name
+  end
+
+  defp sender_name(_), do: nil
+
+  defp sender_name_or_local(%{address: address} = sender) do
+    sender_name(sender) || humanize_local_part(address)
+  end
+
+  defp humanize_local_part(address) when is_binary(address) do
+    address
+    |> String.split("@")
+    |> List.first()
+    |> String.split(~r/[._]/)
+    |> Enum.map(&String.capitalize/1)
+    |> Enum.join(" ")
+  end
+
+  defp humanize_local_part(_), do: nil
 
   defp pitch_block(nil),
     do: "(none — write a generic, polite intro that asks what they're working on)"

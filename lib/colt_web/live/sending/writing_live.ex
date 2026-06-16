@@ -16,6 +16,7 @@ defmodule ColtWeb.Sending.WritingLive do
     Campaign,
     CampaignCompany,
     CampaignContact,
+    EmailAccount,
     OutboundEmail,
     Sequence,
     Thread
@@ -23,6 +24,7 @@ defmodule ColtWeb.Sending.WritingLive do
 
   alias Colt.Services.Sending.{
     ApproveContact,
+    AssignInbox,
     IngestEnriched,
     RejectContactIcp,
     RejectContactPick
@@ -53,6 +55,7 @@ defmodule ColtWeb.Sending.WritingLive do
             contact: nil,
             person: nil,
             company: nil,
+            sender: nil,
             drafts: [],
             email_steps: [],
             subject: "",
@@ -273,6 +276,10 @@ defmodule ColtWeb.Sending.WritingLive do
   end
 
   defp load_drafts_or_start_writer(socket) do
+    # Pick the sticky sender now — before the writer runs and before the user
+    # hand-writes the first email — so the chosen account is visible in the
+    # editor and the writer composes in its name. ApproveContact reuses it.
+    socket = ensure_sender_assigned(socket)
     actor = socket.assigns.current_user
     contact = socket.assigns.contact
 
@@ -295,7 +302,7 @@ defmodule ColtWeb.Sending.WritingLive do
         seed_blank_drafts(socket, missing)
 
       true ->
-        kick_off_writer(contact.id, actor)
+        kick_off_writer(contact, actor)
 
         socket
         |> assign(drafts: drafts, state: :drafting, first_email: false)
@@ -394,8 +401,9 @@ defmodule ColtWeb.Sending.WritingLive do
     assign(socket, subject: subject, bodies: bodies)
   end
 
-  defp kick_off_writer(contact_id, actor) do
+  defp kick_off_writer(contact, actor) do
     parent = self()
+    contact_id = contact.id
 
     Task.start(fn ->
       case EmailWriter.run(contact_id, actor: actor) do
@@ -403,6 +411,41 @@ defmodule ColtWeb.Sending.WritingLive do
         {:error, reason} -> send(parent, {:drafts_failed, contact_id, reason})
       end
     end)
+  end
+
+  # Assign the sticky sender once, when the contact enters the writing view.
+  # Reuses an existing assignment (sticky across revisits); best-effort — with
+  # no healthy inbox we leave it nil and the views fall back gracefully.
+  defp ensure_sender_assigned(socket) do
+    actor = socket.assigns.current_user
+    contact = socket.assigns.contact
+
+    {contact, sender} =
+      case contact.assigned_email_account_id do
+        id when is_binary(id) ->
+          {contact, load_account(id, actor)}
+
+        _ ->
+          case AssignInbox.run(contact.campaign_id, actor: actor) do
+            {:ok, inbox} ->
+              case CampaignContact.assign_inbox(contact, inbox.id, actor: actor) do
+                {:ok, updated} -> {updated, inbox}
+                _ -> {contact, nil}
+              end
+
+            _ ->
+              {contact, nil}
+          end
+      end
+
+    assign(socket, contact: contact, sender: sender)
+  end
+
+  defp load_account(id, actor) do
+    case EmailAccount.get(id, actor: actor) do
+      {:ok, account} -> account
+      _ -> nil
+    end
   end
 
   defp count_enriched_available(campaign_id, actor) do
@@ -502,6 +545,7 @@ defmodule ColtWeb.Sending.WritingLive do
                 contact={@contact}
                 person={@person}
                 company={@company}
+                sender={@sender}
                 drafts={@drafts}
                 email_steps={@email_steps}
                 subject={@subject}
@@ -608,6 +652,7 @@ defmodule ColtWeb.Sending.WritingLive do
   attr :contact, :map, required: true
   attr :person, :map, required: true
   attr :company, :map, default: nil
+  attr :sender, :map, default: nil
   attr :drafts, :list, required: true
   attr :email_steps, :list, default: []
   attr :subject, :string, required: true
@@ -625,11 +670,25 @@ defmodule ColtWeb.Sending.WritingLive do
     ~H"""
     <.contact_header person={@person} company={@company} />
 
+    <div class="mt-5 flex items-center gap-2 font-mono text-[11px] tracking-[0.04em]">
+      <span class="text-[10px] tracking-[0.14em] uppercase text-ink55">
+        {gettext("Sending as")}
+      </span>
+      <%= if @sender do %>
+        <span class="text-ink font-medium">{sender_display_or_local(@sender)}</span>
+        <span class="text-ink40">&lt;{@sender.address}&gt;</span>
+      <% else %>
+        <span class="text-ink40">
+          {gettext("no inbox available — connect one under Sending accounts")}
+        </span>
+      <% end %>
+    </div>
+
     <div class="mt-7">
       <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
         {gettext("How it lands in %{name}'s inbox", name: first_name(@person))}
       </div>
-      <.inbox_preview subject={@subject} from={(@person && @person.email) || "you@example.com"} />
+      <.inbox_preview subject={@subject} from={sender_from(@sender)} />
     </div>
 
     <div class="mt-8">
@@ -713,6 +772,33 @@ defmodule ColtWeb.Sending.WritingLive do
   defp first_name(%{name: name}) do
     name |> String.split() |> List.first() || gettext("them")
   end
+
+  # Human label for the sending inbox — display name if set, else the email's
+  # local-part humanized (matches the writer's own fallback).
+  defp sender_display(%{display_name: name}) when is_binary(name) do
+    if String.trim(name) == "", do: nil, else: name
+  end
+
+  defp sender_display(_), do: nil
+
+  defp sender_display_or_local(%{address: address} = sender),
+    do: sender_display(sender) || humanize_local_part(address)
+
+  defp sender_display_or_local(_), do: nil
+
+  defp humanize_local_part(address) when is_binary(address) do
+    address
+    |> String.split("@")
+    |> List.first()
+    |> String.split(~r/[._]/)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  defp humanize_local_part(_), do: nil
+
+  # The "from" line as it appears in the recipient's inbox preview.
+  defp sender_from(nil), do: gettext("you@example.com")
+  defp sender_from(sender), do: sender_display_or_local(sender) || sender.address
 
   attr :person, :map, required: true
   attr :company, :map, default: nil
@@ -1025,7 +1111,9 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate font-bold text-ink">{@from}</span>
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
-        <span :if={@preview != ""} class="text-ink55"> -                             {@preview}</span>
+        <span :if={@preview != ""} class="text-ink55">
+           -                              {@preview}
+        </span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
         {@time}

@@ -14,7 +14,7 @@ defmodule Colt.Services.Sending.ApproveContact do
     8. Bump campaign.auto_approve_streak iff clean (no edits at all).
   """
 
-  alias Colt.Resources.{Campaign, CampaignContact, OutboundEmail, Sequence}
+  alias Colt.Resources.{Campaign, CampaignContact, EmailAccount, OutboundEmail, Sequence}
   alias Colt.Services.Sending.{AssignInbox, NextSlot}
 
   def run(contact_id, edits, opts \\ []) when is_binary(contact_id) and is_map(edits) do
@@ -25,7 +25,7 @@ defmodule Colt.Services.Sending.ApproveContact do
          {:ok, drafts} <- load_drafts(contact, actor),
          :ok <- ensure_drafts_present(drafts),
          {:ok, drafts} <- apply_edits(drafts, edits, actor),
-         {:ok, inbox} <- AssignInbox.run(contact.campaign_id, actor: actor),
+         {:ok, inbox} <- resolve_inbox(contact, actor),
          snapshot = build_snapshot(sequence),
          {:ok, contact} <- approve_contact(contact, inbox, snapshot, sequence.version, actor),
          {:ok, _} <- schedule_step_one(drafts, inbox, actor),
@@ -53,6 +53,13 @@ defmodule Colt.Services.Sending.ApproveContact do
   end
 
   defp opener_edited?(%{user_subject: s, user_body: b}), do: not (is_nil(s) and is_nil(b))
+
+  # Reuse the inbox the writer composed for (assigned at write time). Only fall
+  # back to a fresh pick if the contact somehow reached approval unassigned.
+  defp resolve_inbox(%{assigned_email_account_id: id}, actor) when is_binary(id),
+    do: EmailAccount.get(id, actor: actor, authorize?: actor != nil)
+
+  defp resolve_inbox(contact, actor), do: AssignInbox.run(contact.campaign_id, actor: actor)
 
   defp load_contact(id, actor) do
     Ash.get(CampaignContact, id,

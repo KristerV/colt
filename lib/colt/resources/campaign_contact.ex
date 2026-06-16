@@ -26,6 +26,7 @@ defmodule Colt.Resources.CampaignContact do
     define :list_for_campaign, args: [:campaign_id]
     define :next_pending, args: [:campaign_id]
     define :promote, args: [:campaign_id, :person_id]
+    define :assign_inbox, args: [:assigned_email_account_id]
     define :approve, args: [:assigned_email_account_id, :sequence_snapshot, :sequence_version]
     define :skip
     define :mark_replied, args: [:reply_category]
@@ -65,6 +66,17 @@ defmodule Colt.Resources.CampaignContact do
       accept [:campaign_id, :person_id]
       upsert? true
       upsert_identity :unique_per_campaign
+    end
+
+    update :assign_inbox do
+      description """
+      Set the sticky sending inbox before the writer runs, without
+      approving. Lets the writer compose in the actual sender's name;
+      ApproveContact reuses this assignment instead of re-picking.
+      """
+
+      accept [:assigned_email_account_id]
+      require_atomic? false
     end
 
     update :approve do
