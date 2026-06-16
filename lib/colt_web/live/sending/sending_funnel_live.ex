@@ -220,7 +220,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp load_contacts(campaign_id, actor) do
     case CampaignContact.list_for_campaign(campaign_id,
-           load: [[person: :company], :thread, :assigned_email_account],
+           load: [:thread, :assigned_email_account, person: :company],
            actor: actor
          ) do
       {:ok, rows} -> Enum.sort_by(rows, & &1.updated_at, {:desc, DateTime})
