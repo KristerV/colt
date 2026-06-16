@@ -1,6 +1,7 @@
 defmodule ColtWeb.Admin.Summary do
   @moduledoc false
   use Phoenix.Component
+  use Memoize
 
   require Ash.Query
 
@@ -45,7 +46,7 @@ defmodule ColtWeb.Admin.Summary do
       %{
         kicker: "Clients",
         title: "Spending",
-        value: format_money(current_month_cost()),
+        value: format_int(current_month_clients()) <> " clients",
         path: "/admin/clients-spending"
       },
       oban_tile(),
@@ -255,6 +256,16 @@ defmodule ColtWeb.Admin.Summary do
     rows
     |> Enum.filter(&(&1.month == ym))
     |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.cost_usd))
+  end
+
+  # The grouped client_spending query is heavy and the count barely moves, so
+  # cache it for 4h. expires_in is in milliseconds.
+  defmemop current_month_clients, expires_in: 4 * 60 * 60 * 1000 do
+    ym = current_ym()
+
+    1
+    |> Colt.Resources.ApiCall.client_spending!(authorize?: false)
+    |> Enum.count(&(&1.month == ym))
   end
 
   defp current_ym do

@@ -18,6 +18,7 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
       |> Enum.uniq()
       |> Enum.sort(:desc)
       |> Enum.take(@months_back)
+      |> Enum.reverse()
 
     clients = build_clients(rows, months)
     current_month = current_ym()

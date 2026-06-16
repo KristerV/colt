@@ -43,7 +43,7 @@ defmodule Colt.MixProject do
   defp deps do
     [
       {:stripity_stripe, "~> 3.0"},
-      {:memoize, "~> 1.0"},
+      {:memoize, "~> 1.4"},
       {:tzdata, "~> 1.0"},
       {:nimble_csv, "~> 1.0"},
       {:html2markdown, "~> 0.3"},
