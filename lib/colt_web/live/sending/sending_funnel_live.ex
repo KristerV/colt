@@ -220,7 +220,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp load_contacts(campaign_id, actor) do
     case CampaignContact.list_for_campaign(campaign_id,
-           load: [:person, :thread],
+           load: [[person: :company], :thread, :assigned_email_account],
            actor: actor
          ) do
       {:ok, rows} -> Enum.sort_by(rows, & &1.updated_at, {:desc, DateTime})
@@ -379,6 +379,40 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp outbound_at(%{sent_at: at}) when not is_nil(at), do: at
   defp outbound_at(%{scheduled_at: at}) when not is_nil(at), do: at
   defp outbound_at(_), do: nil
+
+  # Human label for the assigned sending inbox — display name if set, else the
+  # email's local-part humanized (mirrors the writer's own fallback). nil when
+  # no inbox is assigned yet (e.g. a contact still pending in Writing).
+  defp from_display(%{} = account),
+    do: display_name(account) || local_part(Map.get(account, :address))
+
+  defp from_display(_), do: nil
+
+  defp display_name(%{display_name: name}) when is_binary(name) do
+    if String.trim(name) == "", do: nil, else: name
+  end
+
+  defp display_name(_), do: nil
+
+  defp local_part(address) when is_binary(address) do
+    address
+    |> String.split("@")
+    |> List.first()
+    |> String.split(~r/[._]/)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  defp local_part(_), do: nil
+
+  defp website_href("http" <> _ = url), do: url
+  defp website_href(url), do: "https://" <> url
+
+  defp website_host(url) do
+    case URI.parse(website_href(url)) do
+      %URI{host: h} when is_binary(h) -> String.replace_prefix(h, "www.", "")
+      _ -> url
+    end
+  end
 
   defp strip_html(html) when is_binary(html) do
     html
@@ -770,12 +804,16 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp thread_pane(assigns) do
     {status_text, status_tone} = status_label(assigns.contact)
     recipient = (assigns.contact.person && assigns.contact.person.email) || ""
+    company = assigns.contact.person && assigns.contact.person.company
 
     assigns =
       assign(assigns,
         status_text: status_text,
         status_tone: status_tone,
         recipient: recipient,
+        company: company,
+        registry_link: Colt.CompanyRegistry.link(company),
+        from_name: from_display(assigns.contact.assigned_email_account),
         overrides: ManualOverride.overrides()
       )
 
@@ -791,6 +829,33 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               {(@contact.person && @contact.person.title) || ""}
             </span>
             <span class="font-mono text-[10px] text-ink40">{@recipient}</span>
+          </div>
+          <div
+            :if={@company}
+            class="mt-2 flex items-center gap-3 font-mono text-[10px] text-ink40 flex-wrap"
+          >
+            <span class="text-ink55">{@company.name}</span>
+            <a
+              :if={@registry_link}
+              href={@registry_link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-ink40 hover:text-accent hover:underline"
+            >
+              ↗ {@registry_link.label}
+            </a>
+            <a
+              :if={@company.website_url}
+              href={website_href(@company.website_url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-ink40 hover:text-accent hover:underline"
+            >
+              ↗ {website_host(@company.website_url)}
+            </a>
+            <span :if={@from_name}>
+              {gettext("From:")} <span class="text-ink55">{@from_name}</span>
+            </span>
           </div>
         </div>
 
