@@ -187,7 +187,7 @@ defmodule ColtWeb.Components.Funnel do
             <% else %>
               <span class="italic">{gettext("resolving...")}</span>
             <% end %>
-            · {@row.registry_code}
+            · <.registry_code row={@row} />
           </div>
         </div>
         <span class="font-mono text-[11px] text-ink55 text-right tnum">
@@ -220,7 +220,7 @@ defmodule ColtWeb.Components.Funnel do
               <% else %>
                 <span class="italic">{gettext("resolving...")}</span>
               <% end %>
-              · {@row.registry_code}
+              · <.registry_code row={@row} />
             </div>
           </div>
           <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
@@ -256,6 +256,27 @@ defmodule ColtWeb.Components.Funnel do
 
       <.expanded_detail :if={@expanded?} row={@row} admin?={@admin?} />
     </div>
+    """
+  end
+
+  attr :row, :map, required: true
+
+  # Registry code, linked to the company's national registry (Teatmik, …) when
+  # one exists for its market. stopPropagation keeps the click from toggling the
+  # row open. Falls back to plain text for markets without a registry link.
+  def registry_code(assigns) do
+    ~H"""
+    <a
+      :if={@row.registry_link}
+      href={@row.registry_link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      onclick="event.stopPropagation()"
+      class="text-ink40 hover:text-accent hover:underline"
+    >
+      {@row.registry_code}
+    </a>
+    <span :if={!@row.registry_link}>{@row.registry_code}</span>
     """
   end
 

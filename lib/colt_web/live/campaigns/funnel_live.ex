@@ -446,6 +446,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       domain: domain_of(company.website_url),
       website_url: company.website_url,
       registry_code: company.registry_code,
+      registry_link: Colt.CompanyRegistry.link(company),
       size: company.employees_latest,
       growth: company.revenue_growth_bucket,
       status: cc.status,

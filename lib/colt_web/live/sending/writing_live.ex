@@ -804,7 +804,10 @@ defmodule ColtWeb.Sending.WritingLive do
   attr :company, :map, default: nil
 
   defp contact_header(assigns) do
-    assigns = assign(assigns, :reports, recent_reports(assigns[:company]))
+    assigns =
+      assigns
+      |> assign(:reports, recent_reports(assigns[:company]))
+      |> assign(:registry_link, Colt.CompanyRegistry.link(assigns[:company]))
 
     ~H"""
     <div class="p-5 border border-rule bg-paper rounded-[2px]">
@@ -849,6 +852,15 @@ defmodule ColtWeb.Sending.WritingLive do
             class="inline-block mt-1 font-mono text-[10px] text-accent hover:underline"
           >
             ↗ {display_host(@company.website_url)}
+          </a>
+          <a
+            :if={@registry_link}
+            href={@registry_link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="block mt-1 font-mono text-[10px] text-ink40 hover:text-accent hover:underline"
+          >
+            ↗ {@registry_link.label} {@company.registry_code}
           </a>
         </div>
       </div>
@@ -1112,7 +1124,7 @@ defmodule ColtWeb.Sending.WritingLive do
       <span class="text-[13px] truncate min-w-0">
         <span class="font-bold text-ink">{@subj}</span>
         <span :if={@preview != ""} class="text-ink55">
-           -                              {@preview}
+          - {@preview}
         </span>
       </span>
       <span class="font-mono text-[11px] text-right whitespace-nowrap tabular-nums font-semibold text-ink">
