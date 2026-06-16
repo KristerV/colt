@@ -105,16 +105,23 @@ defmodule Colt.Services.Sending.LabelTemplate do
       - angle: the premise / reason for reaching out (the point the subject makes)
       - ask: the call to action
 
-    Rules:
-    - Two openers are the SAME template if both angle AND ask match, even when
-      the wording, personalization, or company details differ entirely.
-    - Only call something a NEW template if the angle OR the ask is a deliberate
-      different bet — a new experiment, not a reworded version of the same idea.
-    - Bias hard toward reusing an existing label. If you propose a new one, it
-      must be because a specific axis differs; if you can't name the differing
-      axis, reuse instead.
-    - When only one template exists, the bar for a second is the same: a
-      different angle or ask, not a reword.
+    How to decide:
+    1. First read THIS opener on its own and name its angle and ask, before
+       looking at the existing templates. Do not borrow an existing template's
+       angle to describe it — read what the subject and body actually argue.
+    2. Reuse an existing label only when this opener's angle AND ask genuinely
+       match that template's: it makes the same core argument and asks for the
+       same thing, differing only in wording, industry, personalization, or
+       company specifics.
+    3. Otherwise mint a NEW short kebab-case label. A different premise is a
+       different template even when the call to action is identical — many
+       openers end with the same CTA (e.g. "want a 45s video?"), and that
+       shared CTA does NOT make them the same approach if the reason for
+       reaching out differs.
+
+    Reuse generously for true rewordings of the same idea (a new industry or
+    a personalized detail is still the same template). Create a new label when
+    the angle is a genuinely different bet — a new experiment, not a reword.
 
     Return JSON: the chosen label (reuse an existing one verbatim, or a new
     short kebab-case name) and the angle/ask/offer you read from this opener.

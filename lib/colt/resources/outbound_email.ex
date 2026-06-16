@@ -226,7 +226,17 @@ defmodule Colt.Resources.OutboundEmail do
       unless the user edits. Effective subject/body is `user_? || ai_?`.
       """
 
-      accept [:thread_id, :step_position, :ai_subject, :ai_body, :writer_meta]
+      accept [
+        :thread_id,
+        :step_position,
+        :ai_subject,
+        :ai_body,
+        :writer_meta,
+        :template_label,
+        :template_angle,
+        :template_ask,
+        :template_offer
+      ]
 
       change set_attribute(:status, :drafted)
       change set_attribute(:is_manual_reply, false)

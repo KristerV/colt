@@ -585,7 +585,8 @@ defmodule Colt.Services.Sending.EmailWriter do
             ai_subject: s.subject,
             ai_body: s.body,
             writer_meta: meta
-          },
+          }
+          |> Map.merge(template_attrs(s, Map.get(ctx, :chosen_template))),
           action: :create_draft,
           actor: actor,
           authorize?: actor != nil
@@ -594,4 +595,20 @@ defmodule Colt.Services.Sending.EmailWriter do
 
     {:ok, emails}
   end
+
+  # The opener inherits the template the writer committed to (§6.2), so every
+  # AI-written opener is labeled at write time — not only the user-edited ones
+  # the post-hoc classifier picks up. A user edit later re-classifies it via
+  # ApproveContact. Until a campaign has any template (chosen_template == nil),
+  # the seed opener stays unlabeled and is labeled on first edit.
+  defp template_attrs(%{position: 0}, %{label: label} = template) when is_binary(label) do
+    %{
+      template_label: template.label,
+      template_angle: template.angle,
+      template_ask: template.ask,
+      template_offer: template.offer
+    }
+  end
+
+  defp template_attrs(_step, _template), do: %{}
 end

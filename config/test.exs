@@ -27,6 +27,13 @@ config :colt, ColtWeb.Endpoint,
 # In test we don't send emails
 config :colt, Colt.Mailer, adapter: Swoosh.Adapters.Test
 
+# `:eval` tests (excluded by default) call the live model. Reuse the local
+# OpenRouter key from dev.secrets.exs when present so `mix test --only eval`
+# works locally; CI has no secrets file and never runs eval tests.
+if File.exists?(Path.expand("dev.secrets.exs", __DIR__)) do
+  import_config "dev.secrets.exs"
+end
+
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false
 
