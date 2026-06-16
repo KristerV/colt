@@ -179,7 +179,7 @@ defmodule ColtWeb.Sending.TemplatesLive do
       </div>
 
       <div class="flex-1 overflow-y-auto px-7 py-6 flex flex-col gap-5">
-        <.opener_card :for={o <- @template.openers} opener={o} />
+        <.opener_card :for={o <- @template.openers} opener={o} template={@template} />
       </div>
     </div>
     """
@@ -196,6 +196,7 @@ defmodule ColtWeb.Sending.TemplatesLive do
   end
 
   attr :opener, :map, required: true
+  attr :template, :map, required: true
 
   defp opener_card(assigns) do
     assigns =
@@ -203,6 +204,7 @@ defmodule ColtWeb.Sending.TemplatesLive do
       |> assign(:person, person(assigns.opener))
       |> assign(:subject, effective_subject(assigns.opener))
       |> assign(:body, effective_body(assigns.opener))
+      |> assign(:diverging_axes, diverging_axes(assigns.opener, assigns.template))
 
     ~H"""
     <div class="border border-rule rounded-[2px] bg-paperAlt">
@@ -226,9 +228,29 @@ defmodule ColtWeb.Sending.TemplatesLive do
       <div class="px-4 py-3">
         <div class="text-[13px] text-ink font-medium">{@subject}</div>
         <div class="mt-2 text-[13px] text-ink70 whitespace-pre-wrap">{@body}</div>
+        <div :if={@diverging_axes != []} class="mt-3 pt-3 border-t border-rule">
+          <div class="font-mono text-[9px] tracking-[0.1em] uppercase text-ink40">
+            {gettext("this opener's axes")}
+          </div>
+          <dl class="mt-1.5 grid grid-cols-[64px_1fr] gap-x-4 gap-y-1.5 text-[13px]">
+            <.axis :for={{label, value} <- @diverging_axes} label={label} value={value} />
+          </dl>
+        </div>
       </div>
     </div>
     """
+  end
+
+  # The opener's own angle/ask/offer, surfaced only for axes that diverge from
+  # the template's representative values (so identical openers stay quiet).
+  defp diverging_axes(opener, template) do
+    [
+      {gettext("Angle"), opener.template_angle, template.angle},
+      {gettext("Ask"), opener.template_ask, template.ask},
+      {gettext("Offer"), opener.template_offer, template.offer}
+    ]
+    |> Enum.filter(fn {_label, own, repr} -> own != repr end)
+    |> Enum.map(fn {label, own, _repr} -> {label, own} end)
   end
 
   defp empty_pane(assigns) do
