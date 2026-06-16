@@ -795,7 +795,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           <div class="text-ink70 mb-1">
             {gettext("liid-%{slug}.csv · preview", slug: slug(@campaign.name))}
           </div>
-          <div>email,first_name,last_name,company_name,website,title,snippet</div>
+          <div>email,phone,first_name,last_name,company_name,website,title,snippet</div>
           <div :for={row <- @preview} class="truncate hidden sm:block">
             {preview_line(row)}
           </div>
@@ -898,7 +898,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   end
 
   defp preview_line(row) do
-    ~w(email first_name last_name company_name website title snippet)
+    ~w(email phone first_name last_name company_name website title snippet)
     |> Enum.map_join(",", &Map.get(row, &1, ""))
     |> String.slice(0, 110)
   end

@@ -5,12 +5,12 @@ defmodule Colt.Services.Export.Csv do
   One row per validated, title-matching Person on an enriched, opted-in
   CampaignCompany. Columns:
 
-      email, first_name, last_name, company_name, website, title, snippet
+      email, phone, first_name, last_name, company_name, website, title, snippet
   """
 
   alias Colt.Resources.{Campaign, CampaignCompany}
 
-  @columns ~w(email first_name last_name company_name website title snippet)
+  @columns ~w(email phone first_name last_name company_name website title snippet)
 
   def run(%Campaign{} = campaign) do
     with {:ok, ccs} <- load_ccs(campaign),
@@ -57,6 +57,7 @@ defmodule Colt.Services.Export.Csv do
 
     %{
       "email" => person.email || "",
+      "phone" => person.phone || "",
       "first_name" => first,
       "last_name" => last,
       "company_name" => company.name || "",
