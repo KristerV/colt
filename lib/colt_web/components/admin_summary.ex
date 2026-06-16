@@ -42,6 +42,12 @@ defmodule ColtWeb.Admin.Summary do
         value: format_money(current_month_cost()),
         path: "/admin/costs"
       },
+      %{
+        kicker: "Clients",
+        title: "Spending",
+        value: format_money(current_month_cost()),
+        path: "/admin/clients-spending"
+      },
       oban_tile(),
       system_tile(),
       %{
@@ -65,15 +71,9 @@ defmodule ColtWeb.Admin.Summary do
 
   def summary_strip(assigns) do
     ~H"""
-    <div class="flex flex-col sm:flex-row sm:flex-wrap lg:flex-nowrap overflow-x-auto lg:overflow-visible border border-rule rounded-sharp">
-      <%= for {tile, i} <- Enum.with_index(@tiles) do %>
-        <% active = active?(tile, @current_path) %>
-        <.strip_tile
-          tile={tile}
-          active={active}
-          first?={i == 0}
-          last?={i == length(@tiles) - 1}
-        />
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-rule border border-rule rounded-sharp overflow-hidden">
+      <%= for tile <- @tiles do %>
+        <.strip_tile tile={tile} active={active?(tile, @current_path)} />
       <% end %>
     </div>
     """
@@ -81,8 +81,6 @@ defmodule ColtWeb.Admin.Summary do
 
   attr :tile, :map, required: true
   attr :active, :boolean, default: false
-  attr :first?, :boolean, default: false
-  attr :last?, :boolean, default: false
 
   defp strip_tile(%{tile: %{external: true}} = assigns) do
     ~H"""
@@ -90,7 +88,7 @@ defmodule ColtWeb.Admin.Summary do
       href={@tile.path}
       target="_blank"
       rel="noopener"
-      class={tile_class(@active, @last?)}
+      class={tile_class(@active)}
       style={@active && "box-shadow: inset 0 -2px 0 var(--accent);"}
     >
       <.strip_body tile={@tile} active={@active} />
@@ -102,7 +100,7 @@ defmodule ColtWeb.Admin.Summary do
     ~H"""
     <.link
       navigate={@tile.path}
-      class={tile_class(@active, @last?)}
+      class={tile_class(@active)}
       style={@active && "box-shadow: inset 0 -2px 0 var(--accent);"}
     >
       <.strip_body tile={@tile} active={@active} />
@@ -110,11 +108,10 @@ defmodule ColtWeb.Admin.Summary do
     """
   end
 
-  defp tile_class(active, last?) do
+  defp tile_class(active) do
     [
-      "shrink-0 sm:shrink sm:flex-1 min-w-[140px] sm:min-w-0 px-[14px] py-[12px] lg:px-[16px] lg:py-[14px] relative text-left cursor-pointer bg-transparent hover:bg-paperAlt transition-colors",
-      !last? && "border-b sm:border-b-0 sm:border-r border-rule",
-      active && "bg-paperAlt"
+      "px-[14px] py-[12px] lg:px-[16px] lg:py-[14px] relative text-left cursor-pointer transition-colors",
+      if(active, do: "bg-paperAlt", else: "bg-paper hover:bg-paperAlt")
     ]
   end
 

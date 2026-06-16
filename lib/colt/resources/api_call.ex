@@ -24,6 +24,7 @@ defmodule Colt.Resources.ApiCall do
     define :recent, args: [:limit]
     define :recent_by_provider, args: [:provider, :limit]
     define :list_for_subject, args: [:subject_type, :subject_id]
+    define :client_spending, args: [:months_back]
   end
 
   actions do
@@ -73,6 +74,17 @@ defmodule Colt.Resources.ApiCall do
       filter expr(subject_type == ^arg(:subject_type) and subject_id == ^arg(:subject_id))
       prepare build(sort: [inserted_at: :desc])
     end
+
+    # Per-client (campaign owner) spend grouped by month. Grouped aggregation with
+    # multiple measures doesn't fit a read action, so this generic action runs one
+    # focused Ecto query — kept inside the resource so no query leaks into views.
+    action :client_spending, {:array, :map} do
+      argument :months_back, :integer, default: 12
+
+      run fn input, _ctx ->
+        client_spending_rows(input.arguments.months_back)
+      end
+    end
   end
 
   attributes do
@@ -119,5 +131,36 @@ defmodule Colt.Resources.ApiCall do
 
   relationships do
     belongs_to :campaign, Colt.Resources.Campaign, public?: true, allow_nil?: true
+  end
+
+  @doc false
+  # Sum cost_usd + call count per campaign-owner per month over the last
+  # `months_back` months. Calls with no campaign (unattributable to a user) are
+  # excluded by the inner joins. Returns {:ok, [%{user_id, email, month, cost_usd, calls}]}.
+  def client_spending_rows(months_back) when is_integer(months_back) and months_back > 0 do
+    import Ecto.Query
+
+    cutoff = DateTime.add(DateTime.utc_now(), -months_back * 31 * 86_400, :second)
+
+    rows =
+      from(c in "api_calls",
+        join: camp in "campaigns",
+        on: camp.id == c.campaign_id,
+        join: u in "users",
+        on: u.id == camp.owner_id,
+        where: c.inserted_at >= ^cutoff,
+        group_by: [u.id, u.email, fragment("to_char(?, 'YYYY-MM')", c.inserted_at)],
+        order_by: [desc: fragment("to_char(?, 'YYYY-MM')", c.inserted_at)],
+        select: %{
+          user_id: u.id,
+          email: u.email,
+          month: fragment("to_char(?, 'YYYY-MM')", c.inserted_at),
+          cost_usd: coalesce(sum(c.cost_usd), 0),
+          calls: count(c.id)
+        }
+      )
+      |> Colt.Repo.all()
+
+    {:ok, rows}
   end
 end
