@@ -54,6 +54,7 @@ defmodule ColtWeb.Router do
       live "/email-accounts/:account_id/stats", Account.EmailAccountStatsLive, :index
       live "/campaigns/:id/writing", Sending.WritingLive
       live "/campaigns/:id/sending-funnel", Sending.SendingFunnelLive
+      live "/campaigns/:id/templates", Sending.TemplatesLive
       live "/email-accounts", Account.EmailAccountsLive
       live "/billing", Account.BillingLive
       live "/admin", AdminLive

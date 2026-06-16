@@ -349,6 +349,10 @@ defmodule ColtWeb.Components.Liid do
     %{id: :sending_funnel, icon: "grid"}
   ]
 
+  @admin_items [
+    %{id: :templates, icon: "file"}
+  ]
+
   defp nav_label(:campaigns), do: gettext("Campaigns")
   defp nav_label(:email_accounts), do: gettext("Email accounts")
   defp nav_label(:billing), do: gettext("Billing")
@@ -364,6 +368,7 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:sending_accounts), do: gettext("Sending accounts")
   defp nav_label(:writing), do: gettext("Writing")
   defp nav_label(:sending_funnel), do: gettext("Sending funnel")
+  defp nav_label(:templates), do: gettext("Templates")
 
   attr :active, :atom, default: nil
   attr :current_user, :map, default: nil
@@ -412,6 +417,13 @@ defmodule ColtWeb.Components.Liid do
             />
           </:header_extra>
         </.sidebar_section>
+
+        <.sidebar_section
+          :if={@campaign && @current_user && @current_user.is_admin}
+          label={gettext("Admin")}
+          items={admin_items_with_hrefs(@campaign_id)}
+          active={@active}
+        />
       </div>
 
       <div :if={@current_user} class="border-t border-rule">
@@ -569,6 +581,12 @@ defmodule ColtWeb.Components.Liid do
     Enum.map(@sending_items, fn item -> Map.put(item, :href, sending_href(item.id, id)) end)
   end
 
+  defp admin_items_with_hrefs(nil), do: @admin_items
+
+  defp admin_items_with_hrefs(id) do
+    Enum.map(@admin_items, fn item -> Map.put(item, :href, admin_href(item.id, id)) end)
+  end
+
   defp enrichment_href(:name, id), do: "/campaigns/#{id}/name"
   defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
   defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
@@ -582,6 +600,8 @@ defmodule ColtWeb.Components.Liid do
   defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
   defp sending_href(:writing, id), do: "/campaigns/#{id}/writing"
   defp sending_href(:sending_funnel, id), do: "/campaigns/#{id}/sending-funnel"
+
+  defp admin_href(:templates, id), do: "/campaigns/#{id}/templates"
 
   attr :label, :string, default: nil
   attr :items, :list, required: true
