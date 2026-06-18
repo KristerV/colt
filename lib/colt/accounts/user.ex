@@ -209,6 +209,10 @@ defmodule Colt.Accounts.User do
       default :none
       constraints one_of: [:none, :active, :past_due, :canceled]
     end
+
+    # Registration time. Backfilled to the migration moment for users that
+    # predate this column; accurate for everyone who signs up after.
+    timestamps()
   end
 
   relationships do
@@ -249,6 +253,8 @@ defmodule Colt.Accounts.User do
                  inserted_at >= parent(subscription_period_start)
              )
     end
+
+    count :campaigns_count, :campaigns
   end
 
   identities do

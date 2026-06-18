@@ -25,6 +25,7 @@ defmodule Colt.Resources.ApiCall do
     define :recent_by_provider, args: [:provider, :limit]
     define :list_for_subject, args: [:subject_type, :subject_id]
     define :client_spending, args: [:months_back]
+    define :client_totals
   end
 
   actions do
@@ -83,6 +84,15 @@ defmodule Colt.Resources.ApiCall do
 
       run fn input, _ctx ->
         client_spending_rows(input.arguments.months_back)
+      end
+    end
+
+    # Lifetime spend per client (campaign owner): total cost, call count, and
+    # last call time. Same grouped-aggregation shape as client_spending, so it
+    # lives here rather than leaking a query into the admin view.
+    action :client_totals, {:array, :map} do
+      run fn _input, _ctx ->
+        client_total_rows()
       end
     end
   end
@@ -157,6 +167,30 @@ defmodule Colt.Resources.ApiCall do
           month: fragment("to_char(?, 'YYYY-MM')", c.inserted_at),
           cost_usd: coalesce(sum(c.cost_usd), 0),
           calls: count(c.id)
+        }
+      )
+      |> Colt.Repo.all()
+
+    {:ok, rows}
+  end
+
+  @doc false
+  # Lifetime sum cost_usd + call count + last call time per campaign-owner.
+  # Calls with no campaign are excluded by the inner joins. Returns
+  # {:ok, [%{user_id, cost_usd, calls, last_call_at}]}.
+  def client_total_rows do
+    import Ecto.Query
+
+    rows =
+      from(c in "api_calls",
+        join: camp in "campaigns",
+        on: camp.id == c.campaign_id,
+        group_by: camp.owner_id,
+        select: %{
+          user_id: camp.owner_id,
+          cost_usd: coalesce(sum(c.cost_usd), 0),
+          calls: count(c.id),
+          last_call_at: max(c.inserted_at)
         }
       )
       |> Colt.Repo.all()

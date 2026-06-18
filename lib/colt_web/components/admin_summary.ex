@@ -49,6 +49,12 @@ defmodule ColtWeb.Admin.Summary do
         value: format_int(current_month_clients()) <> " clients",
         path: "/admin/clients-spending"
       },
+      %{
+        kicker: "Clients",
+        title: "All Users",
+        value: format_int(Ash.count!(Colt.Accounts.User, authorize?: false)) <> " users",
+        path: "/admin/clients"
+      },
       oban_tile(),
       system_tile(),
       %{
