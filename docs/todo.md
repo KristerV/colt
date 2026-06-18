@@ -21,6 +21,18 @@ blocking the phase that surfaced them.
   endpoint, rate-limited) or scrape teatmik.ee. Whichever, add a
   `vat_registered :boolean` attribute, an ingest path, and the checkbox.
 
+## Filters — EMTAK / industry picker
+
+- **EMTAK code search is bad — make it a tree + search picker.** The current
+  industry picker (`ColtWeb.Campaigns.FiltersLive`, `industry_search` event →
+  `Colt.Filters.IndustryLabels.search/1`) is search-only: a flat box that returns
+  matching labels with no way to browse the hierarchy. It should be a separate
+  stage / popup that is **both tree-browsable and searchable**, in the familiar
+  language (Estonian EMTAK terms, not raw codes). 1Contact Eesti does this well —
+  use it as the reference. EMTAK is hierarchical (section → division → group →
+  class → 5-digit code); the picker should let you drill down the tree as well as
+  type to filter.
+
 ## Company categories
 
 - **Company has many categories. Support them, import them.** I know Rik does at
