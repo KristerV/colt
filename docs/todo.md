@@ -37,3 +37,12 @@ blocking the phase that surfaced them.
 
 - **Company has many categories. Support them, import them.** I know Rik does at
   least. First do this just for Rik, then we can look further.
+
+## Redesign
+
+- **The marketing/product UI needs a redesign.** Current inspiration:
+  - **loops.so** — simplicity. Pare back, fewer controls, calm surfaces.
+  - **outfunnel.com** — clarity. The hero animation gives instant recognition of
+    what the product does; aim for that immediate "I get it" moment.
+  - **maildoso.ai** — its promises / value-prop framing. Borrow how they state
+    what you get.
