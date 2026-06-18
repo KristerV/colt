@@ -8,6 +8,7 @@ defmodule Colt.Services.Sending.EmailWriterTest do
   defp base_ctx(sender) do
     %{
       contact: %{id: Ash.UUID.generate(), campaign_id: Ash.UUID.generate()},
+      sequence: %{id: Ash.UUID.generate()},
       person: %{name: "Mart Tamm", title: "CTO", email: "mart@acme.ee"},
       company: nil,
       sender: sender,

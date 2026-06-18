@@ -29,8 +29,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
     define :list_halt_eligible_for_thread, args: [:thread_id]
-    define :list_user_edited_for_campaign, args: [:campaign_id, :limit]
-    define :list_committed_for_campaign, args: [:campaign_id]
+    define :list_user_edited_for_sequence, args: [:sequence_id, :limit]
 
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body]
@@ -39,11 +38,6 @@ defmodule Colt.Resources.OutboundEmail do
 
     define :update_user_fields, args: [:user_subject, :user_body]
 
-    define :update_template,
-      args: [:template_label, :template_angle, :template_ask, :template_offer]
-
-    define :list_labeled_openers_for_campaign, args: [:campaign_id]
-    define :list_edited_openers_for_campaign, args: [:campaign_id]
     define :mark_approved
     define :schedule, args: [:scheduled_at, :email_account_id]
     define :mark_sent, args: [:nylas_message_id, :nylas_thread_id, :sent_at]
@@ -154,42 +148,25 @@ defmodule Colt.Resources.OutboundEmail do
       get? true
     end
 
-    read :list_user_edited_for_campaign do
+    read :list_user_edited_for_sequence do
       description """
-      Few-shot examples for the AI writer (§6.2). Returns outbound rows
-      in the given campaign where the user actually edited the AI draft
-      (user_subject or user_body non-nil), newest first, capped at limit.
+      Few-shot examples for the AI writer, scoped to one template. Returns
+      outbound rows whose contact was written under the given sequence and
+      where the user edited the AI draft (user_subject or user_body
+      non-nil), newest first, capped at limit. Empty pool ⇒ the writer
+      produces a blank draft the user fills by hand.
       """
 
-      argument :campaign_id, :uuid, allow_nil?: false
+      argument :sequence_id, :uuid, allow_nil?: false
       argument :limit, :integer, allow_nil?: false
 
       filter expr(
-               thread.campaign_contact.campaign_id == ^arg(:campaign_id) and
+               thread.campaign_contact.sequence_id == ^arg(:sequence_id) and
                  (not is_nil(user_subject) or not is_nil(user_body))
              )
 
       prepare build(sort: [inserted_at: :desc])
       prepare build(limit: arg(:limit))
-    end
-
-    read :list_committed_for_campaign do
-      description """
-      Existence gate for the first-email rule: outbound rows in the
-      campaign that have been approved/scheduled/sent. When none exist,
-      the Writing view leaves the first contact's drafts blank so the
-      user writes the opener by hand (which then seeds the AI writer's
-      voice). Capped at 1 — callers only need to know if any exist.
-      """
-
-      argument :campaign_id, :uuid, allow_nil?: false
-
-      filter expr(
-               status in [:approved, :scheduled, :sent] and
-                 thread.campaign_contact.campaign_id == ^arg(:campaign_id)
-             )
-
-      prepare build(limit: 1)
     end
 
     read :list_halt_eligible_for_thread do
@@ -231,11 +208,7 @@ defmodule Colt.Resources.OutboundEmail do
         :step_position,
         :ai_subject,
         :ai_body,
-        :writer_meta,
-        :template_label,
-        :template_angle,
-        :template_ask,
-        :template_offer
+        :writer_meta
       ]
 
       change set_attribute(:status, :drafted)
@@ -245,47 +218,6 @@ defmodule Colt.Resources.OutboundEmail do
     update :update_user_fields do
       accept [:user_subject, :user_body]
       require_atomic? false
-    end
-
-    update :update_template do
-      description "Set the template classification on an opener (§6.2)."
-      accept [:template_label, :template_angle, :template_ask, :template_offer]
-    end
-
-    read :list_edited_openers_for_campaign do
-      description """
-      User-edited openers (step 0, user_subject or user_body set) in the
-      campaign, oldest first. Backfill input for the template labeler — old
-      to new so labels accumulate in the order the user actually wrote them.
-      """
-
-      argument :campaign_id, :uuid, allow_nil?: false
-
-      filter expr(
-               step_position == 0 and
-                 (not is_nil(user_subject) or not is_nil(user_body)) and
-                 thread.campaign_contact.campaign_id == ^arg(:campaign_id)
-             )
-
-      prepare build(sort: [inserted_at: :asc])
-    end
-
-    read :list_labeled_openers_for_campaign do
-      description """
-      Labeled openers (step 0, template_label set) in the campaign, newest
-      first. Source of truth for the writer's template picker and for the
-      labeler's few-shot of existing templates.
-      """
-
-      argument :campaign_id, :uuid, allow_nil?: false
-
-      filter expr(
-               step_position == 0 and
-                 not is_nil(template_label) and
-                 thread.campaign_contact.campaign_id == ^arg(:campaign_id)
-             )
-
-      prepare build(sort: [inserted_at: :desc])
     end
 
     update :mark_approved do
@@ -403,15 +335,6 @@ defmodule Colt.Resources.OutboundEmail do
     attribute :bounce_reason, :string, public?: true
 
     attribute :writer_meta, :map, public?: true, default: %{}
-
-    # Template classification (§6.2 learning loop). Set on the opener
-    # (step 0) when a contact is approved: which outreach approach this
-    # sequence is, plus the axes that define it. The writer picks a
-    # template at random per contact and writes in that approach.
-    attribute :template_label, :string, public?: true
-    attribute :template_angle, :string, public?: true
-    attribute :template_ask, :string, public?: true
-    attribute :template_offer, :string, public?: true
 
     attribute :opens_count, :integer, allow_nil?: false, default: 0, public?: true
     attribute :clicks_count, :integer, allow_nil?: false, default: 0, public?: true

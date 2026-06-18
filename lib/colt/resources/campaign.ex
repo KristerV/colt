@@ -29,7 +29,6 @@ defmodule Colt.Resources.Campaign do
     define :mark_sending_initialized
     define :set_tracking, args: [:tracking_opens?, :tracking_clicks?]
     define :set_panic, args: [:panic_switch_on]
-    define :bump_auto_approve_streak
     define :set_auto_approve_on, args: [:auto_approve_on?]
   end
 
@@ -114,32 +113,9 @@ defmodule Colt.Resources.Campaign do
     end
 
     update :set_auto_approve_on do
-      description "Flip auto_approve_on?. Caller should guard on auto_approve_unlocked?."
+      description "Flip auto_approve_on?. Always available — a job then picks an enabled template per contact by weighted random."
       accept [:auto_approve_on?]
       require_atomic? false
-    end
-
-    update :bump_auto_approve_streak do
-      description """
-      Increment auto_approve_streak by 1 on a clean approval (user did
-      not edit any draft). At 10, unlock auto-approve.
-      """
-
-      accept []
-      require_atomic? false
-
-      change fn changeset, _ ->
-        current = Ash.Changeset.get_attribute(changeset, :auto_approve_streak) || 0
-        new = current + 1
-
-        changeset
-        |> Ash.Changeset.change_attribute(:auto_approve_streak, new)
-        |> then(fn cs ->
-          if new >= 10,
-            do: Ash.Changeset.change_attribute(cs, :auto_approve_unlocked?, true),
-            else: cs
-        end)
-      end
     end
 
     update :finalize do
@@ -225,21 +201,10 @@ defmodule Colt.Resources.Campaign do
       default: false,
       public?: true
 
-    attribute :auto_approve_unlocked?, :boolean,
-      allow_nil?: false,
-      default: false,
-      public?: true
-
     attribute :auto_approve_on?, :boolean,
       allow_nil?: false,
       default: false,
       public?: true
-
-    attribute :auto_approve_streak, :integer,
-      allow_nil?: false,
-      default: 0,
-      public?: true,
-      constraints: [min: 0]
 
     attribute :tracking_opens?, :boolean,
       allow_nil?: false,
@@ -260,7 +225,7 @@ defmodule Colt.Resources.Campaign do
     has_many :campaign_companies, Colt.Resources.CampaignCompany
     has_many :api_calls, Colt.Resources.ApiCall
     has_many :campaign_email_accounts, Colt.Resources.CampaignEmailAccount
-    has_one :sequence, Colt.Resources.Sequence
+    has_many :sequences, Colt.Resources.Sequence
   end
 
   aggregates do

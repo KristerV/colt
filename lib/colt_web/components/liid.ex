@@ -343,14 +343,11 @@ defmodule ColtWeb.Components.Liid do
 
   @sending_items [
     %{id: :pitch, icon: "spark"},
-    %{id: :sequence, icon: "code"},
     %{id: :sending_accounts, icon: "mail"},
-    %{id: :writing, icon: "spark"},
-    %{id: :sending_funnel, icon: "grid"}
-  ]
-
-  @admin_items [
-    %{id: :templates, icon: "file"}
+    %{id: :write, icon: "spark"},
+    %{id: :sending_funnel, icon: "grid"},
+    %{id: :variants, icon: "code"},
+    %{id: :settings, icon: "file"}
   ]
 
   defp nav_label(:campaigns), do: gettext("Campaigns")
@@ -368,7 +365,9 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:sending_accounts), do: gettext("Sending accounts")
   defp nav_label(:writing), do: gettext("Writing")
   defp nav_label(:sending_funnel), do: gettext("Sending funnel")
-  defp nav_label(:templates), do: gettext("Templates")
+  defp nav_label(:write), do: gettext("Write")
+  defp nav_label(:variants), do: gettext("Variants")
+  defp nav_label(:settings), do: gettext("Settings")
 
   attr :active, :atom, default: nil
   attr :current_user, :map, default: nil
@@ -410,20 +409,13 @@ defmodule ColtWeb.Components.Liid do
         >
           <:header_extra>
             <.live_component
-              module={ColtWeb.Components.PanicToggle}
-              id={"panic-toggle-#{@campaign.id}"}
+              module={ColtWeb.Components.AutoApproveToggle}
+              id={"auto-approve-#{@campaign.id}"}
               campaign={@campaign}
               current_user={@current_user}
             />
           </:header_extra>
         </.sidebar_section>
-
-        <.sidebar_section
-          :if={@campaign && @current_user && @current_user.is_admin}
-          label={gettext("Admin")}
-          items={admin_items_with_hrefs(@campaign_id)}
-          active={@active}
-        />
       </div>
 
       <div :if={@current_user} class="border-t border-rule">
@@ -581,12 +573,6 @@ defmodule ColtWeb.Components.Liid do
     Enum.map(@sending_items, fn item -> Map.put(item, :href, sending_href(item.id, id)) end)
   end
 
-  defp admin_items_with_hrefs(nil), do: @admin_items
-
-  defp admin_items_with_hrefs(id) do
-    Enum.map(@admin_items, fn item -> Map.put(item, :href, admin_href(item.id, id)) end)
-  end
-
   defp enrichment_href(:name, id), do: "/campaigns/#{id}/name"
   defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
   defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
@@ -596,12 +582,11 @@ defmodule ColtWeb.Components.Liid do
   defp enrichment_href(:enrichment_funnel, id), do: "/campaigns/#{id}/funnel"
 
   defp sending_href(:pitch, id), do: "/campaigns/#{id}/pitch"
-  defp sending_href(:sequence, id), do: "/campaigns/#{id}/sequence"
+  defp sending_href(:write, id), do: "/campaigns/#{id}/write"
+  defp sending_href(:variants, id), do: "/campaigns/#{id}/variants"
+  defp sending_href(:settings, id), do: "/campaigns/#{id}/settings"
   defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
-  defp sending_href(:writing, id), do: "/campaigns/#{id}/writing"
   defp sending_href(:sending_funnel, id), do: "/campaigns/#{id}/sending-funnel"
-
-  defp admin_href(:templates, id), do: "/campaigns/#{id}/templates"
 
   attr :label, :string, default: nil
   attr :items, :list, required: true

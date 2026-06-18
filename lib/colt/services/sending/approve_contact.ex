@@ -2,57 +2,40 @@ defmodule Colt.Services.Sending.ApproveContact do
   @moduledoc """
   Move one CampaignContact from :pending_approval → :approved.
 
-  Steps (run/2):
-    1. Load contact + sequence + draft emails.
+  Steps (run/3):
+    1. Load contact + the template (sequence) it was written under + drafts.
     2. Apply pending user edits (subject, body per step).
     3. Pick sticky inbox.
-    4. Snapshot the current sequence (steps + delays + terminal).
-    5. Update the contact: status, assigned_email_account, snapshot, version.
+    4. Snapshot the template's sequence (steps + delays + terminal).
+    5. Update the contact: status, assigned_email_account, template, snapshot.
     6. Schedule step 1's Email via the §5.2 burst scheduler. Followups
        stay :approved until the send loop fires step N and schedules N+1.
     7. Mark the rest of the email drafts as :approved (no scheduled_at yet).
-    8. Bump campaign.auto_approve_streak iff clean (no edits at all).
+
+  The template is passed via `sequence_id:` in opts — the template the user
+  was working in. Stamping it on the contact scopes future learning.
   """
 
-  alias Colt.Resources.{Campaign, CampaignContact, EmailAccount, OutboundEmail, Sequence}
+  alias Colt.Resources.{CampaignContact, EmailAccount, OutboundEmail, Sequence}
   alias Colt.Services.Sending.{AssignInbox, NextSlot}
 
   def run(contact_id, edits, opts \\ []) when is_binary(contact_id) and is_map(edits) do
     actor = Keyword.get(opts, :actor)
+    sequence_id = Keyword.get(opts, :sequence_id)
 
     with {:ok, contact} <- load_contact(contact_id, actor),
-         {:ok, sequence} <- load_sequence(contact.campaign_id, actor),
+         {:ok, sequence} <- load_sequence(sequence_id, contact.campaign_id, actor),
          {:ok, drafts} <- load_drafts(contact, actor),
          :ok <- ensure_drafts_present(drafts),
          {:ok, drafts} <- apply_edits(drafts, edits, actor),
          {:ok, inbox} <- resolve_inbox(contact, actor),
          snapshot = build_snapshot(sequence),
-         {:ok, contact} <- approve_contact(contact, inbox, snapshot, sequence.version, actor),
+         {:ok, contact} <- approve_contact(contact, inbox, sequence, snapshot, actor),
          {:ok, _} <- schedule_step_one(drafts, inbox, actor),
-         {:ok, _} <- approve_other_steps(drafts, actor),
-         {:ok, _} <- maybe_bump_streak(contact.campaign_id, drafts, actor),
-         {:ok, _} <- label_opener(drafts) do
+         {:ok, _} <- approve_other_steps(drafts, actor) do
       {:ok, %{contact_id: contact.id, inbox_id: inbox.id}}
     end
   end
-
-  # Classify the opener's approach off the request path (§6.2) — but only when
-  # the user actually rewrote the opener. An unedited opener is just the AI
-  # reusing an existing template; it carries no new approach to learn.
-  # Best-effort: a failed enqueue must never block approval.
-  defp label_opener(drafts) do
-    case Enum.find(drafts, &(&1.step_position == 0)) do
-      %{id: opener_id} = opener ->
-        if opener_edited?(opener), do: Colt.Jobs.LabelTemplate.enqueue(opener_id)
-
-      _ ->
-        :ok
-    end
-
-    {:ok, :ok}
-  end
-
-  defp opener_edited?(%{user_subject: s, user_body: b}), do: not (is_nil(s) and is_nil(b))
 
   # Reuse the inbox the writer composed for (assigned at write time). Only fall
   # back to a fresh pick if the contact somehow reached approval unassigned.
@@ -69,7 +52,16 @@ defmodule Colt.Services.Sending.ApproveContact do
     )
   end
 
-  defp load_sequence(campaign_id, actor) do
+  defp load_sequence(sequence_id, _campaign_id, actor) when is_binary(sequence_id) do
+    {:ok,
+     Sequence.get!(sequence_id,
+       load: [:sequence_steps],
+       actor: actor,
+       authorize?: actor != nil
+     )}
+  end
+
+  defp load_sequence(_nil, campaign_id, actor) do
     {:ok,
      Sequence.get_for_campaign!(campaign_id,
        load: [:sequence_steps],
@@ -134,8 +126,8 @@ defmodule Colt.Services.Sending.ApproveContact do
     }
   end
 
-  defp approve_contact(contact, inbox, snapshot, version, actor) do
-    CampaignContact.approve(contact, inbox.id, snapshot, version,
+  defp approve_contact(contact, inbox, sequence, snapshot, actor) do
+    CampaignContact.approve(contact, inbox.id, sequence.id, snapshot, sequence.version,
       actor: actor,
       authorize?: actor != nil
     )
@@ -171,23 +163,8 @@ defmodule Colt.Services.Sending.ApproveContact do
     {:ok, :ok}
   end
 
-  defp maybe_bump_streak(campaign_id, drafts, actor) do
-    if clean?(drafts) do
-      with {:ok, campaign} <-
-             Campaign.get(campaign_id, actor: actor, authorize?: actor != nil),
-           {:ok, _} <- Campaign.bump_auto_approve_streak(campaign, actor: actor) do
-        {:ok, :bumped}
-      end
-    else
-      {:ok, :skipped}
-    end
-  end
-
   # Hard guard so a half-loaded UI (drafts still being generated, or
   # EmailWriter silently crashed) can't approve a contact into nothing.
   defp ensure_drafts_present([]), do: {:error, :no_drafts_to_approve}
   defp ensure_drafts_present([_ | _]), do: :ok
-
-  defp clean?(drafts),
-    do: Enum.all?(drafts, fn e -> is_nil(e.user_subject) and is_nil(e.user_body) end)
 end

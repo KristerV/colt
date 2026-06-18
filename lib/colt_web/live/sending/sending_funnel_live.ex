@@ -531,8 +531,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       <span class="font-semibold tracking-[0.12em]">{gettext("Campaign auto-paused")}</span>
       <span class="opacity-90 normal-case tracking-normal">
         {gettext(
-          "Bounce rate %{rate}%% · above the 5%% threshold. Investigate before resuming.",
-          rate: Float.round(@rate, 1)
+          "Bounce rate %{rate}% · above the 5% threshold. Investigate before resuming.",
+          rate: @rate
         )}
       </span>
     </div>
@@ -580,7 +580,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         label: gettext("Interested"),
         big: Map.get(b, :replied_interested, 0),
         unit: gettext("contacts"),
-        sub: gettext("%{rate}%% interest", rate: assigns.stats.interest_rate),
+        sub: gettext("%{rate}% interest", rate: assigns.stats.interest_rate),
         tone: :accent
       },
       %{
@@ -588,7 +588,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         label: gettext("Not interested"),
         big: not_interested,
         unit: gettext("contacts"),
-        sub: gettext("%{rate}%% reply rate", rate: assigns.stats.reply_rate)
+        sub: gettext("%{rate}% reply rate", rate: assigns.stats.reply_rate)
       },
       %{
         k: :failed,
@@ -596,7 +596,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         big: Map.get(b, :failed, 0),
         unit: gettext("contacts"),
         sub:
-          gettext("%{rate}%% failure rate",
+          gettext("%{rate}% failure rate",
             rate: failure_rate(b, assigns.stats.total_contacts)
           ),
         tone: :fail
@@ -607,8 +607,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         big: assigns.stats.total_bounced,
         unit: gettext("contacts"),
         sub:
-          gettext("%{rate}%% bounce rate",
-            rate: Float.round(assigns.stats.bounce_rate, 1)
+          gettext("%{rate}% bounce rate",
+            rate: assigns.stats.bounce_rate
           ),
         tone: bounce_tone(assigns.stats.bounce_rate)
       }
@@ -660,10 +660,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     """
   end
 
-  defp failure_rate(_, 0), do: 0.0
+  defp failure_rate(_, 0), do: 0
 
   defp failure_rate(buckets, total),
-    do: Float.round(Map.get(buckets, :failed, 0) / total * 100, 1)
+    do: round(Map.get(buckets, :failed, 0) / total * 100)
 
   defp bounce_tone(rate) when is_number(rate) and rate >= 5.0, do: :fail
   defp bounce_tone(rate) when is_number(rate) and rate >= 3.0, do: :warn
@@ -690,9 +690,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         )}
       </div>
       <div class="text-[13px] text-ink55 max-w-[360px] leading-[1.55]">
-        {gettext("Pick another tile above, or approve more contacts in")}
-        <.link navigate={~p"/campaigns/#{@campaign_id}/writing"} class="underline text-ink70">
-          {gettext("Writing")}
+        {gettext("Pick another tile above, or approve more contacts under")}
+        <.link navigate={~p"/campaigns/#{@campaign_id}/write"} class="underline text-ink70">
+          {gettext("Write")}
         </.link>
         {gettext("to feed the funnel.")}
       </div>
@@ -713,7 +713,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           </div>
           <div class="flex items-baseline gap-1.5">
             <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
-              {Float.round(@stats.open_rate, 1)}%
+              {@stats.open_rate}%
             </span>
             <span class="font-mono text-[11px] text-ink55">
               {@stats.total_opened}/{@stats.total_sent}
@@ -726,7 +726,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           </div>
           <div class="flex items-baseline gap-1.5">
             <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
-              {Float.round(@stats.click_rate, 1)}%
+              {@stats.click_rate}%
             </span>
             <span class="font-mono text-[11px] text-ink55">
               {@stats.total_clicked}/{@stats.total_sent}
@@ -948,7 +948,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     outbound? = kind in [:outbound, :manual_outbound]
     inbound? = kind == :inbound
     manual? = kind == :manual_outbound
-    status = assigns.item.email.status
+    # Inbound emails wrap an InboundEmail struct, which has no :status.
+    status = if outbound?, do: assigns.item.email.status, else: nil
     sent? = outbound? and status == :sent
     draft? = outbound? and status == :drafted
     queued? = outbound? and status == :approved

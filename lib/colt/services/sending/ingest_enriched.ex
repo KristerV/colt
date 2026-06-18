@@ -20,6 +20,8 @@ defmodule Colt.Services.Sending.IngestEnriched do
     end
   end
 
+  # Auto-approve (send without review) is the campaign-level switch. When on,
+  # the job drafts each new contact in a rotated active variant and sends it.
   defp maybe_enqueue_auto(campaign_id, contacts, actor) do
     case Campaign.get(campaign_id, actor: actor, authorize?: actor != nil) do
       {:ok, %{auto_approve_on?: true}} ->

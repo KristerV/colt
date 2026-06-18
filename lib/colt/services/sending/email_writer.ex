@@ -7,17 +7,21 @@ defmodule Colt.Services.Sending.EmailWriter do
   one `:drafted` Email is persisted per email step on the contact's
   thread, populating ai_* / user_* / final_* fields.
 
-  Phase E9 wires the learning loop: previous outbound rows in the same
-  campaign where the user edited the AI draft are passed as few-shot
-  examples (cap 20, no ranking). The prompt includes a seed integer
-  0-99; the model uses `seed mod N` to pick deterministically among
-  matching example styles so multiple voices get sampled across
-  contacts.
+  The learning loop is scoped per-template: previous outbound rows whose
+  contact was written under the SAME template (sequence) and where the user
+  edited the AI draft are passed as few-shot examples (cap 50). When that
+  pool is empty the writer skips the model and persists blank drafts — the
+  user writes the first sequence for that template by hand, which then
+  becomes the example pool the writer learns from.
+
+  Pass the template via `sequence_id:` in opts. The writing view passes the
+  template the user is working in; the auto-approve worker passes its
+  weighted-random pick.
 
   Inspect a full prompt via iex:
 
       iex> contact = Colt.Resources.CampaignContact.get!(id)
-      iex> {:ok, ctx} = Colt.Services.Sending.EmailWriter.context_for(contact)
+      iex> {:ok, ctx} = Colt.Services.Sending.EmailWriter.context_for(contact, sequence_id: seq_id)
       iex> {:ok, prompt} = Colt.Services.Sending.EmailWriter.prompt_for(ctx)
       iex> IO.puts(prompt.system); IO.puts(prompt.user)
   """
@@ -48,11 +52,24 @@ defmodule Colt.Services.Sending.EmailWriter do
 
   def run(contact_or_id, opts \\ []) do
     actor = Keyword.get(opts, :actor)
+    sequence_id = Keyword.get(opts, :sequence_id)
 
     with {:ok, contact} <- load_contact(contact_or_id, actor),
-         {:ok, ctx} <- load_context(contact, actor),
-         {:ok, ctx} <- collect_examples(ctx),
-         {:ok, prompt} <- build_prompt(ctx),
+         {:ok, ctx} <- load_context(contact, sequence_id, actor),
+         {:ok, ctx} <- collect_examples(ctx) do
+      generate(ctx, actor)
+    end
+  end
+
+  # Empty example pool ⇒ no model call: persist blank drafts for the
+  # template's email steps so the editor renders the full sequence with
+  # empty fields, ready for the user to write the first one by hand.
+  defp generate(%{examples: []} = ctx, actor) do
+    {:ok, %{steps: [], emails: persist_blank(ctx, actor)}}
+  end
+
+  defp generate(ctx, actor) do
+    with {:ok, prompt} <- build_prompt(ctx),
          {:ok, ai_steps} <- call_model(prompt, ctx),
          {:ok, emails} <- persist(ctx, prompt, ai_steps, actor) do
       {:ok, %{steps: ai_steps, emails: emails}}
@@ -62,7 +79,8 @@ defmodule Colt.Services.Sending.EmailWriter do
   @doc "iex inspection helper — same as the private load_context."
   def context_for(contact, opts \\ []) do
     actor = Keyword.get(opts, :actor)
-    load_context(contact, actor)
+    sequence_id = Keyword.get(opts, :sequence_id)
+    load_context(contact, sequence_id, actor)
   end
 
   @doc "iex inspection helper — same as private build_prompt."
@@ -75,13 +93,13 @@ defmodule Colt.Services.Sending.EmailWriter do
 
   defp load_contact(id, actor) when is_binary(id) do
     Ash.get(CampaignContact, id,
-      load: [:person, :thread, campaign: [:sequence]],
+      load: [:person, :thread],
       actor: actor,
       authorize?: actor != nil
     )
   end
 
-  defp load_context(contact, actor) do
+  defp load_context(contact, sequence_id, actor) do
     contact =
       Ash.load!(
         contact,
@@ -90,12 +108,7 @@ defmodule Colt.Services.Sending.EmailWriter do
         authorize?: actor != nil
       )
 
-    sequence =
-      Sequence.get_for_campaign!(contact.campaign_id,
-        load: [:sequence_steps],
-        actor: actor,
-        authorize?: actor != nil
-      )
+    sequence = load_sequence(sequence_id, contact.campaign_id, actor)
 
     thread =
       contact.thread ||
@@ -122,65 +135,35 @@ defmodule Colt.Services.Sending.EmailWriter do
      }}
   end
 
+  # Load the specific template the contact is being written under. Falls back
+  # to the campaign's oldest template when no id is passed (defensive — every
+  # real caller threads a sequence_id).
+  defp load_sequence(sequence_id, _campaign_id, actor) when is_binary(sequence_id) do
+    Sequence.get!(sequence_id,
+      load: [:sequence_steps],
+      actor: actor,
+      authorize?: actor != nil
+    )
+  end
+
+  defp load_sequence(_nil, campaign_id, actor) do
+    Sequence.get_for_campaign!(campaign_id,
+      load: [:sequence_steps],
+      actor: actor,
+      authorize?: actor != nil
+    )
+  end
+
   @example_window 250
   @max_examples 50
 
-  # Each contact = one whole approach ("template"). The labeler tags every
-  # approved opener with a template_label; here we pick ONE label at random and
-  # feed only that approach's sequences, so the writer commits to a single
-  # approach per contact instead of averaging them into mush. Until a campaign
-  # has labeled openers, fall back to the newest user-edited sequences.
+  # Learning is scoped to ONE template: every prior sequence the user edited
+  # under this same template, oldest-capped at @max_examples. No automatic
+  # categorization — the template IS the grouping. An empty pool means the
+  # user hasn't written for this template yet, so the writer leaves blanks.
   defp collect_examples(ctx) do
-    case pick_template(ctx) do
-      {:ok, template, examples} ->
-        {:ok, ctx |> Map.put(:examples, examples) |> Map.put(:chosen_template, template)}
-
-      :none ->
-        {:ok, ctx |> Map.put(:examples, fallback_examples(ctx)) |> Map.put(:chosen_template, nil)}
-    end
-  end
-
-  defp pick_template(ctx) do
-    openers =
-      OutboundEmail.list_labeled_openers_for_campaign!(ctx.contact.campaign_id,
-        load: [thread: [:outbound_emails, campaign_contact: [person: [:company]]]],
-        authorize?: false
-      )
-
-    case Enum.group_by(openers, & &1.template_label) do
-      groups when map_size(groups) == 0 ->
-        :none
-
-      groups ->
-        # Uniform pick across distinct approaches — every template gets used,
-        # so a majority approach can't starve a minority one (or vice versa).
-        {label, label_openers} = Enum.random(groups)
-
-        examples =
-          label_openers
-          |> Enum.map(&example_from_opener/1)
-          |> Enum.reject(&is_nil/1)
-          |> Enum.sort_by(& &1.recency, {:desc, DateTime})
-          |> Enum.take(@max_examples)
-
-        template = template_axes(label, label_openers)
-
-        if examples == [], do: :none, else: {:ok, template, examples}
-    end
-  end
-
-  defp template_axes(label, [opener | _]) do
-    %{
-      label: label,
-      angle: opener.template_angle,
-      ask: opener.template_ask,
-      offer: opener.template_offer
-    }
-  end
-
-  defp fallback_examples(ctx) do
     rows =
-      case OutboundEmail.list_user_edited_for_campaign(ctx.contact.campaign_id, @example_window,
+      case OutboundEmail.list_user_edited_for_sequence(ctx.sequence.id, @example_window,
              load: [thread: [campaign_contact: [person: [:company]]]],
              authorize?: false
            ) do
@@ -188,29 +171,19 @@ defmodule Colt.Services.Sending.EmailWriter do
         _ -> []
       end
 
-    rows
-    |> Enum.group_by(& &1.thread_id)
-    |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
-    |> Enum.reject(&is_nil/1)
-    # newest contacts first (rows already arrive inserted_at desc)
-    |> Enum.sort_by(& &1.recency, {:desc, DateTime})
-    |> Enum.take(@max_examples)
+    examples =
+      rows
+      |> Enum.group_by(& &1.thread_id)
+      |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
+      |> Enum.reject(&is_nil/1)
+      # newest contacts first (rows already arrive inserted_at desc)
+      |> Enum.sort_by(& &1.recency, {:desc, DateTime})
+      |> Enum.take(@max_examples)
+
+    {:ok, Map.put(ctx, :examples, examples)}
   end
 
-  # Template path: a labeled opener carries its whole thread (the sequence).
-  defp example_from_opener(opener) do
-    thread = opener.thread
-    contact = thread && thread.campaign_contact
-    person = contact && contact.person
-
-    emails =
-      ((thread && thread.outbound_emails) || [])
-      |> Enum.reject(&(is_nil(&1.step_position) or &1.is_manual_reply))
-
-    build_example(person, emails, opener.inserted_at)
-  end
-
-  # Fallback path: a thread's user-edited rows, grouped upstream.
+  # A thread's user-edited rows, grouped upstream by thread.
   defp contact_example(emails) do
     first = List.first(emails)
     contact = first && first.thread && first.thread.campaign_contact
@@ -284,7 +257,6 @@ defmodule Colt.Services.Sending.EmailWriter do
     """
 
     examples = Map.get(ctx, :examples, [])
-    template = Map.get(ctx, :chosen_template)
 
     user = """
     Sender (write as this person — use this name to introduce/sign):
@@ -304,7 +276,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     Sequence skeleton (write one subject+body per email step):
     #{skeleton_lines(ctx.all_steps)}
 
-    #{examples_block(examples, template)}
+    #{examples_block(examples)}
 
     Language: #{language_name(ctx.language)} (write the whole email in
     this language).
@@ -314,7 +286,6 @@ defmodule Colt.Services.Sending.EmailWriter do
      %{
        system: system,
        user: user,
-       chosen_template: template && template.label,
        example_ids: Enum.flat_map(examples, & &1.ids)
      }}
   end
@@ -377,39 +348,21 @@ defmodule Colt.Services.Sending.EmailWriter do
     x |> Float.round(1) |> :erlang.float_to_binary(decimals: 1) |> String.replace_suffix(".0", "")
   end
 
-  defp examples_block([], _template), do: ""
+  defp examples_block([]), do: ""
 
-  # Template path: the approach is already chosen (in code). Feed only that
-  # one approach's sequences and tell the model to commit to it.
-  defp examples_block(examples, %{} = template) do
+  # Every example is a prior sequence the user sent under THIS template, so
+  # they already share one approach. Learn the voice and the approach from
+  # them; don't average them into mush.
+  defp examples_block(examples) do
     """
-    All examples below are ONE outreach approach the user uses — template
-    "#{template.label}":
-    - angle (reason for reaching out): #{template.angle}
-    - ask (call to action): #{template.ask}
-    - offer (value framing): #{template.offer}
-
-    #{rendered_examples(examples)}
-    Instruction: every example is a full sequence the user actually sent in
-    this one approach — real, finished writing in their voice, not
-    corrections. Write this contact's whole sequence in exactly this
-    approach: same angle and same call to action, with fresh wording
-    tailored to this company. Match the user's tone per step (opener style
-    from openers, followup style from followups). Do not switch to a
-    different angle or CTA.
-    """
-  end
-
-  # Fallback path (campaign has no labeled templates yet): just learn the
-  # user's voice from their recent edited sequences.
-  defp examples_block(examples, nil) do
-    """
-    Few-shot examples (#{length(examples)} prior sequences the user sent):
+    All examples below are prior sequences the user sent under this one
+    template — same approach, just different companies:
     #{rendered_examples(examples)}
     Instruction: every example is a full sequence the user actually sent —
     real, finished writing in their own voice, not corrections. Write this
-    contact's sequence in the same voice and tone, with fresh wording
-    tailored to this company.
+    contact's whole sequence in the same approach, voice and tone, with
+    fresh wording tailored to this company. Match the user's style per step
+    (opener style from openers, followup style from followups).
     """
   end
 
@@ -520,10 +473,10 @@ defmodule Colt.Services.Sending.EmailWriter do
     |> Enum.join("\n")
   end
 
-  defp language_name("en"), do: "English"
-  defp language_name("et"), do: "Estonian"
-  defp language_name("fi"), do: "Finnish"
-  defp language_name(other), do: other
+  defp language_name(code) do
+    Colt.Markets.languages()
+    |> Enum.find_value(code, fn {c, label} -> if c == code, do: label end)
+  end
 
   defp call_model(prompt, ctx) do
     case Complete.run(:smart, prompt.user,
@@ -568,7 +521,6 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> MapSet.new(& &1.step_position)
 
     meta = %{
-      "chosen_template" => prompt.chosen_template,
       "example_ids" => prompt.example_ids,
       "prompt_chars" => String.length(prompt.user) + String.length(prompt.system)
     }
@@ -585,8 +537,7 @@ defmodule Colt.Services.Sending.EmailWriter do
             ai_subject: s.subject,
             ai_body: s.body,
             writer_meta: meta
-          }
-          |> Map.merge(template_attrs(s, Map.get(ctx, :chosen_template))),
+          },
           action: :create_draft,
           actor: actor,
           authorize?: actor != nil
@@ -596,19 +547,22 @@ defmodule Colt.Services.Sending.EmailWriter do
     {:ok, emails}
   end
 
-  # The opener inherits the template the writer committed to (§6.2), so every
-  # AI-written opener is labeled at write time — not only the user-edited ones
-  # the post-hoc classifier picks up. A user edit later re-classifies it via
-  # ApproveContact. Until a campaign has any template (chosen_template == nil),
-  # the seed opener stays unlabeled and is labeled on first edit.
-  defp template_attrs(%{position: 0}, %{label: label} = template) when is_binary(label) do
-    %{
-      template_label: template.label,
-      template_angle: template.angle,
-      template_ask: template.ask,
-      template_offer: template.offer
-    }
-  end
+  # No examples yet for this template: create blank :drafted rows for each
+  # email step so the editor renders the full sequence with empty fields and
+  # the user writes the first one by hand.
+  defp persist_blank(ctx, actor) do
+    existing =
+      OutboundEmail.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
+      |> Enum.map(& &1.step_position)
+      |> MapSet.new()
 
-  defp template_attrs(_step, _template), do: %{}
+    ctx.email_steps
+    |> Enum.reject(&MapSet.member?(existing, &1.position))
+    |> Enum.map(fn step ->
+      OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, nil,
+        actor: actor,
+        authorize?: actor != nil
+      )
+    end)
+  end
 end

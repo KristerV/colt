@@ -74,19 +74,27 @@ defmodule Colt.Services.Sending.Stats do
     end)
   end
 
-  defp rate(_, 0), do: 0.0
-  defp rate(num, denom), do: Float.round(num / denom * 100, 1)
+  defp rate(_, 0), do: 0
+  defp rate(num, denom), do: round(num / denom * 100)
 
   defp reply_rate(contacts, sent_count) do
     replied = Enum.count(contacts, &(&1.status == :replied))
     rate(replied, sent_count)
   end
 
+  # Interest = interested out of everyone who reached a verdict. A no-reply
+  # counts as not-interested, so it's in the denominator alongside the
+  # negative replies — only still-in-flight contacts are excluded.
   defp interest_rate(contacts) do
     interested = Enum.count(contacts, &(&1.reply_category == :interested))
-    not_interested = Enum.count(contacts, &(&1.reply_category == :not_interested))
-    rate(interested, interested + not_interested)
+    concluded = Enum.count(contacts, &concluded?/1)
+    rate(interested, concluded)
   end
+
+  defp concluded?(%{reply_category: :interested}), do: true
+  defp concluded?(%{status: :no_reply}), do: true
+  defp concluded?(%{reply_category: c}) when c in [:not_interested, :ooo, :other], do: true
+  defp concluded?(_), do: false
 
   defp daily_avg(sent) do
     cutoff = DateTime.add(DateTime.utc_now(), -7 * 86_400, :second)

@@ -78,7 +78,7 @@ defmodule ColtWeb.Sending.PitchLive do
   end
 
   def handle_event("continue", _params, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sequence")}
+    {:noreply, push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/write")}
   end
 
   def handle_info({:pitch_updated, pitch_id}, socket) do

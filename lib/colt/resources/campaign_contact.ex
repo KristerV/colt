@@ -18,16 +18,21 @@ defmodule Colt.Resources.CampaignContact do
       reference :campaign, on_delete: :delete
       reference :person, on_delete: :delete
       reference :assigned_email_account, on_delete: :nilify
+      reference :sequence, on_delete: :nilify
     end
   end
 
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :list_for_campaign, args: [:campaign_id]
+    define :any_committed_for_campaign, args: [:campaign_id]
     define :next_pending, args: [:campaign_id]
     define :promote, args: [:campaign_id, :person_id]
     define :assign_inbox, args: [:assigned_email_account_id]
-    define :approve, args: [:assigned_email_account_id, :sequence_snapshot, :sequence_version]
+
+    define :approve,
+      args: [:assigned_email_account_id, :sequence_id, :sequence_snapshot, :sequence_version]
+
     define :skip
     define :mark_replied, args: [:reply_category]
     define :mark_bounced
@@ -47,6 +52,13 @@ defmodule Colt.Resources.CampaignContact do
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id))
       prepare build(sort: [inserted_at: :asc])
+    end
+
+    read :any_committed_for_campaign do
+      description "Up to one contact past pending_approval — the unlock gate for auto-approve (a variant has been seeded)."
+      argument :campaign_id, :uuid, allow_nil?: false
+      filter expr(campaign_id == ^arg(:campaign_id) and status != :pending_approval)
+      prepare build(limit: 1)
     end
 
     read :next_pending do
@@ -90,7 +102,14 @@ defmodule Colt.Resources.CampaignContact do
       contact in `:approved` forever — never reachable by the send loop.
       """
 
-      accept [:assigned_email_account_id, :sequence_snapshot, :sequence_version, :auto_approved?]
+      accept [
+        :assigned_email_account_id,
+        :sequence_id,
+        :sequence_snapshot,
+        :sequence_version,
+        :auto_approved?
+      ]
+
       require_atomic? false
 
       change set_attribute(:status, :approved)
@@ -300,6 +319,8 @@ defmodule Colt.Resources.CampaignContact do
     belongs_to :assigned_email_account, Colt.Resources.EmailAccount,
       allow_nil?: true,
       public?: true
+
+    belongs_to :sequence, Colt.Resources.Sequence, allow_nil?: true, public?: true
 
     has_one :thread, Colt.Resources.Thread
   end
