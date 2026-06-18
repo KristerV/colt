@@ -32,6 +32,7 @@ config :colt, Oban,
        {"0 4 1 * *", Colt.Jobs.Ingest.LtHeadcount},
        {"0 8 1 * *", Colt.Jobs.Ingest.No},
        {"* * * * *", Colt.Jobs.SendDueEmails},
+       {"0 * * * *", Colt.Jobs.AutoApproveDue},
        {"* * * * *", Colt.Jobs.PollInbounds},
        {"*/10 * * * *", Colt.Jobs.PollTracking}
      ]}

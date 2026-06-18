@@ -1,39 +1,59 @@
 defmodule Colt.Services.Sending.AutoDraftAndApprove do
   @moduledoc """
-  Drives a CampaignContact straight to `:approved` + step-1 scheduled
-  without ever entering the writing view. Enqueued when at least one
-  sequence has "auto" enabled.
+  Drives one CampaignContact straight to `:approved` + step-1 scheduled
+  without ever entering the writing view. Called synchronously by
+  `Colt.Jobs.AutoApproveCampaign`, once per open send slot.
+
+  Pass `inbox_id:` to pin the sending inbox (the starter does, so the email
+  schedules into the same account the slot was counted against); omit it and
+  the sticky picker chooses. A no-op (`{:ok, :skipped}`) if the contact has
+  already left `:pending_approval`.
 
   Steps:
-    1. Pick uniformly at random among auto-enabled, already-written sequences.
-    2. Run EmailWriter for that sequence to create drafted emails.
-    3. Assign sticky inbox.
-    4. Snapshot the picked sequence.
-    5. Approve the contact with `auto_approved?: true`, stamping the sequence.
+    1. Pick the least-sent active, already-seeded variant (fair A/B rotation).
+    2. Run EmailWriter for that variant to create drafted emails.
+    3. Resolve the sticky inbox (pinned or picked).
+    4. Snapshot the picked variant.
+    5. Approve the contact with `auto_approved?: true`, stamping the variant.
     6. Schedule step 1 via the burst scheduler.
     7. Mark remaining drafts as `:approved`.
   """
 
-  alias Colt.Resources.{CampaignContact, OutboundEmail, Sequence}
+  alias Colt.Resources.{CampaignContact, EmailAccount, OutboundEmail, Sequence}
   alias Colt.Services.Sending.{AssignInbox, EmailWriter, NextSlot}
 
   def run(contact_id, opts \\ []) when is_binary(contact_id) do
     actor = Keyword.get(opts, :actor)
+    inbox_id = Keyword.get(opts, :inbox_id)
 
     with {:ok, contact} <- load_contact(contact_id, actor),
+         :pending_approval <- contact.status,
          {:ok, sequence} <- pick_template(contact.campaign_id, actor),
          {:ok, _} <- EmailWriter.run(contact_id, sequence_id: sequence.id, actor: actor),
          {:ok, contact} <- load_contact(contact_id, actor),
          {:ok, drafts} <- load_drafts(contact, actor),
          :ok <- ensure_drafts_present(drafts),
-         {:ok, inbox} <- AssignInbox.run(contact.campaign_id, actor: actor),
+         {:ok, inbox} <- resolve_inbox(inbox_id, contact.campaign_id, actor),
          snapshot = build_snapshot(sequence),
          {:ok, contact} <- approve(contact, inbox, sequence, snapshot, actor),
          {:ok, _} <- schedule_step_one(drafts, inbox, actor),
          {:ok, _} <- approve_other_steps(drafts, actor) do
       {:ok, %{contact_id: contact.id, inbox_id: inbox.id}}
+    else
+      # Already started (e.g. a manual approve grabbed it first) — no-op, not
+      # an error. The contact's status guard short-circuits the chain.
+      status when is_atom(status) -> {:ok, :skipped}
+      other -> other
     end
   end
+
+  # Cron-driven starts pin the inbox the slot was counted against, so the
+  # email schedules into the same account the capacity check used. Manual
+  # callers pass none and let the sticky picker choose.
+  defp resolve_inbox(nil, campaign_id, actor), do: AssignInbox.run(campaign_id, actor: actor)
+
+  defp resolve_inbox(inbox_id, _campaign_id, actor) when is_binary(inbox_id),
+    do: EmailAccount.get(inbox_id, actor: actor, authorize?: actor != nil)
 
   # Fair A/B rotation: among active variants that have been written at least
   # once, pick the one sent to the fewest contacts (ties → oldest) so sample

@@ -22,6 +22,7 @@ defmodule Colt.Resources.Campaign do
     define :list_recent_for_user, args: [:user_id]
     define :list_for_user, args: [:user_id]
     define :list_all_recent
+    define :list_auto_approve_active
     define :rename, args: [:name]
     define :update_filters, args: [:filters]
     define :update_target, args: [:target_contact_count]
@@ -58,6 +59,11 @@ defmodule Colt.Resources.Campaign do
     read :list_all_recent do
       description "Admin — every campaign across users, newest first."
       prepare build(sort: [inserted_at: :desc], limit: 200)
+    end
+
+    read :list_auto_approve_active do
+      description "Campaigns the auto starter should service: auto-approve on and not panicked."
+      filter expr(auto_approve_on? == true and panic_switch_on == false)
     end
 
     create :create_draft do

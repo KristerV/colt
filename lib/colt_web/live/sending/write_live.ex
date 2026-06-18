@@ -15,7 +15,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
   States:
     · :loading   — picking next contact
-    · :empty     — no :pending_approval contacts; promotion button
+    · :empty     — pool exhausted: nothing pending and nothing left to mint
     · :drafting  — contact loaded, EmailWriter still running
     · :default   — draft loaded; editor + Approve & next
   """
@@ -26,7 +26,6 @@ defmodule ColtWeb.Sending.WriteLive do
 
   alias Colt.Resources.{
     Campaign,
-    CampaignCompany,
     CampaignContact,
     EmailAccount,
     OutboundEmail,
@@ -38,7 +37,7 @@ defmodule ColtWeb.Sending.WriteLive do
   alias Colt.Services.Sending.{
     ApproveContact,
     AssignInbox,
-    IngestEnriched,
+    PromoteOne,
     RejectContactIcp,
     RejectContactPick
   }
@@ -85,7 +84,6 @@ defmodule ColtWeb.Sending.WriteLive do
             email_steps: [],
             subject: "",
             bodies: %{},
-            enriched_available: 0,
             first_email: false,
             saved_at: nil,
             learning_open?: false,
@@ -150,12 +148,6 @@ defmodule ColtWeb.Sending.WriteLive do
   end
 
   # ── Events ─────────────────────────────────────────────────────────────
-
-  def handle_event("promote", _params, socket) do
-    actor = socket.assigns.current_user
-    {:ok, _} = IngestEnriched.run(socket.assigns.campaign.id, actor: actor)
-    {:noreply, load_next_contact(socket)}
-  end
 
   def handle_event("set_subject", %{"value" => v}, socket) do
     socket = persist_subject(socket, v)
@@ -387,12 +379,15 @@ defmodule ColtWeb.Sending.WriteLive do
 
   # ── Internals ──────────────────────────────────────────────────────────
 
+  # Pull model: show the next pending contact; when there is none, mint one
+  # from the enriched pool on demand (PromoteOne). The empty state appears
+  # only when the pool itself is exhausted.
   defp load_next_contact(socket) do
     actor = socket.assigns.current_user
     campaign = socket.assigns.campaign
 
-    case CampaignContact.next_pending(campaign.id, actor: actor) do
-      {:ok, %_{} = contact} ->
+    case next_or_mint(campaign.id, actor) do
+      {:ok, contact} ->
         contact =
           Ash.load!(contact, [person: [company: [:annual_reports]], thread: []],
             actor: actor,
@@ -410,15 +405,27 @@ defmodule ColtWeb.Sending.WriteLive do
         )
         |> load_drafts_or_start_writer()
 
-      _ ->
+      :none ->
         assign(socket,
           state: :empty,
           contact: nil,
           drafts: [],
           subject: "",
-          bodies: %{},
-          enriched_available: count_enriched_available(campaign.id, actor)
+          bodies: %{}
         )
+    end
+  end
+
+  defp next_or_mint(campaign_id, actor) do
+    case CampaignContact.next_pending(campaign_id, actor: actor) do
+      {:ok, %CampaignContact{} = contact} ->
+        {:ok, contact}
+
+      _ ->
+        case PromoteOne.run(campaign_id, actor: actor) do
+          {:ok, %CampaignContact{} = contact} -> {:ok, contact}
+          _ -> :none
+        end
     end
   end
 
@@ -742,26 +749,6 @@ defmodule ColtWeb.Sending.WriteLive do
     end
   end
 
-  defp count_enriched_available(campaign_id, actor) do
-    case CampaignCompany.list_for_campaign(campaign_id, actor: actor) do
-      {:ok, rows} ->
-        picks = Enum.filter(rows, &(&1.picked_person_id != nil))
-
-        existing_person_ids =
-          case CampaignContact.list_for_campaign(campaign_id, actor: actor) do
-            {:ok, contacts} -> MapSet.new(contacts, & &1.person_id)
-            _ -> MapSet.new()
-          end
-
-        picks
-        |> Enum.reject(&MapSet.member?(existing_person_ids, &1.picked_person_id))
-        |> length()
-
-      _ ->
-        0
-    end
-  end
-
   # Subject is shared across the whole sequence, so persist it onto every draft
   # (mirrors how ApproveContact applies edits).
   defp persist_subject(socket, v) do
@@ -821,7 +808,7 @@ defmodule ColtWeb.Sending.WriteLive do
           <% :loading -> %>
             <div class="font-mono text-[11px] text-ink40">{gettext("loading…")}</div>
           <% :empty -> %>
-            <.empty_state available={@enriched_available} />
+            <.empty_state />
           <% s when s in [:default, :drafting] -> %>
             <.contact_header person={@person} company={@company} />
             <.variant_bar variants={@variants} selected_id={@selected_id} />
@@ -897,38 +884,21 @@ defmodule ColtWeb.Sending.WriteLive do
 
   # ── Partials ───────────────────────────────────────────────────────────
 
-  attr :available, :integer, required: true
-
   defp empty_state(assigns) do
     ~H"""
     <div class="flex flex-col items-center text-center gap-6 py-10">
       <div class="font-serif text-[96px] leading-none text-accent opacity-40">0</div>
       <h2 class="font-serif text-[36px] tracking-[-0.02em] leading-[1.05] m-0 max-w-[520px]">
-        {raw(gettext("Nothing to <em class=\"text-accent\">review</em>."))}
+        {raw(gettext("All caught <em class=\"text-accent\">up</em>."))}
       </h2>
       <p class="text-[14px] text-ink55 max-w-[460px] leading-[1.6]">
-        <span :if={@available > 0}>
-          {gettext("%{n} enriched contacts are waiting to be brought into sending.",
-            n: @available
-          )}
-        </span>
-        <span :if={@available == 0}>
-          {gettext("No enriched contacts are queued. Run enrichment first.")}
-        </span>
-      </p>
-      <Liid.btn :if={@available > 0} variant={:primary} mono phx-click="promote">
-        <Liid.icon name="arrow" size={12} />
-        {gettext("Bring in %{n} enriched %{word}",
-          n: @available,
-          word: pluralize(@available, gettext("contact"))
+        {gettext(
+          "Every enriched contact has been brought into sending. New ones appear here as enrichment finds them."
         )}
-      </Liid.btn>
+      </p>
     </div>
     """
   end
-
-  defp pluralize(1, word), do: word
-  defp pluralize(_, word), do: word <> "s"
 
   attr :sender, :map, default: nil
   attr :drafts, :list, required: true

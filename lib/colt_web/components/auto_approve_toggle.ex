@@ -41,6 +41,10 @@ defmodule ColtWeb.Components.AutoApproveToggle do
            actor: socket.assigns.current_user
          ) do
       {:ok, updated} ->
+        # Turning it on: kick the starter now so the schedule fills up while the
+        # user watches, instead of waiting for the hourly cron.
+        if updated.auto_approve_on?, do: Colt.Jobs.AutoApproveCampaign.enqueue(updated.id)
+
         {:noreply, assign(socket, on: updated.auto_approve_on?, campaign: updated)}
 
       {:error, _} ->

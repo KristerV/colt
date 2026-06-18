@@ -32,6 +32,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :set_icp_reason, args: [:icp_reason]
     define :set_picked_person, args: [:picked_person_id]
     define :list_for_campaign, args: [:campaign_id]
+    define :next_unpromoted, args: [:campaign_id], not_found_error?: false
     define :page_for_funnel, args: [:campaign_id, :statuses]
     define :list_for_export, args: [:campaign_id]
     define :reset
@@ -50,6 +51,29 @@ defmodule Colt.Resources.CampaignCompany do
     read :list_for_campaign do
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id))
+    end
+
+    read :next_unpromoted do
+      description """
+      Oldest enriched pick (non-null picked_person_id) in this campaign that
+      has no CampaignContact yet — the next candidate the pull model promotes.
+      The pool minus already-promoted person_ids, fetched one at a time.
+      """
+
+      argument :campaign_id, :uuid, allow_nil?: false
+
+      filter expr(
+               campaign_id == ^arg(:campaign_id) and
+                 not is_nil(picked_person_id) and
+                 not exists(
+                   Colt.Resources.CampaignContact,
+                   campaign_id == parent(campaign_id) and
+                     person_id == parent(picked_person_id)
+                 )
+             )
+
+      prepare build(sort: [inserted_at: :asc], limit: 1)
+      get? true
     end
 
     read :page_for_funnel do

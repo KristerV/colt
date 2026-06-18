@@ -41,6 +41,10 @@ defmodule ColtWeb.Sending.SettingsLive do
         actor: socket.assigns.current_user
       )
 
+    # Turning it on: kick the starter now so the schedule fills up while the
+    # user watches, instead of waiting for the hourly cron.
+    if campaign.auto_approve_on?, do: Colt.Jobs.AutoApproveCampaign.enqueue(campaign.id)
+
     {:noreply, socket |> assign(campaign: campaign) |> mark_saved()}
   end
 
