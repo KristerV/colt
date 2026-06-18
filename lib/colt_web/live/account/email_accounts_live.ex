@@ -194,7 +194,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
         </div>
 
         <ul :if={@accounts != []} class="border-t border-rule">
-          <li :for={a <- @accounts} class="border-b border-rule">
+          <li :for={a <- @accounts} id={"acct-#{a.id}"} class="border-b border-rule">
             <div class="flex items-center gap-6 py-4 px-2">
               <div class="flex-1 min-w-0">
                 <div class="font-serif text-[20px] tracking-[-0.015em] truncate">
@@ -209,6 +209,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 </div>
                 <form
                   :if={a.status != :disconnected}
+                  id={"name-form-#{a.id}"}
                   phx-change="set_name"
                   class="mt-2 flex items-center gap-2"
                 >
@@ -218,6 +219,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   </label>
                   <input
                     type="text"
+                    id={"name-input-#{a.id}"}
                     name="value"
                     value={a.display_name}
                     placeholder={gettext("e.g. Jane Doe")}
@@ -228,6 +230,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
               </div>
               <form
                 :if={a.status != :disconnected}
+                id={"quota-form-#{a.id}"}
                 phx-change="set_quota"
                 class="flex items-center gap-2"
               >
@@ -237,6 +240,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 </label>
                 <input
                   type="number"
+                  id={"quota-input-#{a.id}"}
                   name="value"
                   value={a.daily_quota}
                   min="0"
