@@ -89,6 +89,10 @@ defmodule ColtWeb.Campaigns.IndexLive do
 
   defp destination_for(%{status: :draft, id: id}), do: ~p"/campaigns/#{id}/icp"
   defp destination_for(%{status: :collecting, id: id}), do: ~p"/campaigns/#{id}/filters"
+
+  defp destination_for(%{sending_initialized?: true, id: id}),
+    do: ~p"/campaigns/#{id}/sending-funnel"
+
   defp destination_for(%{id: id}), do: ~p"/campaigns/#{id}/funnel"
 
   defp relative_time(dt) do

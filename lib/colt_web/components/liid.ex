@@ -243,6 +243,12 @@ defmodule ColtWeb.Components.Liid do
       <div class="flex-1" />
 
       <div class="flex items-center gap-2">
+        <.link
+          navigate="/pricing"
+          class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
+        >
+          {gettext("Pricing")}
+        </.link>
         <.language_picker />
         <%= if @current_user do %>
           <.link

@@ -14,6 +14,7 @@ defmodule ColtWeb.Sending.VariantsLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
+  on_mount {ColtWeb.Sending.MarkInitializedHook, :default}
 
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user

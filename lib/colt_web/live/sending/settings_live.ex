@@ -12,14 +12,13 @@ defmodule ColtWeb.Sending.SettingsLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
+  on_mount {ColtWeb.Sending.MarkInitializedHook, :default}
 
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
 
     case Campaign.get(id, actor: actor) do
       {:ok, campaign} ->
-        campaign = maybe_mark_initialized(campaign, actor)
-
         {:ok,
          assign(socket,
            page_title: gettext("Settings — %{name}", name: campaign.name),
@@ -73,15 +72,6 @@ defmodule ColtWeb.Sending.SettingsLive do
      socket
      |> assign(campaign: campaign, tracking_on?: opens || clicks)
      |> mark_saved()}
-  end
-
-  defp maybe_mark_initialized(%{sending_initialized?: true} = campaign, _actor), do: campaign
-
-  defp maybe_mark_initialized(campaign, actor) do
-    case Campaign.mark_sending_initialized(campaign, actor: actor) do
-      {:ok, c} -> c
-      _ -> campaign
-    end
   end
 
   defp mark_saved(socket), do: assign(socket, saved_at: DateTime.utc_now())

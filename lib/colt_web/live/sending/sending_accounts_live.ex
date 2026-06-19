@@ -6,6 +6,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
+  on_mount {ColtWeb.Sending.MarkInitializedHook, :default}
 
   @work_days_per_month 22
 

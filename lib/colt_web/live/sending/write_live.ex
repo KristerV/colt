@@ -50,6 +50,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
+  on_mount {ColtWeb.Sending.MarkInitializedHook, :default}
 
   defp languages, do: Markets.languages()
 
