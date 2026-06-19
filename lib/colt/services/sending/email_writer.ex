@@ -164,7 +164,7 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp collect_examples(ctx) do
     rows =
       case OutboundEmail.list_user_edited_for_sequence(ctx.sequence.id, @example_window,
-             load: [thread: [campaign_contact: [person: [:company]]]],
+             load: [thread: [campaign_contact: [person: [company: [:annual_reports]]]]],
              authorize?: false
            ) do
         {:ok, list} -> list
@@ -199,8 +199,6 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp build_example(_person, [], _recency), do: nil
 
   defp build_example(person, emails, recency) do
-    company = person && person.company
-
     steps =
       emails
       |> Enum.sort_by(&(&1.step_position || 999))
@@ -215,13 +213,8 @@ defmodule Colt.Services.Sending.EmailWriter do
     %{
       ids: Enum.map(emails, & &1.id),
       recency: recency,
-      person_brief: %{name: person && person.name, title: person && person.title},
-      company_brief: %{
-        name: company && company.name,
-        industry: company && company.industry_code,
-        employees: company && company.employees_latest,
-        summary: company && company.ai_summary
-      },
+      person_title: person && person.title,
+      company: person && person.company,
       steps: steps
     }
   end
@@ -350,19 +343,24 @@ defmodule Colt.Services.Sending.EmailWriter do
 
   defp examples_block([]), do: ""
 
-  # Every example is a prior sequence the user sent under THIS template, so
-  # they already share one approach. Learn the voice and the approach from
-  # them; don't average them into mush.
+  # Each example is a prior sequence the user sent under THIS template, shown
+  # with the company it was written for. The user's wording adapts to each
+  # company's profile — that company→email mapping is the signal to learn, not
+  # a single uniform script. Surface the company so the model can match by fit.
   defp examples_block(examples) do
     """
-    All examples below are prior sequences the user sent under this one
-    template — same approach, just different companies:
+    Below are prior sequences the user sent under this template, each shown
+    with the company it was written for. The user adapts wording to each
+    company's size, revenue, industry and situation — that mapping is the
+    point, not one uniform script:
     #{rendered_examples(examples)}
     Instruction: every example is a full sequence the user actually sent —
-    real, finished writing in their own voice, not corrections. Write this
-    contact's whole sequence in the same approach, voice and tone, with
-    fresh wording tailored to this company. Match the user's style per step
-    (opener style from openers, followup style from followups).
+    real, finished writing in their own voice. Find the examples whose
+    companies most resemble THIS target (revenue, employees, industry,
+    situation) and follow their angle and specific moves; don't average all
+    examples into one generic approach. Keep the user's voice and tone
+    throughout, match style per step (opener style from openers, followup
+    style from followups), and write fresh wording tailored to this company.
     """
   end
 
@@ -387,8 +385,8 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.join("\n")
 
     """
-    Example #{i} — #{ex.person_brief.title} at #{ex.company_brief.name} (#{ex.company_brief.industry}, #{ex.company_brief.employees} employees):
-      Company summary: #{trunc_text(ex.company_brief.summary, 240)}
+    Example #{i} — #{ex.person_title || "—"} at #{ex.company && ex.company.name}:
+    #{company_block(ex.company)}
     #{steps}\
     """
   end
@@ -396,12 +394,6 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp step_label(nil), do: "manual reply"
   defp step_label(0), do: "opener"
   defp step_label(n) when is_integer(n), do: "followup #{n}"
-
-  defp trunc_text(nil, _), do: ""
-
-  defp trunc_text(text, max) when is_binary(text) do
-    if String.length(text) > max, do: String.slice(text, 0, max) <> "…", else: text
-  end
 
   defp indent(text) do
     text |> String.split("\n") |> Enum.map(&("    " <> &1)) |> Enum.join("\n")
