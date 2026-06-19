@@ -297,10 +297,7 @@ defmodule ColtWeb.Sending.WriteLive do
            actor: actor
          ) do
       {:ok, _} ->
-        {:noreply,
-         socket
-         |> put_flash(:info, gettext("Approved — scheduling step 1."))
-         |> load_next_contact()}
+        {:noreply, load_next_contact(socket)}
 
       {:error, :no_healthy_inbox} ->
         {:noreply,
