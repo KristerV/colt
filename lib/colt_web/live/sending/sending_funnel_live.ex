@@ -1139,8 +1139,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       </div>
 
       <div :if={@active_tab == :note} class="px-6 py-4">
-        <form phx-change="set_note">
+        <form id={"note-form-#{@reply_nonce}"} phx-change="set_note">
           <textarea
+            id={"note-input-#{@reply_nonce}"}
             name="value"
             rows="4"
             phx-debounce="300"

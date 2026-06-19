@@ -514,9 +514,15 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             </button>
           </span>
         <% end %>
-        <form phx-change={@search_evt} autocomplete="off" class="flex-1 min-w-[80px]">
+        <form
+          id={"ms-form-#{@field}"}
+          phx-change={@search_evt}
+          autocomplete="off"
+          class="flex-1 min-w-[80px]"
+        >
           <input
             type="text"
+            id={"ms-input-#{@field}"}
             name="q"
             value={@query}
             placeholder={if @selected == [], do: @placeholder, else: gettext("+ add")}
@@ -592,7 +598,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     ~H"""
     <.fset label={@label} hint={range_hint(@min, @max, @cap, @format)}>
-      <form phx-change="update_slider" class="space-y-3">
+      <form id={"slider-form-#{@field}"} phx-change="update_slider" class="space-y-3">
         <input type="hidden" name="field" value={@field} />
 
         <div class="relative h-5">
@@ -626,10 +632,11 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         </div>
       </form>
 
-      <form phx-change="update_range" class="flex gap-2 mt-2">
+      <form id={"range-form-#{@field}"} phx-change="update_range" class="flex gap-2 mt-2">
         <input type="hidden" name="field" value={@field} />
         <input
           type="text"
+          id={"range-min-#{@field}"}
           inputmode="numeric"
           name="min"
           value={format_grouped(@min)}
@@ -640,6 +647,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         <span class="self-center text-ink40">—</span>
         <input
           type="text"
+          id={"range-max-#{@field}"}
           inputmode="numeric"
           name="max"
           value={format_grouped(@max)}

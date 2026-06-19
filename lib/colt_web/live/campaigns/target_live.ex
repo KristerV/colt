@@ -201,9 +201,10 @@ defmodule ColtWeb.Campaigns.TargetLive do
           >
             {gettext("Max · %{n}", n: @max_target)}
           </button>
-          <form phx-change="pick" class="inline-flex">
+          <form id="target-form" phx-change="pick" class="inline-flex">
             <input
               type="text"
+              id="target-input"
               inputmode="numeric"
               name="target"
               value={@draft}

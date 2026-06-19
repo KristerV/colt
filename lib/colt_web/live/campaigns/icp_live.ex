@@ -109,6 +109,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
       campaign_id={@campaign.id}
     >
       <form
+        id="icp-form"
         phx-change="validate"
         phx-submit="save"
         class="flex flex-col lg:flex-row gap-8 lg:gap-16 flex-1 min-h-0"

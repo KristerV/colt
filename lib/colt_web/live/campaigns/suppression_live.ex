@@ -206,6 +206,7 @@ defmodule ColtWeb.Campaigns.SuppressionLive do
           >
             <li
               :for={d <- @domains}
+              id={"sup-#{d.domain}"}
               class="font-mono text-[12px] text-ink px-3 py-2 bg-paperAlt"
             >
               {d.domain}

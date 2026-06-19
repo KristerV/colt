@@ -948,9 +948,10 @@ defmodule ColtWeb.Sending.WriteLive do
           </select>
         </form>
       </div>
-      <form phx-change="set_subject" class="block mt-2.5">
+      <form id="subject-form" phx-change="set_subject" class="block mt-2.5">
         <input
           type="text"
+          id="subject-input"
           name="value"
           value={@subject}
           phx-debounce="400"
@@ -1236,10 +1237,11 @@ defmodule ColtWeb.Sending.WriteLive do
       <span class="font-mono text-[11px] tracking-[0.06em] text-ink55 inline-flex items-center gap-2">
         {gettext("wait")}
         <%= if @editable do %>
-          <form phx-change="set_delay" class="inline-flex">
+          <form id={"delay-form-#{@id}"} phx-change="set_delay" class="inline-flex">
             <input type="hidden" name="step_id" value={@id} />
             <input
               type="number"
+              id={"delay-input-#{@id}"}
               name="value"
               value={@days}
               min="0"
@@ -1270,7 +1272,7 @@ defmodule ColtWeb.Sending.WriteLive do
       </span>
       <span class="text-[13px] text-ink70">{gettext("If still no reply, mark contact as")}</span>
       <%= if @editable do %>
-        <form phx-change="set_terminal_action" class="inline-flex">
+        <form id={"terminal-form-#{@step.id}"} phx-change="set_terminal_action" class="inline-flex">
           <input type="hidden" name="step_id" value={@step.id} />
           <select
             name="value"
@@ -1305,6 +1307,7 @@ defmodule ColtWeb.Sending.WriteLive do
   defp step_card(assigns) do
     ~H"""
     <div
+      id={"step-card-#{@email.step_position}"}
       class="border border-rule rounded-[2px] bg-paper"
       style={if @idx == 0, do: "border-left: 2px solid var(--accent);", else: ""}
     >
@@ -1324,9 +1327,10 @@ defmodule ColtWeb.Sending.WriteLive do
           <Liid.icon name="x" size={12} />
         </button>
       </div>
-      <form phx-change="set_body" class="block">
+      <form id={"body-form-#{@email.step_position}"} phx-change="set_body" class="block">
         <input type="hidden" name="position" value={@email.step_position} />
         <textarea
+          id={"body-input-#{@email.step_position}"}
           name="value"
           rows="6"
           phx-debounce="600"

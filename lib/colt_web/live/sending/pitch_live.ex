@@ -143,9 +143,10 @@ defmodule ColtWeb.Sending.PitchLive do
           <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
             {gettext("Your domain")}
           </div>
-          <form phx-change="set_domain" class="block">
+          <form id="domain-form" phx-change="set_domain" class="block">
             <input
               type="text"
+              id="domain-input"
               name="value"
               value={@domain}
               phx-debounce="blur"
@@ -177,8 +178,9 @@ defmodule ColtWeb.Sending.PitchLive do
               /> {gettext("reading site…")}
             </div>
           </div>
-          <form phx-change="set_summary" class="block">
+          <form id="summary-form" phx-change="set_summary" class="block">
             <textarea
+              id="summary-input"
               name="value"
               rows="10"
               phx-debounce="600"

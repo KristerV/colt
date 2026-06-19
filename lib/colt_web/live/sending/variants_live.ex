@@ -152,14 +152,18 @@ defmodule ColtWeb.Sending.VariantsLive do
     assigns = assign(assigns, :seq, assigns.v.sequence)
 
     ~H"""
-    <div class={[
-      "flex items-center gap-4 px-5 py-4 border rounded-[2px] bg-paper",
-      if(@seq.enabled, do: "border-rule", else: "border-rule opacity-60")
-    ]}>
-      <form phx-change="rename" class="flex-1 min-w-0">
+    <div
+      id={"variant-row-#{@seq.id}"}
+      class={[
+        "flex items-center gap-4 px-5 py-4 border rounded-[2px] bg-paper",
+        if(@seq.enabled, do: "border-rule", else: "border-rule opacity-60")
+      ]}
+    >
+      <form id={"rename-form-#{@seq.id}"} phx-change="rename" class="flex-1 min-w-0">
         <input type="hidden" name="seq_id" value={@seq.id} />
         <input
           type="text"
+          id={"rename-input-#{@seq.id}"}
           name="value"
           value={@seq.name}
           phx-debounce="blur"

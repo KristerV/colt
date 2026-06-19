@@ -66,9 +66,16 @@ defmodule ColtWeb.Campaigns.NameLive do
           {raw(gettext("The <em>name</em> of this campaign."))}
         </Liid.headline>
 
-        <form phx-change="validate" phx-submit="save" class="mt-14" autocomplete="off">
+        <form
+          id="campaign-name-form"
+          phx-change="validate"
+          phx-submit="save"
+          class="mt-14"
+          autocomplete="off"
+        >
           <input
             type="text"
+            id="campaign-name-input"
             name="name"
             value={@name}
             phx-debounce="200"

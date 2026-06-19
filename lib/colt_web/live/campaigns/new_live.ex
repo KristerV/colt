@@ -48,6 +48,7 @@ defmodule ColtWeb.Campaigns.NewLive do
         </Liid.headline>
 
         <form
+          id="campaign-new-form"
           phx-change="validate"
           phx-submit="create"
           class="mt-14"
@@ -55,6 +56,7 @@ defmodule ColtWeb.Campaigns.NewLive do
         >
           <input
             type="text"
+            id="campaign-name-input"
             name="name"
             value={@name}
             placeholder={gettext("Nordic CTOs Q2")}
