@@ -526,16 +526,16 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         />
 
         <%!-- Mobile back-bar: appears once you drill into a category/contact --%>
-        <div :if={@level != :buckets} class="md:hidden px-4 pt-4 pb-1">
+        <div :if={@level != :buckets} class="md:hidden px-2 pt-2 pb-1">
           <.link
             patch={
               if @level == :thread,
                 do: ~p"/campaigns/#{@campaign.id}/sending-funnel/#{to_string(@selected_bucket)}",
                 else: ~p"/campaigns/#{@campaign.id}/sending-funnel"
             }
-            class="inline-flex items-center gap-1 text-[13px] text-inkSoft hover:text-ink no-underline"
+            class="inline-flex items-center gap-2 py-2.5 px-2 text-[15px] font-medium text-inkSoft active:text-ink hover:text-ink no-underline"
           >
-            <span class="text-[15px] leading-none">‹</span>
+            <span class="text-[30px] leading-none -mt-0.5">‹</span>
             <span class="capitalize">
               {if @level == :thread,
                 do: gettext("Back to %{bucket}", bucket: @bucket_label),
