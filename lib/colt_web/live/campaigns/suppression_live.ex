@@ -161,7 +161,7 @@ defmodule ColtWeb.Campaigns.SuppressionLive do
         </div>
         <div :if={@error} class="text-[11px] text-red">{@error}</div>
 
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/icp"}
             class="inline-flex items-center gap-2 px-3.5 py-[7px] text-[12px] font-semibold border border-borderStrong bg-card rounded-[8px] no-underline text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"

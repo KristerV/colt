@@ -212,7 +212,7 @@ defmodule ColtWeb.Campaigns.TargetLive do
           </form>
         </div>
 
-        <div class="flex items-center gap-3 mt-4">
+        <div class="flex flex-wrap items-center gap-3 mt-4">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/suppression"}
             class="inline-flex items-center gap-2 px-3.5 py-[7px] text-[12px] font-semibold border border-borderStrong bg-card rounded-[8px] no-underline text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"

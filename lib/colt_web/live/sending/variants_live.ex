@@ -118,7 +118,7 @@ defmodule ColtWeb.Sending.VariantsLive do
       campaign_id={@campaign.id}
       campaign_name={@campaign.name}
     >
-      <div class="w-full max-w-[680px] mx-auto px-6 py-6">
+      <div class="w-full max-w-[680px] mx-auto md:px-6 py-6">
         <Liid.headline
           kicker={gettext("Sending · Variants")}
           sub={

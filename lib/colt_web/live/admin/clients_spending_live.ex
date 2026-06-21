@@ -73,7 +73,7 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
         </h1>
 
         <div
-          class="bg-card border border-border rounded-[11px] md:max-w-md p-6"
+          class="bg-card border border-border rounded-[11px] md:max-w-md p-5 md:p-6"
           style="box-shadow:var(--shadow-card)"
         >
           <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">

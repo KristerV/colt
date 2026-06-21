@@ -801,7 +801,7 @@ defmodule ColtWeb.Sending.WriteLive do
       campaign_id={@campaign.id}
       campaign_name={@campaign.name}
     >
-      <div class="w-full max-w-[640px] mx-auto px-6 py-6">
+      <div class="w-full max-w-[640px] mx-auto md:px-6 py-6">
         <%= case @state do %>
           <% :loading -> %>
             <div class="text-[12px] text-inkFaint">{gettext("loading…")}</div>
@@ -1077,7 +1077,7 @@ defmodule ColtWeb.Sending.WriteLive do
       >
         ⚠ {status_label(@company.status)}
       </div>
-      <div class="flex items-baseline justify-between gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-4">
         <div>
           <div class="text-[24px] font-bold tracking-[-0.02em] leading-none text-ink">
             {(@person && @person.name) || "—"}
@@ -1089,7 +1089,7 @@ defmodule ColtWeb.Sending.WriteLive do
             {(@person && @person.email) || ""}
           </div>
         </div>
-        <div :if={@company} class="text-right">
+        <div :if={@company} class="text-left sm:text-right">
           <div class="text-[14px] font-semibold text-ink">{@company.name}</div>
           <div class="text-[10px] tracking-[0.06em] uppercase text-inkFaint font-semibold mt-0.5">
             {[
@@ -1270,7 +1270,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp terminal_block(assigns) do
     ~H"""
-    <div class="border border-dashed border-borderStrong rounded-[11px] bg-paperAlt px-[18px] py-4 flex items-center gap-3.5">
+    <div class="border border-dashed border-borderStrong rounded-[11px] bg-paperAlt px-[18px] py-4 flex flex-wrap items-center gap-3.5">
       <span class="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border border-inkFaint text-inkSoft text-[11px] font-semibold">
         ×
       </span>
@@ -1361,7 +1361,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp action_bar(assigns) do
     ~H"""
-    <div class="mt-8 flex items-center justify-end gap-3">
+    <div class="mt-8 flex flex-wrap items-center justify-end gap-3">
       <button
         type="button"
         phx-click="open_learning"

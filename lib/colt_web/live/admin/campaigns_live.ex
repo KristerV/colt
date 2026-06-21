@@ -35,10 +35,7 @@ defmodule ColtWeb.Admin.CampaignsLive do
           class="border border-border rounded-[11px] bg-card overflow-hidden"
           style="box-shadow:var(--shadow-card)"
         >
-          <div
-            class="hidden md:grid items-center gap-3 px-4 py-2.5 border-b border-border bg-paperAlt text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55"
-            style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 110px 130px;"
-          >
+          <div class="hidden md:grid items-center gap-3 px-4 py-2.5 border-b border-border bg-paperAlt text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55 md:[grid-template-columns:2fr_1.5fr_100px_100px_110px_110px_130px]">
             <span>Name</span>
             <span>Owner</span>
             <span class="text-right">Done</span>
@@ -51,8 +48,7 @@ defmodule ColtWeb.Admin.CampaignsLive do
           <%= for c <- @campaigns do %>
             <.link
               navigate={~p"/campaigns/#{c.id}/funnel"}
-              class="grid grid-cols-2 md:grid-cols-none items-center gap-2 md:gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-paperAlt no-underline text-ink"
-              style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 110px 130px;"
+              class="grid grid-cols-2 md:grid-cols-none md:[grid-template-columns:2fr_1.5fr_100px_100px_110px_110px_130px] items-center gap-2 md:gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-paperAlt no-underline text-ink"
             >
               <span class="text-[13px] font-medium truncate">{c.name}</span>
               <span class="text-[12px] text-ink55 truncate">{owner_email(c.owner)}</span>

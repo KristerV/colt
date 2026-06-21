@@ -249,7 +249,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
 
           <div :if={@error} class="text-[12px] text-red">{@error}</div>
 
-          <div class="flex items-center gap-4 mt-2">
+          <div class="flex flex-wrap items-center gap-4 mt-2">
             <.link
               navigate={~p"/campaigns/#{@campaign.id}/filters"}
               class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] font-semibold text-inkSoft bg-card border border-borderStrong rounded-[8px] no-underline [box-shadow:var(--shadow)] hover:bg-paperAlt hover:text-ink"

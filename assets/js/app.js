@@ -77,6 +77,15 @@ topbar.config({barColors: {0: "#29d"}, shadowColor: "rgba(0, 0, 0, .3)"})
 window.addEventListener("phx:page-loading-start", _info => topbar.show(300))
 window.addEventListener("phx:page-loading-stop", _info => topbar.hide())
 
+// Auto-close the mobile nav drawer after any live navigation so it doesn't
+// linger over freshly-patched content. No-op on desktop (drawer is static).
+window.addEventListener("phx:page-loading-stop", _info => {
+  const sidebar = document.getElementById("liid-sidebar")
+  const backdrop = document.getElementById("liid-nav-backdrop")
+  if (sidebar) sidebar.classList.add("-translate-x-full")
+  if (backdrop) backdrop.classList.add("hidden")
+})
+
 // connect if there are any LiveViews on the page
 liveSocket.connect()
 

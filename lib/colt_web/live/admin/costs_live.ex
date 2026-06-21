@@ -77,7 +77,7 @@ defmodule ColtWeb.Admin.CostsLive do
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div
-            class="bg-card border border-border rounded-[11px] md:col-span-2 p-6"
+            class="bg-card border border-border rounded-[11px] md:col-span-2 p-5 md:p-6"
             style="box-shadow:var(--shadow-card)"
           >
             <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">
@@ -101,7 +101,7 @@ defmodule ColtWeb.Admin.CostsLive do
           </div>
 
           <div
-            class="bg-card border border-border rounded-[11px] p-6"
+            class="bg-card border border-border rounded-[11px] p-5 md:p-6"
             style="box-shadow:var(--shadow-card)"
           >
             <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">

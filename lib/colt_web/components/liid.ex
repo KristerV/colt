@@ -17,6 +17,22 @@ defmodule ColtWeb.Components.Liid do
     |> JS.focus(to: "#feedback-body")
   end
 
+  # Mobile nav drawer — slide the sidebar in/out and toggle the scrim.
+  # These run client-side (no server round-trip) and no-op visually at md+,
+  # where the sidebar is static. Nav links call close_nav/0 too so the drawer
+  # dismisses on tap before navigation.
+  defp open_nav do
+    %JS{}
+    |> JS.remove_class("-translate-x-full", to: "#liid-sidebar")
+    |> JS.remove_class("hidden", to: "#liid-nav-backdrop")
+  end
+
+  defp close_nav do
+    %JS{}
+    |> JS.add_class("-translate-x-full", to: "#liid-sidebar")
+    |> JS.add_class("hidden", to: "#liid-nav-backdrop")
+  end
+
   @icon_paths %{
     "arrow" => "M3 8h10M9 4l4 4-4 4",
     "logout" => "M10 3H4v10h6M8 8h6M11 5l3 3-3 3",
@@ -40,7 +56,8 @@ defmodule ColtWeb.Components.Liid do
     "code" => "M5 5L2 8l3 3M11 5l3 3-3 3M9 3l-2 10",
     "filter" => "M2 3h12l-4.5 6v5L7 12V9L2 3z",
     "grid" => "M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z",
-    "refresh" => "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3"
+    "refresh" => "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3",
+    "menu" => "M2 4h12M2 8h12M2 12h12"
   }
 
   attr :name, :string, required: true
@@ -201,7 +218,13 @@ defmodule ColtWeb.Components.Liid do
       |> assign(:panic_on, derive_panic_on(assigns))
 
     ~H"""
-    <div class={["min-h-screen bg-canvas text-ink", !@landing && "flex"]}>
+    <div class={["min-h-screen bg-canvas text-ink", !@landing && "md:flex"]}>
+      <div
+        :if={!@landing}
+        id="liid-nav-backdrop"
+        class="hidden fixed inset-0 z-40 bg-black/40 md:hidden"
+        phx-click={close_nav()}
+      />
       <.sidebar
         :if={!@landing}
         active={@resolved_active}
@@ -216,6 +239,7 @@ defmodule ColtWeb.Components.Liid do
         @landing && "flex flex-col min-h-screen"
       ]}>
         <.landing_top_bar :if={@landing} current_user={@current_user} />
+        <.mobile_top_bar :if={!@landing} campaign={@campaign} />
         <div
           :if={@panic_on}
           class="px-6 py-2.5 bg-red text-white text-[11px] tracking-[0.06em] uppercase flex items-center gap-3 border-b border-red"
@@ -228,6 +252,39 @@ defmodule ColtWeb.Components.Liid do
         </main>
       </div>
     </div>
+    """
+  end
+
+  @doc """
+  Mobile-only top bar: hamburger (opens the nav drawer) + Liid wordmark +
+  optional campaign name. Hidden at md+ where the static sidebar is shown.
+  """
+  attr :campaign, :any, default: nil
+
+  def mobile_top_bar(assigns) do
+    ~H"""
+    <header class="md:hidden sticky top-0 z-30 flex items-center gap-3 px-4 py-2.5 border-b border-border bg-canvas">
+      <button
+        type="button"
+        phx-click={open_nav()}
+        aria-label={gettext("Open menu")}
+        class="shrink-0 -ml-1 p-1.5 text-inkSoft hover:text-ink cursor-pointer bg-transparent border-0"
+      >
+        <.icon name="menu" size={20} />
+      </button>
+      <.link navigate="/" class="flex items-center gap-2.5 no-underline text-ink shrink-0">
+        <span class="w-[26px] h-[26px] rounded-[7px] bg-accent text-white flex items-center justify-center font-bold text-[15px]">
+          L
+        </span>
+        <span class="text-[18px] font-bold tracking-[-0.01em]">Liid</span>
+      </.link>
+      <span
+        :if={@campaign}
+        class="ml-1 min-w-0 truncate text-[14px] font-semibold text-inkSoft"
+      >
+        {@campaign.name}
+      </span>
+    </header>
     """
   end
 
@@ -387,14 +444,29 @@ defmodule ColtWeb.Components.Liid do
 
   def sidebar(assigns) do
     ~H"""
-    <aside class="w-[248px] shrink-0 sticky top-0 self-start h-screen border-r border-border bg-bgSoft flex flex-col">
-      <div class="px-[22px] pt-[18px] pb-3.5">
-        <.link navigate="/" class="flex items-center gap-2.5 no-underline text-ink">
+    <aside
+      id="liid-sidebar"
+      class="fixed inset-y-0 left-0 z-50 w-[248px] -translate-x-full transition-transform duration-200 ease-out md:translate-x-0 md:transition-none md:sticky md:top-0 md:self-start md:h-screen md:z-auto shrink-0 border-r border-border bg-bgSoft flex flex-col"
+    >
+      <div class="px-[22px] pt-[18px] pb-3.5 flex items-center gap-2.5">
+        <.link
+          navigate="/"
+          class="flex items-center gap-2.5 no-underline text-ink"
+          phx-click={close_nav()}
+        >
           <span class="w-[26px] h-[26px] rounded-[7px] bg-accent text-white flex items-center justify-center font-bold text-[15px]">
             L
           </span>
           <span class="text-[18px] font-bold tracking-[-0.01em]">Liid</span>
         </.link>
+        <button
+          type="button"
+          phx-click={close_nav()}
+          aria-label={gettext("Close menu")}
+          class="md:hidden ml-auto -mr-1 p-1 text-inkSoft hover:text-ink cursor-pointer bg-transparent border-0"
+        >
+          <.icon name="x" size={18} />
+        </button>
       </div>
 
       <div class="flex-1 overflow-auto px-2">
@@ -429,6 +501,7 @@ defmodule ColtWeb.Components.Liid do
       <div :if={@current_user} class="border-t border-border pt-2.5 px-2 pb-2">
         <.link
           navigate="/email-accounts"
+          phx-click={close_nav()}
           class={[
             "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] hover:bg-paperAlt no-underline",
             if(@active == :email_accounts,
@@ -443,6 +516,7 @@ defmodule ColtWeb.Components.Liid do
         </.link>
         <.link
           navigate="/billing"
+          phx-click={close_nav()}
           class={[
             "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] hover:bg-paperAlt no-underline",
             if(@active == :billing,
@@ -513,6 +587,7 @@ defmodule ColtWeb.Components.Liid do
     <div :if={@usage.state != :hidden} class="px-1.5 pb-2">
       <.link
         navigate="/pricing"
+        phx-click={close_nav()}
         class="block no-underline bg-card border border-border rounded-[8px] px-2.5 py-2 [box-shadow:var(--shadow)] hover:bg-bgSoft"
       >
         <%= case @usage.state do %>
@@ -639,6 +714,7 @@ defmodule ColtWeb.Components.Liid do
           <% is_active = item.id == @active %>
           <.link
             navigate={item.href}
+            phx-click={close_nav()}
             class={[
               "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] no-underline",
               if(is_active,
@@ -676,6 +752,7 @@ defmodule ColtWeb.Components.Liid do
         <.link
           :if={@campaign}
           navigate="/campaigns"
+          phx-click={close_nav()}
           class="text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkFaint hover:text-ink no-underline"
         >
           {gettext("Change")} →
@@ -683,6 +760,7 @@ defmodule ColtWeb.Components.Liid do
       </div>
       <.link
         navigate="/campaigns"
+        phx-click={close_nav()}
         class="block text-[13px] font-semibold leading-[1.2] truncate no-underline hover:opacity-80"
       >
         <span :if={@campaign} class="text-ink">{@campaign.name}</span>

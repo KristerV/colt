@@ -401,10 +401,10 @@ defmodule ColtWeb.CoreComponents do
 
     ~H"""
     <div
-      class="overflow-hidden rounded-[11px] border border-border bg-card"
+      class="overflow-x-auto rounded-[11px] border border-border bg-card"
       style="box-shadow:var(--shadow)"
     >
-      <table class="w-full text-sm tabular-nums">
+      <table class="w-full min-w-[640px] text-sm tabular-nums">
         <thead>
           <tr class="border-b border-border">
             <th

@@ -194,7 +194,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           class="bg-card border border-border rounded-[11px] overflow-hidden"
           style="box-shadow:var(--shadow-card)"
         >
-          <div class="grid grid-cols-[1fr_120px_140px_160px] bg-bgSoft border-b border-border text-[10px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+          <div class="hidden md:grid grid-cols-[1fr_120px_140px_160px] bg-bgSoft border-b border-border text-[10px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
             <div class="px-[18px] py-3">{gettext("Account")}</div>
             <div class="px-[14px] py-3 text-right">{gettext("Quota")}</div>
             <div class="px-[14px] py-3">{gettext("Status")}</div>
@@ -297,7 +297,7 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
           class="bg-card border border-border rounded-[11px] overflow-hidden"
           style="box-shadow:var(--shadow-card)"
         >
-          <div class="grid grid-cols-[36px_1fr_100px_140px] bg-bgSoft border-b border-border text-[10px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+          <div class="hidden md:grid grid-cols-[36px_1fr_100px_140px] bg-bgSoft border-b border-border text-[10px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
             <div class="py-3"></div>
             <div class="px-[14px] py-3">{gettext("Account")}</div>
             <div class="px-[14px] py-3 text-right">{gettext("Quota")}</div>
@@ -356,40 +356,81 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
 
   defp enrolled_row(assigns) do
     ~H"""
-    <div class={[
-      "grid grid-cols-[1fr_120px_140px_160px] items-center",
-      !@last && "border-b border-border"
-    ]}>
-      <div class="px-[18px] py-3.5">
-        <div class="text-[13px] text-ink font-medium">{@account.address}</div>
-        <div :if={@enrollment.paused_reason} class="text-[11px] text-inkSoft mt-0.5">
-          {@enrollment.paused_reason}
+    <div class={[!@last && "border-b border-border"]}>
+      <%!-- desktop: aligned grid --%>
+      <div class="hidden md:grid grid-cols-[1fr_120px_140px_160px] items-center">
+        <div class="px-[18px] py-3.5">
+          <div class="text-[13px] text-ink font-medium">{@account.address}</div>
+          <div :if={@enrollment.paused_reason} class="text-[11px] text-inkSoft mt-0.5">
+            {@enrollment.paused_reason}
+          </div>
+        </div>
+        <div class="px-[14px] py-3.5 text-right">
+          <span class="text-[12px] text-inkSoft tabular-nums">
+            {gettext("%{quota}/day", quota: @account.daily_quota)}
+          </span>
+        </div>
+        <div class="px-[14px] py-3.5">
+          <.status_pill enrollment={@enrollment} account={@account} />
+        </div>
+        <div class="px-[14px] py-3.5 text-right flex items-center justify-end gap-2">
+          <.link
+            navigate={~p"/email-accounts/#{@account.id}/stats"}
+            class="no-underline px-2.5 py-1 border border-borderStrong text-[10px] tracking-[0.06em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:bg-paperAlt"
+          >
+            {gettext("stats")}
+          </.link>
+          <button
+            type="button"
+            phx-click="remove"
+            phx-value-id={@enrollment.id}
+            data-confirm={gettext("Remove %{address} from this campaign?", address: @account.address)}
+            class="px-2.5 py-1 border border-borderStrong text-[10px] tracking-[0.06em] uppercase font-semibold text-inkSoft rounded-[8px] cursor-pointer hover:text-red hover:border-red/40 hover:bg-redSoft bg-card"
+          >
+            {gettext("remove")}
+          </button>
         </div>
       </div>
-      <div class="px-[14px] py-3.5 text-right">
-        <span class="text-[12px] text-inkSoft tabular-nums">
-          {gettext("%{quota}/day", quota: @account.daily_quota)}
-        </span>
-      </div>
-      <div class="px-[14px] py-3.5">
-        <.status_pill enrollment={@enrollment} account={@account} />
-      </div>
-      <div class="px-[14px] py-3.5 text-right flex items-center justify-end gap-2">
-        <.link
-          navigate={~p"/email-accounts/#{@account.id}/stats"}
-          class="no-underline px-2.5 py-1 border border-borderStrong text-[10px] tracking-[0.06em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:bg-paperAlt"
-        >
-          {gettext("stats")}
-        </.link>
-        <button
-          type="button"
-          phx-click="remove"
-          phx-value-id={@enrollment.id}
-          data-confirm={gettext("Remove %{address} from this campaign?", address: @account.address)}
-          class="px-2.5 py-1 border border-borderStrong text-[10px] tracking-[0.06em] uppercase font-semibold text-inkSoft rounded-[8px] cursor-pointer hover:text-red hover:border-red/40 hover:bg-redSoft bg-card"
-        >
-          {gettext("remove")}
-        </button>
+
+      <%!-- mobile: stacked card --%>
+      <div class="md:hidden flex flex-col gap-3 px-4 py-3.5">
+        <div>
+          <div class="text-[14px] text-ink font-medium break-all">{@account.address}</div>
+          <div :if={@enrollment.paused_reason} class="text-[11px] text-inkSoft mt-0.5">
+            {@enrollment.paused_reason}
+          </div>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[10px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+            {gettext("Quota")}
+          </span>
+          <span class="text-[12px] text-inkSoft tabular-nums">
+            {gettext("%{quota}/day", quota: @account.daily_quota)}
+          </span>
+        </div>
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-[10px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+            {gettext("Status")}
+          </span>
+          <.status_pill enrollment={@enrollment} account={@account} />
+        </div>
+        <div class="flex items-center gap-2">
+          <.link
+            navigate={~p"/email-accounts/#{@account.id}/stats"}
+            class="no-underline flex-1 text-center px-2.5 py-2 border border-borderStrong text-[10px] tracking-[0.06em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:bg-paperAlt"
+          >
+            {gettext("stats")}
+          </.link>
+          <button
+            type="button"
+            phx-click="remove"
+            phx-value-id={@enrollment.id}
+            data-confirm={gettext("Remove %{address} from this campaign?", address: @account.address)}
+            class="flex-1 px-2.5 py-2 border border-borderStrong text-[10px] tracking-[0.06em] uppercase font-semibold text-inkSoft rounded-[8px] cursor-pointer hover:text-red hover:border-red/40 hover:bg-redSoft bg-card"
+          >
+            {gettext("remove")}
+          </button>
+        </div>
       </div>
     </div>
     """
@@ -468,43 +509,86 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
 
     ~H"""
     <div class={[
-      "grid grid-cols-[36px_1fr_100px_140px] items-center",
       !@last && "border-b border-border",
       @row_class
     ]}>
-      <div class="py-3.5 pl-3.5">
+      <%!-- desktop: aligned grid --%>
+      <div class="hidden md:grid grid-cols-[36px_1fr_100px_140px] items-center">
+        <div class="py-3.5 pl-3.5">
+          <button
+            type="button"
+            phx-click={@selectable && "toggle_pick"}
+            phx-value-id={@account.id}
+            disabled={!@selectable}
+            class={[
+              "w-[16px] h-[16px] rounded-[5px] border flex items-center justify-center",
+              @selected && "border-accent",
+              !@selected && @selectable &&
+                "border-borderStrong hover:border-accentRing cursor-pointer",
+              !@selectable && "border-border opacity-50 cursor-not-allowed"
+            ]}
+            style={@selected && "background: var(--accent);"}
+            aria-pressed={@selected}
+          >
+            <Liid.icon :if={@selected} name="check" size={10} />
+          </button>
+        </div>
+        <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
+          <div class="text-[13px] text-ink font-medium">{@account.address}</div>
+          <div :if={!@selectable} class="text-[11px] text-red mt-0.5">
+            {if @account.status == :disconnected,
+              do: gettext("disconnected — re-auth in Email accounts first"),
+              else: gettext("auth error — re-auth in Email accounts")}
+          </div>
+        </div>
+        <div class={["px-[14px] py-3.5 text-right", !@selectable && "opacity-60"]}>
+          <span class="text-[12px] text-inkSoft tabular-nums">
+            {gettext("%{quota}/day", quota: @account.daily_quota)}
+          </span>
+        </div>
+        <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
+          <.status_pill_static status={@account.status} />
+        </div>
+      </div>
+
+      <%!-- mobile: stacked card; whole card toggles selection --%>
+      <div
+        class="md:hidden flex items-start gap-3 px-4 py-3.5"
+        phx-click={@selectable && "toggle_pick"}
+        phx-value-id={@selectable && @account.id}
+      >
         <button
           type="button"
           phx-click={@selectable && "toggle_pick"}
           phx-value-id={@account.id}
           disabled={!@selectable}
           class={[
-            "w-[16px] h-[16px] rounded-[5px] border flex items-center justify-center",
+            "shrink-0 mt-0.5 w-[18px] h-[18px] rounded-[5px] border flex items-center justify-center",
             @selected && "border-accent",
-            !@selected && @selectable && "border-borderStrong hover:border-accentRing cursor-pointer",
+            !@selected && @selectable && "border-borderStrong cursor-pointer",
             !@selectable && "border-border opacity-50 cursor-not-allowed"
           ]}
           style={@selected && "background: var(--accent);"}
           aria-pressed={@selected}
         >
-          <Liid.icon :if={@selected} name="check" size={10} />
+          <Liid.icon :if={@selected} name="check" size={11} />
         </button>
-      </div>
-      <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
-        <div class="text-[13px] text-ink font-medium">{@account.address}</div>
-        <div :if={!@selectable} class="text-[11px] text-red mt-0.5">
-          {if @account.status == :disconnected,
-            do: gettext("disconnected — re-auth in Email accounts first"),
-            else: gettext("auth error — re-auth in Email accounts")}
+        <div class={["flex-1 min-w-0 flex flex-col gap-2", !@selectable && "opacity-60"]}>
+          <div>
+            <div class="text-[14px] text-ink font-medium break-all">{@account.address}</div>
+            <div :if={!@selectable} class="text-[11px] text-red mt-0.5">
+              {if @account.status == :disconnected,
+                do: gettext("disconnected — re-auth in Email accounts first"),
+                else: gettext("auth error — re-auth in Email accounts")}
+            </div>
+          </div>
+          <div class="flex items-center justify-between gap-3">
+            <span class="text-[12px] text-inkSoft tabular-nums">
+              {gettext("%{quota}/day", quota: @account.daily_quota)}
+            </span>
+            <.status_pill_static status={@account.status} />
+          </div>
         </div>
-      </div>
-      <div class={["px-[14px] py-3.5 text-right", !@selectable && "opacity-60"]}>
-        <span class="text-[12px] text-inkSoft tabular-nums">
-          {gettext("%{quota}/day", quota: @account.daily_quota)}
-        </span>
-      </div>
-      <div class={["px-[14px] py-3.5", !@selectable && "opacity-60"]}>
-        <.status_pill_static status={@account.status} />
       </div>
     </div>
     """

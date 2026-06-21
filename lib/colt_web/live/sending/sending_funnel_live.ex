@@ -30,7 +30,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   @pubsub Colt.PubSub
 
-  def mount(%{"id" => id} = params, _session, socket) do
+  def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
 
     case Campaign.get(id, actor: actor) do
@@ -39,8 +39,6 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
         contacts = load_contacts(campaign.id, actor)
         sent_steps = compute_sent_steps(contacts)
-        visible = visible_contacts(contacts, :interested, sent_steps)
-        selected = pick_contact(visible, params["contact_id"])
         stats = Stats.for(campaign.id)
         total_steps = count_email_steps(campaign.id, actor)
 
@@ -50,8 +48,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             page_title: gettext("Sending funnel — %{name}", name: campaign.name),
             campaign: campaign,
             contacts: contacts,
-            selected: selected,
-            selected_bucket: :interested,
+            selected: nil,
+            selected_bucket: nil,
             stats: stats,
             sent_steps: sent_steps,
             total_steps: total_steps,
@@ -60,9 +58,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             reply_nonce: 0,
             note_body: "",
             sending?: false,
-            error: nil
+            error: nil,
+            timeline: [],
+            thread: nil
           )
-          |> load_thread_data()
 
         {:ok, socket}
 
@@ -71,31 +70,43 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     end
   end
 
+  # Selection lives in the URL: /sending-funnel/:bucket/:contact_id drives the
+  # bucket + open contact, so the browser back button walks the drill-down and
+  # every level is deep-linkable. Mobile shows one level at a time; desktop
+  # renders the full two-pane (see render/1).
+  def handle_params(params, _uri, socket) do
+    bucket = parse_bucket(params["bucket"])
+
+    selected =
+      case params["contact_id"] do
+        nil -> nil
+        cid -> Enum.find(socket.assigns.contacts, &(&1.id == cid))
+      end
+
+    socket =
+      socket
+      |> assign(
+        selected_bucket: bucket,
+        selected: selected,
+        active_tab: :reply,
+        reply_html: "",
+        note_body: "",
+        error: nil
+      )
+      |> load_thread_data()
+
+    {:noreply, socket}
+  end
+
+  defp parse_bucket(nil), do: nil
+
+  defp parse_bucket(b) when is_binary(b) do
+    String.to_existing_atom(b)
+  rescue
+    ArgumentError -> nil
+  end
+
   # ── Events ───────────────────────────────────────────────────────────
-
-  def handle_event("select_bucket", %{"bucket" => b}, socket) do
-    bucket = String.to_existing_atom(b)
-    visible = visible_contacts(socket.assigns.contacts, bucket, socket.assigns.sent_steps)
-
-    socket =
-      socket
-      |> assign(selected_bucket: bucket)
-      |> assign(selected: List.first(visible))
-      |> load_thread_data()
-
-    {:noreply, socket}
-  end
-
-  def handle_event("select_contact", %{"id" => id}, socket) do
-    selected = Enum.find(socket.assigns.contacts, &(&1.id == id))
-
-    socket =
-      socket
-      |> assign(selected: selected, active_tab: :reply, reply_html: "", note_body: "", error: nil)
-      |> load_thread_data()
-
-    {:noreply, socket}
-  end
 
   def handle_event("switch_tab", %{"tab" => tab}, socket) when tab in ["reply", "note"] do
     {:noreply, assign(socket, active_tab: String.to_existing_atom(tab))}
@@ -227,13 +238,6 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       {:ok, rows} -> Enum.sort_by(rows, & &1.updated_at, {:desc, DateTime})
       _ -> []
     end
-  end
-
-  defp pick_contact([], _), do: nil
-  defp pick_contact(contacts, nil), do: List.first(contacts)
-
-  defp pick_contact(contacts, id) do
-    Enum.find(contacts, List.first(contacts), &(&1.id == id))
   end
 
   defp reload_contacts_and_keep_selected(socket) do
@@ -487,6 +491,25 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   # ── Render ───────────────────────────────────────────────────────────
 
   def render(assigns) do
+    level =
+      cond do
+        assigns.selected -> :thread
+        assigns.selected_bucket -> :list
+        true -> :buckets
+      end
+
+    visible =
+      if assigns.selected_bucket,
+        do: visible_contacts(assigns.contacts, assigns.selected_bucket, assigns.sent_steps),
+        else: []
+
+    assigns =
+      assign(assigns,
+        level: level,
+        bucket_label: bucket_label(assigns.selected_bucket),
+        visible: visible
+      )
+
     ~H"""
     <Layouts.app
       flash={@flash}
@@ -496,18 +519,46 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       campaign_id={@campaign.id}
       campaign_name={@campaign.name}
     >
-      <div class="flex flex-col h-screen -mx-4 -my-6 md:-mx-14 md:-my-10">
+      <div class="flex flex-col md:h-screen md:-mx-14 md:-my-10">
         <.bounce_banner
           :if={@campaign.panic_switch_on and @stats.bounce_rate >= 5.0}
           rate={@stats.bounce_rate}
         />
-        <div class="px-7 pt-6 pb-4 flex-none">
+
+        <%!-- Mobile back-bar: appears once you drill into a category/contact --%>
+        <div :if={@level != :buckets} class="md:hidden px-4 pt-4 pb-1">
+          <.link
+            patch={
+              if @level == :thread,
+                do: ~p"/campaigns/#{@campaign.id}/sending-funnel/#{to_string(@selected_bucket)}",
+                else: ~p"/campaigns/#{@campaign.id}/sending-funnel"
+            }
+            class="inline-flex items-center gap-1 text-[13px] text-inkSoft hover:text-ink no-underline"
+          >
+            <span class="text-[15px] leading-none">‹</span>
+            <span class="capitalize">
+              {if @level == :thread,
+                do: gettext("Back to %{bucket}", bucket: @bucket_label),
+                else: gettext("All categories")}
+            </span>
+          </.link>
+        </div>
+
+        <%!-- Top band (headline + categories + tracking): always on desktop, mobile only at top level --%>
+        <div class={[
+          "px-4 md:px-7 pt-5 md:pt-6 pb-4 flex-none",
+          (@level == :buckets && "block") || "hidden md:block"
+        ]}>
           <Liid.headline kicker={gettext("Sending · Funnel")}>
             {raw(gettext("Where the <em class=\"text-accent\">conversation</em> is going."))}
           </Liid.headline>
 
           <div class="mt-4">
-            <.bucket_strip stats={@stats} selected_bucket={@selected_bucket} />
+            <.bucket_strip
+              stats={@stats}
+              selected_bucket={@selected_bucket}
+              campaign_id={@campaign.id}
+            />
           </div>
 
           <.tracking_strip
@@ -517,35 +568,61 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           />
         </div>
 
-        <div class="grid grid-cols-[360px_1fr] flex-1 min-h-0 gap-4 px-7 pb-6">
-          <.contact_list
-            contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
-            selected={@selected}
-            selected_bucket={@selected_bucket}
-            sent_steps={@sent_steps}
-            total_steps={@total_steps}
-          />
-          <%= if @selected do %>
-            <.thread_pane
-              contact={@selected}
-              thread={@thread}
-              timeline={@timeline}
-              active_tab={@active_tab}
-              reply_html={@reply_html}
-              reply_nonce={@reply_nonce}
-              note_body={@note_body}
-              sending?={@sending?}
-              error={@error}
-              campaign_id={@campaign.id}
-            />
-          <% else %>
-            <.empty_pane bucket={@selected_bucket} campaign_id={@campaign.id} />
-          <% end %>
-        </div>
+        <%= if @selected_bucket do %>
+          <div class="grid grid-cols-1 md:grid-cols-[360px_1fr] flex-1 min-h-0 gap-4 px-4 md:px-7 pb-4 md:pb-6">
+            <div class={["min-h-0", (@level == :list && "block") || "hidden", "md:block"]}>
+              <.contact_list
+                contacts={@visible}
+                selected={@selected}
+                selected_bucket={@selected_bucket}
+                sent_steps={@sent_steps}
+                total_steps={@total_steps}
+                campaign_id={@campaign.id}
+              />
+            </div>
+            <div class={["min-h-0", (@level == :thread && "block") || "hidden", "md:block"]}>
+              <%= cond do %>
+                <% @selected -> %>
+                  <.thread_pane
+                    contact={@selected}
+                    thread={@thread}
+                    timeline={@timeline}
+                    active_tab={@active_tab}
+                    reply_html={@reply_html}
+                    reply_nonce={@reply_nonce}
+                    note_body={@note_body}
+                    sending?={@sending?}
+                    error={@error}
+                    campaign_id={@campaign.id}
+                  />
+                <% @visible != [] -> %>
+                  <div
+                    class="h-full bg-bgSoft border border-border rounded-[11px] flex items-center justify-center text-center px-8"
+                    style="box-shadow:var(--shadow-card)"
+                  >
+                    <div class="text-[14px] text-inkSoft max-w-[300px] leading-[1.55]">
+                      {gettext("Select a contact to read the conversation.")}
+                    </div>
+                  </div>
+                <% true -> %>
+                  <.empty_pane bucket={@selected_bucket} campaign_id={@campaign.id} />
+              <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="hidden md:flex flex-1 items-center justify-center text-center px-8">
+            <div class="text-[14px] text-inkSoft max-w-[320px] leading-[1.55]">
+              {gettext("Pick a category above to dive into its contacts.")}
+            </div>
+          </div>
+        <% end %>
       </div>
     </Layouts.app>
     """
   end
+
+  defp bucket_label(nil), do: gettext("this category")
+  defp bucket_label(b), do: b |> Atom.to_string() |> String.replace("_", " ")
 
   # ── Partials ─────────────────────────────────────────────────────────
 
@@ -568,6 +645,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   attr :stats, :map, required: true
   attr :selected_bucket, :any, default: nil
+  attr :campaign_id, :string, required: true
 
   defp bucket_strip(assigns) do
     b = assigns.stats.buckets
@@ -644,16 +722,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     assigns = assign(assigns, tiles: tiles)
 
     ~H"""
-    <div class="grid grid-cols-6 gap-3">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
       <%= for t <- @tiles do %>
         <% active? = @selected_bucket == t.k %>
         <% tone = Map.get(t, :tone) %>
-        <button
-          phx-click="select_bucket"
-          phx-value-bucket={t.k}
+        <.link
+          patch={~p"/campaigns/#{@campaign_id}/sending-funnel/#{to_string(t.k)}"}
           style={"box-shadow: #{if active?, do: "0 0 0 1px var(--accentRing), var(--shadow-card)", else: "var(--shadow)"};"}
           class={[
-            "text-left p-[13px] cursor-pointer flex flex-col gap-0.5 min-h-[96px] rounded-[11px] border transition-colors",
+            "no-underline text-left p-[13px] cursor-pointer flex flex-col gap-0.5 min-h-[96px] rounded-[11px] border transition-colors",
             if(active?,
               do: "bg-accentSoft border-accentRing",
               else: "bg-card border-border hover:bg-bgSoft"
@@ -684,7 +761,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           ]}>
             {t.sub}
           </div>
-        </button>
+        </.link>
       <% end %>
     </div>
     """
@@ -713,7 +790,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     ~H"""
     <div
-      class="bg-bgSoft border border-border rounded-[11px] flex flex-col items-center justify-center text-center px-8 py-16 gap-4"
+      class="h-full bg-bgSoft border border-border rounded-[11px] flex flex-col items-center justify-center text-center px-8 py-16 gap-4"
       style="box-shadow:var(--shadow-card)"
     >
       <div class="text-[64px] font-bold leading-none text-ink20">0</div>
@@ -766,11 +843,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   attr :selected_bucket, :any, default: nil
   attr :sent_steps, :map, default: %{}
   attr :total_steps, :integer, default: 0
+  attr :campaign_id, :string, required: true
 
   defp contact_list(assigns) do
     ~H"""
     <div
-      class="flex flex-col min-h-0 bg-card border border-border rounded-[11px] overflow-hidden"
+      class="h-full flex flex-col min-h-0 bg-card border border-border rounded-[11px] overflow-hidden"
       style="box-shadow:var(--shadow-card)"
     >
       <div class="flex-none px-4 py-[13px] border-b border-border flex items-center justify-between">
@@ -787,12 +865,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <%= for c <- @contacts do %>
           <% active? = @selected && @selected.id == c.id %>
           <% {label, tone} = status_label(c) %>
-          <button
-            phx-click="select_contact"
-            phx-value-id={c.id}
+          <.link
+            patch={
+              ~p"/campaigns/#{@campaign_id}/sending-funnel/#{to_string(@selected_bucket)}/#{c.id}"
+            }
             style={active? && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
             class={[
-              "w-full text-left flex items-center gap-3 px-[11px] py-2.5 rounded-[8px] mb-1 border cursor-pointer",
+              "no-underline w-full text-left flex items-center gap-3 px-[11px] py-2.5 rounded-[8px] mb-1 border cursor-pointer",
               if(active?,
                 do: "bg-accentSoft border-accentRing",
                 else: "bg-transparent border-transparent hover:bg-paperAlt"
@@ -826,7 +905,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             >
               {Map.get(@sent_steps, c.id, 0)}/{@total_steps}
             </span>
-          </button>
+          </.link>
         <% end %>
       </div>
     </div>
@@ -863,7 +942,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     ~H"""
     <div
-      class="flex flex-col gap-3.5 min-h-0 overflow-y-auto p-4 bg-bgSoft border border-border rounded-[11px]"
+      class="h-full flex flex-col gap-3.5 min-h-0 overflow-y-auto p-4 bg-bgSoft border border-border rounded-[11px]"
       style="box-shadow:var(--shadow-card)"
     >
       <div

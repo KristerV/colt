@@ -49,7 +49,7 @@ defmodule ColtWeb.Admin.SystemLive do
           <p class="text-[12px] text-ink55 mt-1 tabular-nums">refreshing every {@tick_ms}ms</p>
         </div>
 
-        <section class="grid grid-cols-3 gap-4">
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <.summary label="CPU" value={pct(@stats.cpu.busy)} accent={busy_accent(@stats.cpu.busy)} />
           <.summary
             label="RAM"
@@ -88,26 +88,28 @@ defmodule ColtWeb.Admin.SystemLive do
             <.metric label="vCPUs" value={Integer.to_string(@stats.cpu.cores)} />
           </div>
 
-          <table :if={@stats.cpu.per_cpu != []} class="text-[13px] w-full max-w-xl mt-3">
-            <thead>
-              <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
-                <th class="text-left py-1">vCPU</th>
-                <th class="text-right py-1">busy</th>
-                <th class="text-right py-1">steal</th>
-                <th class="text-right py-1">wait</th>
-                <th class="text-right py-1">idle</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr :for={c <- @stats.cpu.per_cpu} class="border-t border-border">
-                <td class="py-1">{c.id}</td>
-                <td class="py-1 tabular-nums text-right">{pct(c.busy)}</td>
-                <td class="py-1 tabular-nums text-right">{pct(c.steal)}</td>
-                <td class="py-1 tabular-nums text-right">{pct(c.wait)}</td>
-                <td class="py-1 tabular-nums text-right">{pct(c.idle)}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div :if={@stats.cpu.per_cpu != []} class="overflow-x-auto max-w-xl mt-3">
+            <table class="text-[13px] w-full min-w-[360px]">
+              <thead>
+                <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
+                  <th class="text-left py-1">vCPU</th>
+                  <th class="text-right py-1">busy</th>
+                  <th class="text-right py-1">steal</th>
+                  <th class="text-right py-1">wait</th>
+                  <th class="text-right py-1">idle</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={c <- @stats.cpu.per_cpu} class="border-t border-border">
+                  <td class="py-1">{c.id}</td>
+                  <td class="py-1 tabular-nums text-right">{pct(c.busy)}</td>
+                  <td class="py-1 tabular-nums text-right">{pct(c.steal)}</td>
+                  <td class="py-1 tabular-nums text-right">{pct(c.wait)}</td>
+                  <td class="py-1 tabular-nums text-right">{pct(c.idle)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section class="space-y-3">
@@ -141,27 +143,29 @@ defmodule ColtWeb.Admin.SystemLive do
         <section :if={@stats.disks != []} class="space-y-3">
           <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">Disk</h2>
 
-          <table class="text-[13px] w-full max-w-2xl">
-            <thead>
-              <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
-                <th class="text-left py-1">mount</th>
-                <th class="text-right py-1">used</th>
-                <th class="text-right py-1">total</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr :for={d <- @stats.disks} class="border-t border-border">
-                <td class="py-1">{d.mount}</td>
-                <td class={[
-                  "py-1 tabular-nums text-right",
-                  d.percent >= 85 && "text-red font-semibold"
-                ]}>
-                  {d.percent}%
-                </td>
-                <td class="py-1 tabular-nums text-right">{gb(d.total_kb * 1024)}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="overflow-x-auto max-w-2xl">
+            <table class="text-[13px] w-full min-w-[360px]">
+              <thead>
+                <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
+                  <th class="text-left py-1">mount</th>
+                  <th class="text-right py-1">used</th>
+                  <th class="text-right py-1">total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={d <- @stats.disks} class="border-t border-border">
+                  <td class="py-1">{d.mount}</td>
+                  <td class={[
+                    "py-1 tabular-nums text-right",
+                    d.percent >= 85 && "text-red font-semibold"
+                  ]}>
+                    {d.percent}%
+                  </td>
+                  <td class="py-1 tabular-nums text-right">{gb(d.total_kb * 1024)}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section :if={@stats.disk_io != []} class="space-y-3">
@@ -170,35 +174,37 @@ defmodule ColtWeb.Admin.SystemLive do
             %util = fraction of time the device had I/O in flight. ~100% means saturated.
           </p>
 
-          <table class="text-[13px] w-full max-w-4xl">
-            <thead>
-              <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
-                <th class="text-left py-1">device</th>
-                <th class="text-right py-1">read MB/s</th>
-                <th class="text-right py-1">write MB/s</th>
-                <th class="text-right py-1">r/s</th>
-                <th class="text-right py-1">w/s</th>
-                <th class="text-right py-1">in-flight</th>
-                <th class="text-right py-1">%util</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr :for={d <- @stats.disk_io} class="border-t border-border">
-                <td class="py-1">{d.name}</td>
-                <td class="py-1 tabular-nums text-right">{mbps(d.read_bps)}</td>
-                <td class="py-1 tabular-nums text-right">{mbps(d.write_bps)}</td>
-                <td class="py-1 tabular-nums text-right">{rate(d.read_iops)}</td>
-                <td class="py-1 tabular-nums text-right">{rate(d.write_iops)}</td>
-                <td class="py-1 tabular-nums text-right">{d.in_flight}</td>
-                <td class={[
-                  "py-1 tabular-nums text-right",
-                  util_accent(d.util_pct)
-                ]}>
-                  {pct(d.util_pct)}
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="overflow-x-auto max-w-4xl">
+            <table class="text-[13px] w-full min-w-[560px]">
+              <thead>
+                <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
+                  <th class="text-left py-1">device</th>
+                  <th class="text-right py-1">read MB/s</th>
+                  <th class="text-right py-1">write MB/s</th>
+                  <th class="text-right py-1">r/s</th>
+                  <th class="text-right py-1">w/s</th>
+                  <th class="text-right py-1">in-flight</th>
+                  <th class="text-right py-1">%util</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={d <- @stats.disk_io} class="border-t border-border">
+                  <td class="py-1">{d.name}</td>
+                  <td class="py-1 tabular-nums text-right">{mbps(d.read_bps)}</td>
+                  <td class="py-1 tabular-nums text-right">{mbps(d.write_bps)}</td>
+                  <td class="py-1 tabular-nums text-right">{rate(d.read_iops)}</td>
+                  <td class="py-1 tabular-nums text-right">{rate(d.write_iops)}</td>
+                  <td class="py-1 tabular-nums text-right">{d.in_flight}</td>
+                  <td class={[
+                    "py-1 tabular-nums text-right",
+                    util_accent(d.util_pct)
+                  ]}>
+                    {pct(d.util_pct)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <section :if={@stats.db.ok?} class="space-y-3">

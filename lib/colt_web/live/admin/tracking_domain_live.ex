@@ -50,7 +50,7 @@ defmodule ColtWeb.Admin.TrackingDomainLive do
 
         <form
           phx-submit="save"
-          class="border border-border rounded-[11px] bg-card p-6 max-w-[640px] space-y-4"
+          class="border border-border rounded-[11px] bg-card p-5 md:p-6 max-w-[640px] space-y-4"
           style="box-shadow:var(--shadow-card)"
         >
           <label class="block text-[10px] font-semibold uppercase tracking-[0.08em] text-ink55">

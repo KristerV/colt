@@ -211,7 +211,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
             class="border border-border rounded-[11px] bg-card"
             style="box-shadow:var(--shadow)"
           >
-            <div class="flex items-center gap-6 py-4 px-5">
+            <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 py-4 px-5">
               <div class="flex-1 min-w-0">
                 <div class="text-[17px] font-bold tracking-[-0.01em] truncate text-ink">
                   {a.address}
@@ -241,7 +241,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   class="mt-3 flex items-center gap-2"
                 >
                   <input type="hidden" name="id" value={a.id} />
-                  <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
+                  <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold shrink-0">
                     {gettext("sender name")}
                   </label>
                   <input
@@ -251,7 +251,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                     value={a.display_name}
                     placeholder={gettext("e.g. Jane Doe")}
                     phx-debounce="500"
-                    class="w-[220px] px-2.5 py-1.5 border border-border rounded-[8px] text-[12px] bg-card text-ink outline-none focus:border-accent"
+                    class="w-full md:w-[220px] px-2.5 py-1.5 border border-border rounded-[8px] text-[12px] bg-card text-ink outline-none focus:border-accent"
                   />
                 </form>
               </div>
@@ -259,7 +259,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 :if={a.status != :disconnected}
                 id={"quota-form-#{a.id}"}
                 phx-change="set_quota"
-                class="flex items-center gap-2"
+                class="flex items-center gap-2 shrink-0"
               >
                 <input type="hidden" name="id" value={a.id} />
                 <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
@@ -276,23 +276,25 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 />
                 <span class="text-[10.5px] text-inkFaint">{gettext("/day")}</span>
               </form>
-              <.link
-                navigate={~p"/email-accounts/#{a.id}/stats"}
-                class="no-underline px-3 py-1.5 border border-borderStrong text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:border-ink"
-              >
-                {gettext("stats")}
-              </.link>
-              <Liid.btn
-                :if={a.status != :disconnected}
-                size={:small}
-                mono
-                phx-click="disconnect"
-                phx-value-id={a.id}
-                phx-disable-with={gettext("Disconnecting…")}
-                data-confirm={gettext("Disconnect %{address}?", address: a.address)}
-              >
-                {gettext("Disconnect")}
-              </Liid.btn>
+              <div class="flex items-center gap-2 shrink-0">
+                <.link
+                  navigate={~p"/email-accounts/#{a.id}/stats"}
+                  class="no-underline px-3 py-1.5 border border-borderStrong text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:border-ink"
+                >
+                  {gettext("stats")}
+                </.link>
+                <Liid.btn
+                  :if={a.status != :disconnected}
+                  size={:small}
+                  mono
+                  phx-click="disconnect"
+                  phx-value-id={a.id}
+                  phx-disable-with={gettext("Disconnecting…")}
+                  data-confirm={gettext("Disconnect %{address}?", address: a.address)}
+                >
+                  {gettext("Disconnect")}
+                </Liid.btn>
+              </div>
             </div>
           </li>
         </ul>
