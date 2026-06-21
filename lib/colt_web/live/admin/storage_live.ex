@@ -15,23 +15,36 @@ defmodule ColtWeb.Admin.StorageLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-8">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-        <h1 class="text-3xl font-semibold">Storage</h1>
+        <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
+          Database <em>storage</em>
+        </h1>
 
-        <div class="card bg-base-200 border border-base-300 max-w-md">
-          <div class="card-body">
-            <div class="text-xs uppercase tracking-wider opacity-60">Total</div>
-            <div class="text-3xl font-mono tabular-nums">{@total}</div>
+        <div
+          class="bg-card border border-border rounded-[11px] max-w-md p-5"
+          style="box-shadow:var(--shadow-card)"
+        >
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">Total</div>
+          <div class="text-[27px] font-bold tabular-nums leading-none tracking-[-0.02em] text-ink mt-2">
+            {@total}
           </div>
         </div>
 
-        <table class="text-sm font-mono w-full max-w-md">
-          <tbody>
-            <tr :for={row <- @tables} class="border-b border-base-300">
-              <td class="py-1 pr-6">{row.table}</td>
-              <td class="py-1 tabular-nums text-right">{row.size}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div
+          class="border border-border rounded-[11px] bg-card max-w-md overflow-hidden"
+          style="box-shadow:var(--shadow)"
+        >
+          <table class="text-[13px] w-full">
+            <tbody>
+              <tr
+                :for={row <- @tables}
+                class="border-b border-border last:border-b-0 hover:bg-paperAlt"
+              >
+                <td class="px-4 py-1.5 text-ink">{row.table}</td>
+                <td class="px-4 py-1.5 tabular-nums text-right text-ink70">{row.size}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </Layouts.app>
     """

@@ -1,8 +1,6 @@
 defmodule ColtWeb.PrivacyLive do
   use ColtWeb, :live_view
 
-  alias ColtWeb.Components.Legal
-
   def mount(_params, _session, socket) do
     {:ok, assign(socket, page_title: gettext("Privacy Policy"))}
   end
@@ -10,8 +8,8 @@ defmodule ColtWeb.PrivacyLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} landing={true}>
-      <Legal.page kicker="Liid · legal" title="Privacy Policy" updated="8 June 2026">
-        <Legal.section title="Who we are">
+      <.legal_page kicker="Liid · legal" title="Privacy Policy" updated="8 June 2026">
+        <.legal_section title="Who we are">
           <p>
             Liid is a lead-generation and email-outreach product operated by <strong>Täp OÜ</strong>
             (Estonian registry code <strong>12125250</strong>),
@@ -22,9 +20,9 @@ defmodule ColtWeb.PrivacyLive do
           <p>
             For any privacy question, request, or complaint, contact us at <a href="mailto:liid@krister.ee">liid@krister.ee</a>.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="1" title="What this policy covers">
+        <.legal_section n="1" title="What this policy covers">
           <p>
             This policy explains what personal data Liid processes, why, on what legal
             basis, who we share it with, and the rights you have. It covers two distinct
@@ -41,9 +39,9 @@ defmodule ColtWeb.PrivacyLive do
               our users' behalf; the user is the controller for that outreach.
             </li>
           </ul>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="2" title="Data we collect">
+        <.legal_section n="2" title="Data we collect">
           <h3>Account data</h3>
           <p>
             Your name and email address when you register, and authentication metadata. We
@@ -92,9 +90,9 @@ defmodule ColtWeb.PrivacyLive do
             Standard server logs (IP address, browser, timestamps) and a session cookie
             required to keep you signed in.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="3" title="Google user data &amp; Limited Use">
+        <.legal_section n="3" title="Google user data &amp; Limited Use">
           <p>
             Where you connect a Google (Gmail / Google Workspace) account, Liid's access to
             and use of information received from Google APIs adheres to the <a
@@ -132,9 +130,9 @@ defmodule ColtWeb.PrivacyLive do
             (see §4). Email content sent to that service is used solely to deliver these
             user-facing features and is not used to train third-party models.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="4" title="Who we share data with (sub-processors)">
+        <.legal_section n="4" title="Who we share data with (sub-processors)">
           <p>
             We share data only with the service providers needed to run Liid. Each acts as our
             processor under data-processing terms consistent with the GDPR.
@@ -160,9 +158,9 @@ defmodule ColtWeb.PrivacyLive do
           <p>
             We do not sell personal data or share it for advertising.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="5" title="Legal bases (GDPR)">
+        <.legal_section n="5" title="Legal bases (GDPR)">
           <ul>
             <li><strong>Contract</strong> — to provide the service you signed up for.</li>
             <li>
@@ -177,9 +175,9 @@ defmodule ColtWeb.PrivacyLive do
               <strong>Legal obligation</strong> — to meet accounting, tax and legal requirements.
             </li>
           </ul>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="6" title="International transfers">
+        <.legal_section n="6" title="International transfers">
           <p>
             We host application data in the EU. Our email provider Nylas operates in its
             EU/UK region, which may store data in the United Kingdom — a transfer covered by
@@ -187,18 +185,18 @@ defmodule ColtWeb.PrivacyLive do
             that transfer is covered by an adequacy decision or by Standard Contractual Clauses
             with appropriate safeguards.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="7" title="Retention">
+        <.legal_section n="7" title="Retention">
           <p>
             We keep account and campaign data for as long as your account is active. When you
             disconnect a mailbox we revoke the connection and delete the stored connection
             identifier. When you close your account we delete or anonymise your personal data
             within 90 days, except where we must retain records to meet legal obligations.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="8" title="Your rights">
+        <.legal_section n="8" title="Your rights">
           <p>
             Under the GDPR you may request access to, correction of, deletion of, or a portable
             copy of your personal data, and you may object to or restrict certain processing.
@@ -211,24 +209,75 @@ defmodule ColtWeb.PrivacyLive do
             to the email asking to opt out, or contact us directly and we will route your
             request to the relevant user.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="9" title="Security">
+        <.legal_section n="9" title="Security">
           <p>
             We apply industry-standard safeguards: encryption in transit, restricted access on
             a need-to-know basis, and storage of mailbox credentials with a specialised
             provider rather than in our own systems.
           </p>
-        </Legal.section>
+        </.legal_section>
 
-        <Legal.section n="10" title="Changes to this policy">
+        <.legal_section n="10" title="Changes to this policy">
           <p>
             We may update this policy as the product evolves. Material changes will be
             reflected by the "last updated" date above and, where appropriate, notified to you.
           </p>
-        </Legal.section>
-      </Legal.page>
+        </.legal_section>
+      </.legal_page>
     </Layouts.app>
+    """
+  end
+
+  attr :kicker, :string, required: true
+  attr :title, :string, required: true
+  attr :updated, :string, required: true
+  slot :inner_block, required: true
+
+  def legal_page(assigns) do
+    ~H"""
+    <div class="max-w-[760px] mx-auto w-full">
+      <article class="bg-card border border-border rounded-[11px] [box-shadow:var(--shadow-card)] px-6 py-9 md:px-12 md:py-14">
+        <header class="pb-7 mb-8 border-b border-border">
+          <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-3">
+            {@kicker}
+          </div>
+          <h1 class="font-semibold text-[28px] md:text-[34px] leading-[1.1] tracking-[-0.02em] m-0 text-ink text-pretty">
+            {@title}
+          </h1>
+          <p class="mt-3 text-[12px] text-inkFaint tabular-nums m-0">
+            Last updated {@updated}
+          </p>
+        </header>
+        <div class="space-y-9">
+          {render_slot(@inner_block)}
+        </div>
+      </article>
+    </div>
+    """
+  end
+
+  attr :n, :string, default: nil
+  attr :title, :string, required: true
+  slot :inner_block, required: true
+
+  def legal_section(assigns) do
+    ~H"""
+    <section class="space-y-3">
+      <h2 class="font-semibold text-[18px] md:text-[20px] tracking-[-0.01em] text-ink m-0 scroll-mt-24">
+        <span :if={@n} class="text-inkFaint mr-2 tabular-nums">{@n}</span>{@title}
+      </h2>
+      <div class={[
+        "text-[15px] leading-[1.65] text-inkSoft space-y-3",
+        "[&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline",
+        "[&_strong]:text-ink [&_strong]:font-semibold",
+        "[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_li]:marker:text-inkFaint",
+        "[&_h3]:text-ink [&_h3]:font-semibold [&_h3]:text-[15px] [&_h3]:mt-5 [&_h3]:mb-1"
+      ]}>
+        {render_slot(@inner_block)}
+      </div>
+    </section>
     """
   end
 end

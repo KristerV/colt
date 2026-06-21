@@ -122,14 +122,14 @@ defmodule ColtWeb.Campaigns.MarketLive do
           <% end %>
         </div>
 
-        <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
+        <div :if={@error} class="text-[12px] text-red">{@error}</div>
 
         <div class="flex-1" />
 
         <div class="flex flex-wrap items-center gap-4">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/name"}
-            class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+            class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] font-semibold text-inkSoft bg-card border border-borderStrong rounded-[8px] no-underline [box-shadow:var(--shadow)] hover:bg-paperAlt hover:text-ink"
           >
             <Liid.icon name="chev-l" size={11} /> Back
           </.link>
@@ -140,8 +140,8 @@ defmodule ColtWeb.Campaigns.MarketLive do
               {gettext("Continue → filters")} <Liid.icon name="arrow" />
             <% end %>
           </Liid.btn>
-          <span :if={@saved?} class="font-mono text-[11px] text-ink55">{gettext("saved.")}</span>
-          <span class="w-full md:w-auto md:ml-auto font-mono text-[11px] text-ink40">
+          <span :if={@saved?} class="text-[11.5px] text-inkFaint">{gettext("saved.")}</span>
+          <span class="w-full md:w-auto md:ml-auto text-[11.5px] text-inkFaint tabular-nums">
             {gettext("%{count} active companies in rik.ee · last sync %{sync}",
               count: format_int(@ee_count),
               sync: format_sync(@last_sync)
@@ -165,45 +165,52 @@ defmodule ColtWeb.Campaigns.MarketLive do
       phx-value-market={Atom.to_string(@market.market)}
       disabled={not @market.enabled}
       class={[
-        "flex flex-col justify-between p-4 border rounded-sharp min-h-[128px] text-left",
+        "flex flex-col justify-between p-4 border rounded-[11px] min-h-[128px] text-left [box-shadow:var(--shadow)]",
         not @market.enabled && "opacity-45 cursor-not-allowed",
         @market.enabled && "cursor-pointer",
-        @selected && "border-ink bg-paperAlt",
-        not @selected && "border-ink20 bg-paper"
+        @selected &&
+          "border-accentRing bg-accentSoft [box-shadow:0_0_0_1px_var(--accentRing),var(--shadow-card)]",
+        not @selected && "border-border bg-card hover:bg-paperAlt"
       ]}
     >
       <div class="flex items-start justify-between">
         <div class="flex items-center gap-3">
           <span class={[
             "w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0",
-            @selected && "border-[var(--accent)]",
-            not @selected && "border-ink40"
+            @selected && "border-accent",
+            not @selected && "border-inkFaint"
           ]}>
             <span
               :if={@selected}
-              class="w-[7px] h-[7px] rounded-full"
-              style="background: var(--accent);"
+              class="w-[7px] h-[7px] rounded-full bg-accent"
             />
           </span>
-          <span class="font-mono text-[11px] text-ink55 tracking-[0.12em]">
+          <span class={[
+            "text-[11px] tracking-[0.1em] uppercase font-semibold",
+            @selected && "text-accent",
+            not @selected && "text-inkFaint"
+          ]}>
             {@market.code}
           </span>
         </div>
         <span
           :if={not @market.enabled}
-          class="font-mono text-[9px] tracking-[0.12em] uppercase text-ink40 border border-ink20 rounded-sharp px-1.5 py-0.5"
+          class="text-[9px] tracking-[0.1em] uppercase text-inkFaint font-semibold bg-paperAlt rounded-[8px] px-2 py-0.5"
         >
           {gettext("soon")}
         </span>
       </div>
 
       <div class="mt-3">
-        <div class="font-serif text-[26px] font-normal tracking-[-0.02em] leading-none text-ink">
+        <div class={[
+          "text-[20px] font-bold tracking-[-0.01em] leading-tight",
+          @selected && "text-accent",
+          not @selected && "text-ink"
+        ]}>
           {@market.name}
         </div>
-        <div class="mt-2.5 flex justify-between font-mono text-[11px] text-ink55 tracking-[0.04em]">
-          <span>{@market.api}</span>
-          <span class="text-ink70">{@count}</span>
+        <div class="mt-2.5 flex justify-end text-[11.5px] text-inkSoft tabular-nums">
+          <span class="text-ink font-semibold">{@count}</span>
         </div>
       </div>
     </button>

@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liid — Sending funnel (Calm Pro)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f7f5;
+    --bg-soft:#fbfbfa;
+    --card:#ffffff;
+    --ink:#37352f;
+    --ink-soft:#6b6862;
+    --ink-faint:#97948d;
+    --border:#e3e3e0;
+    --border-strong:#d6d6d1;
+    --accent:#3b7ae0;
+    --accent-soft:#eef3fc;
+    --accent-ring:#bcd2f5;
+    --green:#2f9e6b;
+    --green-soft:#e7f5ee;
+    --amber:#c98a1e;
+    --amber-soft:#fbf1dd;
+    --red:#d05a4f;
+    --red-soft:#fbeae8;
+    --shadow:0 1px 2px rgba(35,32,28,.05), 0 2px 6px rgba(35,32,28,.04);
+    --shadow-card:0 1px 2px rgba(35,32,28,.06), 0 4px 12px rgba(35,32,28,.05);
+    --radius:11px;
+    --radius-sm:8px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .tnum{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  /* ---------- shell ---------- */
+  .shell{display:flex;height:100vh;overflow:hidden}
+
+  /* ---------- (A) sidebar ---------- */
+  .sidebar{
+    width:248px;flex:0 0 248px;
+    background:var(--bg-soft);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+    padding:18px 14px 12px;
+  }
+  .wordmark{
+    display:flex;align-items:center;gap:9px;
+    padding:4px 8px 14px;
+  }
+  .wordmark .logo{
+    width:26px;height:26px;border-radius:7px;
+    background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:15px;
+  }
+  .wordmark .name{font-weight:700;font-size:18px;letter-spacing:-.01em}
+  .campaign{
+    margin:0 6px 16px;padding:9px 11px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    box-shadow:var(--shadow);
+  }
+  .campaign .k{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);font-weight:600}
+  .campaign .v{font-size:13px;font-weight:600;margin-top:2px;color:var(--ink)}
+
+  .nav{flex:1;overflow-y:auto;padding:0 2px}
+  .nav-group{margin-bottom:14px}
+  .group-label{
+    font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-faint);font-weight:600;
+    padding:4px 10px;margin-bottom:2px;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:9px;
+    padding:6px 10px;border-radius:7px;
+    color:var(--ink-soft);font-size:13.5px;font-weight:450;
+    cursor:default;
+  }
+  .nav-item:hover{background:#efefec}
+  .nav-item .dot{width:5px;height:5px;border-radius:50%;background:var(--ink-faint);flex:0 0 5px;opacity:.55}
+  .nav-item.active{
+    background:var(--accent-soft);
+    color:var(--accent);font-weight:600;
+    box-shadow:inset 0 0 0 1px var(--accent-ring);
+  }
+  .nav-item.active .dot{background:var(--accent);opacity:1}
+
+  .side-footer{
+    border-top:1px solid var(--border);
+    padding-top:10px;margin-top:6px;
+  }
+  .side-footer .nav-item{font-size:13px;padding:5px 10px}
+  .user{
+    display:flex;align-items:center;gap:9px;
+    padding:8px 10px 2px;margin-top:4px;
+  }
+  .user .avatar{
+    width:26px;height:26px;border-radius:50%;
+    background:#e7e1d8;color:#7a6f5f;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:12px;
+  }
+  .user .email{font-size:12.5px;color:var(--ink-soft);font-weight:500}
+
+  /* ---------- main ---------- */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+
+  /* (B) headline + buckets */
+  .topband{padding:22px 26px 16px;flex:0 0 auto}
+  .headline{
+    font-size:25px;font-weight:600;letter-spacing:-.02em;margin:0 0 16px;color:var(--ink);
+  }
+  .headline em{font-style:italic;font-weight:600;color:var(--accent)}
+
+  .buckets{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+  .bucket{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:12px 13px 13px;
+    display:flex;flex-direction:column;gap:2px;
+    min-height:96px;
+    cursor:default;
+  }
+  .bucket .blabel{
+    display:flex;align-items:center;gap:6px;
+    font-size:11.5px;font-weight:600;color:var(--ink-soft);
+  }
+  .bucket .bnum{font-size:27px;font-weight:700;letter-spacing:-.02em;color:var(--ink);line-height:1.05;margin-top:2px}
+  .bucket .bsub{font-size:11.5px;color:var(--ink-faint);font-weight:450;min-height:14px}
+  .bucket.active{
+    background:var(--accent-soft);
+    border-color:var(--accent-ring);
+    box-shadow:0 0 0 1px var(--accent-ring), var(--shadow-card);
+  }
+  .bucket.active .blabel{color:var(--accent)}
+  .bucket.active .bnum{color:var(--accent)}
+  .bucket.error .bsub{color:var(--red)}
+  .bucket.warn .bsub{color:var(--amber)}
+
+  .live-dot{
+    width:7px;height:7px;border-radius:50%;background:var(--green);
+    position:relative;flex:0 0 7px;
+  }
+  .live-dot::after{
+    content:"";position:absolute;inset:-3px;border-radius:50%;
+    background:var(--green);opacity:.4;animation:pulse 1.8s ease-out infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.6);opacity:.5}100%{transform:scale(1.9);opacity:0}}
+
+  .track-strip{
+    display:flex;gap:24px;margin-top:12px;
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+    box-shadow:var(--shadow);padding:9px 14px;
+  }
+  .track-strip .tk{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-soft)}
+  .track-strip .tk b{color:var(--ink);font-weight:700}
+  .track-strip .tk .tlabel{font-weight:600;color:var(--ink-soft)}
+  .track-strip .tk .frac{color:var(--ink-faint)}
+
+  /* (C) body two columns */
+  .body{flex:1;display:flex;overflow:hidden;padding:4px 26px 22px;gap:16px}
+
+  /* list */
+  .list-col{
+    width:360px;flex:0 0 360px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-card);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .list-head{
+    padding:13px 16px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;
+    flex:0 0 auto;
+  }
+  .list-head .lh-title{font-weight:600;font-size:13.5px}
+  .list-head .lh-title span{color:var(--accent)}
+  .list-head .count{font-size:12px;color:var(--ink-faint);font-weight:500}
+  .list-scroll{flex:1;overflow-y:auto;padding:8px}
+  .contact{
+    display:flex;align-items:center;gap:11px;
+    padding:10px 11px;border-radius:var(--radius-sm);
+    margin-bottom:4px;cursor:default;border:1px solid transparent;
+  }
+  .contact:hover{background:#f4f4f1}
+  .contact.sel{
+    background:var(--accent-soft);
+    border-color:var(--accent-ring);
+    box-shadow:inset 0 0 0 1px var(--accent-ring);
+  }
+  .contact .avatar{
+    width:34px;height:34px;border-radius:9px;flex:0 0 34px;
+    background:#ece9e2;color:#7a6f5f;font-weight:600;font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .contact.sel .avatar{background:#dbe7fa;color:var(--accent)}
+  .contact .c-main{flex:1;min-width:0}
+  .contact .c-name{font-weight:600;font-size:13.5px;color:var(--ink)}
+  .contact .c-title{font-size:12px;color:var(--ink-faint);font-weight:450}
+  .contact .c-status{
+    display:inline-flex;align-items:center;gap:5px;
+    margin-top:3px;font-size:11px;color:var(--green);font-weight:500;
+  }
+  .contact .c-status .sd{width:5px;height:5px;border-radius:50%;background:var(--green)}
+  .contact .c-right{text-align:right;flex:0 0 auto}
+  .contact .prog{
+    font-size:12px;font-weight:600;color:var(--ink-soft);
+    background:#efefec;border-radius:6px;padding:2px 7px;
+  }
+  .contact.sel .prog{background:#dbe7fa;color:var(--accent)}
+
+  /* thread */
+  .thread-col{
+    flex:1;min-width:0;
+    display:flex;flex-direction:column;gap:14px;
+    overflow-y:auto;
+    padding:16px;
+    background:var(--bg-soft);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow-card);
+  }
+  .thread-head{
+    flex:0 0 auto;
+    padding:15px 20px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .th-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .th-id{display:flex;align-items:center;gap:13px}
+  .th-id .avatar{
+    width:42px;height:42px;border-radius:11px;flex:0 0 42px;
+    background:#dbe7fa;color:var(--accent);font-weight:700;font-size:16px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .th-name{font-size:17px;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+  .th-sub{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+  .th-sub .email{color:var(--accent);font-weight:500}
+  .th-company{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    margin-top:6px;font-size:12px;color:var(--ink-soft);
+  }
+  .th-company .co{font-weight:600;color:var(--ink)}
+  .th-company a{color:var(--accent);text-decoration:none;font-weight:500}
+  .th-company a:hover{text-decoration:underline}
+  .th-company .from{color:var(--ink-faint)}
+  .th-actions{display:flex;align-items:center;gap:9px;flex:0 0 auto}
+  .status-ctl{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--green-soft);color:var(--green);
+    border:1px solid #cfeadd;border-radius:8px;
+    padding:7px 11px;font-size:12.5px;font-weight:600;cursor:default;
+  }
+  .status-ctl .sd{width:7px;height:7px;border-radius:50%;background:var(--green)}
+  .status-ctl .car{opacity:.7;font-size:10px}
+  .btn-stop{
+    border:1px solid var(--border-strong);background:var(--card);
+    color:var(--ink-soft);border-radius:8px;padding:7px 12px;
+    font-size:12.5px;font-weight:600;cursor:default;box-shadow:var(--shadow);
+  }
+  .btn-stop:hover{background:#faf4f3;color:var(--red);border-color:#ecc9c4}
+
+  /* timeline */
+  .timeline{flex:0 0 auto;display:flex;flex-direction:column}
+  .tl-row{display:flex;margin-bottom:16px}
+  .tl-row.out{justify-content:flex-start}
+  .tl-row.in{justify-content:flex-end}
+  .tl-row.note-row{justify-content:center}
+
+  .email-card{
+    width:78%;max-width:560px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .email-card.inbound{border-color:#cdddf3}
+  .ec-meta{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:9px 14px;border-bottom:1px solid var(--border);
+    background:#fbfbfa;
+  }
+  .email-card.inbound .ec-meta{background:var(--accent-soft);border-bottom-color:#dbe7fa}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:11px;font-weight:600;
+    padding:3px 8px;border-radius:6px;
+    letter-spacing:.01em;
+  }
+  .chip.step{background:#efece6;color:var(--ink-soft)}
+  .chip.who{background:#f1efe9;color:var(--ink-soft)}
+  .chip.who.you{background:#eef3fc;color:var(--accent)}
+  .chip.who.them{background:#dbe7fa;color:var(--accent)}
+  .chip.sent{background:var(--green-soft);color:var(--green)}
+  .chip.manual{background:#f0ecfb;color:#7a5fc0}
+  .ec-date{font-size:11px;color:var(--ink-faint);font-weight:500;margin-left:auto}
+  .ec-body{padding:12px 15px 14px}
+  .ec-subject{font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:5px;letter-spacing:-.005em}
+  .ec-text{font-size:13px;color:#4a473f;line-height:1.55}
+
+  .note-card{
+    width:62%;max-width:440px;
+    background:var(--amber-soft);
+    border:1px solid #f0dcb0;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+  .note-card .ec-meta{background:#f7ecd2;border-bottom-color:#f0dcb0}
+  .chip.note{background:#efd9a8;color:#9a6f17}
+  .note-card .ec-text{color:#6e5417;font-weight:500}
+
+  /* composer */
+  .composer{
+    flex:0 0 auto;
+  }
+  .composer-box{
+    border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;background:var(--card);
+  }
+  .comp-tabs{display:flex;align-items:center;gap:4px;padding:8px 10px;border-bottom:1px solid var(--border);background:#fbfbfa}
+  .comp-tab{
+    font-size:12.5px;font-weight:600;color:var(--ink-faint);
+    padding:6px 12px;border-radius:7px;cursor:default;
+  }
+  .comp-tab.active{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-ring)}
+  .comp-to{margin-left:auto;font-size:12px;color:var(--ink-faint);font-weight:500}
+  .comp-to b{color:var(--ink-soft);font-weight:600}
+  .comp-body{padding:12px 14px}
+  .comp-area{
+    color:var(--ink-faint);font-size:13px;min-height:54px;line-height:1.5;
+  }
+  .comp-foot{display:flex;align-items:center;justify-content:flex-end;padding:0 14px 12px}
+  .btn-send{
+    background:var(--accent);color:#fff;border:none;
+    border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;
+    cursor:default;box-shadow:0 1px 2px rgba(59,122,224,.3);
+  }
+  .btn-send:hover{background:#3169c8}
+
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#dcdcd6;border-radius:6px;border:2px solid transparent;background-clip:padding-box}
+  ::-webkit-scrollbar-thumb:hover{background:#cbcbc3;background-clip:padding-box}
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- (A) SIDEBAR -->
+  <aside class="sidebar">
+    <div class="wordmark">
+      <div class="logo">L</div>
+      <div class="name">Liid</div>
+    </div>
+    <div class="campaign">
+      <div class="k">Campaign</div>
+      <div class="v">Tallinn SaaS founders Q2</div>
+    </div>
+
+    <nav class="nav">
+      <div class="nav-group">
+        <div class="group-label">Enrichment</div>
+        <div class="nav-item"><span class="dot"></span>Name</div>
+        <div class="nav-item"><span class="dot"></span>ICP</div>
+        <div class="nav-item"><span class="dot"></span>Market</div>
+        <div class="nav-item"><span class="dot"></span>Filters</div>
+        <div class="nav-item"><span class="dot"></span>Exclude</div>
+        <div class="nav-item"><span class="dot"></span>Target</div>
+        <div class="nav-item"><span class="dot"></span>Funnel</div>
+      </div>
+      <div class="nav-group">
+        <div class="group-label">Sending</div>
+        <div class="nav-item"><span class="dot"></span>Pitch</div>
+        <div class="nav-item"><span class="dot"></span>Sequence</div>
+        <div class="nav-item"><span class="dot"></span>Sending accounts</div>
+        <div class="nav-item"><span class="dot"></span>Writing</div>
+        <div class="nav-item active"><span class="dot"></span>Sending funnel</div>
+        <div class="nav-item"><span class="dot"></span>Write</div>
+        <div class="nav-item"><span class="dot"></span>Variants</div>
+        <div class="nav-item"><span class="dot"></span>Settings</div>
+      </div>
+    </nav>
+
+    <div class="side-footer">
+      <div class="nav-item"><span class="dot"></span>Email accounts</div>
+      <div class="nav-item"><span class="dot"></span>Billing</div>
+      <div class="nav-item"><span class="dot"></span>Feedback</div>
+      <div class="user">
+        <div class="avatar">K</div>
+        <div class="email">krister@liid.ee</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- (B) TOP BAND -->
+    <div class="topband">
+      <h1 class="headline">Where the <em>conversation</em> is going.</h1>
+
+      <div class="buckets">
+        <div class="bucket">
+          <div class="blabel"><span class="live-dot"></span>Sending</div>
+          <div class="bnum tnum">312</div>
+          <div class="bsub tnum">1,847 emails sent</div>
+        </div>
+        <div class="bucket">
+          <div class="blabel">Call ready</div>
+          <div class="bnum tnum">8</div>
+          <div class="bsub"></div>
+        </div>
+        <div class="bucket active">
+          <div class="blabel">Interested</div>
+          <div class="bnum tnum">23</div>
+          <div class="bsub tnum">7% interest</div>
+        </div>
+        <div class="bucket">
+          <div class="blabel">Not interested</div>
+          <div class="bnum tnum">141</div>
+          <div class="bsub tnum">34% reply rate</div>
+        </div>
+        <div class="bucket error">
+          <div class="blabel">Failed</div>
+          <div class="bnum tnum">4</div>
+          <div class="bsub tnum">1% failure rate</div>
+        </div>
+        <div class="bucket warn">
+          <div class="blabel">Bounced</div>
+          <div class="bnum tnum">6</div>
+          <div class="bsub tnum">2% bounce rate</div>
+        </div>
+      </div>
+
+      <div class="track-strip">
+        <div class="tk"><span class="tlabel">Opens</span> <b class="tnum">64%</b> <span class="frac tnum">(1182/1847)</span></div>
+        <div class="tk"><span class="tlabel">Clicks</span> <b class="tnum">18%</b> <span class="frac tnum">(332/1847)</span></div>
+      </div>
+    </div>
+
+    <!-- (C) BODY -->
+    <div class="body">
+
+      <!-- LIST -->
+      <section class="list-col">
+        <div class="list-head">
+          <div class="lh-title"><span>Interested</span></div>
+          <div class="count tnum">8 contacts</div>
+        </div>
+        <div class="list-scroll">
+
+          <div class="contact sel">
+            <div class="avatar">MT</div>
+            <div class="c-main">
+              <div class="c-name">Mart Tamm</div>
+              <div class="c-title">CEO</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">3/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">LK</div>
+            <div class="c-main">
+              <div class="c-name">Liis Kask</div>
+              <div class="c-title">Founder</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">4/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">JO</div>
+            <div class="c-main">
+              <div class="c-name">Jaan Org</div>
+              <div class="c-title">CTO</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">2/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">KS</div>
+            <div class="c-main">
+              <div class="c-name">Kadri Saar</div>
+              <div class="c-title">Head of Growth</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">3/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">TL</div>
+            <div class="c-main">
+              <div class="c-name">Toomas Lepp</div>
+              <div class="c-title">Co-founder</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">4/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">AM</div>
+            <div class="c-main">
+              <div class="c-name">Anna Mägi</div>
+              <div class="c-title">COO</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">2/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">PR</div>
+            <div class="c-main">
+              <div class="c-name">Priit Raud</div>
+              <div class="c-title">VP Sales</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">3/4</span></div>
+          </div>
+
+          <div class="contact">
+            <div class="avatar">EK</div>
+            <div class="c-main">
+              <div class="c-name">Eva Kuusk</div>
+              <div class="c-title">Founder</div>
+              <div class="c-status"><span class="sd"></span>replied · interested</div>
+            </div>
+            <div class="c-right"><span class="prog tnum">4/4</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- THREAD -->
+      <section class="thread-col">
+        <div class="thread-head">
+          <div class="th-top">
+            <div class="th-id">
+              <div class="avatar">MT</div>
+              <div>
+                <div class="th-name">Mart Tamm</div>
+                <div class="th-sub">CEO · <span class="email">mart@fendr.ee</span></div>
+                <div class="th-company">
+                  <span class="co">Fendr OÜ</span>
+                  <a href="#">↗ e-äriregister</a>
+                  <a href="#">↗ fendr.ee</a>
+                  <span class="from">From: Krister @ Liid</span>
+                </div>
+              </div>
+            </div>
+            <div class="th-actions">
+              <span class="status-ctl"><span class="sd"></span>replied · interested <span class="car">▾</span></span>
+              <button class="btn-stop">Stop sequence</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIMELINE -->
+        <div class="timeline">
+
+          <!-- 1 outbound -->
+          <div class="tl-row out">
+            <div class="email-card">
+              <div class="ec-meta">
+                <span class="chip step">Step 1</span>
+                <span class="chip who you">You</span>
+                <span class="chip sent">Sent</span>
+                <span class="ec-date tnum">Jun 8 · 09:12</span>
+              </div>
+              <div class="ec-body">
+                <div class="ec-subject">Quick question about Fendr's onboarding</div>
+                <div class="ec-text">Hi Mart, I noticed Fendr just shipped a self-serve flow — congrats. We help Estonian SaaS teams turn trial signups into booked calls without adding headcount. Worth a quick look?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2 outbound -->
+          <div class="tl-row out">
+            <div class="email-card">
+              <div class="ec-meta">
+                <span class="chip step">Step 2</span>
+                <span class="chip who you">You</span>
+                <span class="chip sent">Sent</span>
+                <span class="ec-date tnum">Jun 11 · 09:05</span>
+              </div>
+              <div class="ec-body">
+                <div class="ec-subject">Re: Quick question about Fendr's onboarding</div>
+                <div class="ec-text">Following up — happy to send a 2-minute Loom showing how it'd work for Fendr specifically.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 inbound -->
+          <div class="tl-row in">
+            <div class="email-card inbound">
+              <div class="ec-meta">
+                <span class="chip who them">Reply</span>
+                <span class="chip who them">Mart Tamm</span>
+                <span class="ec-date tnum">Jun 11 · 14:32</span>
+              </div>
+              <div class="ec-body">
+                <div class="ec-text">Hi Krister, this is timely. We're drowning in trials that never convert. Can you do Thursday afternoon?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 note -->
+          <div class="tl-row note-row">
+            <div class="note-card">
+              <div class="ec-meta">
+                <span class="chip note">Note</span>
+                <span class="ec-date tnum">Jun 11 · 14:40</span>
+              </div>
+              <div class="ec-body">
+                <div class="ec-text">Hot lead — wants Thursday. Check calendar, propose 15:00.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 manual outbound -->
+          <div class="tl-row out">
+            <div class="email-card">
+              <div class="ec-meta">
+                <span class="chip who you">Reply · You</span>
+                <span class="chip manual">Manual</span>
+                <span class="chip sent">Sent</span>
+                <span class="ec-date tnum">Jun 11 · 15:01</span>
+              </div>
+              <div class="ec-body">
+                <div class="ec-text">Thursday 15:00 works great. Sending a calendar invite now — talk soon!</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- COMPOSER -->
+        <div class="composer">
+          <div class="composer-box">
+            <div class="comp-tabs">
+              <span class="comp-tab active">Reply</span>
+              <span class="comp-tab">Note</span>
+              <span class="comp-to">To: <b>mart@fendr.ee</b></span>
+            </div>
+            <div class="comp-body">
+              <div class="comp-area">Write your reply to Mart…</div>
+            </div>
+            <div class="comp-foot">
+              <button class="btn-send">Send reply</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+</div>
+</body>
+</html>

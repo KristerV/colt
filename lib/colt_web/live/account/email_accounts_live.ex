@@ -136,6 +136,16 @@ defmodule ColtWeb.Account.EmailAccountsLive do
   defp revoke_at_nylas(%{nylas_grant_id: nil}), do: :ok
   defp revoke_at_nylas(account), do: Nylas.revoke(account)
 
+  defp status_chip_class(:healthy), do: "bg-greenSoft text-green"
+  defp status_chip_class(:paused_bounces), do: "bg-amberSoft text-amber"
+  defp status_chip_class(:auth_error), do: "bg-redSoft text-red"
+  defp status_chip_class(_), do: "bg-paperAlt text-inkFaint"
+
+  defp status_dot_style(:healthy), do: "background:var(--green)"
+  defp status_dot_style(:paused_bounces), do: "background:var(--amber)"
+  defp status_dot_style(:auth_error), do: "background:var(--red)"
+  defp status_dot_style(_), do: "background:var(--inkFaint)"
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:email_accounts}>
@@ -174,7 +184,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
             <.live_file_input upload={@uploads.mailboxes} class="sr-only" />
             <label
               for={@uploads.mailboxes.ref}
-              class="inline-flex items-center gap-2 border border-ink20 rounded-[2px] font-medium font-mono tracking-[0.04em] cursor-pointer px-[18px] py-[10px] text-[13px] bg-transparent text-ink hover:border-ink"
+              class="inline-flex items-center gap-2 border border-borderStrong rounded-[8px] font-semibold cursor-pointer px-[18px] py-[10px] text-[13px] bg-card text-inkSoft hover:text-ink hover:border-ink"
             >
               {gettext("Import from CSV")} <Liid.icon name="file" size={13} />
             </label>
@@ -183,38 +193,55 @@ defmodule ColtWeb.Account.EmailAccountsLive do
 
         <div
           :if={@accounts == []}
-          class="border border-rule rounded-[2px] bg-paper px-8 py-12 text-center"
+          class="border border-border rounded-[11px] bg-card px-8 py-12 text-center"
+          style="box-shadow:var(--shadow)"
         >
-          <div class="font-serif text-[24px] tracking-[-0.02em] text-ink">
+          <div class="text-[20px] font-bold tracking-[-0.01em] text-ink">
             {gettext("No inboxes yet.")}
           </div>
-          <div class="mt-2 text-[13px] text-ink55">
+          <div class="mt-2 text-[13px] text-inkSoft">
             {gettext("Hit \"Connect\" above and Nylas's hosted auth will walk you through it.")}
           </div>
         </div>
 
-        <ul :if={@accounts != []} class="border-t border-rule">
-          <li :for={a <- @accounts} id={"acct-#{a.id}"} class="border-b border-rule">
-            <div class="flex items-center gap-6 py-4 px-2">
+        <ul :if={@accounts != []} class="space-y-3">
+          <li
+            :for={a <- @accounts}
+            id={"acct-#{a.id}"}
+            class="border border-border rounded-[11px] bg-card"
+            style="box-shadow:var(--shadow)"
+          >
+            <div class="flex items-center gap-6 py-4 px-5">
               <div class="flex-1 min-w-0">
-                <div class="font-serif text-[20px] tracking-[-0.015em] truncate">
+                <div class="text-[17px] font-bold tracking-[-0.01em] truncate text-ink">
                   {a.address}
                 </div>
-                <div class="mt-1 font-mono text-[11px] text-ink40 tracking-[0.04em] flex items-center gap-3">
-                  <span class="uppercase">{a.provider}</span>
-                  <span>·</span>
-                  <span class="uppercase">{a.status}</span>
-                  <span :if={a.tz}>·</span>
-                  <span :if={a.tz}>{a.tz}</span>
+                <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                  <span class="inline-flex items-center text-[10.5px] font-semibold tracking-[0.04em] uppercase text-inkSoft bg-paperAlt rounded-[8px] px-2 py-0.5">
+                    {a.provider}
+                  </span>
+                  <span class={[
+                    "inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.04em] uppercase rounded-[8px] px-2 py-0.5",
+                    status_chip_class(a.status)
+                  ]}>
+                    <span class="w-1.5 h-1.5 rounded-full" style={status_dot_style(a.status)}></span>
+                    {a.status}
+                  </span>
+                  <span
+                    :if={a.tz}
+                    class="text-[11px] text-inkFaint tracking-[0.04em]"
+                  >
+                    {a.tz}
+                  </span>
                 </div>
                 <form
                   :if={a.status != :disconnected}
                   id={"name-form-#{a.id}"}
                   phx-change="set_name"
-                  class="mt-2 flex items-center gap-2"
+                  class="mt-3 flex items-center gap-2"
                 >
                   <input type="hidden" name="id" value={a.id} />
-                  <label class="font-mono text-[10px] tracking-[0.08em] uppercase text-ink55">
+                  <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
                     {gettext("sender name")}
                   </label>
                   <input
@@ -224,7 +251,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                     value={a.display_name}
                     placeholder={gettext("e.g. Jane Doe")}
                     phx-debounce="500"
-                    class="w-[220px] px-2 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] bg-paper text-ink outline-none focus:border-ink40"
+                    class="w-[220px] px-2.5 py-1.5 border border-border rounded-[8px] text-[12px] bg-card text-ink outline-none focus:border-accent"
                   />
                 </form>
               </div>
@@ -235,7 +262,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 class="flex items-center gap-2"
               >
                 <input type="hidden" name="id" value={a.id} />
-                <label class="font-mono text-[10px] tracking-[0.08em] uppercase text-ink55">
+                <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
                   {gettext("quota")}
                 </label>
                 <input
@@ -245,13 +272,13 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   value={a.daily_quota}
                   min="0"
                   phx-debounce="400"
-                  class="w-[64px] px-2 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] text-center bg-paper text-ink tabular-nums outline-none"
+                  class="w-[64px] px-2.5 py-1.5 border border-border rounded-[8px] text-[12px] text-center bg-card text-ink tabular-nums outline-none focus:border-accent"
                 />
-                <span class="font-mono text-[10px] text-ink40">{gettext("/day")}</span>
+                <span class="text-[10.5px] text-inkFaint">{gettext("/day")}</span>
               </form>
               <.link
                 navigate={~p"/email-accounts/#{a.id}/stats"}
-                class="no-underline px-2.5 py-1 border border-ink20 font-mono text-[10px] tracking-[0.08em] uppercase text-ink55 rounded-[2px] hover:text-ink hover:border-ink40"
+                class="no-underline px-3 py-1.5 border border-borderStrong text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:border-ink"
               >
                 {gettext("stats")}
               </.link>

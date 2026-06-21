@@ -30,25 +30,28 @@ defmodule ColtWeb.Account.BillingLive do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:billing}>
-      <div class="max-w-[1180px] mx-auto w-full space-y-10">
-        <section class="border border-rule rounded-[2px] bg-paper p-8">
-          <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-3.5">
+      <div class="max-w-[1180px] mx-auto w-full space-y-6">
+        <section
+          class="border border-border rounded-[11px] bg-card p-8"
+          style="box-shadow:var(--shadow-card)"
+        >
+          <div class="text-[11px] tracking-[0.08em] uppercase text-inkSoft font-semibold mb-3.5">
             {gettext("Account · Billing")}
           </div>
-          <h1 class="font-serif font-normal text-[40px] leading-[1.02] tracking-[-0.03em] m-0 text-pretty">
+          <h1 class="text-[25px] font-semibold leading-[1.1] tracking-[-0.02em] m-0 text-pretty text-ink">
             {status_heading(@user)}
           </h1>
 
           <div
             :if={exhausted?(@user)}
-            class="mt-6 border border-warn rounded-[2px] px-4 py-3 text-[13px] text-warn"
+            class="mt-6 bg-amberSoft border border-amber/30 rounded-[8px] px-4 py-3 text-[13px] text-amber"
           >
             {gettext(
               "You've hit a monthly limit — enrichment is paused until you upgrade or your plan renews."
             )}
           </div>
 
-          <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
             <.usage_stat
               label={gettext("Contacts")}
               remaining={max(@user.remaining_capacity || 0, 0)}
@@ -72,14 +75,15 @@ defmodule ColtWeb.Account.BillingLive do
               <input type="hidden" name="_csrf_token" value={Plug.CSRFProtection.get_csrf_token()} />
               <button
                 type="submit"
-                class="inline-flex items-center gap-2 border rounded-[2px] px-[18px] py-[10px] text-[13px] font-medium bg-ink text-paper border-ink cursor-pointer"
+                class="inline-flex items-center gap-2 rounded-[8px] px-[18px] py-[10px] text-[13px] font-semibold bg-accent text-white cursor-pointer"
+                style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
               >
                 {gettext("Manage subscription")}
               </button>
             </form>
             <a
               href="mailto:me@krister.ee"
-              class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
+              class="text-[11px] uppercase tracking-[0.08em] font-semibold text-inkSoft hover:text-ink no-underline"
             >
               {gettext("contact support")}
             </a>
@@ -87,7 +91,7 @@ defmodule ColtWeb.Account.BillingLive do
         </section>
 
         <section :if={@user.subscription_status != :active}>
-          <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-4">
+          <div class="text-[11px] tracking-[0.08em] uppercase text-inkSoft font-semibold mb-4">
             {gettext("Pick a plan")}
           </div>
           <BillingComponents.plan_grid mode={:authed} prices={@prices} />
@@ -103,14 +107,14 @@ defmodule ColtWeb.Account.BillingLive do
 
   defp usage_stat(assigns) do
     ~H"""
-    <div>
-      <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+    <div class="border border-border rounded-[11px] bg-card p-5" style="box-shadow:var(--shadow)">
+      <div class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold mb-2">
         {@label}
       </div>
-      <div class="font-mono text-[28px] leading-none tracking-[-0.02em] text-ink">
-        {fmt_int(@remaining)}<span class="text-ink40">/{fmt_int(@cap)}</span>
+      <div class="text-[28px] font-bold leading-none tracking-[-0.02em] text-ink tabular-nums">
+        {fmt_int(@remaining)}<span class="text-inkFaint">/{fmt_int(@cap)}</span>
       </div>
-      <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink40 mt-1.5">
+      <div class="text-[10.5px] tracking-[0.08em] uppercase text-inkFaint font-semibold mt-1.5">
         {gettext("remaining")}
       </div>
     </div>
@@ -122,11 +126,11 @@ defmodule ColtWeb.Account.BillingLive do
 
   defp stat(assigns) do
     ~H"""
-    <div>
-      <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+    <div class="border border-border rounded-[11px] bg-card p-5" style="box-shadow:var(--shadow)">
+      <div class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold mb-2">
         {@label}
       </div>
-      <div class="font-mono text-[28px] leading-none tracking-[-0.02em] text-ink">
+      <div class="text-[28px] font-bold leading-none tracking-[-0.02em] text-ink tabular-nums">
         {@value}
       </div>
     </div>
@@ -137,10 +141,10 @@ defmodule ColtWeb.Account.BillingLive do
     do: raw(gettext("Your plan is <em class=\"text-accent\">active</em>."))
 
   defp status_heading(%{subscription_status: :past_due}),
-    do: raw(gettext("Payment <em class=\"text-warn\">past due</em>."))
+    do: raw(gettext("Payment <em class=\"text-amber\">past due</em>."))
 
   defp status_heading(%{subscription_status: :canceled}),
-    do: raw(gettext("Subscription <em class=\"text-ink55\">canceled</em>."))
+    do: raw(gettext("Subscription <em class=\"text-inkFaint\">canceled</em>."))
 
   defp status_heading(_),
     do: raw(gettext("Pick a <em class=\"text-accent\">plan</em> to start enriching."))

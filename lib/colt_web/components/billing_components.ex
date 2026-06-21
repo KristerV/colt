@@ -30,43 +30,49 @@ defmodule ColtWeb.Components.BillingComponents do
 
   def plan_card(assigns) do
     ~H"""
-    <div class={[
-      "flex flex-col border rounded-[2px] bg-paper p-7",
-      @highlight && "border-ink",
-      !@highlight && "border-rule",
-      @class
-    ]}>
-      <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-4">
+    <div
+      class={[
+        "flex flex-col rounded-[11px] bg-card p-7",
+        @highlight && "border border-accentRing",
+        !@highlight && "border border-border",
+        @class
+      ]}
+      style={
+        if @highlight,
+          do: "box-shadow:0 0 0 1px var(--accentRing), var(--shadow-card)",
+          else: "box-shadow:var(--shadow)"
+      }
+    >
+      <div class={[
+        "text-[11px] tracking-[0.08em] uppercase font-semibold mb-4",
+        @highlight && "text-accent",
+        !@highlight && "text-inkSoft"
+      ]}>
         {@name}
       </div>
       <div class="flex items-baseline gap-1">
-        <span class="font-mono text-[40px] leading-none tracking-[-0.02em] text-ink">{@price}</span>
-        <span class="font-mono text-[12px] text-ink55">{@price_suffix}</span>
+        <span class="text-[40px] font-bold leading-none tracking-[-0.02em] text-ink tabular-nums">
+          {@price}
+        </span>
+        <span class="text-[12px] text-inkSoft">{@price_suffix}</span>
       </div>
 
-      <div :if={@contacts} class="mt-6 pt-5 border-t border-rule">
-        <div class="font-mono text-[22px] leading-none tracking-[-0.02em] text-ink">{@contacts}</div>
-        <div
-          :if={@screened}
-          class="mt-2 font-mono text-[11px] tracking-[0.04em] uppercase text-ink55"
-        >
+      <div :if={@contacts} class="mt-6 pt-5 border-t border-border">
+        <div class="text-[22px] font-bold leading-none tracking-[-0.02em] text-ink tabular-nums">
+          {@contacts}
+        </div>
+        <div :if={@screened} class="mt-2 text-[11px] tracking-[0.04em] uppercase text-inkSoft">
           {@screened}
         </div>
       </div>
 
       <ul class="mt-6 space-y-2.5 flex-1">
         <li class="flex items-center gap-2.5 text-[13px] text-ink70">
-          <span
-            class="inline-block w-[5px] h-[5px] rounded-full"
-            style="background: var(--color-accent);"
-          />
+          <span class="inline-block w-[5px] h-[5px] rounded-full bg-accent" />
           {gettext("Contact enrichment")}
         </li>
         <li class="flex items-center gap-2.5 text-[13px] text-ink70">
-          <span
-            class="inline-block w-[5px] h-[5px] rounded-full"
-            style="background: var(--color-accent);"
-          />
+          <span class="inline-block w-[5px] h-[5px] rounded-full bg-accent" />
           {gettext("Email sending")}
         </li>
       </ul>
@@ -136,7 +142,8 @@ defmodule ColtWeb.Components.BillingComponents do
       <input type="hidden" name="price_id" value={@price_id} />
       <button
         type="submit"
-        class="inline-flex items-center gap-2 border rounded-[2px] px-[18px] py-[10px] text-[13px] font-medium bg-ink text-paper border-ink cursor-pointer"
+        class="inline-flex items-center justify-center gap-2 rounded-[8px] px-[18px] py-[10px] text-[13px] font-semibold bg-accent text-white cursor-pointer w-full"
+        style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
       >
         {@label}
       </button>
@@ -148,7 +155,8 @@ defmodule ColtWeb.Components.BillingComponents do
     ~H"""
     <a
       href={~p"/sign-in"}
-      class="inline-flex items-center gap-2 border rounded-[2px] px-[18px] py-[10px] text-[13px] font-medium bg-ink text-paper border-ink no-underline"
+      class="inline-flex items-center justify-center gap-2 rounded-[8px] px-[18px] py-[10px] text-[13px] font-semibold bg-accent text-white no-underline w-full"
+      style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
     >
       {@label}
     </a>
@@ -157,7 +165,7 @@ defmodule ColtWeb.Components.BillingComponents do
 
   defp checkout_cta(assigns) do
     ~H"""
-    <span class="text-[12px] text-ink55 font-mono">unavailable</span>
+    <span class="text-[12px] text-inkSoft">unavailable</span>
     """
   end
 end

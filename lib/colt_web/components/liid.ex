@@ -115,22 +115,23 @@ defmodule ColtWeb.Components.Liid do
   def btn(assigns) do
     pad =
       case assigns.size do
-        :small -> "px-3 py-[7px] text-[12px]"
-        _ -> "px-[18px] py-[10px] text-[13px]"
+        :small -> "px-3.5 py-[7px] text-[12px]"
+        _ -> "px-[18px] py-[9px] text-[13px]"
       end
-
-    family = if assigns.mono, do: "font-mono tracking-[0.04em]", else: "font-sans"
 
     color =
       case assigns.variant do
-        :primary -> "bg-ink text-paper border-ink"
-        :secondary -> "bg-transparent text-ink border-ink20"
+        :primary ->
+          "bg-accent text-white border-accent font-semibold [box-shadow:0_1px_2px_rgba(59,122,224,.3)] hover:bg-[#3169c8] hover:border-[#3169c8]"
+
+        :secondary ->
+          "bg-card text-inkSoft border-borderStrong font-semibold [box-shadow:var(--shadow)] hover:bg-paperAlt hover:text-ink"
       end
 
     assigns =
       assign(assigns,
         classes:
-          "inline-flex items-center gap-2 border rounded-[2px] font-medium cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none #{pad} #{family} #{color}"
+          "inline-flex items-center gap-2 border rounded-[8px] cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:pointer-events-none #{pad} #{color}"
       )
 
     ~H"""
@@ -151,13 +152,16 @@ defmodule ColtWeb.Components.Liid do
   def headline(assigns) do
     ~H"""
     <div class={["max-w-[640px]", @class]}>
-      <div :if={@kicker} class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-3.5">
+      <div
+        :if={@kicker}
+        class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-3"
+      >
         {@kicker}
       </div>
-      <h1 class="font-serif font-normal text-[40px] md:text-[64px] leading-[1.02] tracking-[-0.04em] m-0 text-pretty">
+      <h1 class="font-semibold text-[25px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0 text-ink text-pretty">
         {render_slot(@inner_block)}
       </h1>
-      <div :if={@sub} class="mt-5 text-[15px] leading-[1.5] text-ink55 max-w-[520px] text-pretty">
+      <div :if={@sub} class="mt-4 text-[14px] leading-[1.5] text-inkSoft max-w-[520px] text-pretty">
         {@sub}
       </div>
     </div>
@@ -197,7 +201,7 @@ defmodule ColtWeb.Components.Liid do
       |> assign(:panic_on, derive_panic_on(assigns))
 
     ~H"""
-    <div class={["min-h-screen bg-paper text-ink", !@landing && "flex"]}>
+    <div class={["min-h-screen bg-canvas text-ink", !@landing && "flex"]}>
       <.sidebar
         :if={!@landing}
         active={@resolved_active}
@@ -214,9 +218,9 @@ defmodule ColtWeb.Components.Liid do
         <.landing_top_bar :if={@landing} current_user={@current_user} />
         <div
           :if={@panic_on}
-          class="px-6 py-2.5 bg-fail text-paper font-mono text-[11px] tracking-[0.06em] uppercase flex items-center gap-3 border-b border-fail"
+          class="px-6 py-2.5 bg-red text-white text-[11px] tracking-[0.06em] uppercase flex items-center gap-3 border-b border-red"
         >
-          <span class="inline-block w-[7px] h-[7px] rounded-full bg-paper animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
+          <span class="inline-block w-[7px] h-[7px] rounded-full bg-white animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
           <span class="font-semibold tracking-[0.12em]">Sending halted</span>
         </div>
         <main class={["flex-1 px-4 py-6 md:px-14 md:py-10", @class]}>
@@ -231,13 +235,12 @@ defmodule ColtWeb.Components.Liid do
 
   def landing_top_bar(assigns) do
     ~H"""
-    <header class="flex items-center gap-6 px-4 md:px-8 py-4 md:py-5 border-b border-rule">
-      <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink shrink-0">
-        <span class="font-serif text-[26px] leading-none tracking-[-0.02em]">Liid</span>
-        <span
-          class="inline-block w-1.5 h-1.5 rounded-full -translate-y-[3px]"
-          style="background: var(--color-accent);"
-        />
+    <header class="flex items-center gap-6 px-4 md:px-8 py-4 border-b border-border bg-bgSoft">
+      <.link navigate="/" class="flex items-center gap-2.5 no-underline text-ink shrink-0">
+        <span class="w-[26px] h-[26px] rounded-[7px] bg-accent text-white flex items-center justify-center font-bold text-[15px]">
+          L
+        </span>
+        <span class="text-[18px] font-bold tracking-[-0.01em]">Liid</span>
       </.link>
 
       <div class="flex-1" />
@@ -245,7 +248,7 @@ defmodule ColtWeb.Components.Liid do
       <div class="flex items-center gap-2">
         <.link
           navigate="/pricing"
-          class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
+          class="text-[12px] font-medium text-inkSoft hover:text-ink no-underline px-2"
         >
           {gettext("Pricing")}
         </.link>
@@ -253,21 +256,21 @@ defmodule ColtWeb.Components.Liid do
         <%= if @current_user do %>
           <.link
             navigate="/campaigns"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
+            class="text-[12px] font-medium text-inkSoft hover:text-ink no-underline border border-borderStrong rounded-[8px] px-3 py-1.5"
           >
             {gettext("Campaigns")}
           </.link>
           <.link
             href="/sign-out"
             method="get"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
+            class="text-[12px] font-medium text-inkSoft hover:text-ink no-underline border border-borderStrong rounded-[8px] px-3 py-1.5"
           >
             {gettext("Sign out")}
           </.link>
         <% else %>
           <.link
             href="/sign-in"
-            class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline border border-ink20 rounded-[2px] px-3 py-1.5"
+            class="text-[12px] font-medium text-inkSoft hover:text-ink no-underline border border-borderStrong rounded-[8px] px-3 py-1.5"
           >
             {gettext("Sign in")}
           </.link>
@@ -298,23 +301,23 @@ defmodule ColtWeb.Components.Liid do
 
     ~H"""
     <details class="relative" data-component="language-picker">
-      <summary class="list-none cursor-pointer font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink border border-ink20 rounded-[2px] px-3 py-1.5">
+      <summary class="list-none cursor-pointer text-[12px] font-medium uppercase tracking-[0.04em] text-inkSoft hover:text-ink border border-borderStrong rounded-[8px] px-3 py-1.5">
         {@current}
       </summary>
-      <div class="absolute right-0 mt-1 z-50 bg-paper border border-rule rounded-[2px] min-w-[160px] shadow-sm">
+      <div class="absolute right-0 mt-1 z-50 bg-card border border-border rounded-[8px] min-w-[160px] [box-shadow:var(--shadow-card)] p-1">
         <form :for={{code, label} <- @locales} action="/locale" method="post" class="block">
           <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
           <input type="hidden" name="locale" value={code} />
           <button
             type="submit"
             class={[
-              "w-full text-left font-mono text-[11px] uppercase tracking-[0.08em] px-3 py-2",
+              "w-full text-left text-[12px] font-medium px-2.5 py-1.5 rounded-[8px]",
               "bg-transparent border-0 cursor-pointer hover:bg-paperAlt hover:text-ink",
-              code == @current && "text-ink bg-paperAlt",
-              code != @current && "text-ink70"
+              code == @current && "text-accent bg-accentSoft",
+              code != @current && "text-inkSoft"
             ]}
           >
-            <span class="inline-block w-6 text-ink40">{code}</span>
+            <span class="inline-block w-6 uppercase tracking-[0.04em] text-inkFaint">{code}</span>
             <span>{label}</span>
           </button>
         </form>
@@ -384,18 +387,17 @@ defmodule ColtWeb.Components.Liid do
 
   def sidebar(assigns) do
     ~H"""
-    <aside class="w-[240px] shrink-0 sticky top-0 self-start h-screen border-r border-rule bg-paper flex flex-col">
-      <div class="px-[22px] py-5 border-b border-rule flex items-baseline gap-1.5">
-        <.link navigate="/" class="flex items-baseline gap-1.5 no-underline text-ink">
-          <span class="font-serif text-[24px] leading-none tracking-[-0.02em]">Liid</span>
-          <span
-            class="inline-block w-[5px] h-[5px] rounded-full -translate-y-[2px]"
-            style="background: var(--color-accent);"
-          />
+    <aside class="w-[248px] shrink-0 sticky top-0 self-start h-screen border-r border-border bg-bgSoft flex flex-col">
+      <div class="px-[22px] pt-[18px] pb-3.5">
+        <.link navigate="/" class="flex items-center gap-2.5 no-underline text-ink">
+          <span class="w-[26px] h-[26px] rounded-[7px] bg-accent text-white flex items-center justify-center font-bold text-[15px]">
+            L
+          </span>
+          <span class="text-[18px] font-bold tracking-[-0.01em]">Liid</span>
         </.link>
       </div>
 
-      <div class="flex-1 overflow-auto">
+      <div class="flex-1 overflow-auto px-2">
         <.usage_badge :if={@current_user} user={@current_user} />
 
         <.campaign_scope_header campaign={@campaign} active={@active} />
@@ -424,65 +426,75 @@ defmodule ColtWeb.Components.Liid do
         </.sidebar_section>
       </div>
 
-      <div :if={@current_user} class="border-t border-rule">
+      <div :if={@current_user} class="border-t border-border pt-2.5 px-2 pb-2">
         <.link
           navigate="/email-accounts"
           class={[
-            "flex items-center gap-2.5 px-[18px] py-[7px] hover:text-ink hover:bg-paperAlt no-underline",
-            if(@active == :email_accounts, do: "text-ink bg-paperAlt", else: "text-ink70")
+            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] hover:bg-paperAlt no-underline",
+            if(@active == :email_accounts,
+              do:
+                "text-accent font-semibold bg-accentSoft [box-shadow:inset_0_0_0_1px_var(--accentRing)]",
+              else: "text-inkSoft hover:text-ink"
+            )
           ]}
         >
-          <.icon name="mail" size={13} class="text-ink55" />
+          <.icon name="mail" size={13} class="text-inkFaint" />
           <span class="text-[13px]">{gettext("Email accounts")}</span>
         </.link>
         <.link
           navigate="/billing"
           class={[
-            "flex items-center gap-2.5 px-[18px] py-[7px] hover:text-ink hover:bg-paperAlt no-underline",
-            if(@active == :billing, do: "text-ink bg-paperAlt", else: "text-ink70")
+            "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] hover:bg-paperAlt no-underline",
+            if(@active == :billing,
+              do:
+                "text-accent font-semibold bg-accentSoft [box-shadow:inset_0_0_0_1px_var(--accentRing)]",
+              else: "text-inkSoft hover:text-ink"
+            )
           ]}
         >
-          <.icon name="file" size={13} class="text-ink55" />
+          <.icon name="file" size={13} class="text-inkFaint" />
           <span class="text-[13px]">{gettext("Billing")}</span>
         </.link>
         <button
           type="button"
           phx-click={open_feedback()}
-          class="w-full flex items-center gap-2.5 px-[18px] py-[7px] text-left text-ink70 hover:text-ink hover:bg-paperAlt cursor-pointer bg-transparent border-0"
+          class="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] text-left text-inkSoft hover:text-ink hover:bg-paperAlt cursor-pointer bg-transparent border-0"
         >
-          <.icon name="mail" size={13} class="text-ink55" />
+          <.icon name="mail" size={13} class="text-inkFaint" />
           <span class="text-[13px]">{gettext("Feedback")}</span>
         </button>
         <.link
           :if={@current_user.is_admin}
           href="/admin"
-          class="flex items-center gap-2.5 px-[18px] py-[7px] text-ink70 hover:text-ink hover:bg-paperAlt no-underline"
+          class="flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] text-inkSoft hover:text-ink hover:bg-paperAlt no-underline"
         >
-          <.icon name="code" size={13} class="text-ink55" />
+          <.icon name="code" size={13} class="text-inkFaint" />
           <span class="text-[13px]">{gettext("Admin")}</span>
         </.link>
-        <div class="border-t border-rule px-[18px] py-3 flex items-center gap-2.5">
+        <div class="flex items-center gap-2.5 px-2.5 pt-2.5 mt-1">
           <div
-            class="w-[26px] h-[26px] rounded-full bg-ink text-paper flex items-center justify-center text-[11px] font-semibold shrink-0"
+            class="w-[26px] h-[26px] rounded-full bg-[#e7e1d8] text-[#7a6f5f] flex items-center justify-center text-[12px] font-semibold shrink-0"
             title={to_string(@current_user.email)}
           >
             {avatar_initial(@current_user)}
           </div>
-          <div class="text-[12px] text-ink truncate flex-1">{to_string(@current_user.email)}</div>
+          <div class="text-[12.5px] font-medium text-inkSoft truncate flex-1">
+            {to_string(@current_user.email)}
+          </div>
           <.link
             href="/sign-out"
             method="get"
             title={gettext("Sign out")}
-            class="shrink-0 text-ink55 hover:text-ink no-underline"
+            class="shrink-0 text-inkFaint hover:text-ink no-underline"
           >
             <.icon name="logout" size={14} />
           </.link>
         </div>
       </div>
-      <div :if={!@current_user} class="border-t border-rule px-[18px] py-3.5">
+      <div :if={!@current_user} class="border-t border-border px-[18px] py-3.5">
         <.link
           href="/sign-in"
-          class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink no-underline"
+          class="text-[12px] font-medium uppercase tracking-[0.04em] text-inkSoft hover:text-ink no-underline"
         >
           {gettext("sign in")}
         </.link>
@@ -498,24 +510,27 @@ defmodule ColtWeb.Components.Liid do
     assigns = assign(assigns, :usage, usage_state(assigns.user))
 
     ~H"""
-    <div :if={@usage.state != :hidden} class="px-[18px] py-2.5">
-      <.link navigate="/pricing" class="block no-underline hover:opacity-80">
+    <div :if={@usage.state != :hidden} class="px-1.5 pb-2">
+      <.link
+        navigate="/pricing"
+        class="block no-underline bg-card border border-border rounded-[8px] px-2.5 py-2 [box-shadow:var(--shadow)] hover:bg-bgSoft"
+      >
         <%= case @usage.state do %>
           <% :none -> %>
-            <span class="text-[12px] text-ink70">{gettext("Pick a plan")} →</span>
+            <span class="text-[12px] font-medium text-inkSoft">{gettext("Pick a plan")} →</span>
           <% _ -> %>
             <div class="flex items-baseline justify-between gap-2">
-              <div class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40">
+              <div class="text-[10px] tracking-[0.08em] uppercase font-semibold text-inkFaint">
                 {gettext("Left this period")}
               </div>
               <span
                 :if={@usage.state == :exhausted}
-                class="font-mono text-[9px] tracking-[0.04em] uppercase text-warn"
+                class="text-[10px] tracking-[0.04em] uppercase font-semibold text-amber"
               >
                 {gettext("upgrade")} →
               </span>
             </div>
-            <div class="mt-1 flex items-baseline gap-4">
+            <div class="mt-1.5 flex items-baseline gap-4">
               <.usage_metric label={gettext("contacts")} value={@usage.contacts} />
               <.usage_metric label={gettext("screenings")} value={@usage.screening} />
             </div>
@@ -531,8 +546,8 @@ defmodule ColtWeb.Components.Liid do
   defp usage_metric(assigns) do
     ~H"""
     <div class="flex items-baseline gap-1">
-      <span class="font-mono text-[13px] text-ink tabular-nums">{@value}</span>
-      <span class="text-[11px] text-ink55">{@label}</span>
+      <span class="text-[15px] font-bold text-ink tabular-nums tracking-[-0.02em]">{@value}</span>
+      <span class="text-[11px] text-inkFaint">{@label}</span>
     </div>
     """
   end
@@ -612,9 +627,11 @@ defmodule ColtWeb.Components.Liid do
     <div class={@wrapper_class}>
       <div
         :if={@label}
-        class="px-[18px] py-1.5 flex items-center justify-between"
+        class="px-2.5 py-1 mb-0.5 flex items-center justify-between"
       >
-        <span class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink40">{@label}</span>
+        <span class="text-[10.5px] tracking-[0.09em] uppercase font-semibold text-inkFaint">
+          {@label}
+        </span>
         <span :if={@header_extra != []}>{render_slot(@header_extra)}</span>
       </div>
       <div>
@@ -623,24 +640,20 @@ defmodule ColtWeb.Components.Liid do
           <.link
             navigate={item.href}
             class={[
-              "relative flex items-center gap-2.5 px-[18px] py-[7px] no-underline",
-              is_active && "bg-paperAlt"
+              "flex items-center gap-2.5 px-2.5 py-1.5 rounded-[8px] no-underline",
+              if(is_active,
+                do:
+                  "bg-accentSoft text-accent font-semibold [box-shadow:inset_0_0_0_1px_var(--accentRing)]",
+                else: "text-inkSoft hover:bg-paperAlt hover:text-ink"
+              )
             ]}
           >
-            <span
-              :if={is_active}
-              class="absolute left-0 top-1 bottom-1 w-[2px]"
-              style="background: var(--color-accent);"
-            />
             <.icon
               name={item.icon}
               size={13}
-              class={if(is_active, do: "text-ink", else: "text-ink55")}
+              class={if(is_active, do: "text-accent", else: "text-inkFaint")}
             />
-            <span class={[
-              "text-[13px]",
-              if(is_active, do: "text-ink font-medium", else: "text-ink70")
-            ]}>
+            <span class="text-[13.5px]">
               {nav_label(item.id)}
             </span>
           </.link>
@@ -655,25 +668,28 @@ defmodule ColtWeb.Components.Liid do
 
   defp campaign_scope_header(assigns) do
     ~H"""
-    <div class="px-[18px] py-2.5 border-t border-b border-rule bg-paperAlt mb-2.5">
+    <div class="mx-1.5 mb-3.5 px-2.5 py-2 bg-card border border-border rounded-[8px] [box-shadow:var(--shadow)]">
       <div class="flex items-center justify-between mb-0.5">
-        <span class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40">
+        <span class="text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkFaint">
           {gettext("Campaign")}
         </span>
         <.link
           :if={@campaign}
           navigate="/campaigns"
-          class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40 hover:text-ink no-underline"
+          class="text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkFaint hover:text-ink no-underline"
         >
           {gettext("Change")} →
         </.link>
       </div>
       <.link
         navigate="/campaigns"
-        class="block font-serif text-[18px] leading-[1.1] tracking-[-0.015em] truncate no-underline hover:opacity-80"
+        class="block text-[13px] font-semibold leading-[1.2] truncate no-underline hover:opacity-80"
       >
         <span :if={@campaign} class="text-ink">{@campaign.name}</span>
-        <span :if={!@campaign} class={if(@active == :campaigns, do: "text-ink", else: "text-ink55")}>
+        <span
+          :if={!@campaign}
+          class={if(@active == :campaigns, do: "text-accent", else: "text-inkSoft")}
+        >
           {gettext("Choose campaign")} →
         </span>
       </.link>

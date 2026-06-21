@@ -151,7 +151,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           </.link>
         </div>
 
-        <div class="mb-7 grid grid-cols-3 gap-px bg-rule border border-rule rounded-[2px] overflow-hidden">
+        <div class="mb-4 grid grid-cols-3 gap-4">
           <.stat_tile
             label={gettext("Sent · 28d window")}
             big={"#{@window_sent}"}
@@ -170,9 +170,12 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           />
         </div>
 
-        <section class="mb-7 border border-rule rounded-[2px] bg-paper p-5">
+        <section
+          class="mb-4 border border-border rounded-[11px] bg-card p-5"
+          style="box-shadow:var(--shadow)"
+        >
           <div class="flex items-center justify-between mb-4">
-            <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
+            <div class="text-[10.5px] tracking-[0.1em] uppercase text-inkSoft font-semibold">
               {gettext("Volume · ±%{days} days", days: @window_days)}
             </div>
             <.legend />
@@ -180,9 +183,12 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           <.volume_bars days={@days} today={@today} max_day={@max_day} />
         </section>
 
-        <section class="border border-rule rounded-[2px] bg-paper p-5">
+        <section
+          class="border border-border rounded-[11px] bg-card p-5"
+          style="box-shadow:var(--shadow)"
+        >
           <div class="flex items-center justify-between mb-4">
-            <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
+            <div class="text-[10.5px] tracking-[0.1em] uppercase text-inkSoft font-semibold">
               {gettext("Pattern · time of day × day")}
             </div>
             <.legend />
@@ -212,30 +218,35 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
 
   defp stat_tile(assigns) do
     ~H"""
-    <div class="px-6 py-5 bg-paper">
-      <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2">{@label}</div>
+    <div
+      class="border border-border rounded-[11px] bg-card px-6 py-5"
+      style="box-shadow:var(--shadow)"
+    >
+      <div class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold mb-2">
+        {@label}
+      </div>
       <div
-        class="font-serif text-[42px] font-normal leading-none tracking-[-0.02em] tabular-nums"
+        class="text-[42px] font-bold leading-none tracking-[-0.02em] tabular-nums text-ink"
         style={@accent && "color: var(--accent);"}
       >
         {@big}
       </div>
-      <div :if={@sub} class="mt-2 font-mono text-[11px] text-ink55 tracking-[0.04em]">{@sub}</div>
+      <div :if={@sub} class="mt-2 text-[11px] text-inkSoft tracking-[0.04em]">{@sub}</div>
     </div>
     """
   end
 
   defp legend(assigns) do
     ~H"""
-    <div class="flex items-center gap-4 font-mono text-[10px] tracking-[0.06em] uppercase text-ink55">
+    <div class="flex items-center gap-4 text-[10.5px] tracking-[0.06em] uppercase text-inkSoft font-semibold">
       <span class="inline-flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full" style="background: var(--accent);"></span> {gettext("sent")}
       </span>
       <span class="inline-flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full bg-fail"></span> {gettext("failed")}
+        <span class="w-2 h-2 rounded-full" style="background: var(--red);"></span> {gettext("failed")}
       </span>
       <span class="inline-flex items-center gap-1.5">
-        <span class="w-2 h-2 rounded-full" style="background: var(--ink55);"></span> {gettext(
+        <span class="w-2 h-2 rounded-full" style="background: var(--inkSoft);"></span> {gettext(
           "scheduled"
         )}
       </span>
@@ -344,7 +355,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
         x={@plot_left - 4}
         y={@plot_top + 8}
         text-anchor="end"
-        font-family="JetBrains Mono, monospace"
+        font-family="Inter, sans-serif"
         font-size="9"
         fill="var(--ink40)"
       >
@@ -354,7 +365,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
         x={@plot_left - 4}
         y={@plot_bot}
         text-anchor="end"
-        font-family="JetBrains Mono, monospace"
+        font-family="Inter, sans-serif"
         font-size="9"
         fill="var(--ink40)"
       >
@@ -401,7 +412,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           x={b.cx}
           y={b.sched_y - 4}
           text-anchor="middle"
-          font-family="JetBrains Mono, monospace"
+          font-family="Inter, sans-serif"
           font-size="9"
           fill="var(--ink55)"
         >
@@ -413,7 +424,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           x={b.cx}
           y={@plot_bot + 14}
           text-anchor="middle"
-          font-family="JetBrains Mono, monospace"
+          font-family="Inter, sans-serif"
           font-size="9"
           fill={if b.is_today, do: "var(--accent)", else: "var(--ink55)"}
         >
@@ -531,7 +542,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           x={@plot_left - 8}
           y={y + 3}
           text-anchor="end"
-          font-family="JetBrains Mono, monospace"
+          font-family="Inter, sans-serif"
           font-size="9"
           fill="var(--ink55)"
         >
@@ -555,7 +566,7 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
           x={c.cx}
           y={@plot_bot + 14}
           text-anchor="middle"
-          font-family="JetBrains Mono, monospace"
+          font-family="Inter, sans-serif"
           font-size="9"
           fill={if c.is_today, do: "var(--accent)", else: "var(--ink55)"}
         >

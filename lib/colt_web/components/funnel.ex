@@ -40,23 +40,23 @@ defmodule ColtWeb.Components.Funnel do
 
     tiles = [
       %{key: :queued, label: gettext("Queued"), color: "var(--ink40)", pulse?: false},
-      %{key: :working, label: gettext("Working"), color: "var(--accent)", pulse?: true},
-      %{key: :enriched, label: enriched_label, color: "var(--accent)", pulse?: false},
-      %{key: :rejected, label: gettext("ICP miss"), color: "var(--ink40)", pulse?: false},
+      %{key: :working, label: gettext("Working"), color: "var(--green)", pulse?: true},
+      %{key: :enriched, label: enriched_label, color: "var(--green)", pulse?: false},
+      %{key: :rejected, label: gettext("ICP miss"), color: "var(--amber)", pulse?: false},
       %{
         key: :excluded,
         label: gettext("Already contacted"),
         color: "var(--ink40)",
         pulse?: false
       },
-      %{key: :failed, label: gettext("Failed"), color: "var(--fail)", pulse?: false}
+      %{key: :failed, label: gettext("Failed"), color: "var(--red)", pulse?: false}
     ]
 
     assigns = assign(assigns, tiles: tiles)
 
     ~H"""
-    <div class="flex overflow-x-auto md:overflow-visible border border-rule rounded-sharp">
-      <%= for {tile, i} <- Enum.with_index(@tiles) do %>
+    <div class="flex gap-2.5 overflow-x-auto md:overflow-visible md:grid md:grid-cols-6">
+      <%= for tile <- @tiles do %>
         <% n = Map.get(@stats, tile.key, 0) %>
         <% pct = if @total > 0, do: n / @total * 100, else: 0.0 %>
         <% active? = @selected == tile.key %>
@@ -65,31 +65,39 @@ defmodule ColtWeb.Components.Funnel do
           phx-click="select_bucket"
           phx-value-bucket={tile.key}
           class={[
-            "shrink-0 md:shrink min-w-[120px] md:min-w-0 md:flex-1 px-[14px] py-[12px] md:px-[18px] md:py-[14px] relative text-left cursor-pointer bg-transparent",
-            i < length(@tiles) - 1 && "border-r border-rule",
-            active? && "bg-paperAlt"
+            "shrink-0 md:shrink min-w-[124px] md:min-w-0 px-[13px] py-[12px] relative text-left cursor-pointer rounded-[11px] border transition-all",
+            active? &&
+              "bg-accentSoft border-accentRing [box-shadow:0_0_0_1px_var(--accentRing),var(--shadow-card)]",
+            not active? &&
+              "bg-card border-border [box-shadow:var(--shadow)] hover:border-borderStrong"
           ]}
-          style={active? && "box-shadow: inset 0 -2px 0 var(--accent);"}
         >
           <div class="flex items-center justify-between mb-1.5">
-            <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 flex items-center gap-1.5">
+            <span class="text-[11px] tracking-[0.04em] uppercase font-semibold flex items-center gap-1.5 text-inkSoft">
               <span
                 :if={tile.pulse? and n > 0}
-                class="w-[5px] h-[5px] rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+                class="relative w-[6px] h-[6px] rounded-full"
+                style={"background: #{tile.color};"}
+              >
+                <span
+                  class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+                  style={"background: #{tile.color};"}
+                />
+              </span>
+              <span
+                :if={not tile.pulse?}
+                class="w-[6px] h-[6px] rounded-full"
                 style={"background: #{tile.color};"}
               />
               {tile.label}
             </span>
-            <span class="font-mono text-[10px] text-ink40">{Float.round(pct, 1)}%</span>
+            <span class="text-[10px] text-inkFaint tnum">{Float.round(pct, 1)}%</span>
           </div>
-          <div class="font-serif text-[36px] font-normal leading-none tracking-[-0.02em] text-ink tnum">
+          <div
+            class="text-[27px] font-bold leading-none tracking-[-0.02em] tnum"
+            style={"color: #{if tile.color == "var(--ink40)", do: "var(--ink)", else: tile.color};"}
+          >
             {n}
-          </div>
-          <div class="mt-3 h-[2px] bg-ink10 relative">
-            <div
-              class="absolute left-0 top-0 bottom-0"
-              style={"width: #{min(pct * 2, 100)}%; background: #{tile.color};"}
-            />
           </div>
         </button>
       <% end %>
@@ -103,20 +111,23 @@ defmodule ColtWeb.Components.Funnel do
 
   def meta_strip(assigns) do
     ~H"""
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 md:gap-6 font-mono text-[11px] text-ink55 tracking-[0.04em] py-2">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 md:gap-6 text-[11px] text-inkSoft bg-card border border-border rounded-[8px] [box-shadow:var(--shadow)] px-3.5 py-2">
       <span class="flex items-center gap-2">
-        <span
-          class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
-          style="background: var(--accent);"
-        /> {gettext("running · %{workers} workers · %{rate}/s",
+        <span class="relative w-1.5 h-1.5 rounded-full" style="background: var(--green);">
+          <span
+            class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+            style="background: var(--green);"
+          />
+        </span>
+        {gettext("running · %{workers} workers · %{rate}/s",
           workers: @meta.workers,
           rate: @meta.rate
         )}
       </span>
-      <span>{gettext("queue: %{n}", n: @meta.queue)}</span>
-      <span>{gettext("elapsed: %{t}", t: fmt_hms(@meta.elapsed_s))}</span>
-      <span>{gettext("eta: %{t}", t: fmt_hms(@meta.eta_s))}</span>
-      <span class="ml-auto">
+      <span class="tnum">{gettext("queue: %{n}", n: @meta.queue)}</span>
+      <span class="tnum">{gettext("elapsed: %{t}", t: fmt_hms(@meta.elapsed_s))}</span>
+      <span class="tnum">{gettext("eta: %{t}", t: fmt_hms(@meta.eta_s))}</span>
+      <span class="ml-auto tnum">
         {gettext("%{visible} of %{total} visible", visible: @visible, total: @total)}
       </span>
     </div>
@@ -126,31 +137,25 @@ defmodule ColtWeb.Components.Funnel do
   def funnel_header(assigns) do
     ~H"""
     <div
-      class="hidden md:grid items-center gap-3 px-4 border-b border-rule bg-paperAlt"
-      style="grid-template-columns: 24px 1.5fr 70px 60px 1.6fr 1.2fr 1.2fr 1fr;"
+      class="hidden md:grid items-center gap-3 px-4 border-b border-border bg-bgSoft"
+      style="grid-template-columns: 24px 1.5fr 1.6fr 1.2fr 1.2fr 1fr;"
     >
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
-        <span class="inline-block w-3 h-3 border border-ink40 rounded-[2px]" />
+      <span class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold py-[11px]">
+        <span class="inline-block w-3 h-3 border border-borderStrong rounded-[4px]" />
       </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+      <span class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold py-[11px]">
         {gettext("Company")}
       </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
-        {gettext("Size")}
-      </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-center">
-        {gettext("Growth")}
-      </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+      <span class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold py-[11px]">
         {gettext("Enrichment")}
       </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+      <span class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold py-[11px]">
         {gettext("Contact")}
       </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px]">
+      <span class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold py-[11px]">
         {gettext("Email / Phone")}
       </span>
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 py-[11px] text-right">
+      <span class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold py-[11px] text-right">
         {gettext("Status")}
       </span>
     </div>
@@ -165,37 +170,30 @@ defmodule ColtWeb.Components.Funnel do
   def funnel_row(assigns) do
     ~H"""
     <div
-      class="md:border-b md:border-rule mx-3 my-2 md:mx-0 md:my-0 border border-rule rounded-sharp md:border-x-0 md:border-t-0 md:rounded-none bg-paper"
+      class="md:border-b md:border-border mx-3 my-2 md:mx-0 md:my-0 border border-border rounded-[11px] [box-shadow:var(--shadow)] md:[box-shadow:none] md:border-x-0 md:border-t-0 md:rounded-none bg-card"
       id={@id}
     >
       <div
         class={[
           "hidden md:grid items-center gap-3 px-4 py-3 cursor-pointer",
-          @row.status == :scraping && "bg-[color-mix(in_oklch,var(--accent)_4%,transparent)]",
-          @expanded? && "bg-paperAlt"
+          @row.status == :scraping && "bg-greenSoft/40",
+          @expanded? && "bg-bgSoft"
         ]}
-        style="grid-template-columns: 24px 1.5fr 70px 60px 1.6fr 1.2fr 1.2fr 1fr;"
+        style="grid-template-columns: 24px 1.5fr 1.6fr 1.2fr 1.2fr 1fr;"
         phx-click="toggle_row"
         phx-value-id={@row.cc_id}
       >
-        <span class="inline-block w-3 h-3 border border-ink40 rounded-[2px]" />
+        <span class="inline-block w-3 h-3 border border-borderStrong rounded-[4px]" />
         <div class="min-w-0">
           <div class="text-[13px] text-ink font-medium truncate">{@row.name}</div>
-          <div class="font-mono text-[10px] text-ink40 mt-0.5 tracking-[0.04em] truncate">
+          <div class="text-[10px] text-inkFaint mt-0.5 truncate">
             <%= if @row.domain do %>
               {@row.domain}
             <% else %>
               <span class="italic">{gettext("resolving...")}</span>
             <% end %>
-            · <.registry_code row={@row} />
           </div>
         </div>
-        <span class="font-mono text-[11px] text-ink55 text-right tnum">
-          {fmt_int(@row.size)}
-        </span>
-        <span class="flex justify-center">
-          <.growth_glyph bucket={@row.growth} />
-        </span>
         <.enrichment_pills stages={@row.stages} />
         <.contact_cell row={@row} />
         <.contact_meta_cell row={@row} />
@@ -204,9 +202,9 @@ defmodule ColtWeb.Components.Funnel do
 
       <div
         class={[
-          "md:hidden flex flex-col gap-2.5 px-4 py-3 cursor-pointer",
-          @row.status == :scraping && "bg-[color-mix(in_oklch,var(--accent)_4%,transparent)]",
-          @expanded? && "bg-paperAlt"
+          "md:hidden flex flex-col gap-2.5 px-4 py-3 cursor-pointer rounded-[11px]",
+          @row.status == :scraping && "bg-greenSoft/40",
+          @expanded? && "bg-bgSoft"
         ]}
         phx-click="toggle_row"
         phx-value-id={@row.cc_id}
@@ -214,13 +212,12 @@ defmodule ColtWeb.Components.Funnel do
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0 flex-1">
             <div class="text-[14px] text-ink font-medium truncate">{@row.name}</div>
-            <div class="font-mono text-[10px] text-ink40 mt-0.5 tracking-[0.04em] truncate">
+            <div class="text-[10px] text-inkFaint mt-0.5 truncate">
               <%= if @row.domain do %>
                 {@row.domain}
               <% else %>
                 <span class="italic">{gettext("resolving...")}</span>
               <% end %>
-              · <.registry_code row={@row} />
             </div>
           </div>
           <.status_cell status={@row.status} failed_stage={Map.get(@row, :failed_stage)} />
@@ -228,27 +225,20 @@ defmodule ColtWeb.Components.Funnel do
 
         <div class="flex items-center justify-between gap-3 flex-wrap">
           <.enrichment_pills stages={@row.stages} />
-          <div class="flex items-center gap-3 font-mono text-[10px] text-ink55 tracking-[0.04em]">
-            <span class="flex items-center gap-1">
-              <span class="text-ink40 uppercase">size</span>
-              <span class="tnum">{fmt_int(@row.size)}</span>
-            </span>
-            <span class="flex items-center gap-1">
-              <span class="text-ink40 uppercase">growth</span>
-              <.growth_glyph bucket={@row.growth} />
-            </span>
-          </div>
         </div>
 
-        <div :if={@row.status == :enriched and @row.contact} class="pt-2 mt-1 border-t border-rule">
+        <div
+          :if={@row.status == :enriched and @row.contact}
+          class="pt-2.5 mt-1 border-t border-border"
+        >
           <div class="text-[12px] text-ink font-medium truncate">{@row.contact.name}</div>
-          <div class="font-mono text-[10px] text-ink40 mt-0.5 truncate">
+          <div class="text-[10px] text-inkFaint mt-0.5 truncate">
             {@row.contact.title || "—"}
           </div>
-          <div :if={@row.contact.email} class="font-mono text-[10px] text-ink70 mt-1 truncate">
+          <div :if={@row.contact.email} class="text-[10px] text-inkSoft mt-1 truncate">
             {@row.contact.email}
           </div>
-          <div :if={@row.contact.phone} class="font-mono text-[10px] text-ink70 mt-0.5 truncate tnum">
+          <div :if={@row.contact.phone} class="text-[10px] text-inkSoft mt-0.5 truncate tnum">
             {@row.contact.phone}
           </div>
         </div>
@@ -256,27 +246,6 @@ defmodule ColtWeb.Components.Funnel do
 
       <.expanded_detail :if={@expanded?} row={@row} admin?={@admin?} />
     </div>
-    """
-  end
-
-  attr :row, :map, required: true
-
-  # Registry code, linked to the company's national registry (Teatmik, …) when
-  # one exists for its market. stopPropagation keeps the click from toggling the
-  # row open. Falls back to plain text for markets without a registry link.
-  def registry_code(assigns) do
-    ~H"""
-    <a
-      :if={@row.registry_link}
-      href={@row.registry_link.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onclick="event.stopPropagation()"
-      class="text-ink40 hover:text-accent hover:underline"
-    >
-      {@row.registry_code}
-    </a>
-    <span :if={!@row.registry_link}>{@row.registry_code}</span>
     """
   end
 
@@ -290,13 +259,13 @@ defmodule ColtWeb.Components.Funnel do
       <%= for {key, i} <- Enum.with_index(@keys) do %>
         <% st = Map.get(@stages, key, :idle) %>
         <span
-          class="inline-flex items-center gap-1 px-1.5 py-[3px] font-mono text-[10px] tracking-[0.04em] rounded-[2px] border"
+          class="inline-flex items-center gap-1 px-1.5 py-[3px] text-[10px] tracking-[0.04em] font-medium rounded-[8px] border"
           style={pill_style(st)}
         >
           <.pill_dot state={st} />
           {stage_label(key)}
         </span>
-        <span :if={i < 3} class="w-1 h-px bg-ink20" />
+        <span :if={i < 3} class="w-1 h-px bg-border" />
       <% end %>
     </div>
     """
@@ -308,20 +277,22 @@ defmodule ColtWeb.Components.Funnel do
     ~H"""
     <%= case @state do %>
       <% :work -> %>
-        <span
-          class="w-[6px] h-[6px] rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
-          style="background: var(--ink);"
-        />
+        <span class="relative w-[6px] h-[6px] rounded-full" style="background: var(--green);">
+          <span
+            class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+            style="background: var(--green);"
+          />
+        </span>
       <% :done -> %>
-        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--accent);" />
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--green);" />
       <% :fail -> %>
-        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--fail);" />
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--red);" />
       <% :fall -> %>
-        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--warn);" />
+        <span class="w-[6px] h-[6px] rounded-full" style="background: var(--amber);" />
       <% :skip -> %>
         <span class="w-[6px] h-[6px] rounded-full" style="background: var(--ink40);" />
       <% _ -> %>
-        <span class="w-[6px] h-[6px] rounded-full border" style="border-color: var(--ink20);" />
+        <span class="w-[6px] h-[6px] rounded-full border" style="border-color: var(--borderStrong);" />
     <% end %>
     """
   end
@@ -334,19 +305,19 @@ defmodule ColtWeb.Components.Funnel do
       <% @row.status == :enriched and @row.contact -> %>
         <div class="min-w-0">
           <div class="text-[12px] text-ink font-medium truncate">{@row.contact.name}</div>
-          <div class="font-mono text-[10px] text-ink40 mt-0.5 truncate">
+          <div class="text-[10px] text-inkFaint mt-0.5 truncate">
             {@row.contact.title || "—"}
           </div>
         </div>
       <% @row.status == :enriched -> %>
-        <span class="font-mono text-[11px] text-fail">{gettext("no contact")}</span>
+        <span class="text-[11px] text-red">{gettext("no contact")}</span>
       <% @row.status == :rejected -> %>
-        <span class="font-mono text-[11px] text-ink40">—</span>
+        <span class="text-[11px] text-inkFaint">—</span>
       <% @row.status in [:no_website, :no_contacts, :verify_failed, :failed] -> %>
-        <span class="font-mono text-[11px] text-ink40">—</span>
+        <span class="text-[11px] text-inkFaint">—</span>
       <% true -> %>
         <span
-          class="inline-block h-2 w-[70%] bg-ink10 rounded-[1px]"
+          class="inline-block h-2 w-[70%] bg-ink10 rounded-[4px]"
           style="background-image: linear-gradient(90deg, transparent, var(--ink20), transparent); background-size: 200% 100%; animation: liid-shimmer 1.6s ease-in-out infinite;"
         />
     <% end %>
@@ -359,13 +330,15 @@ defmodule ColtWeb.Components.Funnel do
     ~H"""
     <%= cond do %>
       <% @row.status == :enriched and @row.contact -> %>
-        <div class="min-w-0 flex flex-col gap-0.5 font-mono text-[10px]">
-          <span :if={@row.contact.email} class="text-ink70 truncate">{@row.contact.email}</span>
-          <span :if={@row.contact.phone} class="text-ink70 truncate tnum">{@row.contact.phone}</span>
-          <span :if={!@row.contact.email and !@row.contact.phone} class="text-ink40">—</span>
+        <div class="min-w-0 flex flex-col gap-0.5 text-[10px]">
+          <span :if={@row.contact.email} class="text-inkSoft truncate">{@row.contact.email}</span>
+          <span :if={@row.contact.phone} class="text-inkSoft truncate tnum">
+            {@row.contact.phone}
+          </span>
+          <span :if={!@row.contact.email and !@row.contact.phone} class="text-inkFaint">—</span>
         </div>
       <% true -> %>
-        <span class="font-mono text-[11px] text-ink40">—</span>
+        <span class="text-[11px] text-inkFaint">—</span>
     <% end %>
     """
   end
@@ -379,35 +352,18 @@ defmodule ColtWeb.Components.Funnel do
 
     ~H"""
     <div
-      class="flex items-center gap-2 justify-end font-mono text-[11px] tracking-[0.04em]"
+      class="flex items-center gap-2 justify-end text-[11px] font-medium"
       style={"color: #{@color};"}
     >
-      <span
-        class={[
-          "w-1.5 h-1.5 rounded-full",
-          @pulse? && "animate-[liid-pulse_1.4s_ease-in-out_infinite]"
-        ]}
-        style={"background: #{@color};"}
-      /> {@label}
-    </div>
-    """
-  end
-
-  attr :bucket, :atom, default: nil
-
-  def growth_glyph(assigns) do
-    {heights, color} = growth_style(assigns.bucket)
-    assigns = assign(assigns, heights: heights, color: color)
-
-    ~H"""
-    <span class="flex items-end gap-[1.5px] h-3">
-      <%= for h <- @heights do %>
+      <span :if={@pulse?} class="relative w-1.5 h-1.5 rounded-full" style={"background: #{@color};"}>
         <span
-          class="w-[3px]"
-          style={"height: #{h}px; background: #{@color}; opacity: 0.85;"}
+          class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+          style={"background: #{@color};"}
         />
-      <% end %>
-    </span>
+      </span>
+      <span :if={not @pulse?} class="w-1.5 h-1.5 rounded-full" style={"background: #{@color};"} />
+      {@label}
+    </div>
     """
   end
 
@@ -416,7 +372,7 @@ defmodule ColtWeb.Components.Funnel do
 
   def expanded_detail(assigns) do
     ~H"""
-    <div class="grid gap-6 md:gap-8 bg-paperAlt border-t border-rule grid-cols-1 md:grid-cols-[1.4fr_1fr] px-4 py-5 md:pl-14 md:pr-6 md:py-6">
+    <div class="grid gap-6 md:gap-8 bg-bgSoft border-t border-border grid-cols-1 md:grid-cols-[1.4fr_1fr] px-4 py-5 md:pl-14 md:pr-6 md:py-6">
       <div class="md:col-span-2 flex justify-end gap-2 -mb-2">
         <button
           :if={@row.status == :enriched}
@@ -424,7 +380,7 @@ defmodule ColtWeb.Components.Funnel do
           phx-click="open_learning"
           phx-value-id={@row.cc_id}
           phx-value-mode="exclude"
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] tracking-[0.08em] uppercase font-semibold text-inkSoft border border-border bg-card rounded-[8px] hover:text-ink hover:border-borderStrong cursor-pointer"
         >
           <Liid.icon name="x" size={11} /> {gettext("Not a good fit")}
         </button>
@@ -434,7 +390,7 @@ defmodule ColtWeb.Components.Funnel do
           phx-click="open_learning"
           phx-value-id={@row.cc_id}
           phx-value-mode="include"
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] tracking-[0.08em] uppercase font-semibold text-inkSoft border border-border bg-card rounded-[8px] hover:text-ink hover:border-borderStrong cursor-pointer"
         >
           <Liid.icon name="check" size={11} /> {gettext("Actually a good fit")}
         </button>
@@ -444,7 +400,7 @@ defmodule ColtWeb.Components.Funnel do
           phx-click="recheck_icp_row"
           phx-value-id={@row.cc_id}
           data-confirm={gettext("Re-check ICP fit for this company?")}
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] tracking-[0.08em] uppercase font-semibold text-inkSoft border border-border bg-card rounded-[8px] hover:text-ink hover:border-borderStrong cursor-pointer"
         >
           <Liid.icon name="refresh" size={11} /> {gettext("Re-check ICP")}
         </button>
@@ -453,7 +409,7 @@ defmodule ColtWeb.Components.Funnel do
           type="button"
           phx-click="open_api_calls"
           phx-value-id={@row.cc_id}
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] tracking-[0.08em] uppercase font-semibold text-inkSoft border border-border bg-card rounded-[8px] hover:text-ink hover:border-borderStrong cursor-pointer"
         >
           <Liid.icon name="code" size={11} /> {gettext("LLM calls (admin)")}
         </button>
@@ -463,63 +419,63 @@ defmodule ColtWeb.Components.Funnel do
           phx-click="retry_row"
           phx-value-id={@row.cc_id}
           data-confirm={gettext("Delete all enrichment data for this company and start over?")}
-          class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+          class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[10px] tracking-[0.08em] uppercase font-semibold text-inkSoft border border-border bg-card rounded-[8px] hover:text-ink hover:border-borderStrong cursor-pointer"
         >
           <Liid.icon name="refresh" size={11} /> {gettext("Retry (admin)")}
         </button>
       </div>
       <div class="flex flex-col gap-6">
         <div :if={@row.summary}>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+          <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-3">
             {gettext("Company summary")}
           </div>
-          <div class="text-[12px] text-ink70 leading-[1.6]">
+          <div class="text-[12px] text-inkSoft leading-[1.6]">
             {@row.summary}
           </div>
         </div>
 
         <div :if={Map.get(@row, :icp_reason)}>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+          <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
             {gettext("ICP decision")} · {if @row.status == :rejected,
               do: gettext("rejected"),
               else: gettext("matched")}
           </div>
-          <div class="text-[12px] text-ink70 leading-[1.6]">
+          <div class="text-[12px] text-inkSoft leading-[1.6]">
             {@row.icp_reason}
           </div>
         </div>
 
         <div :if={Map.get(@row, :website_url)}>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+          <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
             {gettext("Website")}
           </div>
           <a
             href={@row.website_url}
             target="_blank"
             rel="noopener"
-            class="inline-flex items-center gap-1.5 text-[12px] text-ink hover:text-[var(--accent)] underline decoration-ink20 underline-offset-2"
+            class="inline-flex items-center gap-1.5 text-[12px] text-ink hover:text-accent underline decoration-border underline-offset-2"
           >
-            <Liid.icon name="link" size={11} class="text-ink55" />
+            <Liid.icon name="link" size={11} class="text-inkFaint" />
             {@row.domain || @row.website_url}
           </a>
         </div>
 
         <div :if={Map.get(@row, :scraped_paths, []) != []}>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+          <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
             {gettext("Scraped pages (%{n})", n: length(@row.scraped_paths))}
           </div>
-          <div class="font-mono text-[11px] leading-[1.7] text-ink70 flex flex-col">
+          <div class="text-[11px] leading-[1.7] text-inkSoft flex flex-col">
             <a
               :for={p <- @row.scraped_paths}
               href={"#{@row.website_url}#{p}"}
               target="_blank"
               rel="noopener"
-              class="text-ink hover:text-[var(--accent)] truncate"
+              class="text-ink hover:text-accent truncate"
             >
               {p}
             </a>
           </div>
-          <div class="text-[10px] text-ink40 mt-2 leading-[1.5]">
+          <div class="text-[10px] text-inkFaint mt-2 leading-[1.5]">
             {gettext(
               "All pages above were combined into one input for the contact-extraction LLM call."
             )}
@@ -529,60 +485,60 @@ defmodule ColtWeb.Components.Funnel do
 
       <div>
         <%= if @row.status in [:rejected, :no_website, :no_contacts, :verify_failed, :failed] do %>
-          <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-3">
+          <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-3">
             {gettext("Outcome")}
           </div>
-          <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
+          <div class="px-5 py-[18px] bg-card border border-border rounded-[11px] [box-shadow:var(--shadow)]">
             <div
-              class="font-mono text-[11px] tracking-[0.04em] uppercase mb-2"
-              style="color: var(--fail);"
+              class="text-[11px] tracking-[0.04em] uppercase font-semibold mb-2"
+              style="color: var(--red);"
             >
               {outcome_label(@row.status, Map.get(@row, :failed_stage))}
             </div>
-            <div :if={@row.rejection_reason} class="text-[12px] text-ink70 leading-[1.5]">
+            <div :if={@row.rejection_reason} class="text-[12px] text-inkSoft leading-[1.5]">
               {@row.rejection_reason}
             </div>
-            <div :if={!@row.rejection_reason} class="text-[12px] text-ink40 italic">
+            <div :if={!@row.rejection_reason} class="text-[12px] text-inkFaint italic">
               {gettext("no reason recorded")}
             </div>
 
             <details
               :if={@admin? and Map.get(@row, :failure_detail)}
-              class="mt-3 pt-3 border-t border-rule"
+              class="mt-3 pt-3 border-t border-border"
             >
-              <summary class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 cursor-pointer">
+              <summary class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold cursor-pointer">
                 {gettext("Technical detail (admin)")}
               </summary>
-              <pre class="mt-2 text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all max-h-64 overflow-auto bg-paperAlt p-3 rounded-sharp"><%= @row.failure_detail %></pre>
+              <pre class="mt-2 text-[11px] text-inkSoft leading-[1.5] whitespace-pre-wrap break-all max-h-64 overflow-auto bg-paperAlt p-3 rounded-[8px]"><%= @row.failure_detail %></pre>
             </details>
           </div>
         <% else %>
           <div class="flex items-baseline justify-between mb-3">
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
+            <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold">
               {gettext("Extracted contact")}
             </div>
-            <div :if={Map.get(@row, :total_contacts, 0) > 0} class="font-mono text-[10px] text-ink40">
+            <div :if={Map.get(@row, :total_contacts, 0) > 0} class="text-[10px] text-inkFaint tnum">
               {gettext("%{n} total", n: @row.total_contacts)}
             </div>
           </div>
           <%= if @row.contact do %>
-            <div class="px-5 py-[18px] bg-paper border border-ink20 rounded-sharp">
-              <div class="font-serif text-[24px] tracking-[-0.02em] mb-1">
+            <div class="px-5 py-[18px] bg-card border border-border rounded-[11px] [box-shadow:var(--shadow)]">
+              <div class="text-[17px] font-bold tracking-[-0.01em] mb-1 text-ink">
                 {@row.contact.name}
               </div>
-              <div class="text-[13px] text-ink55 mb-4">
+              <div class="text-[13px] text-inkSoft mb-4">
                 {@row.contact.title || "—"} · {@row.name}
               </div>
-              <div class="flex flex-col gap-2 font-mono text-[11px]">
+              <div class="flex flex-col gap-2 text-[11px]">
                 <div :if={@row.contact.email} class="flex items-center gap-2">
-                  <Liid.icon name="mail" size={11} class="text-ink55" />
+                  <Liid.icon name="mail" size={11} class="text-inkFaint" />
                   <span class="text-ink">{@row.contact.email}</span>
-                  <span class="ml-auto text-[10px]" style="color: var(--accent);">
+                  <span class="ml-auto text-[10px] font-semibold" style="color: var(--green);">
                     {gettext("verified")}
                   </span>
                 </div>
                 <div :if={@row.contact.phone} class="flex items-center gap-2">
-                  <Liid.icon name="phone" size={11} class="text-ink55" />
+                  <Liid.icon name="phone" size={11} class="text-inkFaint" />
                   <span class="text-ink tnum">{@row.contact.phone}</span>
                 </div>
                 <a
@@ -590,36 +546,36 @@ defmodule ColtWeb.Components.Funnel do
                   href={@row.website_url}
                   target="_blank"
                   rel="noopener"
-                  class="flex items-center gap-2 hover:text-[var(--accent)]"
+                  class="flex items-center gap-2 hover:text-accent"
                 >
-                  <Liid.icon name="link" size={11} class="text-ink55" />
+                  <Liid.icon name="link" size={11} class="text-inkFaint" />
                   <span class="text-ink truncate">{@row.domain || @row.website_url}</span>
                 </a>
               </div>
             </div>
 
             <div :if={Map.get(@row, :extra_contacts, []) != []} class="mt-4">
-              <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+              <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
                 {gettext("Other contacts")}
               </div>
               <div class="flex flex-col gap-2">
                 <div
                   :for={ec <- @row.extra_contacts}
-                  class="px-3 py-2 bg-paper border border-ink20 rounded-sharp"
+                  class="px-3 py-2 bg-card border border-border rounded-[8px] [box-shadow:var(--shadow)]"
                 >
                   <div class="text-[12px] text-ink font-medium truncate">{ec.name}</div>
-                  <div class="text-[11px] text-ink55 mb-1 truncate">{ec.title || "—"}</div>
-                  <div :if={ec.email} class="font-mono text-[10px] text-ink70 truncate">
+                  <div class="text-[11px] text-inkSoft mb-1 truncate">{ec.title || "—"}</div>
+                  <div :if={ec.email} class="text-[10px] text-inkSoft truncate">
                     {ec.email}
                   </div>
-                  <div :if={ec.phone} class="font-mono text-[10px] text-ink70 truncate tnum">
+                  <div :if={ec.phone} class="text-[10px] text-inkSoft truncate tnum">
                     {ec.phone}
                   </div>
                 </div>
               </div>
             </div>
           <% else %>
-            <div class="text-[12px] text-ink40 italic">{gettext("no contact extracted")}</div>
+            <div class="text-[12px] text-inkFaint italic">{gettext("no contact extracted")}</div>
           <% end %>
         <% end %>
       </div>
@@ -639,60 +595,38 @@ defmodule ColtWeb.Components.Funnel do
   defp outcome_label(_, _), do: ""
 
   defp pill_style(:idle),
-    do: "border-color: var(--ink20); color: var(--ink40); opacity: 0.55;"
+    do: "border-color: var(--border); color: var(--ink40); opacity: 0.7;"
 
-  # Working stage: black border + ink fill, dot pulses (the dot animation
-  # comes from <.status_dot state={:work}>). Distinct from done's green tint.
+  # Working stage: green tint, dot pulses (the dot animation comes from
+  # <.pill_dot state={:work}>).
   defp pill_style(:work),
-    do: "border-color: var(--ink); color: var(--ink); background: transparent;"
+    do: "border-color: var(--green); color: var(--green); background: var(--greenSoft);"
 
   defp pill_style(:done),
-    do:
-      "border-color: var(--ink20); color: var(--ink); background: color-mix(in oklch, var(--accent) 14%, transparent);"
+    do: "border-color: #bfe6d2; color: var(--green); background: var(--greenSoft);"
 
   defp pill_style(:skip),
-    do: "border-color: var(--ink20); color: var(--ink40);"
+    do: "border-color: var(--border); color: var(--ink40);"
 
   defp pill_style(:fall),
-    do:
-      "border-color: var(--warn); color: var(--warn); background: color-mix(in oklch, var(--warn) 10%, transparent);"
+    do: "border-color: var(--amber); color: var(--amber); background: var(--amberSoft);"
 
   defp pill_style(:fail),
-    do:
-      "border-color: var(--fail); color: var(--fail); background: color-mix(in oklch, var(--fail) 10%, transparent);"
+    do: "border-color: var(--red); color: var(--red); background: var(--redSoft);"
 
   defp status_view(:pending, _), do: {gettext("queued"), "var(--ink40)", false}
-  defp status_view(:scraping, _), do: {gettext("working"), "var(--ink)", true}
-  defp status_view(:enriched, _), do: {gettext("enriched"), "var(--accent)", false}
-  defp status_view(:rejected, _), do: {gettext("icp miss"), "var(--ink40)", false}
-  defp status_view(:no_website, _), do: {gettext("no website"), "var(--warn)", false}
-  defp status_view(:no_contacts, _), do: {gettext("no contacts"), "var(--warn)", false}
-  defp status_view(:verify_failed, _), do: {gettext("email unverified"), "var(--fail)", false}
-  defp status_view(:failed, :website), do: {gettext("website failed"), "var(--fail)", false}
-  defp status_view(:failed, :icp), do: {gettext("icp failed"), "var(--fail)", false}
-  defp status_view(:failed, :contact), do: {gettext("contact failed"), "var(--fail)", false}
-  defp status_view(:failed, :verify), do: {gettext("verify failed"), "var(--fail)", false}
-  defp status_view(:failed, _), do: {gettext("failed"), "var(--fail)", false}
+  defp status_view(:scraping, _), do: {gettext("working"), "var(--green)", true}
+  defp status_view(:enriched, _), do: {gettext("enriched"), "var(--green)", false}
+  defp status_view(:rejected, _), do: {gettext("icp miss"), "var(--amber)", false}
+  defp status_view(:no_website, _), do: {gettext("no website"), "var(--amber)", false}
+  defp status_view(:no_contacts, _), do: {gettext("no contacts"), "var(--amber)", false}
+  defp status_view(:verify_failed, _), do: {gettext("email unverified"), "var(--red)", false}
+  defp status_view(:failed, :website), do: {gettext("website failed"), "var(--red)", false}
+  defp status_view(:failed, :icp), do: {gettext("icp failed"), "var(--red)", false}
+  defp status_view(:failed, :contact), do: {gettext("contact failed"), "var(--red)", false}
+  defp status_view(:failed, :verify), do: {gettext("verify failed"), "var(--red)", false}
+  defp status_view(:failed, _), do: {gettext("failed"), "var(--red)", false}
   defp status_view(_, _), do: {gettext("queued"), "var(--ink40)", false}
-
-  defp growth_style(:declining), do: {[4, 3, 2, 1], "var(--warn)"}
-  defp growth_style(:stagnant), do: {[3, 3, 3, 3], "var(--ink40)"}
-  defp growth_style(:slow), do: {[2, 3, 4, 5], "var(--ink70)"}
-  defp growth_style(:growing_2x), do: {[2, 4, 6, 8], "var(--accent)"}
-  defp growth_style(:growing_10x), do: {[2, 5, 8, 11], "var(--accent)"}
-  defp growth_style(_), do: {[1, 1, 1, 1], "var(--ink20)"}
-
-  defp fmt_int(nil), do: "—"
-
-  defp fmt_int(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.reverse()
-    |> String.codepoints()
-    |> Enum.chunk_every(3)
-    |> Enum.map_join(",", &Enum.join/1)
-    |> String.reverse()
-  end
 
   defp fmt_hms(nil), do: "—"
 
@@ -728,7 +662,7 @@ defmodule ColtWeb.Components.Funnel do
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
     >
       <div
-        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[560px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        class="bg-card border border-border rounded-[11px] w-full max-w-[560px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
         style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
         phx-click-away="close_learning"
         phx-window-keydown="close_learning"
@@ -736,13 +670,13 @@ defmodule ColtWeb.Components.Funnel do
       >
         <div class="flex justify-between items-start gap-3 mb-5">
           <div class="min-w-0">
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+            <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-1.5 truncate">
               {learning_eyebrow(@mode)} · {@row.name}
             </div>
-            <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
+            <h2 class="font-semibold text-[20px] md:text-[24px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
               {Phoenix.HTML.raw(learning_heading(@mode))}
             </h2>
-            <div class="text-[12px] text-ink55 mt-2 leading-[1.55]">
+            <div class="text-[12px] text-inkSoft mt-2 leading-[1.55]">
               {@note_text}
             </div>
           </div>
@@ -762,10 +696,10 @@ defmodule ColtWeb.Components.Funnel do
             autofocus
             phx-update="ignore"
             placeholder={learning_placeholder(@mode)}
-            class="w-full min-h-[120px] px-[16px] py-3 border border-ink20 bg-paperAlt text-[14px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
+            class="w-full min-h-[120px] px-[16px] py-3 border border-border bg-card text-[14px] leading-[1.55] text-ink rounded-[8px] outline-none resize-y focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
           ></textarea>
 
-          <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
+          <div :if={@error} class="text-[11px] text-red">{@error}</div>
 
           <div class="flex items-center gap-3 justify-end">
             <Liid.btn size={:small} type="button" phx-click="close_learning">
@@ -775,7 +709,6 @@ defmodule ColtWeb.Components.Funnel do
             <%= if @mode == :reject do %>
               <Liid.btn
                 size={:small}
-                mono
                 type="submit"
                 name="scope"
                 value="company"
@@ -786,7 +719,6 @@ defmodule ColtWeb.Components.Funnel do
               <Liid.btn
                 size={:small}
                 variant={:primary}
-                mono
                 type="submit"
                 name="scope"
                 value="contact"
@@ -798,7 +730,6 @@ defmodule ColtWeb.Components.Funnel do
               <Liid.btn
                 size={:small}
                 variant={:primary}
-                mono
                 type="submit"
                 disabled={@saving?}
               >

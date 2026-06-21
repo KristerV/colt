@@ -142,12 +142,12 @@ mix usage_rules.search_docs "Enum.zip" --query-by title
 
 ## UI / frontend work — required reading
 
-**Before touching any LiveView, template, CSS, or component, read `docs/design.md` and open the relevant prototype file under `priv/design_prototype/project/`.** The prototype is the visual source of truth; the design doc is its distilled spec. Don't approximate from memory — match the prototype.
+**Before touching any LiveView, template, CSS, or component, read `docs/design.md` and open the relevant demo file under `priv/design_demos/`.** The demo files are the visual source of truth; the design doc is its distilled spec. Don't approximate from memory — match the demo. (App look → `priv/design_demos/d1-calm.html`; landing → `priv/design_demos/landing/l0-combined.html`. The old `priv/design_prototype/` is superseded — ignore it.)
 
-Hard rules:
+The system is **"Calm Pro"**: light warm-off-white canvas, soft charcoal ink, everything compartmentalized into bounded white cards. Hard rules:
 - Brand name in all UI copy is **Liid**, not Colt.
-- Use the oklch tokens defined in `docs/design.md` §1. Don't substitute Tailwind grays.
-- Use **Inter Tight** (UI), **Instrument Serif** (display accents only, with one italicised word per page heading), **JetBrains Mono** (numbers, labels, log lines).
-- Border radius is 2px. Sharp by intent.
-- Status dots, animations, and icon set are defined once in `priv/design_prototype/project/liid-shared.jsx`. Reuse, don't reinvent.
-- Section §5 of `docs/design.md` lists open spec-vs-design conflicts. If you're about to implement a screen affected by one, surface it instead of picking a side silently.
+- Use the Calm Pro hex tokens in `docs/design.md` §1 / `assets/css/app.css` (canvas `#f7f7f5`, card `#fff`, ink `#37352f`, accent blue `#3b7ae0`). Don't substitute raw Tailwind grays.
+- **Inter only.** No serif, no monospace. One italicised accent word per heading via `<em>` (renders italic + accent, not serif).
+- **Everything is a box.** One email = one card holding its own metadata; buckets, notes, composer, rows are each their own bounded, softly-shadowed card with gaps. Never divide sections with a single faint hairline — that's the look we explicitly moved away from.
+- Border radius **11px / 8px**. Soft by intent.
+- **Restrained color**: accent blue for emphasis/active/CTA; green/amber/red only as small status chips & dots. Tabular-nums on all numbers.

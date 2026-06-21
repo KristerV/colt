@@ -78,7 +78,7 @@ defmodule ColtWeb.Admin.Summary do
 
   def summary_strip(assigns) do
     ~H"""
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-rule border border-rule rounded-sharp overflow-hidden">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       <%= for tile <- @tiles do %>
         <.strip_tile tile={tile} active={active?(tile, @current_path)} />
       <% end %>
@@ -96,7 +96,7 @@ defmodule ColtWeb.Admin.Summary do
       target="_blank"
       rel="noopener"
       class={tile_class(@active)}
-      style={@active && "box-shadow: inset 0 -2px 0 var(--accent);"}
+      style={"box-shadow:var(--shadow)" <> if(@active, do: ";box-shadow: inset 0 0 0 1px var(--accentRing), var(--shadow)", else: "")}
     >
       <.strip_body tile={@tile} active={@active} />
     </a>
@@ -108,7 +108,7 @@ defmodule ColtWeb.Admin.Summary do
     <.link
       navigate={@tile.path}
       class={tile_class(@active)}
-      style={@active && "box-shadow: inset 0 -2px 0 var(--accent);"}
+      style={"box-shadow:var(--shadow)" <> if(@active, do: ";box-shadow: inset 0 0 0 1px var(--accentRing), var(--shadow)", else: "")}
     >
       <.strip_body tile={@tile} active={@active} />
     </.link>
@@ -117,8 +117,11 @@ defmodule ColtWeb.Admin.Summary do
 
   defp tile_class(active) do
     [
-      "px-[14px] py-[12px] lg:px-[16px] lg:py-[14px] relative text-left cursor-pointer transition-colors",
-      if(active, do: "bg-paperAlt", else: "bg-paper hover:bg-paperAlt")
+      "px-[16px] py-[14px] relative text-left cursor-pointer transition-colors border rounded-[11px]",
+      if(active,
+        do: "bg-accentSoft border-accentRing",
+        else: "bg-card border-border hover:bg-paperAlt"
+      )
     ]
   end
 
@@ -128,14 +131,26 @@ defmodule ColtWeb.Admin.Summary do
   defp strip_body(assigns) do
     ~H"""
     <div class="flex items-center justify-between mb-1.5">
-      <span class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 truncate">
+      <span class={[
+        "text-[10.5px] font-semibold tracking-[0.08em] uppercase truncate",
+        if(@active, do: "text-accent", else: "text-ink55")
+      ]}>
         {@tile.title}
       </span>
-      <span :if={Map.get(@tile, :alert)} class="font-mono text-[10px] text-error">!</span>
+      <span
+        :if={Map.get(@tile, :alert)}
+        class="w-1.5 h-1.5 rounded-full bg-red shrink-0"
+        title="needs attention"
+      >
+      </span>
     </div>
     <div class={[
-      "font-serif text-[28px] font-normal leading-none tracking-[-0.02em] tnum truncate",
-      if(Map.get(@tile, :alert), do: "text-error", else: "text-ink")
+      "text-[27px] font-bold leading-none tracking-[-0.02em] tabular-nums truncate",
+      cond do
+        @active -> "text-accent"
+        Map.get(@tile, :alert) -> "text-red"
+        true -> "text-ink"
+      end
     ]}>
       {@tile.value}
     </div>
@@ -160,7 +175,8 @@ defmodule ColtWeb.Admin.Summary do
       href={@tile.path}
       target="_blank"
       rel="noopener"
-      class="card bg-base-200 hover:bg-base-300 border border-base-300 transition-colors"
+      class="block bg-card hover:bg-paperAlt border border-border rounded-[11px] transition-colors"
+      style="box-shadow:var(--shadow)"
     >
       <.tile_card_body tile={@tile} />
     </a>
@@ -171,7 +187,8 @@ defmodule ColtWeb.Admin.Summary do
     ~H"""
     <.link
       navigate={@tile.path}
-      class="card bg-base-200 hover:bg-base-300 border border-base-300 transition-colors"
+      class="block bg-card hover:bg-paperAlt border border-border rounded-[11px] transition-colors"
+      style="box-shadow:var(--shadow)"
     >
       <.tile_card_body tile={@tile} />
     </.link>
@@ -182,12 +199,14 @@ defmodule ColtWeb.Admin.Summary do
 
   defp tile_card_body(assigns) do
     ~H"""
-    <div class="card-body">
-      <div class="text-xs uppercase tracking-wider opacity-60">{@tile.kicker}</div>
-      <div class="text-xl font-semibold">{@tile.title}</div>
+    <div class="p-5">
+      <div class="text-[10.5px] font-semibold uppercase tracking-[0.08em] text-ink55">
+        {@tile.kicker}
+      </div>
+      <div class="text-[17px] font-bold text-ink mt-0.5">{@tile.title}</div>
       <div class={[
-        "text-sm font-mono tabular-nums",
-        if(Map.get(@tile, :alert), do: "text-error font-semibold", else: "opacity-70")
+        "text-[13px] tabular-nums mt-1",
+        if(Map.get(@tile, :alert), do: "text-red font-semibold", else: "text-ink70")
       ]}>
         {@tile.value}
       </div>

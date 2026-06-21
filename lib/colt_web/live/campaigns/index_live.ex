@@ -36,12 +36,12 @@ defmodule ColtWeb.Campaigns.IndexLive do
 
         <div
           :if={@campaigns == []}
-          class="border border-rule rounded-[2px] bg-paper px-8 py-12 text-center"
+          class="border border-border rounded-[11px] bg-card px-8 py-12 text-center [box-shadow:var(--shadow)]"
         >
-          <div class="font-serif text-[24px] tracking-[-0.02em] text-ink">
+          <div class="text-[20px] font-semibold tracking-[-0.02em] text-ink">
             {gettext("No campaigns yet.")}
           </div>
-          <div class="mt-2 text-[13px] text-ink55">
+          <div class="mt-2 text-[13px] text-inkSoft">
             {gettext("Start by naming the first one.")}
           </div>
           <div class="mt-6 inline-block">
@@ -53,21 +53,21 @@ defmodule ColtWeb.Campaigns.IndexLive do
           </div>
         </div>
 
-        <ul :if={@campaigns != []} class="border-t border-rule">
+        <ul :if={@campaigns != []} class="flex flex-col gap-3">
           <%= for c <- @campaigns do %>
-            <li class="border-b border-rule">
+            <li>
               <.link
                 navigate={destination_for(c)}
-                class="flex items-center gap-6 py-4 no-underline text-ink hover:bg-paperAlt px-2"
+                class="flex items-center gap-6 px-5 py-4 no-underline text-ink bg-card border border-border rounded-[11px] [box-shadow:var(--shadow)] hover:bg-paperAlt"
               >
                 <div class="flex-1 min-w-0">
-                  <div class="font-serif text-[22px] tracking-[-0.015em] truncate">
+                  <div class="text-[17px] font-bold tracking-[-0.01em] truncate">
                     {c.name}
                   </div>
-                  <div class="mt-1 font-mono text-[11px] text-ink40 tracking-[0.04em] flex items-center gap-3">
-                    <span class="uppercase">{c.status}</span>
+                  <div class="mt-1.5 text-[11.5px] text-inkFaint tracking-[0.02em] flex items-center gap-2.5">
+                    <span class="uppercase tracking-[0.08em] font-semibold">{c.status}</span>
                     <span>·</span>
-                    <span class="tnum">
+                    <span class="tabular-nums">
                       {gettext("%{done} / %{total} enriched",
                         done: c.done_count,
                         total: c.total_count
@@ -77,7 +77,7 @@ defmodule ColtWeb.Campaigns.IndexLive do
                     <span>{relative_time(c.inserted_at)}</span>
                   </div>
                 </div>
-                <Liid.icon name="chev-r" size={14} class="text-ink40 shrink-0" />
+                <Liid.icon name="chev-r" size={14} class="text-inkFaint shrink-0" />
               </.link>
             </li>
           <% end %>

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liid — Outbound in the Baltics is broken</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f7f5; --bg-soft:#fbfbfa; --card:#ffffff;
+    --ink:#37352f; --ink-soft:#6b6862; --ink-faint:#97948d;
+    --border:#e3e3e0; --border-strong:#d6d6d1;
+    --accent:#3b7ae0; --accent-soft:#eef3fc; --accent-ring:#bcd2f5;
+    --green:#2f9e6b; --green-soft:#e7f5ee;
+    --amber:#c98a1e; --amber-soft:#fbf1dd;
+    --red:#d05a4f; --red-soft:#fbeae8;
+    --shadow:0 1px 2px rgba(35,32,28,.05),0 2px 6px rgba(35,32,28,.04);
+    --shadow-card:0 1px 2px rgba(35,32,28,.06),0 4px 12px rgba(35,32,28,.05);
+    --radius:11px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg); color:var(--ink);
+    font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  em{font-style:italic;color:var(--accent)}
+  .num{font-variant-numeric:tabular-nums}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 32px}
+  a{color:inherit;text-decoration:none}
+
+  /* ---------- NAV ---------- */
+  .nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(247,247,245,.86);
+    backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-in{display:flex;align-items:center;gap:28px;height:64px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;letter-spacing:-.02em}
+  .logo{
+    width:26px;height:26px;border-radius:7px;
+    background:linear-gradient(160deg,#4f87e6,#3b7ae0);
+    color:#fff;display:grid;place-items:center;
+    font-weight:700;font-size:15px;box-shadow:0 1px 2px rgba(59,122,224,.4)
+  }
+  .nav-links{display:flex;gap:24px;margin-left:14px}
+  .nav-links a{color:var(--ink-soft);font-size:14px;font-weight:450}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:16px}
+  .nav-right .signin{color:var(--ink-soft);font-size:14px;font-weight:500}
+  .nav-right .signin:hover{color:var(--ink)}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:14px;font-weight:500;border-radius:var(--radius-sm);
+    padding:9px 16px;cursor:pointer;border:1px solid transparent;
+    transition:.15s;white-space:nowrap;
+  }
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(59,122,224,.35)}
+  .btn-primary:hover{background:#356fce}
+  .btn-secondary{background:var(--card);color:var(--ink);border-color:var(--border-strong);box-shadow:var(--shadow)}
+  .btn-secondary:hover{border-color:#bdbdb6}
+  .btn-lg{padding:12px 22px;font-size:15px}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:78px 0 60px;text-align:center}
+  .kicker{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--red-soft);color:var(--red);
+    font-size:12.5px;font-weight:600;letter-spacing:.01em;
+    padding:5px 12px;border-radius:999px;border:1px solid #f3d4cf;
+    margin-bottom:24px;
+  }
+  .kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--red)}
+  h1{
+    font-size:54px;line-height:1.04;font-weight:700;
+    letter-spacing:-.03em;max-width:760px;margin:0 auto;
+  }
+  .hero .sub{
+    max-width:600px;margin:22px auto 0;
+    font-size:17px;color:var(--ink-soft);line-height:1.6;
+  }
+  .hero-cta{display:flex;gap:12px;justify-content:center;margin-top:34px}
+  .hero-fine{margin-top:18px;font-size:13px;color:var(--ink-faint)}
+
+  /* ---------- SECTION SCAFFOLD ---------- */
+  section{padding:62px 0}
+  .sec-head{max-width:620px;margin:0 auto 40px;text-align:center}
+  .sec-head h2{font-size:33px;font-weight:700;letter-spacing:-.025em;line-height:1.12}
+  .sec-head p{margin-top:12px;color:var(--ink-soft);font-size:16px}
+
+  /* ---------- OLD WAY ---------- */
+  .oldway-band{background:var(--bg-soft);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .oldway-card{
+    max-width:680px;margin:0 auto;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);box-shadow:var(--shadow-card);
+    overflow:hidden;
+  }
+  .oldway-card .head{
+    padding:18px 24px;border-bottom:1px solid var(--border);
+    display:flex;align-items:center;gap:10px;
+  }
+  .oldway-card .head .tag{
+    font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--red);background:var(--red-soft);padding:3px 9px;border-radius:5px;
+  }
+  .oldway-card .head h3{font-size:16px;font-weight:600;letter-spacing:-.01em}
+  .oldrow{
+    display:flex;align-items:center;gap:14px;
+    padding:15px 24px;border-bottom:1px solid var(--border);
+  }
+  .oldrow:last-child{border-bottom:none}
+  .xmark{
+    flex:none;width:22px;height:22px;border-radius:6px;
+    background:var(--red-soft);color:var(--red);
+    display:grid;place-items:center;font-size:13px;font-weight:700;
+    border:1px solid #f0cdc8;
+  }
+  .oldrow span{font-size:14.5px;color:var(--ink-soft)}
+  .oldrow strong{color:var(--ink);font-weight:500}
+
+  /* ---------- PIVOT ---------- */
+  .pivot{padding:64px 0 8px;text-align:center}
+  .pivot h2{font-size:38px;font-weight:700;letter-spacing:-.03em}
+  .pivot p{margin-top:14px;color:var(--ink-soft);font-size:16px;max-width:520px;margin-left:auto;margin-right:auto}
+
+  /* ---------- OUTCOMES ---------- */
+  .outcomes{padding-top:46px}
+  .ogrid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  .ocard{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);box-shadow:var(--shadow-card);
+    padding:28px;display:flex;flex-direction:column;gap:14px;
+  }
+  .ocard.span2{grid-column:1 / -1}
+  .ocard .step{
+    font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--accent);
+  }
+  .ocard h3{font-size:22px;font-weight:600;letter-spacing:-.02em;line-height:1.18}
+  .ocard .copy{font-size:14.5px;color:var(--ink-soft);line-height:1.55}
+  .check{
+    display:flex;align-items:flex-start;gap:9px;
+    font-size:13.5px;color:var(--ink);margin-top:auto;
+  }
+  .vmark{
+    flex:none;width:20px;height:20px;border-radius:6px;
+    background:var(--green-soft);color:var(--green);
+    display:grid;place-items:center;font-size:12px;font-weight:700;
+    border:1px solid #cce8da;
+  }
+  .check strong{font-weight:600}
+
+  /* mini visuals */
+  .mini{
+    background:var(--bg-soft);border:1px solid var(--border);
+    border-radius:var(--radius-sm);padding:16px 18px;
+  }
+  .counter{display:flex;align-items:baseline;gap:10px}
+  .counter .big{font-size:38px;font-weight:700;letter-spacing:-.03em;color:var(--accent)}
+  .counter .lbl{font-size:14px;color:var(--ink-soft);font-weight:500}
+  .pulse{
+    display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:var(--green);margin-right:8px;
+    box-shadow:0 0 0 0 rgba(47,158,107,.5);
+    animation:pulse 1.8s infinite;vertical-align:middle;
+  }
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,158,107,.45)}70%{box-shadow:0 0 0 7px rgba(47,158,107,0)}100%{box-shadow:0 0 0 0 rgba(47,158,107,0)}}
+  .counter-meta{font-size:12.5px;color:var(--ink-faint);margin-top:8px}
+
+  .chiprow{display:flex;flex-wrap:wrap;gap:8px}
+  .vchip{
+    display:inline-flex;align-items:center;gap:7px;
+    background:var(--card);border:1px solid var(--border);
+    border-radius:6px;padding:6px 10px;font-size:12.5px;color:var(--ink-soft);
+    font-variant-numeric:tabular-nums;box-shadow:var(--shadow);
+  }
+  .vchip .ok{color:var(--green);font-weight:700}
+
+  .buckets{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:4px}
+  .bucket{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);
+    padding:12px;text-align:center;box-shadow:var(--shadow);
+  }
+  .bucket .bn{font-size:24px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .bucket .bl{font-size:11.5px;color:var(--ink-soft);margin-top:3px;font-weight:500}
+  .bucket.ok .bn{color:var(--green)}
+  .bucket.warn .bn{color:var(--amber)}
+  .bucket.bad .bn{color:var(--red)}
+
+  .send-sched{display:flex;flex-direction:column;gap:10px}
+  .send-row{display:flex;align-items:center;gap:12px}
+  .send-row .who{width:150px;font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+  .bar{flex:1;height:9px;background:#edece9;border-radius:5px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,#4f87e6,#3b7ae0);border-radius:5px}
+  .send-row .cap{width:60px;text-align:right;font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+
+  .filters{display:flex;flex-wrap:wrap;gap:7px}
+  .fchip{
+    font-size:12px;font-weight:500;color:var(--ink-soft);
+    background:var(--accent-soft);border:1px solid var(--accent-ring);
+    padding:4px 10px;border-radius:6px;font-variant-numeric:tabular-nums;
+  }
+  .fchip.growth{background:var(--green-soft);border-color:#cce8da;color:var(--green)}
+
+  /* ---------- PROOF ---------- */
+  .proof-band{background:var(--ink);color:#f4f3f0}
+  .proof-band .sec-head h2{color:#fff}
+  .proof-band .sec-head p{color:#b7b4ad}
+  .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .pstat{
+    background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.1);
+    border-radius:var(--radius);padding:30px 26px;text-align:center;
+  }
+  .pstat .pn{font-size:46px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:#fff;line-height:1}
+  .pstat .pl{margin-top:12px;font-size:14px;color:#c2bfb8;line-height:1.4}
+  .pstat .pn em{color:#9fc1f3}
+
+  /* ---------- PRICING ---------- */
+  .pricing{padding-top:66px}
+  .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start;margin-top:8px}
+  .tier{
+    background:var(--card);border:1px solid var(--border);
+    border-radius:var(--radius);box-shadow:var(--shadow-card);
+    padding:28px 26px;display:flex;flex-direction:column;
+  }
+  .tier.featured{border-color:var(--accent-ring);box-shadow:0 0 0 1px var(--accent-ring),var(--shadow-card);position:relative}
+  .tier .pop{
+    position:absolute;top:-11px;left:26px;
+    background:var(--accent);color:#fff;font-size:11px;font-weight:600;
+    letter-spacing:.03em;padding:4px 11px;border-radius:999px;
+  }
+  .tier .tname{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .tier .tprice{margin-top:14px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .tier .tprice .amt{font-size:40px}
+  .tier .tprice .per{font-size:15px;color:var(--ink-faint);font-weight:500}
+  .tier .tdesc{margin-top:6px;font-size:13.5px;color:var(--ink-soft)}
+  .tier ul{list-style:none;margin:22px 0;display:flex;flex-direction:column;gap:11px;flex:1}
+  .tier li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;color:var(--ink-soft)}
+  .tier li .vmark{width:18px;height:18px;font-size:11px}
+  .tier li strong{color:var(--ink);font-weight:500;font-variant-numeric:tabular-nums}
+  .tier .btn{justify-content:center;width:100%}
+  .price-fine{text-align:center;margin-top:22px;font-size:13px;color:var(--ink-faint)}
+
+  /* ---------- FINAL CTA ---------- */
+  .finalcta{padding:30px 0 72px}
+  .finalcta-card{
+    background:linear-gradient(165deg,#fff,#fbfbfa);
+    border:1px solid var(--border-strong);border-radius:var(--radius);
+    box-shadow:var(--shadow-card);padding:54px 40px;text-align:center;
+  }
+  .finalcta-card h2{font-size:40px;font-weight:700;letter-spacing:-.03em;line-height:1.08}
+  .finalcta-card p{margin-top:14px;color:var(--ink-soft);font-size:16px;max-width:460px;margin-left:auto;margin-right:auto}
+  .finalcta-card .hero-cta{margin-top:30px}
+
+  /* ---------- FOOTER ---------- */
+  footer{background:var(--bg-soft);border-top:1px solid var(--border);padding:52px 0 40px}
+  .foot-top{display:flex;justify-content:space-between;gap:48px;flex-wrap:wrap}
+  .foot-brand{max-width:300px}
+  .foot-brand .tag{margin-top:14px;font-size:13.5px;color:var(--ink-soft);line-height:1.55}
+  .foot-cols{display:flex;gap:64px}
+  .foot-col h4{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:14px}
+  .foot-col a{display:block;font-size:14px;color:var(--ink-soft);margin-bottom:10px}
+  .foot-col a:hover{color:var(--ink)}
+  .foot-bottom{
+    margin-top:40px;padding-top:22px;border-top:1px solid var(--border);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    font-size:13px;color:var(--ink-faint);
+  }
+  .foot-bottom .data{font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="wrap nav-in">
+    <a href="#" class="brand"><span class="logo">L</span>Liid</a>
+    <div class="nav-links">
+      <a href="#outcomes">Product</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <a href="#" class="signin">Sign in</a>
+      <a href="#" class="btn btn-primary">Start a campaign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap">
+    <span class="kicker"><span class="dot"></span>The problem</span>
+    <h1>Outbound in the Baltics is <em>broken</em>.</h1>
+    <p class="sub">US sales databases barely cover Baltic &amp; Nordic companies. So reps burn hours scraping lists and writing cold emails one by one — and half bounce off dead inboxes and trash the sending domain.</p>
+    <div class="hero-cta">
+      <a href="#" class="btn btn-primary btn-lg">Start a campaign</a>
+      <a href="#how" class="btn btn-secondary btn-lg">See how it works</a>
+    </div>
+    <p class="hero-fine">Clean data in. Safe volume out. Cancel anytime.</p>
+  </div>
+</header>
+
+<!-- OLD WAY -->
+<section class="oldway-band" id="how" style="padding:56px 0">
+  <div class="wrap">
+    <div class="oldway-card">
+      <div class="head">
+        <span class="tag">The old way</span>
+        <h3>How most teams do it today</h3>
+      </div>
+      <div class="oldrow"><span class="xmark">✕</span><span><strong>Scrape lists by hand or pay a VA</strong> — hours gone before a single email goes out</span></div>
+      <div class="oldrow"><span class="xmark">✕</span><span><strong>Guess which companies actually fit</strong> — no structured filters for the region</span></div>
+      <div class="oldrow"><span class="xmark">✕</span><span><strong>Write every cold email one by one</strong> — or send the same generic blast to everyone</span></div>
+      <div class="oldrow"><span class="xmark">✕</span><span><strong>Blast and pray</strong> — no schedule, no caps, no reply handling</span></div>
+      <div class="oldrow"><span class="xmark">✕</span><span><strong>Bounces wreck your sending domain</strong> — emails land in dead inboxes and reputation tanks</span></div>
+      <div class="oldrow"><span class="xmark">✕</span><span><strong>Five tools, one duct-taped workflow</strong> — scraper, verifier, enricher, sender, inbox</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- PIVOT -->
+<section class="pivot">
+  <div class="wrap">
+    <h2>Liid fixes the <em>whole chain</em>.</h2>
+    <p>Fresh nightly registry data, AI that reads each site for fit, and safe sending from your own inbox — in one tool.</p>
+  </div>
+</section>
+
+<!-- OUTCOMES -->
+<section class="outcomes wrap" id="outcomes">
+  <div class="ogrid">
+
+    <!-- 1 fit -->
+    <div class="ocard">
+      <div class="step">Outcome 01</div>
+      <h3>Only companies that <em>actually fit</em>.</h3>
+      <p class="copy">Fresh nightly government-registry data plus AI ICP matching reads each company's site and keeps only the fits. Filters narrow it down. AI tells you exactly who.</p>
+      <div class="mini">
+        <div class="counter">
+          <span class="big num">500</span>
+          <span class="lbl"><span class="pulse"></span>companies match</span>
+        </div>
+        <div class="counter-meta">From ~68,000 active Estonian companies, screened in real time.</div>
+      </div>
+      <div class="check"><span class="vmark">✓</span><span><strong>Structured filters US tools don't have:</strong> revenue bands, EMTAK industry, region, founding year, growth, VAT.</span></div>
+    </div>
+
+    <!-- 2 voice -->
+    <div class="ocard">
+      <div class="step">Outcome 02</div>
+      <h3>Emails that <em>sound like you</em>.</h3>
+      <p class="copy">AI learns from a few of your own emails and drafts personalized sequences. Review the first ones, then auto-approve when you're happy.</p>
+      <div class="mini">
+        <div class="filters">
+          <span class="fchip growth">Growing 2×</span>
+          <span class="fchip">€1M–5M revenue</span>
+          <span class="fchip num">10–50 staff</span>
+          <span class="fchip">EMTAK: IT services</span>
+          <span class="fchip">Region: Tallinn</span>
+          <span class="fchip num">VAT ✓</span>
+        </div>
+        <div class="counter-meta">Filters set the shortlist — the draft writes itself in your voice.</div>
+      </div>
+      <div class="check"><span class="vmark">✓</span><span><strong>AI learns from how you write</strong> — no robotic templates, no one-by-one typing.</span></div>
+    </div>
+
+    <!-- 3 bounce -->
+    <div class="ocard">
+      <div class="step">Outcome 03</div>
+      <h3>Contacts that <em>don't bounce</em>.</h3>
+      <p class="copy">Every email appears on the company's own website <strong>and</strong> passes a deliverability check before it's used — so bounces don't trash your domain.</p>
+      <div class="mini">
+        <div class="chiprow">
+          <span class="vchip"><span class="ok">✓</span>info@…&nbsp;on-site</span>
+          <span class="vchip"><span class="ok">✓</span>deliverable</span>
+          <span class="vchip"><span class="ok">✓</span>MX valid</span>
+          <span class="vchip"><span class="ok">✓</span>not catch-all</span>
+        </div>
+        <div class="counter-meta">Stop sending to dead inboxes. Fresh by default.</div>
+      </div>
+      <div class="check"><span class="vmark">✓</span><span><strong>Two-source verified:</strong> on the site and deliverability-checked — your sender reputation stays intact.</span></div>
+    </div>
+
+    <!-- 4 sent safely -->
+    <div class="ocard">
+      <div class="step">Outcome 04</div>
+      <h3>Thousands sent — <em>safely</em>.</h3>
+      <p class="copy">Multi-inbox sending on a human-like schedule: working hours, daily caps, randomized bursts. Replies auto-pause the sequence and get sorted.</p>
+      <div class="mini">
+        <div class="send-sched">
+          <div class="send-row"><span class="who">sales@inbox-1</span><span class="bar"><i style="width:72%"></i></span><span class="cap num">72 / 90</span></div>
+          <div class="send-row"><span class="who">hello@inbox-2</span><span class="bar"><i style="width:54%"></i></span><span class="cap num">48 / 90</span></div>
+          <div class="send-row"><span class="who">team@inbox-3</span><span class="bar"><i style="width:38%"></i></span><span class="cap num">34 / 90</span></div>
+        </div>
+        <div class="counter-meta">Daily caps, working-hour windows, randomized bursts — across every inbox.</div>
+      </div>
+      <div class="check"><span class="vmark">✓</span><span><strong>Replies sort themselves</strong> into Interested · Call ready · Not interested · Bounced · Failed.</span></div>
+    </div>
+
+    <!-- 5 one tool (full width) -->
+    <div class="ocard span2">
+      <div class="step">Outcome 05</div>
+      <h3>One tool, <em>not five</em>.</h3>
+      <p class="copy" style="max-width:640px">Scraper, verifier, enricher, sender, inbox — collapsed into one workflow. Build the list, write the sequence, send it safely, and read every reply in the same place.</p>
+      <div class="buckets">
+        <div class="bucket ok"><div class="bn num">37</div><div class="bl">Interested</div></div>
+        <div class="bucket ok"><div class="bn num">12</div><div class="bl">Call ready</div></div>
+        <div class="bucket"><div class="bn num">61</div><div class="bl">Not interested</div></div>
+        <div class="bucket warn"><div class="bn num">5</div><div class="bl">Bounced</div></div>
+        <div class="bucket bad"><div class="bn num">2</div><div class="bl">Failed</div></div>
+      </div>
+      <div class="check"><span class="vmark">✓</span><span><strong>Clean data in. Safe volume out.</strong> Every reply landed in the right bucket — automatically.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- PROOF -->
+<section class="proof-band">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>The numbers behind it</h2>
+      <p>Real coverage of the region, enriched fast, synced nightly.</p>
+    </div>
+    <div class="pgrid">
+      <div class="pstat"><div class="pn num">68,000<em>+</em></div><div class="pl">active Estonian companies, synced nightly from the government registry</div></div>
+      <div class="pstat"><div class="pn num">4.2<em>/s</em></div><div class="pl">companies enriched per second — sites read, contacts verified</div></div>
+      <div class="pstat"><div class="pn num">~4–5<em> min</em></div><div class="pl">to build a full 1,000-company campaign, end to end</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing wrap" id="pricing">
+  <div class="sec-head">
+    <h2>Simple, <em>volume-based</em> pricing</h2>
+    <p>Every plan includes ICP AI matching, multi-domain sending, reply handling, and sequences with working-hour scheduling.</p>
+  </div>
+  <div class="price-grid">
+
+    <div class="tier">
+      <div class="tname">Starter</div>
+      <div class="tprice"><span class="amt num">€49</span><span class="per">/mo</span></div>
+      <div class="tdesc">Test the waters with a focused list.</div>
+      <ul>
+        <li><span class="vmark">✓</span><span><strong>50</strong> contacts / month</span></li>
+        <li><span class="vmark">✓</span><span>Up to <strong>1,000</strong> screened / month</span></li>
+        <li><span class="vmark">✓</span><span>ICP AI matching</span></li>
+        <li><span class="vmark">✓</span><span>Multi-domain sending</span></li>
+        <li><span class="vmark">✓</span><span>Reply handling &amp; buckets</span></li>
+      </ul>
+      <a href="#" class="btn btn-secondary">Start a campaign</a>
+    </div>
+
+    <div class="tier featured">
+      <span class="pop">Most popular</span>
+      <div class="tname">Growth</div>
+      <div class="tprice"><span class="amt num">€159</span><span class="per">/mo</span></div>
+      <div class="tdesc">For teams running outbound every week.</div>
+      <ul>
+        <li><span class="vmark">✓</span><span><strong>200</strong> contacts / month</span></li>
+        <li><span class="vmark">✓</span><span>Up to <strong>4,000</strong> screened / month</span></li>
+        <li><span class="vmark">✓</span><span>ICP AI matching</span></li>
+        <li><span class="vmark">✓</span><span>Multi-domain sending</span></li>
+        <li><span class="vmark">✓</span><span>Sequences with working-hour scheduling</span></li>
+      </ul>
+      <a href="#" class="btn btn-primary">Start a campaign</a>
+    </div>
+
+    <div class="tier">
+      <div class="tname">Scale</div>
+      <div class="tprice"><span class="amt num">€699</span><span class="per">/mo</span></div>
+      <div class="tdesc">Serious volume, sent safely.</div>
+      <ul>
+        <li><span class="vmark">✓</span><span><strong>1,000</strong> contacts / month</span></li>
+        <li><span class="vmark">✓</span><span>Up to <strong>20,000</strong> screened / month</span></li>
+        <li><span class="vmark">✓</span><span>ICP AI matching</span></li>
+        <li><span class="vmark">✓</span><span>Multi-domain sending</span></li>
+        <li><span class="vmark">✓</span><span>Reply handling &amp; buckets</span></li>
+      </ul>
+      <a href="#" class="btn btn-secondary">Start a campaign</a>
+    </div>
+
+  </div>
+  <p class="price-fine">Prices in EUR, excl. VAT. Cancel anytime.</p>
+</section>
+
+<!-- FINAL CTA -->
+<section class="finalcta wrap">
+  <div class="finalcta-card">
+    <h2>Stop sending to <em>dead</em> inboxes.</h2>
+    <p>Fresh by default. Verified contacts, emails in your voice, safe volume from your own inbox.</p>
+    <div class="hero-cta">
+      <a href="#" class="btn btn-primary btn-lg">Start a campaign</a>
+      <a href="#how" class="btn btn-secondary btn-lg">See how it works</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <a href="#" class="brand"><span class="logo">L</span>Liid</a>
+        <p class="tag">Verified B2B contact lists and personalized email sequences for the Baltics &amp; Nordics — built on fresh registry data and AI that writes in your style.</p>
+      </div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <h4>Product</h4>
+          <a href="#outcomes">How it works</a>
+          <a href="#outcomes">ICP matching</a>
+          <a href="#outcomes">Email sequences</a>
+          <a href="#outcomes">Reply handling</a>
+        </div>
+        <div class="foot-col">
+          <h4>Company</h4>
+          <a href="#pricing">Pricing</a>
+          <a href="#">About</a>
+          <a href="#">Contact</a>
+        </div>
+        <div class="foot-col">
+          <h4>Legal</h4>
+          <a href="#">Privacy</a>
+          <a href="#">Terms</a>
+          <a href="#">Data &amp; GDPR</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Liid</span>
+      <span class="data">Data from 68,000+ active Estonian companies, synced nightly.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

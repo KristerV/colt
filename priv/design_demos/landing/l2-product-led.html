@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liid — Lead gen for the Baltics and Nordics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f7f5; --bg-soft:#fbfbfa; --card:#ffffff; --ink:#37352f; --ink-soft:#6b6862; --ink-faint:#97948d;
+    --border:#e3e3e0; --border-strong:#d6d6d1; --accent:#3b7ae0; --accent-soft:#eef3fc; --accent-ring:#bcd2f5;
+    --green:#2f9e6b; --green-soft:#e7f5ee; --amber:#c98a1e; --amber-soft:#fbf1dd; --red:#d05a4f; --red-soft:#fbeae8;
+    --shadow:0 1px 2px rgba(35,32,28,.05),0 2px 6px rgba(35,32,28,.04);
+    --shadow-card:0 1px 2px rgba(35,32,28,.06),0 4px 12px rgba(35,32,28,.05);
+    --radius:11px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+    font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  }
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  em{font-style:italic;color:var(--accent)}
+  a{color:inherit;text-decoration:none}
+  .container{max-width:1120px;margin:0 auto;padding:0 32px}
+  .container-wide{max-width:1180px;margin:0 auto;padding:0 32px}
+
+  /* ---------- NAV ---------- */
+  nav.top{
+    position:sticky;top:0;z-index:50;background:rgba(247,247,245,.82);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-inner{max-width:1180px;margin:0 auto;padding:13px 32px;display:flex;align-items:center;gap:28px}
+  .wordmark{display:flex;align-items:center;gap:9px;font-weight:600;font-size:18px;letter-spacing:-.02em}
+  .logo-sq{
+    width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;
+    display:grid;place-items:center;font-weight:700;font-size:15px;box-shadow:var(--shadow);
+  }
+  .nav-links{display:flex;gap:24px;margin-left:8px}
+  .nav-links a{font-size:14px;color:var(--ink-soft);font-weight:450}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+  .nav-right .signin{font-size:14px;color:var(--ink-soft);font-weight:500}
+
+  .btn{
+    font-family:inherit;font-size:14px;font-weight:500;border-radius:var(--radius-sm);
+    padding:9px 16px;cursor:pointer;border:1px solid transparent;display:inline-flex;
+    align-items:center;gap:7px;transition:.12s;
+  }
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:var(--shadow);border-color:transparent}
+  .btn-primary:hover{background:#2f6acb}
+  .btn-secondary{background:var(--card);color:var(--ink-soft);border-color:var(--border-strong)}
+  .btn-secondary:hover{border-color:var(--ink-faint);color:var(--ink)}
+  .btn-lg{padding:12px 22px;font-size:15px}
+
+  /* ---------- HERO ---------- */
+  .hero{padding:64px 0 30px;text-align:center}
+  .hero h1{
+    font-size:48px;line-height:1.06;font-weight:700;letter-spacing:-.025em;max-width:760px;margin:0 auto 18px;
+  }
+  .hero .sub{font-size:18px;color:var(--ink-soft);max-width:560px;margin:0 auto 26px;font-weight:450}
+  .hero-cta{display:flex;gap:12px;justify-content:center;align-items:center}
+  .hero-note{margin-top:16px;font-size:13px;color:var(--ink-faint);font-weight:450}
+
+  /* ---------- CHIPS / DOTS ---------- */
+  .chip{
+    display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;
+    padding:3px 10px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--ink-soft);
+  }
+  .chip.accent{background:var(--accent-soft);border-color:var(--accent-ring);color:var(--accent)}
+  .chip.green{background:var(--green-soft);border-color:#bfe6d2;color:var(--green)}
+  .chip.amber{background:var(--amber-soft);border-color:#ecd6a3;color:var(--amber)}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .dot.green{background:var(--green)} .dot.amber{background:var(--amber)} .dot.red{background:var(--red)}
+  .dot.accent{background:var(--accent)} .dot.faint{background:var(--ink-faint)}
+  .live{position:relative;display:inline-flex;width:8px;height:8px}
+  .live i{width:8px;height:8px;border-radius:50%;background:var(--green);position:relative;z-index:1}
+  .live::after{
+    content:"";position:absolute;inset:0;border-radius:50%;background:var(--green);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{0%{transform:scale(.6);opacity:.5}100%{transform:scale(1.9);opacity:0}}
+
+  /* ---------- BROWSER CHROME CARD (centerpiece) ---------- */
+  .stage{padding:8px 0 40px}
+  .browser{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow-card);overflow:hidden;
+  }
+  .browser-bar{
+    display:flex;align-items:center;gap:7px;padding:11px 16px;border-bottom:1px solid var(--border);
+    background:var(--bg-soft);
+  }
+  .tl{width:11px;height:11px;border-radius:50%}
+  .tl.r{background:#e0b3ad} .tl.y{background:#ecd6a3} .tl.g{background:#bfe6d2}
+  .browser-url{
+    margin-left:10px;flex:1;max-width:420px;background:var(--card);border:1px solid var(--border);
+    border-radius:6px;font-size:12px;color:var(--ink-faint);padding:5px 12px;font-variant-numeric:tabular-nums;
+  }
+
+  /* app skeleton */
+  .app{display:grid;grid-template-columns:188px 1fr;min-height:560px}
+  .app-side{
+    border-right:1px solid var(--border);background:var(--bg-soft);padding:16px 14px;display:flex;flex-direction:column;gap:20px;
+  }
+  .side-wordmark{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;letter-spacing:-.02em;padding:2px 4px}
+  .side-wordmark .logo-sq{width:22px;height:22px;border-radius:6px;font-size:13px}
+  .nav-group-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);font-weight:600;padding:0 8px;margin-bottom:6px}
+  .side-link{
+    display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink-soft);font-weight:450;
+    padding:6px 8px;border-radius:6px;
+  }
+  .side-link.active{background:var(--accent-soft);color:var(--accent);font-weight:500}
+  .side-link .ic{width:15px;height:15px;flex:none;opacity:.85}
+  .side-link.active .ic{opacity:1}
+
+  .app-main{padding:18px 20px;overflow:hidden}
+  .app-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .app-head h2{font-size:17px;font-weight:600;letter-spacing:-.02em}
+  .app-head .crumb{font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .app-head .spacer{margin-left:auto}
+
+  /* bucket stat cards */
+  .buckets{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:18px}
+  .stat{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 12px;
+  }
+  .stat .lbl{font-size:11.5px;color:var(--ink-soft);font-weight:500;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .stat .val{font-size:23px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat.is-accent{border-color:var(--accent-ring);background:var(--accent-soft)}
+  .stat.is-accent .val{color:var(--accent)}
+
+  /* funnel body: contact list + thread */
+  .funnel-body{display:grid;grid-template-columns:300px 1fr;gap:16px}
+  .panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+  .panel-head{
+    padding:10px 14px;border-bottom:1px solid var(--border);font-size:12.5px;font-weight:600;
+    color:var(--ink-soft);display:flex;align-items:center;gap:8px;background:var(--bg-soft);
+  }
+  .panel-head .count{margin-left:auto;font-size:11.5px;color:var(--ink-faint);font-weight:500;font-variant-numeric:tabular-nums}
+
+  .crow{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px}
+  .crow:last-child{border-bottom:none}
+  .crow.sel{background:var(--accent-soft)}
+  .avatar{
+    width:30px;height:30px;border-radius:7px;background:#eceae6;color:var(--ink-soft);font-size:12px;font-weight:600;
+    display:grid;place-items:center;flex:none;
+  }
+  .crow.sel .avatar{background:#dbe7fa;color:var(--accent)}
+  .crow .who{flex:1;min-width:0}
+  .crow .nm{font-size:13.5px;font-weight:500;letter-spacing:-.01em}
+  .crow .meta{font-size:11.5px;color:var(--ink-faint);display:flex;align-items:center;gap:6px;margin-top:1px}
+  .crow .meta .step{font-variant-numeric:tabular-nums}
+  .crow .reply{font-size:10.5px;font-weight:500;color:var(--green);display:flex;align-items:center;gap:5px;white-space:nowrap}
+
+  /* thread */
+  .thread{padding:14px;display:flex;flex-direction:column;gap:12px}
+  .mail{border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;background:var(--card)}
+  .mail-head{padding:10px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;background:var(--bg-soft)}
+  .mail-head .tag{font-size:11px;font-weight:600;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .mail-head .from{font-size:12.5px;font-weight:600}
+  .mail-head .when{margin-left:auto;font-size:11px;color:var(--ink-faint);font-variant-numeric:tabular-nums}
+  .mail-body{padding:13px}
+  .mail-subj{font-size:13.5px;font-weight:600;letter-spacing:-.01em;margin-bottom:8px}
+  .mail-body p{font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:8px}
+  .mail-body p:last-child{margin-bottom:0}
+  .mail.inbound{border-color:#bfe6d2}
+  .mail.inbound .mail-head{background:var(--green-soft)}
+  .mail.inbound .mail-head .from{color:var(--green)}
+
+  /* ---------- FEATURE SECTIONS ---------- */
+  .feature{
+    display:grid;grid-template-columns:0.85fr 1.15fr;gap:48px;align-items:center;padding:46px 0;
+  }
+  .feature.flip .feat-text{order:2}
+  .feature.flip .feat-visual{order:1}
+  .feat-text .kicker{font-size:12.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--accent);margin-bottom:12px}
+  .feat-text h3{font-size:30px;font-weight:700;letter-spacing:-.025em;line-height:1.12;margin-bottom:14px}
+  .feat-text p{font-size:15.5px;color:var(--ink-soft);line-height:1.6;max-width:400px}
+  .feat-text .vline{font-size:13px;color:var(--ink-faint);margin-top:14px;font-style:italic}
+
+  .vcard{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+    box-shadow:var(--shadow-card);padding:20px;
+  }
+  .vcard-head{
+    display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-faint);font-weight:600;
+    text-transform:uppercase;letter-spacing:.06em;margin-bottom:16px;
+  }
+
+  /* filters visual */
+  .filter-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .fchip{
+    display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:450;
+    padding:6px 12px;border-radius:7px;border:1px solid var(--border);background:var(--bg-soft);
+  }
+  .fchip b{font-weight:600;color:var(--ink)}
+  .fchip .k{color:var(--ink-faint);font-size:12px}
+  .counter{
+    border:1px solid var(--accent-ring);background:var(--accent-soft);border-radius:var(--radius-sm);
+    padding:18px 20px;display:flex;align-items:baseline;gap:12px;
+  }
+  .counter .big{font-size:42px;font-weight:700;letter-spacing:-.03em;color:var(--accent);font-variant-numeric:tabular-nums;line-height:1}
+  .counter .cap{font-size:14px;color:var(--ink-soft);font-weight:500}
+  .counter .cap small{display:block;font-size:11.5px;color:var(--ink-faint);font-weight:450;margin-top:2px}
+
+  /* pipeline visual */
+  .pipeline{display:flex;flex-direction:column;gap:9px}
+  .pstage{
+    display:flex;align-items:center;gap:12px;padding:11px 14px;border:1px solid var(--border);
+    border-radius:var(--radius-sm);background:var(--bg-soft);
+  }
+  .pstage .pname{font-size:13.5px;font-weight:500;flex:none;width:78px}
+  .pstage .bar{flex:1;height:6px;border-radius:99px;background:#eceae6;overflow:hidden}
+  .pstage .bar i{display:block;height:100%;border-radius:99px;background:var(--green)}
+  .pstage .pst{font-size:11.5px;font-weight:600;width:62px;text-align:right;display:flex;align-items:center;justify-content:flex-end;gap:6px}
+  .pstage.done .pst{color:var(--green)}
+  .pstage.run{border-color:var(--accent-ring);background:var(--accent-soft)}
+  .pstage.run .bar i{background:var(--accent)}
+  .pstage.run .pst{color:var(--accent)}
+  .tick{width:14px;height:14px}
+
+  /* draft visual */
+  .draft-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-faint);margin-bottom:12px;font-weight:500}
+  .draft-subj{font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:12px}
+  .draft-body p{font-size:13.5px;color:var(--ink-soft);line-height:1.65;margin-bottom:10px}
+  .draft-foot{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
+
+  /* mini buckets for replies feature */
+  .mini-buckets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .mini-stat{background:var(--bg-soft);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 13px}
+  .mini-stat .lbl{font-size:11.5px;color:var(--ink-soft);font-weight:500;display:flex;align-items:center;gap:6px;margin-bottom:5px}
+  .mini-stat .val{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .mini-stat.is-accent{border-color:var(--accent-ring);background:var(--accent-soft)}
+  .mini-stat.is-accent .val{color:var(--accent)}
+
+  /* ---------- METRICS BAND ---------- */
+  .metrics{padding:14px 0 50px}
+  .metrics-card{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+    display:grid;grid-template-columns:repeat(3,1fr);
+  }
+  .metric{padding:30px 24px;text-align:center}
+  .metric+.metric{border-left:1px solid var(--border)}
+  .metric .mv{font-size:34px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .metric .mv span{color:var(--accent)}
+  .metric .ml{font-size:13.5px;color:var(--ink-soft);margin-top:4px;font-weight:450}
+
+  /* ---------- PRICING ---------- */
+  .pricing{padding:50px 0}
+  .sec-head{text-align:center;margin-bottom:40px}
+  .sec-head h2{font-size:34px;font-weight:700;letter-spacing:-.025em;margin-bottom:10px}
+  .sec-head p{font-size:16px;color:var(--ink-soft);max-width:480px;margin:0 auto}
+  .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-items:start}
+  .tier{
+    background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:26px 24px;position:relative;
+  }
+  .tier.pop{border-color:var(--accent-ring);box-shadow:var(--shadow-card);transform:translateY(-6px)}
+  .tier .pop-tag{
+    position:absolute;top:-11px;left:24px;background:var(--accent);color:#fff;font-size:11px;font-weight:600;
+    padding:3px 10px;border-radius:999px;letter-spacing:.02em;box-shadow:var(--shadow);
+  }
+  .tier .tname{font-size:15px;font-weight:600;letter-spacing:-.01em;margin-bottom:6px}
+  .tier .price{font-size:36px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+  .tier .price small{font-size:15px;font-weight:450;color:var(--ink-faint)}
+  .tier .pdesc{font-size:13px;color:var(--ink-faint);margin:4px 0 20px}
+  .tier ul{list-style:none;margin-bottom:22px;display:flex;flex-direction:column;gap:10px}
+  .tier li{font-size:13.5px;color:var(--ink-soft);display:flex;align-items:flex-start;gap:9px;line-height:1.45}
+  .tier li b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+  .tier li .ck{color:var(--green);flex:none;margin-top:2px}
+  .tier .btn{width:100%;justify-content:center}
+
+  /* ---------- FINAL CTA ---------- */
+  .final{padding:20px 0 60px}
+  .final-card{
+    background:var(--ink);border-radius:var(--radius);padding:52px 40px;text-align:center;color:#fff;
+    box-shadow:var(--shadow-card);
+  }
+  .final-card h2{font-size:34px;font-weight:700;letter-spacing:-.025em;margin-bottom:12px;color:#fff}
+  .final-card em{color:#9cc0f4}
+  .final-card p{font-size:16px;color:#c9c6c0;max-width:480px;margin:0 auto 26px}
+  .final-card .btn-primary{background:var(--accent)}
+  .final-card .hero-note{color:#97948d;margin-top:18px}
+
+  /* ---------- FOOTER ---------- */
+  footer{border-top:1px solid var(--border);background:var(--bg-soft);padding:48px 0 36px}
+  .foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;margin-bottom:36px}
+  .foot-brand .wordmark{margin-bottom:12px}
+  .foot-brand p{font-size:13px;color:var(--ink-faint);max-width:280px;line-height:1.55}
+  .foot-col h4{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-faint);font-weight:600;margin-bottom:14px}
+  .foot-col a{display:block;font-size:13.5px;color:var(--ink-soft);margin-bottom:10px;font-weight:450}
+  .foot-col a:hover{color:var(--ink)}
+  .foot-bottom{
+    display:flex;align-items:center;gap:16px;padding-top:24px;border-top:1px solid var(--border);
+    font-size:13px;color:var(--ink-faint);flex-wrap:wrap;
+  }
+  .foot-bottom .sync{margin-left:auto;font-variant-numeric:tabular-nums}
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav class="top">
+  <div class="nav-inner">
+    <a href="#" class="wordmark"><span class="logo-sq">L</span>Liid</a>
+    <div class="nav-links">
+      <a href="#stage">Product</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <a href="#" class="signin">Sign in</a>
+      <a href="#" class="btn btn-primary">Start a campaign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="container">
+    <h1>See exactly where every <em>conversation</em> is going.</h1>
+    <p class="sub">Lead gen for the Baltics and Nordics — verified contacts, emails in your own voice, and the infrastructure to send thousands.</p>
+    <div class="hero-cta">
+      <a href="#" class="btn btn-primary btn-lg">Start a campaign</a>
+      <a href="#how" class="btn btn-secondary btn-lg">See how it works</a>
+    </div>
+    <p class="hero-note">No spreadsheet, no five-tool stack — one screen for the whole funnel.</p>
+  </div>
+</header>
+
+<!-- ============ CENTERPIECE — APP SCREEN ============ -->
+<section class="stage" id="stage">
+  <div class="container-wide">
+    <div class="browser">
+      <div class="browser-bar">
+        <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+        <span class="browser-url">app.liid.io/campaigns/fendr-icp/sending</span>
+      </div>
+      <div class="app">
+        <!-- sidebar -->
+        <aside class="app-side">
+          <div class="side-wordmark"><span class="logo-sq">L</span>Liid</div>
+          <div>
+            <div class="nav-group-label">Enrichment</div>
+            <a class="side-link"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="7" cy="7" r="4.5"/><path d="M11 11l3 3"/></svg>Targeting</a>
+            <a class="side-link"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M4 8h8M6 12h4"/></svg>Filters</a>
+            <a class="side-link"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 8a5 5 0 015-5M13 8a5 5 0 01-5 5"/><path d="M8 5v3l2 1"/></svg>Funnel</a>
+          </div>
+          <div>
+            <div class="nav-group-label">Sending</div>
+            <a class="side-link active"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12v8H2z"/><path d="M2 4l6 4 6-4"/></svg>Sequences</a>
+            <a class="side-link"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 13l4-4M3 13h4M3 13V9"/><path d="M9 3h4v4"/><path d="M13 3l-5 5"/></svg>Replies</a>
+            <a class="side-link"><svg class="ic" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><path d="M6 8l1.5 1.5L11 6"/></svg>Inboxes</a>
+          </div>
+        </aside>
+
+        <!-- main -->
+        <div class="app-main">
+          <div class="app-head">
+            <h2>Sending — Fendr ICP</h2>
+            <span class="crumb num">312 in sequence</span>
+            <span class="spacer"></span>
+            <span class="chip green"><span class="live"><i></i></span>Auto-approve on</span>
+          </div>
+
+          <!-- bucket stats -->
+          <div class="buckets">
+            <div class="stat is-accent">
+              <div class="lbl"><span class="live"><i></i></span>Sending</div>
+              <div class="val num">312</div>
+            </div>
+            <div class="stat">
+              <div class="lbl"><span class="dot accent"></span>Call ready</div>
+              <div class="val num">8</div>
+            </div>
+            <div class="stat">
+              <div class="lbl"><span class="dot green"></span>Interested</div>
+              <div class="val num">23</div>
+            </div>
+            <div class="stat">
+              <div class="lbl"><span class="dot faint"></span>Not interested</div>
+              <div class="val num">141</div>
+            </div>
+            <div class="stat">
+              <div class="lbl"><span class="dot amber"></span>Failed</div>
+              <div class="val num">4</div>
+            </div>
+            <div class="stat">
+              <div class="lbl"><span class="dot red"></span>Bounced</div>
+              <div class="val num">6</div>
+            </div>
+          </div>
+
+          <!-- contact list + thread -->
+          <div class="funnel-body">
+            <div class="panel">
+              <div class="panel-head"><span class="dot green"></span>Replied · Interested<span class="count num">23</span></div>
+              <div class="crow sel">
+                <div class="avatar">MT</div>
+                <div class="who">
+                  <div class="nm">Mart Tamm</div>
+                  <div class="meta"><span>CEO · Fendr</span>·<span class="step num">Step 3/4</span></div>
+                </div>
+                <div class="reply"><span class="dot green"></span>replied · interested</div>
+              </div>
+              <div class="crow">
+                <div class="avatar">LK</div>
+                <div class="who">
+                  <div class="nm">Liis Kask</div>
+                  <div class="meta"><span>Founder · Voolt</span>·<span class="step num">Step 4/4</span></div>
+                </div>
+                <div class="reply"><span class="dot green"></span>replied · interested</div>
+              </div>
+              <div class="crow">
+                <div class="avatar">JO</div>
+                <div class="who">
+                  <div class="nm">Jaan Org</div>
+                  <div class="meta"><span>CTO · Pinta</span>·<span class="step num">Step 2/4</span></div>
+                </div>
+                <div class="reply"><span class="dot green"></span>replied · interested</div>
+              </div>
+              <div class="crow">
+                <div class="avatar">KP</div>
+                <div class="who">
+                  <div class="nm">Kadri Põld</div>
+                  <div class="meta"><span>Head of Sales · Roov</span>·<span class="step num">Step 3/4</span></div>
+                </div>
+                <div class="reply"><span class="dot accent"></span>call ready</div>
+              </div>
+            </div>
+
+            <!-- thread -->
+            <div class="panel">
+              <div class="panel-head"><span class="dot green"></span>Mart Tamm — Fendr<span class="count">paused on reply</span></div>
+              <div class="thread">
+                <div class="mail">
+                  <div class="mail-head">
+                    <span class="tag num">Step 1 · You</span>
+                    <span class="from">Sent</span>
+                    <span class="when num">Jun 14 · 09:12</span>
+                  </div>
+                  <div class="mail-body">
+                    <div class="mail-subj">Quick question about Fendr's onboarding</div>
+                    <p>Hi Mart — noticed Fendr's been hiring on the ops side this quarter. We help Estonian SaaS teams pull verified buyer contacts straight from the registry instead of guessing.</p>
+                    <p>Worth a 15-minute look at how your onboarding funnel maps to it?</p>
+                  </div>
+                </div>
+                <div class="mail inbound">
+                  <div class="mail-head">
+                    <span class="tag num">Reply</span>
+                    <span class="from">Mart Tamm</span>
+                    <span class="when num">Jun 15 · 08:40</span>
+                  </div>
+                  <div class="mail-body">
+                    <p>Timing's good, actually — we're rebuilding outbound right now. Send over a slot for next week and I'll bring our growth lead.</p>
+                  </div>
+                </div>
+                <span class="chip green" style="align-self:flex-start"><span class="dot green"></span>Sequence paused · sorted into Interested</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE: FILTERS ============ -->
+<section class="container" id="how">
+  <div class="feature">
+    <div class="feat-text">
+      <div class="kicker">Targeting</div>
+      <h3>Filters narrow it <em>down</em>.</h3>
+      <p>Live-filter 68,000 active Estonian companies on fields US tools skip for the region — revenue € bands, employees, EMTAK industry, region, founding year, revenue-growth buckets and VAT. A live counter tracks matches as you go, up to 1,000.</p>
+      <p class="vline">"Filters narrow it down. AI tells you exactly who fits."</p>
+    </div>
+    <div class="feat-visual">
+      <div class="vcard">
+        <div class="vcard-head"><span class="dot accent"></span>Registry filters · live</div>
+        <div class="filter-chips">
+          <span class="fchip"><span class="k">Industry</span><b>SaaS</b></span>
+          <span class="fchip"><span class="k">Revenue</span><b>€1–10M</b></span>
+          <span class="fchip"><span class="k">Employees</span><b>10–50</b></span>
+          <span class="fchip"><span class="k">Region</span><b>Harjumaa</b></span>
+          <span class="fchip"><span class="k">Growth</span><b>2×</b></span>
+          <span class="fchip"><span class="k">VAT</span><b>Registered</b></span>
+        </div>
+        <div class="counter">
+          <div class="big num">500</div>
+          <div class="cap">companies match<small>up to 1,000 per campaign</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE: ENRICHMENT ============ -->
+<section class="container">
+  <div class="feature flip">
+    <div class="feat-text">
+      <div class="kicker">Enrichment</div>
+      <h3>Then we verify <em>every</em> one.</h3>
+      <p>Each company runs a six-stage pipeline — website, pages, parse, ICP fit, contacts, verified — in parallel at about 4.2 companies a second. Contacts are double-checked: found on the company's own site and deliverability-tested, so bounces never trash your domain.</p>
+      <p class="vline">"Clean data in. Safe volume out."</p>
+    </div>
+    <div class="feat-visual">
+      <div class="vcard">
+        <div class="vcard-head"><span class="dot green"></span>Enrichment pipeline · 312 companies</div>
+        <div class="pipeline">
+          <div class="pstage done"><span class="pname">Website</span><span class="bar"><i style="width:100%"></i></span><span class="pst"><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>done</span></div>
+          <div class="pstage done"><span class="pname">Pages</span><span class="bar"><i style="width:100%"></i></span><span class="pst"><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>done</span></div>
+          <div class="pstage done"><span class="pname">Parse</span><span class="bar"><i style="width:100%"></i></span><span class="pst"><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>done</span></div>
+          <div class="pstage done"><span class="pname">ICP fit</span><span class="bar"><i style="width:100%"></i></span><span class="pst"><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>done</span></div>
+          <div class="pstage done"><span class="pname">Contacts</span><span class="bar"><i style="width:100%"></i></span><span class="pst"><svg class="tick" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3.5 3.5L13 4"/></svg>done</span></div>
+          <div class="pstage run"><span class="pname">Verified</span><span class="bar"><i style="width:74%"></i></span><span class="pst"><span class="live"><i></i></span>74%</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE: WRITING ============ -->
+<section class="container">
+  <div class="feature">
+    <div class="feat-text">
+      <div class="kicker">Writing</div>
+      <h3>AI learns from how <em>you</em> write.</h3>
+      <p>Feed it a handful of your own emails and Liid drafts each message in your voice — matched to the company's fit, not a generic template. Review the first batch, then auto-approve once you're happy.</p>
+      <p class="vline">"AI learns from how you write."</p>
+    </div>
+    <div class="feat-visual">
+      <div class="vcard">
+        <div class="vcard-head"><span class="dot accent"></span>Draft · Liis Kask · Voolt</div>
+        <div class="draft-meta"><span>To: liis@voolt.ee</span>·<span>Step 1 of 4</span></div>
+        <div class="draft-subj">Voolt's expansion into the Nordic market</div>
+        <div class="draft-body">
+          <p>Hi Liis — saw Voolt crossed into Finland this spring. Most teams I talk to hit a wall finding verified buyers there before the sales hires even start.</p>
+          <p>We pull contacts straight from the registry and check each one's deliverable. Happy to show you the Finland list we'd build for Voolt — no commitment.</p>
+        </div>
+        <div class="draft-foot">
+          <span class="chip accent"><span class="dot accent"></span>Drafted in your voice</span>
+          <a href="#" class="btn btn-primary" style="padding:7px 14px;font-size:13px;margin-left:auto">Approve</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURE: REPLIES ============ -->
+<section class="container">
+  <div class="feature flip">
+    <div class="feat-text">
+      <div class="kicker">Replies</div>
+      <h3>Replies sort <em>themselves</em>.</h3>
+      <p>The moment someone replies the sequence pauses — no double-sends, no awkward follow-ups. Liid reads the reply and drops it into the right bucket so you only ever look at the ones that matter.</p>
+      <p class="vline">"Stop sending to dead inboxes."</p>
+    </div>
+    <div class="feat-visual">
+      <div class="vcard">
+        <div class="vcard-head"><span class="dot green"></span>Reply funnel · this campaign</div>
+        <div class="mini-buckets">
+          <div class="mini-stat is-accent"><div class="lbl"><span class="dot accent"></span>Call ready</div><div class="val num">8</div></div>
+          <div class="mini-stat"><div class="lbl"><span class="dot green"></span>Interested</div><div class="val num">23</div></div>
+          <div class="mini-stat"><div class="lbl"><span class="dot faint"></span>Not interested</div><div class="val num">141</div></div>
+          <div class="mini-stat"><div class="lbl"><span class="dot amber"></span>Failed</div><div class="val num">4</div></div>
+          <div class="mini-stat"><div class="lbl"><span class="dot red"></span>Bounced</div><div class="val num">6</div></div>
+          <div class="mini-stat"><div class="lbl"><span class="live"><i></i></span>Sending</div><div class="val num">312</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ METRICS BAND ============ -->
+<section class="metrics">
+  <div class="container">
+    <div class="metrics-card">
+      <div class="metric"><div class="mv num">68,000<span>+</span></div><div class="ml">active Estonian companies, synced nightly</div></div>
+      <div class="metric"><div class="mv num">4.2<span>/s</span></div><div class="ml">companies enriched in parallel</div></div>
+      <div class="metric"><div class="mv num">4–5<span> min</span></div><div class="ml">to screen a full 1,000</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div class="sec-head">
+      <h2>One price for the <em>whole</em> funnel.</h2>
+      <p>Targeting, enrichment, sending and reply handling included on every plan. EUR, excl. VAT. Cancel anytime.</p>
+    </div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="tname">Starter</div>
+        <div class="price num">€49<small>/mo</small></div>
+        <div class="pdesc">For testing your first list.</div>
+        <ul>
+          <li><span class="ck">✓</span><span><b>50</b> contacts / month</span></li>
+          <li><span class="ck">✓</span><span>Up to <b>1,000</b> screened / month</span></li>
+          <li><span class="ck">✓</span><span>ICP AI matching</span></li>
+          <li><span class="ck">✓</span><span>Multi-domain sending</span></li>
+          <li><span class="ck">✓</span><span>Reply handling &amp; sequences</span></li>
+        </ul>
+        <a href="#" class="btn btn-secondary">Start a campaign</a>
+      </div>
+      <div class="tier pop">
+        <span class="pop-tag">Most popular</span>
+        <div class="tname">Growth</div>
+        <div class="price num">€159<small>/mo</small></div>
+        <div class="pdesc">For a running outbound motion.</div>
+        <ul>
+          <li><span class="ck">✓</span><span><b>200</b> contacts / month</span></li>
+          <li><span class="ck">✓</span><span>Up to <b>4,000</b> screened / month</span></li>
+          <li><span class="ck">✓</span><span>ICP AI matching</span></li>
+          <li><span class="ck">✓</span><span>Multi-domain sending</span></li>
+          <li><span class="ck">✓</span><span>Working-hour scheduling</span></li>
+        </ul>
+        <a href="#" class="btn btn-primary">Start a campaign</a>
+      </div>
+      <div class="tier">
+        <div class="tname">Scale</div>
+        <div class="price num">€699<small>/mo</small></div>
+        <div class="pdesc">For volume across markets.</div>
+        <ul>
+          <li><span class="ck">✓</span><span><b>1,000</b> contacts / month</span></li>
+          <li><span class="ck">✓</span><span>Up to <b>20,000</b> screened / month</span></li>
+          <li><span class="ck">✓</span><span>ICP AI matching</span></li>
+          <li><span class="ck">✓</span><span>Multi-domain sending</span></li>
+          <li><span class="ck">✓</span><span>Priority reply funneling</span></li>
+        </ul>
+        <a href="#" class="btn btn-secondary">Start a campaign</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<section class="final">
+  <div class="container">
+    <div class="final-card">
+      <h2>Take <em>312 enriched</em> companies somewhere.</h2>
+      <p>Clean data in, safe volume out — and a screen that shows you exactly where every conversation is going.</p>
+      <a href="#" class="btn btn-primary btn-lg">Start a campaign</a>
+      <p class="hero-note">Estonia live today · Finland, Latvia, Lithuania, Sweden &amp; Norway soon.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a href="#" class="wordmark"><span class="logo-sq">L</span>Liid</a>
+        <p>Verified B2B contact lists and personalized email sequences from your own inbox. Lead gen for the Baltics and Nordics.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Product</h4>
+        <a href="#stage">Sending funnel</a>
+        <a href="#how">Filters</a>
+        <a href="#how">Enrichment</a>
+        <a href="#how">Reply handling</a>
+      </div>
+      <div class="foot-col">
+        <h4>Company</h4>
+        <a href="#pricing">Pricing</a>
+        <a href="#">Markets</a>
+        <a href="#">Data sources</a>
+        <a href="#">Contact</a>
+      </div>
+      <div class="foot-col">
+        <h4>Legal</h4>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">GDPR</a>
+        <a href="#">Deliverability</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 Liid</span>
+      <span class="sync">Data from 68,000+ active Estonian companies, synced nightly.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

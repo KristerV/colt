@@ -157,17 +157,13 @@ defmodule ColtWeb.Campaigns.TargetLive do
       campaign_id={@campaign.id}
     >
       <div class="flex flex-col gap-6 max-w-[640px] mx-auto py-12">
-        <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55">
+        <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
           {gettext("06 / Target · %{name}", name: @campaign.name)}
         </div>
-        <h1 class="font-serif font-normal text-[32px] md:text-[44px] leading-none tracking-[-0.02em] m-0">
-          {raw(
-            gettext(
-              "How many <em style=\"font-family: 'Instrument Serif', serif;\">contacts</em> do you want?"
-            )
-          )}
+        <h1 class="font-semibold text-[25px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
+          {raw(gettext("How many <em>contacts</em> do you want?"))}
         </h1>
-        <p class="text-[14px] text-ink55 max-w-[520px]">
+        <p class="text-[14px] leading-[1.5] text-inkSoft max-w-[520px]">
           {gettext(
             "We'll keep pulling and enriching companies until we hit this number of named contacts (or run out of matches). About 1 in 5 companies yields a contact, so we'll need ~5× this many companies in the funnel."
           )}
@@ -180,9 +176,10 @@ defmodule ColtWeb.Campaigns.TargetLive do
               phx-click="pick"
               phx-value-target={n}
               class={[
-                "px-4 py-2 border font-mono text-[12px] rounded-sharp cursor-pointer",
-                n == @draft && "border-ink bg-ink text-paper",
-                n != @draft && "border-ink20 text-ink hover:border-ink"
+                "px-4 py-2 border text-[13px] tnum font-semibold rounded-[8px] cursor-pointer transition-all",
+                n == @draft && "border-accentRing bg-accentSoft text-accent",
+                n != @draft &&
+                  "border-border bg-card text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"
               ]}
             >
               {n}
@@ -194,9 +191,10 @@ defmodule ColtWeb.Campaigns.TargetLive do
             phx-click="pick"
             phx-value-target={@max_target}
             class={[
-              "px-4 py-2 border font-mono text-[12px] rounded-sharp cursor-pointer",
-              @max_target == @draft && "border-ink bg-ink text-paper",
-              @max_target != @draft && "border-ink20 text-ink hover:border-ink"
+              "px-4 py-2 border text-[13px] tnum font-semibold rounded-[8px] cursor-pointer transition-all",
+              @max_target == @draft && "border-accentRing bg-accentSoft text-accent",
+              @max_target != @draft &&
+                "border-border bg-card text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"
             ]}
           >
             {gettext("Max · %{n}", n: @max_target)}
@@ -209,7 +207,7 @@ defmodule ColtWeb.Campaigns.TargetLive do
               name="target"
               value={@draft}
               phx-debounce="400"
-              class="w-[100px] px-3 py-2 border border-ink20 bg-paperAlt font-mono text-[12px] rounded-sharp outline-none focus:border-ink"
+              class="w-[100px] px-3 py-2 border border-border bg-card text-[13px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
             />
           </form>
         </div>
@@ -217,15 +215,15 @@ defmodule ColtWeb.Campaigns.TargetLive do
         <div class="flex items-center gap-3 mt-4">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/suppression"}
-            class="inline-flex items-center gap-2 px-3 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+            class="inline-flex items-center gap-2 px-3.5 py-[7px] text-[12px] font-semibold border border-borderStrong bg-card rounded-[8px] no-underline text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"
           >
             <Liid.icon name="chev-l" size={11} /> {gettext("Back to exclude")}
           </.link>
-          <Liid.btn variant={:primary} mono phx-click="confirm">
+          <Liid.btn variant={:primary} phx-click="confirm">
             {confirm_label(@campaign.status, @draft)}
           </Liid.btn>
-          <span :if={@saved?} class="font-mono text-[11px] text-ink55">{gettext("saved.")}</span>
-          <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
+          <span :if={@saved?} class="text-[11px] text-inkSoft">{gettext("saved.")}</span>
+          <span :if={@error} class="text-[11px] text-red">{@error}</span>
         </div>
       </div>
     </Layouts.app>

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liid — Lead gen for the Baltics and Nordics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f7f5; --bg-soft:#fbfbfa; --card:#ffffff;
+    --ink:#37352f; --ink-soft:#6b6862; --ink-faint:#97948d;
+    --border:#e3e3e0; --border-strong:#d6d6d1;
+    --accent:#3b7ae0; --accent-soft:#eef3fc; --accent-ring:#bcd2f5;
+    --green:#2f9e6b; --green-soft:#e7f5ee;
+    --amber:#c98a1e; --amber-soft:#fbf1dd;
+    --red:#d05a4f; --red-soft:#fbeae8;
+    --shadow:0 1px 2px rgba(35,32,28,.05),0 2px 6px rgba(35,32,28,.04);
+    --shadow-card:0 1px 2px rgba(35,32,28,.06),0 4px 12px rgba(35,32,28,.05);
+    --radius:11px; --radius-sm:8px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg); color:var(--ink);
+    font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+  .num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum"}
+  em{font-style:italic; color:var(--accent)}
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 28px}
+
+  /* ---- nav ---- */
+  nav{
+    position:sticky; top:0; z-index:50;
+    background:rgba(247,247,245,.82);
+    backdrop-filter:saturate(180%) blur(12px);
+    border-bottom:1px solid var(--border);
+  }
+  .nav-in{display:flex; align-items:center; gap:28px; height:64px; max-width:1120px; margin:0 auto; padding:0 28px}
+  .brand{display:flex; align-items:center; gap:9px; font-weight:700; letter-spacing:-.02em; font-size:17px}
+  .logo{width:26px; height:26px; border-radius:7px; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:700; font-size:15px; box-shadow:var(--shadow)}
+  .nav-links{display:flex; gap:26px; margin-left:8px}
+  .nav-links a{color:var(--ink-soft); font-size:14px; font-weight:450}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-right{margin-left:auto; display:flex; align-items:center; gap:18px}
+  .signin{color:var(--ink-soft); font-size:14px; font-weight:500}
+  .signin:hover{color:var(--ink)}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:inherit; font-size:14px; font-weight:600; letter-spacing:-.01em;
+    border-radius:var(--radius-sm); padding:9px 16px; cursor:pointer; border:1px solid transparent;
+    transition:.15s;
+  }
+  .btn-primary{background:var(--accent); color:#fff; box-shadow:var(--shadow)}
+  .btn-primary:hover{background:#3470d4}
+  .btn-secondary{background:var(--card); color:var(--ink-soft); border-color:var(--border-strong); box-shadow:var(--shadow)}
+  .btn-secondary:hover{color:var(--ink); border-color:var(--ink-faint)}
+  .btn-lg{padding:12px 22px; font-size:15px}
+
+  /* ---- generic ---- */
+  section{padding:84px 0}
+  h1,h2,h3{letter-spacing:-.02em; font-weight:600; margin:0}
+  .kicker{
+    display:inline-flex; align-items:center; gap:8px;
+    background:var(--accent-soft); color:var(--accent); border:1px solid var(--accent-ring);
+    font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; letter-spacing:-.01em;
+  }
+  .eyebrow{font-size:12.5px; font-weight:600; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-faint)}
+  .sec-head{max-width:640px; margin:0 auto 48px; text-align:center}
+  .sec-head h2{font-size:32px; line-height:1.15; margin:14px 0 10px}
+  .sec-head p{color:var(--ink-soft); font-size:16px; margin:0}
+
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--green); position:relative; display:inline-block}
+  .dot::after{content:""; position:absolute; inset:-3px; border-radius:50%; background:var(--green); opacity:.5; animation:halo 1.8s infinite ease-out}
+  @keyframes halo{from{transform:scale(.6); opacity:.5} to{transform:scale(1.9); opacity:0}}
+
+  /* ---- hero ---- */
+  .hero{padding-top:64px; padding-bottom:72px}
+  .hero-grid{display:grid; grid-template-columns:1fr 1.02fr; gap:56px; align-items:center}
+  .hero h1{font-size:50px; line-height:1.04; margin:20px 0 18px; font-weight:700}
+  .hero .sub{font-size:17px; color:var(--ink-soft); max-width:480px; margin:0 0 28px}
+  .hero-cta{display:flex; gap:12px; margin-bottom:24px}
+  .trust{display:flex; align-items:center; gap:9px; color:var(--ink-faint); font-size:13px}
+
+  /* ---- browser card ---- */
+  .browser{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow-card); overflow:hidden}
+  .browser-bar{display:flex; align-items:center; gap:7px; padding:11px 14px; border-bottom:1px solid var(--border); background:var(--bg-soft)}
+  .tl{width:10px; height:10px; border-radius:50%; background:var(--border-strong)}
+  .url{margin-left:10px; flex:1; background:var(--bg); border:1px solid var(--border); border-radius:6px; font-size:11.5px; color:var(--ink-faint); padding:4px 10px; font-weight:450}
+  .browser-body{padding:18px}
+
+  .visual-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+  .visual-head .lbl{font-size:13px; font-weight:600; color:var(--ink)}
+  .live{display:inline-flex; align-items:center; gap:7px; font-size:11.5px; color:var(--green); font-weight:600}
+
+  .buckets{display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-bottom:16px}
+  .bucket{background:var(--bg-soft); border:1px solid var(--border); border-radius:var(--radius-sm); padding:11px 12px}
+  .bucket .bl{font-size:11px; color:var(--ink-faint); font-weight:500; display:flex; align-items:center; gap:6px; margin-bottom:6px; white-space:nowrap}
+  .bucket .bn{font-size:22px; font-weight:700; letter-spacing:-.02em; line-height:1}
+  .sd{width:7px; height:7px; border-radius:50%; flex:none}
+  .sd.b{background:var(--accent)} .sd.g{background:var(--green)} .sd.a{background:var(--amber)} .sd.r{background:var(--red)} .sd.n{background:var(--ink-faint)}
+
+  .email-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px}
+  .meta{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:11px}
+  .chip{font-size:11px; font-weight:500; padding:3px 9px; border-radius:6px; background:var(--bg-soft); border:1px solid var(--border); color:var(--ink-soft)}
+  .chip.acc{background:var(--accent-soft); border-color:var(--accent-ring); color:var(--accent)}
+  .chip.gr{background:var(--green-soft); border-color:#cfe9dc; color:var(--green)}
+  .email-subj{font-size:14.5px; font-weight:600; letter-spacing:-.01em; margin-bottom:7px}
+  .email-body{font-size:13px; color:var(--ink-soft); line-height:1.6}
+
+  /* ---- coverage strip ---- */
+  .coverage{padding:0 0 12px}
+  .cov-in{display:flex; align-items:center; justify-content:center; gap:10px; flex-wrap:wrap}
+  .cov-label{font-size:13px; color:var(--ink-faint); font-weight:500}
+  .region{display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:500; padding:6px 13px; border-radius:999px; background:var(--card); border:1px solid var(--border); color:var(--ink-soft); box-shadow:var(--shadow)}
+  .region.live{color:var(--green); border-color:#cfe9dc; background:var(--green-soft)}
+  .region.soon{color:var(--ink-faint)}
+
+  /* ---- features ---- */
+  .feat-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .feat{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow)}
+  .feat:hover{box-shadow:var(--shadow-card)}
+  .fmark{width:38px; height:38px; border-radius:9px; background:var(--accent-soft); border:1px solid var(--accent-ring); display:grid; place-items:center; font-size:18px; margin-bottom:15px}
+  .feat h3{font-size:16px; margin-bottom:8px; font-weight:600}
+  .feat p{font-size:13.5px; color:var(--ink-soft); margin:0; line-height:1.55}
+
+  /* ---- how it works ---- */
+  .how{background:var(--bg-soft); border-top:1px solid var(--border); border-bottom:1px solid var(--border)}
+  .steps{display:grid; grid-template-columns:repeat(5,1fr); gap:14px}
+  .step{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow)}
+  .snum{font-size:13px; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; margin-bottom:10px; letter-spacing:.02em}
+  .step h3{font-size:15px; margin-bottom:6px; font-weight:600}
+  .step p{font-size:12.5px; color:var(--ink-soft); margin:0; line-height:1.5}
+  .then{text-align:center; margin-top:30px; color:var(--ink-soft); font-size:14.5px}
+  .then strong{color:var(--ink); font-weight:600}
+
+  /* ---- metrics ---- */
+  .metrics{display:grid; grid-template-columns:repeat(4,1fr); gap:18px}
+  .metric{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:26px 22px; box-shadow:var(--shadow); text-align:left}
+  .metric .mn{font-size:38px; font-weight:700; letter-spacing:-.03em; line-height:1; color:var(--ink)}
+  .metric .mn small{font-size:20px; font-weight:600; color:var(--ink-soft)}
+  .metric .ml{font-size:13px; color:var(--ink-soft); margin-top:10px; font-weight:450}
+
+  /* ---- pricing ---- */
+  .price-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px; align-items:stretch}
+  .tier{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:28px 24px; box-shadow:var(--shadow); display:flex; flex-direction:column}
+  .tier.pop{border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft),var(--shadow-card); position:relative}
+  .pop-tag{position:absolute; top:-12px; left:24px; background:var(--accent); color:#fff; font-size:11.5px; font-weight:600; padding:4px 12px; border-radius:999px; box-shadow:var(--shadow)}
+  .tier h3{font-size:17px; font-weight:600; margin-bottom:4px}
+  .tier .tdesc{font-size:13px; color:var(--ink-faint); margin-bottom:18px}
+  .price{display:flex; align-items:baseline; gap:4px; margin-bottom:4px}
+  .price .amt{font-size:36px; font-weight:700; letter-spacing:-.03em; line-height:1}
+  .price .per{font-size:14px; color:var(--ink-faint); font-weight:500}
+  .tier .ex{font-size:11.5px; color:var(--ink-faint); margin-bottom:20px}
+  .tlist{list-style:none; padding:0; margin:0 0 24px; flex:1}
+  .tlist li{font-size:13.5px; color:var(--ink-soft); padding:7px 0; display:flex; gap:9px; align-items:flex-start; border-top:1px solid var(--border)}
+  .tlist li:first-child{border-top:none}
+  .tick{color:var(--green); font-weight:700; flex:none}
+  .tlist li strong{color:var(--ink); font-weight:600}
+  .tier .btn{width:100%; justify-content:center}
+  .all-incl{text-align:center; margin-top:24px; font-size:13px; color:var(--ink-faint)}
+
+  /* ---- final cta ---- */
+  .final{padding:0}
+  .cta-band{background:var(--ink); color:#fff; border-radius:var(--radius); padding:56px 40px; text-align:center; box-shadow:var(--shadow-card)}
+  .cta-band h2{font-size:34px; color:#fff; margin-bottom:12px}
+  .cta-band em{color:#9cc1f5}
+  .cta-band p{color:rgba(255,255,255,.62); font-size:16px; margin:0 0 26px}
+  .cta-band .btn-primary{background:var(--accent)}
+  .cta-band .btn-primary:hover{background:#4d86e8}
+
+  /* ---- footer ---- */
+  footer{border-top:1px solid var(--border); padding:56px 0 40px; background:var(--bg-soft)}
+  .foot-grid{display:grid; grid-template-columns:1.6fr 1fr 1fr 1fr; gap:32px; margin-bottom:36px}
+  .foot-brand .brand{margin-bottom:12px}
+  .foot-brand p{font-size:13px; color:var(--ink-faint); max-width:280px; margin:0; line-height:1.6}
+  .fcol h4{font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-faint); font-weight:600; margin:0 0 14px}
+  .fcol a{display:block; font-size:13.5px; color:var(--ink-soft); padding:5px 0}
+  .fcol a:hover{color:var(--ink)}
+  .foot-bot{display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border); padding-top:22px; font-size:12.5px; color:var(--ink-faint); flex-wrap:wrap; gap:10px}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-in">
+    <a class="brand" href="#"><span class="logo">L</span>Liid</a>
+    <div class="nav-links">
+      <a href="#features">Product</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <a class="signin" href="#">Sign in</a>
+      <a class="btn btn-primary" href="#">Start a campaign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <span class="kicker"><span class="dot"></span>Lead gen · Baltics &amp; Nordics</span>
+        <h1>Lead gen for the Baltics and <em>Nordics</em>.</h1>
+        <p class="sub">Accurate targeting, emails personalised in your own writing style, and the infrastructure to send thousands — all in one.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary btn-lg" href="#">Start a campaign</a>
+          <a class="btn btn-secondary btn-lg" href="#how">See how it works</a>
+        </div>
+        <div class="trust"><span class="dot"></span>Fresh data from <span class="num">68,000+</span> Estonian companies · synced nightly</div>
+      </div>
+
+      <!-- product visual -->
+      <div class="browser">
+        <div class="browser-bar">
+          <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+          <span class="url num">app.liid.io/campaign/nordic-saas/replies</span>
+        </div>
+        <div class="browser-body">
+          <div class="visual-head">
+            <span class="lbl">Replies — sorted into buckets</span>
+            <span class="live"><span class="dot"></span>Live</span>
+          </div>
+          <div class="buckets">
+            <div class="bucket"><div class="bl"><span class="sd b"></span>Sending</div><div class="bn num">312</div></div>
+            <div class="bucket"><div class="bl"><span class="sd g"></span>Interested</div><div class="bn num">23</div></div>
+            <div class="bucket"><div class="bl"><span class="sd a"></span>Call ready</div><div class="bn num">8</div></div>
+            <div class="bucket"><div class="bl"><span class="sd n"></span>Not interested</div><div class="bn num">141</div></div>
+          </div>
+          <div class="email-card">
+            <div class="meta">
+              <span class="chip acc">Step 1</span>
+              <span class="chip">You</span>
+              <span class="chip gr">Sent</span>
+              <span class="chip num">19 Jun 2026</span>
+            </div>
+            <div class="email-subj">Quick one on Nordkapp's onboarding flow</div>
+            <div class="email-body">Saw you're scaling the sales team in Tallinn — most teams your size leak demos at handoff. We pulled 312 companies that fit your ICP exactly. Worth 15 minutes?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COVERAGE -->
+<section class="coverage">
+  <div class="wrap">
+    <div class="cov-in">
+      <span class="cov-label">Registry coverage</span>
+      <span class="region live"><span class="dot"></span>Estonia · live</span>
+      <span class="region soon">Finland · soon</span>
+      <span class="region soon">Latvia · soon</span>
+      <span class="region soon">Lithuania · soon</span>
+      <span class="region soon">Sweden · soon</span>
+      <span class="region soon">Norway · soon</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Why Liid</span>
+      <h2>Clean data in. <em>Safe</em> volume out.</h2>
+      <p>Filters narrow it down. AI tells you exactly who fits — then sends without trashing your domain.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="fmark">🛰️</div>
+        <h3>Fresh by default</h3>
+        <p>Government business-registry data from rik.ee Avaandmed, synced nightly — not a years-old dump.</p>
+      </div>
+      <div class="feat">
+        <div class="fmark">🎛️</div>
+        <h3>Filters US tools lack</h3>
+        <p>Revenue € bands, employees, EMTAK industry, region, founding year, revenue-growth buckets and VAT — built for the region.</p>
+      </div>
+      <div class="feat">
+        <div class="fmark">🎯</div>
+        <h3>AI ICP matching</h3>
+        <p>Describe your ideal customer in plain English. Liid reads every site and keeps only the fits.</p>
+      </div>
+      <div class="feat">
+        <div class="fmark">✅</div>
+        <h3>Double-verified contacts</h3>
+        <p>Every email appears on the company's own site and is deliverability-checked. Stop sending to dead inboxes.</p>
+      </div>
+      <div class="feat">
+        <div class="fmark">⚡</div>
+        <h3>Built to scale</h3>
+        <p>~1,000 companies enriched in parallel at ~4.2/sec — roughly 4–5 minutes per 1,000.</p>
+      </div>
+      <div class="feat">
+        <div class="fmark">✍️</div>
+        <h3>Writes in your voice</h3>
+        <p>AI learns from how you write, drafts each email, and waits for your approval — or auto-approves when you're happy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">How it works</span>
+      <h2>Five steps to a <em>verified</em> list.</h2>
+      <p>Name it, describe who you want, pick a market, narrow the registry, and enrich.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="snum num">01</div><h3>Name</h3><p>Name the campaign and you're in.</p></div>
+      <div class="step"><div class="snum num">02</div><h3>ICP</h3><p>Describe your ideal customer in plain English + a target job title.</p></div>
+      <div class="step"><div class="snum num">03</div><h3>Market</h3><p>Pick a registry. Estonia live; Finland, Latvia, Lithuania, Sweden, Norway soon.</p></div>
+      <div class="step"><div class="snum num">04</div><h3>Filters</h3><p>Live-filter by industry, region, revenue, employees, growth. A counter shows matches, up to 1,000.</p></div>
+      <div class="step"><div class="snum num">05</div><h3>Funnel</h3><p>Website → Pages → Parse → ICP fit → Contacts → Verified. Export CSV.</p></div>
+    </div>
+    <p class="then"><strong>Then it sends &amp; sorts the replies.</strong> AI writes in your voice → you approve → multi-inbox sequences send on a human-like schedule → replies pause the sequence and get categorized.</p>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section>
+  <div class="wrap">
+    <div class="metrics">
+      <div class="metric"><div class="mn num">68,000</div><div class="ml">active Estonian companies, synced nightly</div></div>
+      <div class="metric"><div class="mn num">4.2<small>/sec</small></div><div class="ml">companies enriched in parallel</div></div>
+      <div class="metric"><div class="mn num">4–5<small> min</small></div><div class="ml">to enrich a full 1,000-company run</div></div>
+      <div class="metric"><div class="mn num">50–1,000</div><div class="ml">verified contacts per month, by plan</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="how" style="background:var(--bg-soft)">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Pricing</span>
+      <h2>Take <em>312</em> enriched companies somewhere.</h2>
+      <p>EUR, excl. VAT. Cancel anytime.</p>
+    </div>
+    <div class="price-grid">
+      <div class="tier">
+        <h3>Starter</h3>
+        <div class="tdesc">For solo founders testing the waters.</div>
+        <div class="price"><span class="amt num">€49</span><span class="per">/mo</span></div>
+        <div class="ex">excl. VAT · cancel anytime</div>
+        <ul class="tlist">
+          <li><span class="tick">✓</span><span><strong>50</strong> verified contacts / mo</span></li>
+          <li><span class="tick">✓</span><span>Up to <strong>1,000</strong> companies screened</span></li>
+          <li><span class="tick">✓</span><span>ICP AI matching</span></li>
+          <li><span class="tick">✓</span><span>Multi-domain sending</span></li>
+        </ul>
+        <a class="btn btn-secondary" href="#">Start a campaign</a>
+      </div>
+
+      <div class="tier pop">
+        <span class="pop-tag">Most popular</span>
+        <h3>Growth</h3>
+        <div class="tdesc">For outbound teams running real volume.</div>
+        <div class="price"><span class="amt num">€159</span><span class="per">/mo</span></div>
+        <div class="ex">excl. VAT · cancel anytime</div>
+        <ul class="tlist">
+          <li><span class="tick">✓</span><span><strong>200</strong> verified contacts / mo</span></li>
+          <li><span class="tick">✓</span><span>Up to <strong>4,000</strong> companies screened</span></li>
+          <li><span class="tick">✓</span><span>ICP AI matching</span></li>
+          <li><span class="tick">✓</span><span>Multi-domain sending</span></li>
+          <li><span class="tick">✓</span><span>Reply handling &amp; categorization</span></li>
+        </ul>
+        <a class="btn btn-primary" href="#">Start a campaign</a>
+      </div>
+
+      <div class="tier">
+        <h3>Scale</h3>
+        <div class="tdesc">For sales orgs targeting the whole region.</div>
+        <div class="price"><span class="amt num">€699</span><span class="per">/mo</span></div>
+        <div class="ex">excl. VAT · cancel anytime</div>
+        <ul class="tlist">
+          <li><span class="tick">✓</span><span><strong>1,000</strong> verified contacts / mo</span></li>
+          <li><span class="tick">✓</span><span>Up to <strong>20,000</strong> companies screened</span></li>
+          <li><span class="tick">✓</span><span>ICP AI matching</span></li>
+          <li><span class="tick">✓</span><span>Multi-domain sending</span></li>
+          <li><span class="tick">✓</span><span>Priority reply handling</span></li>
+        </ul>
+        <a class="btn btn-secondary" href="#">Start a campaign</a>
+      </div>
+    </div>
+    <p class="all-incl">All plans include ICP AI matching, multi-domain sending, reply handling, and sequences with working-hour scheduling.</p>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final">
+  <div class="wrap">
+    <div class="cta-band">
+      <h2>Stop sending to <em>dead</em> inboxes.</h2>
+      <p>Clean data in. Safe volume out. AI learns from how you write.</p>
+      <a class="btn btn-primary btn-lg" href="#">Start a campaign</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#"><span class="logo">L</span>Liid</a>
+        <p>Verified B2B contact lists and personalised email sequences for the Baltics &amp; Nordics. Fresh by default.</p>
+      </div>
+      <div class="fcol">
+        <h4>Product</h4>
+        <a href="#features">Features</a>
+        <a href="#how">How it works</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#">Registry coverage</a>
+      </div>
+      <div class="fcol">
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+        <a href="#">Careers</a>
+      </div>
+      <div class="fcol">
+        <h4>Legal</h4>
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+        <a href="#">Data &amp; GDPR</a>
+      </div>
+    </div>
+    <div class="foot-bot">
+      <span>© 2026 Liid</span>
+      <span class="num">Data from 68,000+ active Estonian companies, synced nightly.</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

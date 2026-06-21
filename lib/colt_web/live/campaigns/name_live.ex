@@ -70,27 +70,35 @@ defmodule ColtWeb.Campaigns.NameLive do
           id="campaign-name-form"
           phx-change="validate"
           phx-submit="save"
-          class="mt-14"
+          class="mt-10"
           autocomplete="off"
         >
-          <input
-            type="text"
-            id="campaign-name-input"
-            name="name"
-            value={@name}
-            phx-debounce="200"
-            autofocus
-            class="w-full font-serif text-[28px] md:text-[44px] font-normal tracking-[-0.02em] text-ink py-[12px] pb-[14px] border-0 border-b border-ink bg-transparent outline-none placeholder:text-ink40"
-          />
+          <div class="bg-card border border-border rounded-[11px] p-6 [box-shadow:var(--shadow)]">
+            <label
+              for="campaign-name-input"
+              class="block text-[10.5px] tracking-[0.08em] uppercase text-inkFaint font-semibold mb-2"
+            >
+              {gettext("Campaign name")}
+            </label>
+            <input
+              type="text"
+              id="campaign-name-input"
+              name="name"
+              value={@name}
+              phx-debounce="200"
+              autofocus
+              class="w-full text-[20px] font-semibold tracking-[-0.01em] text-ink px-4 py-3 border border-borderStrong bg-card rounded-[8px] outline-none placeholder:text-inkFaint focus:border-accent focus:[box-shadow:0_0_0_3px_var(--accentSoft)]"
+            />
 
-          <div :if={@error} class="mt-4 font-mono text-[11px] text-fail">
-            {@error}
-          </div>
-          <div :if={@saved?} class="mt-4 font-mono text-[11px] text-ink55">
-            {gettext("saved.")}
+            <div :if={@error} class="mt-3 text-[12px] text-red">
+              {@error}
+            </div>
+            <div :if={@saved?} class="mt-3 text-[12px] text-inkFaint">
+              {gettext("saved.")}
+            </div>
           </div>
 
-          <div class="mt-16">
+          <div class="mt-6">
             <Liid.btn variant={:primary} mono type="submit">
               {gettext("Save")} <Liid.icon name="check" />
             </Liid.btn>

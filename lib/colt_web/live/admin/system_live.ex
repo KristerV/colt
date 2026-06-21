@@ -43,8 +43,10 @@ defmodule ColtWeb.Admin.SystemLive do
       <div class="space-y-8">
         <AdminSummary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <div>
-          <h1 class="text-3xl font-semibold">System</h1>
-          <p class="text-xs opacity-60 mt-1 font-mono">refreshing every {@tick_ms}ms</p>
+          <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
+            System <em>health</em>
+          </h1>
+          <p class="text-[12px] text-ink55 mt-1 tabular-nums">refreshing every {@tick_ms}ms</p>
         </div>
 
         <section class="grid grid-cols-3 gap-4">
@@ -62,7 +64,7 @@ defmodule ColtWeb.Admin.SystemLive do
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-xs uppercase tracking-wider opacity-60">CPU</h2>
+          <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">CPU</h2>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <.metric
@@ -86,9 +88,9 @@ defmodule ColtWeb.Admin.SystemLive do
             <.metric label="vCPUs" value={Integer.to_string(@stats.cpu.cores)} />
           </div>
 
-          <table :if={@stats.cpu.per_cpu != []} class="text-sm font-mono w-full max-w-xl mt-3">
+          <table :if={@stats.cpu.per_cpu != []} class="text-[13px] w-full max-w-xl mt-3">
             <thead>
-              <tr class="text-xs uppercase tracking-wider opacity-60">
+              <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
                 <th class="text-left py-1">vCPU</th>
                 <th class="text-right py-1">busy</th>
                 <th class="text-right py-1">steal</th>
@@ -97,7 +99,7 @@ defmodule ColtWeb.Admin.SystemLive do
               </tr>
             </thead>
             <tbody>
-              <tr :for={c <- @stats.cpu.per_cpu} class="border-t border-base-300">
+              <tr :for={c <- @stats.cpu.per_cpu} class="border-t border-border">
                 <td class="py-1">{c.id}</td>
                 <td class="py-1 tabular-nums text-right">{pct(c.busy)}</td>
                 <td class="py-1 tabular-nums text-right">{pct(c.steal)}</td>
@@ -109,7 +111,7 @@ defmodule ColtWeb.Admin.SystemLive do
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-xs uppercase tracking-wider opacity-60">Memory</h2>
+          <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">Memory</h2>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <.metric label="System used" value={pct(@stats.ram.used_pct)} />
@@ -137,22 +139,22 @@ defmodule ColtWeb.Admin.SystemLive do
         </section>
 
         <section :if={@stats.disks != []} class="space-y-3">
-          <h2 class="text-xs uppercase tracking-wider opacity-60">Disk</h2>
+          <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">Disk</h2>
 
-          <table class="text-sm font-mono w-full max-w-2xl">
+          <table class="text-[13px] w-full max-w-2xl">
             <thead>
-              <tr class="text-xs uppercase tracking-wider opacity-60">
+              <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
                 <th class="text-left py-1">mount</th>
                 <th class="text-right py-1">used</th>
                 <th class="text-right py-1">total</th>
               </tr>
             </thead>
             <tbody>
-              <tr :for={d <- @stats.disks} class="border-t border-base-300">
+              <tr :for={d <- @stats.disks} class="border-t border-border">
                 <td class="py-1">{d.mount}</td>
                 <td class={[
                   "py-1 tabular-nums text-right",
-                  d.percent >= 85 && "text-error font-semibold"
+                  d.percent >= 85 && "text-red font-semibold"
                 ]}>
                   {d.percent}%
                 </td>
@@ -163,14 +165,14 @@ defmodule ColtWeb.Admin.SystemLive do
         </section>
 
         <section :if={@stats.disk_io != []} class="space-y-3">
-          <h2 class="text-xs uppercase tracking-wider opacity-60">Disk I/O</h2>
-          <p class="text-[11px] opacity-60 font-mono">
+          <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">Disk I/O</h2>
+          <p class="text-[11px] text-ink55">
             %util = fraction of time the device had I/O in flight. ~100% means saturated.
           </p>
 
-          <table class="text-sm font-mono w-full max-w-4xl">
+          <table class="text-[13px] w-full max-w-4xl">
             <thead>
-              <tr class="text-xs uppercase tracking-wider opacity-60">
+              <tr class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 border-b border-border">
                 <th class="text-left py-1">device</th>
                 <th class="text-right py-1">read MB/s</th>
                 <th class="text-right py-1">write MB/s</th>
@@ -181,7 +183,7 @@ defmodule ColtWeb.Admin.SystemLive do
               </tr>
             </thead>
             <tbody>
-              <tr :for={d <- @stats.disk_io} class="border-t border-base-300">
+              <tr :for={d <- @stats.disk_io} class="border-t border-border">
                 <td class="py-1">{d.name}</td>
                 <td class="py-1 tabular-nums text-right">{mbps(d.read_bps)}</td>
                 <td class="py-1 tabular-nums text-right">{mbps(d.write_bps)}</td>
@@ -200,7 +202,7 @@ defmodule ColtWeb.Admin.SystemLive do
         </section>
 
         <section :if={@stats.db.ok?} class="space-y-3">
-          <h2 class="text-xs uppercase tracking-wider opacity-60">Database</h2>
+          <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">Database</h2>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <.metric
@@ -241,7 +243,7 @@ defmodule ColtWeb.Admin.SystemLive do
         </section>
 
         <section class="space-y-3">
-          <h2 class="text-xs uppercase tracking-wider opacity-60">BEAM</h2>
+          <h2 class="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink55">BEAM</h2>
 
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <.metric
@@ -264,11 +266,9 @@ defmodule ColtWeb.Admin.SystemLive do
 
   defp metric(assigns) do
     ~H"""
-    <div class="card bg-base-200 border border-base-300">
-      <div class="card-body p-4">
-        <div class="text-[10px] uppercase tracking-wider opacity-60">{@label}</div>
-        <div class={["text-xl font-mono tabular-nums mt-1", @accent]}>{@value}</div>
-      </div>
+    <div class="bg-card border border-border rounded-[11px] p-4" style="box-shadow:var(--shadow)">
+      <div class="text-[10px] uppercase tracking-[0.08em] font-semibold text-ink55">{@label}</div>
+      <div class={["text-[19px] font-bold tabular-nums mt-1", @accent || "text-ink"]}>{@value}</div>
     </div>
     """
   end
@@ -279,10 +279,13 @@ defmodule ColtWeb.Admin.SystemLive do
 
   defp summary(assigns) do
     ~H"""
-    <div class="card bg-base-200 border border-base-300">
-      <div class="card-body p-5">
-        <div class="text-xs uppercase tracking-wider opacity-60">{@label}</div>
-        <div class={["text-4xl font-mono tabular-nums mt-2", @accent]}>{@value}</div>
+    <div class="bg-card border border-border rounded-[11px] p-5" style="box-shadow:var(--shadow-card)">
+      <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">{@label}</div>
+      <div class={[
+        "text-[34px] font-bold tabular-nums leading-none tracking-[-0.02em] mt-2",
+        @accent || "text-ink"
+      ]}>
+        {@value}
       </div>
     </div>
     """
@@ -304,46 +307,46 @@ defmodule ColtWeb.Admin.SystemLive do
 
   defp gb(_), do: "—"
 
-  defp busy_accent(n) when n >= 80, do: "text-error"
+  defp busy_accent(n) when n >= 80, do: "text-red"
   defp busy_accent(_), do: nil
 
-  defp steal_accent(n) when n >= 20, do: "text-error"
-  defp steal_accent(n) when n >= 5, do: "text-warning"
+  defp steal_accent(n) when n >= 20, do: "text-red"
+  defp steal_accent(n) when n >= 5, do: "text-amber"
   defp steal_accent(_), do: nil
 
-  defp ram_accent(n) when n >= 90, do: "text-error"
-  defp ram_accent(n) when n >= 75, do: "text-warning"
+  defp ram_accent(n) when n >= 90, do: "text-red"
+  defp ram_accent(n) when n >= 75, do: "text-amber"
   defp ram_accent(_), do: nil
 
-  defp disk_accent(n) when n >= 90, do: "text-error"
-  defp disk_accent(n) when n >= 75, do: "text-warning"
+  defp disk_accent(n) when n >= 90, do: "text-red"
+  defp disk_accent(n) when n >= 75, do: "text-amber"
   defp disk_accent(_), do: nil
 
-  defp util_accent(n) when n >= 80, do: "text-error"
-  defp util_accent(n) when n >= 50, do: "text-warning"
+  defp util_accent(n) when n >= 80, do: "text-red"
+  defp util_accent(n) when n >= 50, do: "text-amber"
   defp util_accent(_), do: nil
 
   defp pool_accent(used, total) when is_integer(total) and total > 0 do
     pct = used * 100 / total
 
     cond do
-      pct >= 90 -> "text-error"
-      pct >= 70 -> "text-warning"
+      pct >= 90 -> "text-red"
+      pct >= 70 -> "text-amber"
       true -> nil
     end
   end
 
   defp pool_accent(_, _), do: nil
 
-  defp idle_in_tx_accent(n) when n >= 3, do: "text-error"
-  defp idle_in_tx_accent(n) when n >= 1, do: "text-warning"
+  defp idle_in_tx_accent(n) when n >= 3, do: "text-red"
+  defp idle_in_tx_accent(n) when n >= 1, do: "text-amber"
   defp idle_in_tx_accent(_), do: nil
 
-  defp long_query_accent(s) when s >= 30, do: "text-error"
-  defp long_query_accent(s) when s >= 5, do: "text-warning"
+  defp long_query_accent(s) when s >= 30, do: "text-red"
+  defp long_query_accent(s) when s >= 5, do: "text-amber"
   defp long_query_accent(_), do: nil
 
-  defp cache_hit_accent(pct) when pct < 90, do: "text-warning"
+  defp cache_hit_accent(pct) when pct < 90, do: "text-amber"
   defp cache_hit_accent(_), do: nil
 
   defp per_sec(n) when is_number(n) do

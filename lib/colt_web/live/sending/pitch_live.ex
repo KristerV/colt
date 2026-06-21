@@ -139,8 +139,11 @@ defmodule ColtWeb.Sending.PitchLive do
           {raw(gettext("The <em>offer</em> behind every email."))}
         </Liid.headline>
 
-        <div class="mt-10">
-          <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55 mb-2.5">
+        <div
+          class="mt-9 bg-card border border-border rounded-[11px] p-5"
+          style="box-shadow:var(--shadow)"
+        >
+          <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-2.5">
             {gettext("Your domain")}
           </div>
           <form id="domain-form" phx-change="set_domain" class="block">
@@ -151,31 +154,33 @@ defmodule ColtWeb.Sending.PitchLive do
               value={@domain}
               phx-debounce="blur"
               placeholder="liid.app"
-              class="w-full px-5 py-3 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[13.5px] text-ink outline-none placeholder:text-ink40 font-mono"
-              style="border-left-color: var(--accent);"
+              class="w-full px-4 py-2.5 border border-border bg-bgSoft rounded-[8px] text-[13.5px] text-ink outline-none placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
             />
           </form>
-          <div class="mt-1.5 font-mono text-[10px] text-ink40">
+          <div class="mt-2 text-[11px] text-inkFaint leading-[1.5]">
             {gettext(
               "press tab or click out to fetch. changing the domain re-fetches and overwrites the summary below."
             )}
           </div>
         </div>
 
-        <div class="mt-8">
+        <div
+          class="mt-3.5 bg-card border border-border rounded-[11px] p-5"
+          style="box-shadow:var(--shadow)"
+        >
           <div class="flex items-center justify-between mb-2.5">
-            <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
+            <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
               {gettext("What you sell")}
             </div>
             <div
               :if={@pitch.fetching?}
-              class="font-mono text-[10px] tracking-[0.06em] inline-flex items-center gap-1.5"
-              style="color: var(--accent);"
+              class="text-[11px] font-medium inline-flex items-center gap-1.5 text-accent"
             >
-              <span
-                class="w-[5px] h-[5px] rounded-full"
-                style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-              /> {gettext("reading site…")}
+              <span class="relative w-[6px] h-[6px] shrink-0">
+                <span class="absolute inset-0 rounded-full bg-accent" />
+                <span class="absolute -inset-[2px] rounded-full bg-accent opacity-40 animate-[pulse-halo_1.8s_ease-out_infinite]" />
+              </span>
+              {gettext("reading site…")}
             </div>
           </div>
           <form id="summary-form" phx-change="set_summary" class="block">
@@ -192,33 +197,35 @@ defmodule ColtWeb.Sending.PitchLive do
                     gettext("We'll fill this in once you set a domain. Or type your own pitch here.")
               }
               class={[
-                "w-full px-5 py-4 bg-paper text-[13.5px] leading-[1.6] text-ink70 outline-none border border-ink20 rounded-[2px] resize-none font-sans block",
+                "w-full px-4 py-3 bg-bgSoft text-[13.5px] leading-[1.6] text-inkSoft outline-none border border-border rounded-[8px] resize-none block focus:border-accentRing focus:bg-card",
                 @pitch.fetching? && "opacity-60 cursor-not-allowed"
               ]}
               style="field-sizing: content;"
             >{@summary}</textarea>
           </form>
-          <div :if={@pitch.fetched_at} class="mt-1.5 font-mono text-[10px] text-ink40">
+          <div :if={@pitch.fetched_at} class="mt-2 text-[11px] text-inkFaint tabular-nums">
             {gettext("site last read %{at}.",
               at: Calendar.strftime(@pitch.fetched_at, "%Y-%m-%d %H:%M")
             )}
-            <span :if={@pitch.user_summary not in [nil, ""]} class="text-ink55">
+            <span :if={@pitch.user_summary not in [nil, ""]} class="text-inkSoft">
               {gettext("edited.")}
             </span>
           </div>
         </div>
 
-        <div class="mt-10 flex flex-wrap items-center gap-4">
+        <div class="mt-8 flex flex-wrap items-center gap-3">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/funnel"}
-            class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+            class="no-underline"
           >
-            <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
+            <Liid.btn size={:small}>
+              <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
+            </Liid.btn>
           </.link>
-          <Liid.btn variant={:primary} mono phx-click="continue">
+          <Liid.btn variant={:primary} phx-click="continue">
             {gettext("Continue → sequence")} <Liid.icon name="arrow" />
           </Liid.btn>
-          <span :if={@saved_at} class="font-mono text-[11px] text-ink40">
+          <span :if={@saved_at} class="text-[11px] text-inkFaint tabular-nums">
             {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
           </span>
         </div>

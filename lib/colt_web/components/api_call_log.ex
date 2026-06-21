@@ -32,30 +32,31 @@ defmodule ColtWeb.Components.ApiCallLog do
 
   def api_call_row(assigns) do
     ~H"""
-    <div class="border border-ink20 rounded-sharp bg-paper">
+    <div class="border border-border rounded-[11px] bg-card" style="box-shadow:var(--shadow)">
       <button
         type="button"
         phx-click="toggle_api_call"
         phx-value-id={@call.id}
-        class="w-full text-left px-3 py-2 flex items-center gap-3 cursor-pointer hover:bg-paperAlt"
+        class="w-full text-left px-3 py-2.5 flex items-center gap-3 cursor-pointer hover:bg-paperAlt rounded-[11px]"
       >
+        <span class={["w-1.5 h-1.5 rounded-full shrink-0", status_dot(@call.status)]}></span>
         <span class={[
-          "font-mono text-[10px] tracking-[0.04em]",
+          "text-[10px] font-semibold uppercase tracking-[0.06em]",
           status_color(@call.status)
         ]}>
           {@call.status}
         </span>
-        <span class="font-mono text-[11px] text-ink truncate">{@call.task || "—"}</span>
-        <span class="font-mono text-[10px] text-ink40 truncate flex-1">{@call.model}</span>
-        <span class="font-mono text-[10px] text-ink55 tabular-nums">
+        <span class="text-[12px] font-medium text-ink truncate">{@call.task || "—"}</span>
+        <span class="text-[11px] text-ink40 truncate flex-1">{@call.model}</span>
+        <span class="text-[11px] text-ink55 tabular-nums">
           ${format_money(@call.cost_usd)}
         </span>
-        <span class="font-mono text-[10px] text-ink40 tabular-nums">{@call.latency_ms}ms</span>
-        <span class="font-mono text-[10px] text-ink40">{format_time(@call.inserted_at)}</span>
+        <span class="text-[11px] text-ink40 tabular-nums">{@call.latency_ms}ms</span>
+        <span class="text-[11px] text-ink40 tabular-nums">{format_time(@call.inserted_at)}</span>
         <Liid.icon name="chev" size={11} class={@expanded? && "rotate-180"} />
       </button>
 
-      <div :if={@expanded?} class="border-t border-rule px-3 py-3">
+      <div :if={@expanded?} class="border-t border-border px-3 py-3">
         <.api_call_detail call={@call} />
       </div>
     </div>
@@ -66,7 +67,7 @@ defmodule ColtWeb.Components.ApiCallLog do
 
   def api_call_detail(assigns) do
     ~H"""
-    <div class="flex flex-col gap-3 font-mono text-[11px] text-ink70">
+    <div class="flex flex-col gap-3 text-[11px] text-ink70">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1">
         <.meta_pair label="task" value={@call.task || "—"} />
         <.meta_pair label="model" value={@call.model || "—"} />
@@ -87,23 +88,27 @@ defmodule ColtWeb.Components.ApiCallLog do
       </div>
 
       <div :if={@call.error}>
-        <div class="text-[10px] tracking-[0.12em] uppercase text-fail mb-1">Error</div>
-        <pre class="text-[11px] text-fail whitespace-pre-wrap break-all bg-paperAlt p-2 rounded-sharp"><%= @call.error %></pre>
+        <div class="text-[10px] font-semibold tracking-[0.08em] uppercase text-red mb-1">Error</div>
+        <pre class="text-[11px] text-red whitespace-pre-wrap break-all bg-redSoft p-2 rounded-[8px]"><%= @call.error %></pre>
       </div>
 
       <div :if={@call.query}>
-        <div class="text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1">Query</div>
-        <pre class="text-[11px] text-ink70 whitespace-pre-wrap break-all bg-paperAlt p-2 rounded-sharp"><%= @call.query %></pre>
+        <div class="text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55 mb-1">Query</div>
+        <pre class="text-[11px] text-ink70 whitespace-pre-wrap break-all bg-paperAlt p-2 rounded-[8px]"><%= @call.query %></pre>
       </div>
 
       <div :if={@call.prompt}>
-        <div class="text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1">Prompt</div>
-        <pre class="text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all bg-paperAlt p-3 rounded-sharp max-h-[420px] overflow-auto"><%= @call.prompt %></pre>
+        <div class="text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55 mb-1">
+          Prompt
+        </div>
+        <pre class="text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all bg-paperAlt p-3 rounded-[8px] max-h-[420px] overflow-auto"><%= @call.prompt %></pre>
       </div>
 
       <div :if={@call.response}>
-        <div class="text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1">Response</div>
-        <pre class="text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all bg-paperAlt p-3 rounded-sharp max-h-[420px] overflow-auto"><%= @call.response %></pre>
+        <div class="text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55 mb-1">
+          Response
+        </div>
+        <pre class="text-[11px] text-ink70 leading-[1.5] whitespace-pre-wrap break-all bg-paperAlt p-3 rounded-[8px] max-h-[420px] overflow-auto"><%= @call.response %></pre>
       </div>
     </div>
     """
@@ -114,16 +119,20 @@ defmodule ColtWeb.Components.ApiCallLog do
 
   defp meta_pair(assigns) do
     ~H"""
-    <div class="flex justify-between gap-2 border-b border-rule py-1">
-      <span class="text-ink40 uppercase text-[10px] tracking-[0.04em]">{@label}</span>
-      <span class="text-ink truncate">{@value || "—"}</span>
+    <div class="flex justify-between gap-2 border-b border-border py-1">
+      <span class="text-ink40 uppercase text-[10px] font-semibold tracking-[0.06em]">{@label}</span>
+      <span class="text-ink tabular-nums truncate">{@value || "—"}</span>
     </div>
     """
   end
 
-  defp status_color(:ok), do: "text-ink"
-  defp status_color(:error), do: "text-fail"
+  defp status_color(:ok), do: "text-green"
+  defp status_color(:error), do: "text-red"
   defp status_color(_), do: "text-ink40"
+
+  defp status_dot(:ok), do: "bg-green"
+  defp status_dot(:error), do: "bg-red"
+  defp status_dot(_), do: "bg-ink40"
 
   defp format_money(nil), do: "0.0000"
   defp format_money(%Decimal{} = d), do: d |> Decimal.round(4) |> Decimal.to_string(:normal)

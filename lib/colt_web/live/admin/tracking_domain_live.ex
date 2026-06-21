@@ -40,7 +40,9 @@ defmodule ColtWeb.Admin.TrackingDomainLive do
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
 
         <div>
-          <h1 class="text-3xl font-semibold">Tracking domain</h1>
+          <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
+            Tracking <em>domain</em>
+          </h1>
           <p class="text-[13px] text-ink55 mt-2 max-w-[640px] leading-[1.55]">
             Site-wide CNAME used by every campaign with open or click tracking on. Set up once at your DNS provider, then enter it here — all campaigns flipping tracking on will route opens and link redirects through this hostname.
           </p>
@@ -48,9 +50,10 @@ defmodule ColtWeb.Admin.TrackingDomainLive do
 
         <form
           phx-submit="save"
-          class="border border-rule rounded-[2px] bg-paper p-6 max-w-[640px] space-y-4"
+          class="border border-border rounded-[11px] bg-card p-6 max-w-[640px] space-y-4"
+          style="box-shadow:var(--shadow-card)"
         >
-          <label class="block font-mono text-[10px] uppercase tracking-[0.12em] text-ink55">
+          <label class="block text-[10px] font-semibold uppercase tracking-[0.08em] text-ink55">
             Hostname
           </label>
           <input
@@ -58,27 +61,27 @@ defmodule ColtWeb.Admin.TrackingDomainLive do
             name="domain"
             value={@domain}
             placeholder="track.your-domain.com"
-            class="w-full px-3 py-2 border border-ink20 bg-paper text-[13px] font-mono text-ink rounded-[2px] outline-none"
+            class="w-full px-3 py-2 border border-border bg-card text-[13px] text-ink rounded-[8px] outline-none focus:border-accentRing"
           />
           <div class="text-[12px] text-ink55 leading-[1.55]">
-            Configure a CNAME record at your DNS provider pointing this hostname to <span class="font-mono text-ink70">tracking.nylas.com</span>. After DNS propagates, Nylas will sign and serve the tracking pixel + link redirector from your hostname.
+            Configure a CNAME record at your DNS provider pointing this hostname to <span class="text-ink70">tracking.nylas.com</span>. After DNS propagates, Nylas will sign and serve the tracking pixel + link redirector from your hostname.
           </div>
-          <div :if={@error} class="text-[12px] text-fail">{@error}</div>
+          <div :if={@error} class="text-[12px] text-red">{@error}</div>
           <div class="flex items-center gap-3">
             <button
               type="submit"
-              class="inline-flex items-center gap-2 border rounded-[2px] px-[18px] py-[10px] text-[12px] font-medium bg-ink text-paper border-ink cursor-pointer"
+              class="inline-flex items-center gap-2 rounded-[8px] px-[18px] py-[10px] text-[12px] font-semibold bg-accent text-white cursor-pointer hover:opacity-90"
             >
               Save
             </button>
-            <span :if={@saved_at} class="font-mono text-[11px] text-ink55">
+            <span :if={@saved_at} class="text-[11px] text-ink55 tabular-nums">
               saved {Calendar.strftime(@saved_at, "%H:%M:%S")}
             </span>
           </div>
         </form>
 
         <div class="text-[12px] text-ink55 max-w-[640px] leading-[1.55]">
-          Current value: <span class="font-mono text-ink">{(@domain != "" && @domain) || "—"}</span>
+          Current value: <span class="text-ink">{(@domain != "" && @domain) || "—"}</span>
         </div>
       </div>
     </Layouts.app>

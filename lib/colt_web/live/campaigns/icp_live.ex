@@ -127,19 +127,19 @@ defmodule ColtWeb.Campaigns.IcpLive do
           </Liid.headline>
         </div>
 
-        <div class="flex-1 max-w-[640px] flex flex-col gap-9">
-          <div>
+        <div class="flex-1 max-w-[640px] flex flex-col gap-4">
+          <div class="bg-card border border-border rounded-[11px] p-5 [box-shadow:var(--shadow)]">
             <div class="mb-3">
-              <label class="font-mono text-[11px] tracking-[0.08em] uppercase text-ink70">
+              <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkFaint font-semibold">
                 {gettext("Target audience")}
               </label>
-              <div class="text-[12px] text-ink40 mt-1">
+              <div class="text-[12px] text-inkSoft mt-1">
                 {gettext(
                   "Sets the buyer side. Used as a hard filter before the model reads your ICP — saves you spelling it out below."
                 )}
               </div>
             </div>
-            <div class="flex gap-1.5">
+            <div class="flex gap-2">
               <%= for {v, label} <- [{:b2b, gettext("B2B")}, {:b2c, gettext("B2C")}, {:both, gettext("Both")}] do %>
                 <% on = @business_model == v %>
                 <button
@@ -147,11 +147,12 @@ defmodule ColtWeb.Campaigns.IcpLive do
                   phx-click="pick_business_model"
                   phx-value-v={v}
                   class={[
-                    "px-3.5 py-2 text-[12px] font-mono tracking-[0.04em] uppercase border rounded-sharp cursor-pointer",
-                    on && "border-[var(--accent)] text-ink",
-                    not on && "border-ink20 text-ink55 hover:text-ink"
+                    "px-3.5 py-2 text-[12px] tracking-[0.04em] uppercase font-semibold border rounded-[8px] cursor-pointer",
+                    on &&
+                      "border-accentRing bg-accentSoft text-accent [box-shadow:inset_0_0_0_1px_var(--accentRing)]",
+                    not on &&
+                      "border-borderStrong bg-card text-inkSoft hover:bg-paperAlt hover:text-ink"
                   ]}
-                  style={on && "background: color-mix(in oklch, var(--accent) 8%, transparent);"}
                 >
                   {label}
                 </button>
@@ -160,15 +161,15 @@ defmodule ColtWeb.Campaigns.IcpLive do
             </div>
           </div>
 
-          <div>
+          <div class="bg-card border border-border rounded-[11px] p-5 [box-shadow:var(--shadow)]">
             <div class="mb-3">
               <label
                 for="icp"
-                class="font-mono text-[11px] tracking-[0.08em] uppercase text-ink70"
+                class="text-[10.5px] tracking-[0.08em] uppercase text-inkFaint font-semibold"
               >
                 {gettext("Ideal customer profile")}
               </label>
-              <div class="text-[12px] text-ink40 mt-1">
+              <div class="text-[12px] text-inkSoft mt-1">
                 {raw(
                   gettext(
                     "Describe the ideal customer in plain English. The AI agent visits each prospect's website and uses this to decide if they're a fit. Spell out what a good customer looks like — industry, size, business model, what they sell or do — and just as importantly, what a <em>bad</em> fit looks like (e.g. \"not solo freelancers\", \"not B2C\", \"not agencies\")."
@@ -180,28 +181,28 @@ defmodule ColtWeb.Campaigns.IcpLive do
               id="icp"
               name="icp_description"
               phx-debounce="200"
-              class="w-full min-h-[200px] px-[22px] py-5 border border-ink20 bg-paperAlt text-[15px] leading-[1.55] text-ink rounded-sharp outline-none resize-y focus:border-ink"
+              class="w-full min-h-[200px] px-4 py-3.5 border border-borderStrong bg-card text-[15px] leading-[1.55] text-ink rounded-[8px] outline-none resize-y focus:border-accent focus:[box-shadow:0_0_0_3px_var(--accentSoft)]"
             >{@icp_description}</textarea>
 
-            <div :if={@learnings != []} class="mt-4">
-              <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2">
+            <div :if={@learnings != []} class="mt-5">
+              <div class="text-[10px] tracking-[0.1em] uppercase text-inkFaint font-semibold mb-2">
                 {gettext("Learned refinements (%{n})", n: length(@learnings))}
               </div>
-              <div class="text-[11px] text-ink40 mb-3 leading-[1.5]">
+              <div class="text-[11px] text-inkSoft mb-3 leading-[1.5]">
                 {gettext(
                   "Saved from \"not a good fit\" / \"actually a good fit\" feedback on the funnel. Applied on top of the ICP above. Delete any that no longer reflect what you want — then re-check ICP on the funnel."
                 )}
               </div>
-              <ul class="flex flex-col gap-1.5">
+              <ul class="flex flex-col gap-2">
                 <li
                   :for={l <- @learnings}
-                  class="flex items-start gap-2 px-3 py-2 border border-ink20 rounded-sharp bg-paperAlt"
+                  class="flex items-start gap-2 px-3 py-2 border border-border rounded-[8px] bg-bgSoft"
                 >
                   <span class={[
-                    "font-mono text-[9px] tracking-[0.12em] uppercase px-1.5 py-0.5 border rounded-sharp shrink-0 mt-0.5",
+                    "text-[9px] tracking-[0.1em] uppercase font-semibold px-2 py-0.5 rounded-[8px] shrink-0 mt-0.5",
                     if(l.kind == :include,
-                      do: "text-ink70 border-ink40",
-                      else: "text-ink55 border-ink20"
+                      do: "text-green bg-greenSoft",
+                      else: "text-inkSoft bg-paperAlt"
                     )
                   ]}>
                     {if l.kind == :include, do: gettext("include"), else: gettext("exclude")}
@@ -211,7 +212,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
                     type="button"
                     phx-click="delete_learning"
                     phx-value-id={l.id}
-                    class="w-5 h-5 flex items-center justify-center text-ink40 hover:text-fail cursor-pointer shrink-0"
+                    class="w-5 h-5 flex items-center justify-center text-inkFaint hover:text-red cursor-pointer shrink-0"
                     aria-label={gettext("Delete learning")}
                   >
                     <Liid.icon name="x" size={11} />
@@ -221,15 +222,15 @@ defmodule ColtWeb.Campaigns.IcpLive do
             </div>
           </div>
 
-          <div>
+          <div class="bg-card border border-border rounded-[11px] p-5 [box-shadow:var(--shadow)]">
             <div class="mb-3">
               <label
                 for="title"
-                class="font-mono text-[11px] tracking-[0.08em] uppercase text-ink70"
+                class="text-[10.5px] tracking-[0.08em] uppercase text-inkFaint font-semibold"
               >
                 {gettext("Target job title")}
               </label>
-              <div class="text-[12px] text-ink40 mt-1">
+              <div class="text-[12px] text-inkSoft mt-1">
                 {gettext(
                   "The contact we'll try to extract per company. You can list multiple titles in order of importance — e.g. \"Sales Manager, COO, CEO\" — and we'll pick the highest-priority match found."
                 )}
@@ -242,16 +243,16 @@ defmodule ColtWeb.Campaigns.IcpLive do
               value={@target_job_title}
               placeholder={gettext("Sales Manager, COO, CEO")}
               phx-debounce="200"
-              class="w-full px-[14px] py-3 border border-ink20 bg-paperAlt text-[14px] text-ink rounded-sharp outline-none focus:border-ink"
+              class="w-full px-4 py-3 border border-borderStrong bg-card text-[14px] text-ink rounded-[8px] outline-none placeholder:text-inkFaint focus:border-accent focus:[box-shadow:0_0_0_3px_var(--accentSoft)]"
             />
           </div>
 
-          <div :if={@error} class="font-mono text-[11px] text-fail">{@error}</div>
+          <div :if={@error} class="text-[12px] text-red">{@error}</div>
 
           <div class="flex items-center gap-4 mt-2">
             <.link
               navigate={~p"/campaigns/#{@campaign.id}/filters"}
-              class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+              class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] font-semibold text-inkSoft bg-card border border-borderStrong rounded-[8px] no-underline [box-shadow:var(--shadow)] hover:bg-paperAlt hover:text-ink"
             >
               <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
             </.link>
@@ -262,7 +263,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
                 {gettext("Continue → exclude")} <Liid.icon name="arrow" />
               <% end %>
             </Liid.btn>
-            <span :if={@saved?} class="font-mono text-[11px] text-ink55">{gettext("saved.")}</span>
+            <span :if={@saved?} class="text-[11.5px] text-inkFaint">{gettext("saved.")}</span>
           </div>
         </div>
       </form>

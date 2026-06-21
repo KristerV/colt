@@ -51,33 +51,42 @@ defmodule ColtWeb.Campaigns.NewLive do
           id="campaign-new-form"
           phx-change="validate"
           phx-submit="create"
-          class="mt-14"
+          class="mt-10"
           autocomplete="off"
         >
-          <input
-            type="text"
-            id="campaign-name-input"
-            name="name"
-            value={@name}
-            placeholder={gettext("Nordic CTOs Q2")}
-            phx-debounce="200"
-            autofocus
-            class="w-full font-serif text-[28px] md:text-[44px] font-normal tracking-[-0.02em] text-ink py-[12px] pb-[14px] border-0 border-b border-ink bg-transparent outline-none placeholder:text-ink40"
-          />
+          <div class="bg-card border border-border rounded-[11px] p-6 [box-shadow:var(--shadow)]">
+            <label
+              for="campaign-name-input"
+              class="block text-[10.5px] tracking-[0.08em] uppercase text-inkFaint font-semibold mb-2"
+            >
+              {gettext("Campaign name")}
+            </label>
+            <input
+              type="text"
+              id="campaign-name-input"
+              name="name"
+              value={@name}
+              placeholder={gettext("Nordic CTOs Q2")}
+              phx-debounce="200"
+              autofocus
+              class="w-full text-[20px] font-semibold tracking-[-0.01em] text-ink px-4 py-3 border border-borderStrong bg-card rounded-[8px] outline-none placeholder:text-inkFaint focus:border-accent focus:[box-shadow:0_0_0_3px_var(--accentSoft)]"
+            />
 
-          <div class="mt-3 font-mono text-[11px] tracking-[0.04em] text-ink55">
-            <span style="color: var(--color-accent);">●</span> {gettext("draft · saved on continue")}
+            <div class="mt-3 text-[11.5px] tracking-[0.02em] text-inkSoft flex items-center gap-1.5">
+              <span class="inline-block w-[7px] h-[7px] rounded-full bg-accent shrink-0" />
+              {gettext("draft · saved on continue")}
+            </div>
+
+            <div :if={@error} class="mt-3 text-[12px] text-red">
+              {@error}
+            </div>
           </div>
 
-          <div :if={@error} class="mt-4 font-mono text-[11px] text-fail">
-            {@error}
-          </div>
-
-          <div class="mt-16 flex items-center gap-4">
+          <div class="mt-6 flex items-center gap-4">
             <Liid.btn variant={:primary} mono type="submit">
               {gettext("Continue")} <Liid.icon name="arrow" />
             </Liid.btn>
-            <span class="font-mono text-[11px] text-ink40">{gettext("⏎ to continue")}</span>
+            <span class="text-[11.5px] text-inkFaint">{gettext("⏎ to continue")}</span>
           </div>
         </form>
       </div>

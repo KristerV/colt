@@ -597,19 +597,18 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       <div class="flex flex-col gap-[18px] flex-1 min-h-0">
         <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
           <div class="min-w-0">
-            <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+            <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-1.5 truncate">
               {gettext("05 / Funnel · %{name}", name: @campaign.name)}
             </div>
-            <h1 class="font-serif font-normal text-[32px] md:text-[44px] leading-none tracking-[-0.02em] m-0">
+            <h1 class="font-semibold text-[25px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
               {gettext("Enriching")}
-              <span style="color: var(--accent);">{@total}</span> {gettext("companies.")}
+              <span class="text-accent tnum">{@total}</span> {gettext("companies.")}
             </h1>
           </div>
           <% busy = work_in_flight?(@stats) %>
           <div class="flex items-center gap-3">
             <Liid.btn
               size={:small}
-              mono
               disabled={busy}
               phx-click="recheck_icp"
               data-confirm={gettext("Re-check ICP fit on all enriched and ICP-rejected companies?")}
@@ -619,7 +618,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             <Liid.btn
               size={:small}
               variant={:primary}
-              mono
               disabled={busy or @stats.enriched == 0}
               phx-click="open_export"
             >
@@ -637,15 +635,15 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
         <Funnel.meta_strip meta={@meta} visible={@page_rows} total={@total} />
 
-        <div class="flex-1 min-h-0 flex flex-col md:border md:border-rule md:rounded-sharp -mx-4 md:mx-0">
+        <div class="flex-1 min-h-0 flex flex-col bg-card md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)] md:overflow-hidden -mx-4 md:mx-0">
           <Funnel.funnel_header />
           <% bucket_count = Map.get(@stats, @selected_bucket, 0) %>
           <div :if={bucket_count == 0} class="flex-1 flex items-center justify-center px-6 py-12">
             <div class="text-center">
-              <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink40 mb-2">
+              <div class="text-[11px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
                 {bucket_label(@selected_bucket)}
               </div>
-              <div class="text-[14px] text-ink55 max-w-[420px]">
+              <div class="text-[14px] text-inkSoft max-w-[420px]">
                 {empty_message(@selected_bucket)}
               </div>
             </div>
@@ -664,13 +662,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           <% total_pages = page_count(bucket_count) %>
           <nav
             :if={bucket_count > 0 and total_pages > 1}
-            class="flex items-center justify-center gap-1 flex-wrap px-4 py-3 border-t border-rule"
+            class="flex items-center justify-center gap-1 flex-wrap px-4 py-3 border-t border-border bg-bgSoft"
           >
             <button
               type="button"
               phx-click="prev_page"
               disabled={@page <= 1}
-              class="inline-flex items-center justify-center w-7 h-7 border border-rule rounded-[2px] text-ink55 hover:text-ink hover:border-ink40 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              class="inline-flex items-center justify-center w-7 h-7 border border-border bg-card rounded-[8px] text-inkSoft hover:text-ink hover:border-borderStrong disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
             >
               <Liid.icon name="chev-l" size={11} />
             </button>
@@ -680,9 +678,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               phx-click="goto_page"
               phx-value-page={p}
               class={[
-                "inline-flex items-center justify-center min-w-7 h-7 px-2 border rounded-[2px] font-mono text-[11px] tnum cursor-pointer",
-                p == @page && "bg-ink text-paper border-ink",
-                p != @page && "border-rule text-ink55 hover:text-ink hover:border-ink40"
+                "inline-flex items-center justify-center min-w-7 h-7 px-2 border rounded-[8px] text-[11px] tnum cursor-pointer",
+                p == @page && "bg-accentSoft text-accent border-accentRing font-semibold",
+                p != @page &&
+                  "border-border bg-card text-inkSoft hover:text-ink hover:border-borderStrong"
               ]}
             >
               {p}
@@ -691,7 +690,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
               type="button"
               phx-click="next_page"
               disabled={@page >= total_pages}
-              class="inline-flex items-center justify-center w-7 h-7 border border-rule rounded-[2px] text-ink55 hover:text-ink hover:border-ink40 disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              class="inline-flex items-center justify-center w-7 h-7 border border-border bg-card rounded-[8px] text-inkSoft hover:text-ink hover:border-borderStrong disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
             >
               <Liid.icon name="chev-r" size={11} />
             </button>
@@ -735,7 +734,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
     >
       <div
-        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[640px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        class="bg-card border border-border rounded-[11px] w-full max-w-[640px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
         style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
         phx-click-away="close_export"
         phx-window-keydown="close_export"
@@ -743,11 +742,11 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       >
         <div class="flex justify-between items-start gap-3 mb-6">
           <div class="min-w-0">
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+            <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-1.5 truncate">
               {gettext("Export · %{name}", name: @campaign.name)}
             </div>
-            <h2 class="font-serif font-normal text-[24px] md:text-[32px] leading-[1.1] tracking-[-0.02em] m-0">
-              {gettext("Take")} <span style="color: var(--accent);">{@count}</span>
+            <h2 class="font-semibold text-[22px] md:text-[26px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
+              {gettext("Take")} <span class="text-accent tnum">{@count}</span>
               {if @count == 1,
                 do: gettext("enriched contact somewhere."),
                 else: gettext("enriched contacts somewhere.")}
@@ -789,10 +788,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         </div>
 
         <div
-          class="mt-5 bg-paperAlt rounded-sharp font-mono text-[11px] text-ink55"
+          class="mt-5 bg-paperAlt border border-border rounded-[8px] text-[11px] text-inkSoft tnum"
           style="padding: 14px 16px; line-height: 1.6;"
         >
-          <div class="text-ink70 mb-1">
+          <div class="text-ink mb-1">
             {gettext("liid-%{slug}.csv · preview", slug: slug(@campaign.name))}
           </div>
           <div>email,phone,first_name,last_name,company_name,website,title,snippet</div>
@@ -802,7 +801,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           <div :for={row <- @preview} class="sm:hidden break-all">
             {preview_line(row)}
           </div>
-          <div :if={@preview == []} class="text-ink40">
+          <div :if={@preview == []} class="text-inkFaint">
             {gettext("(no rows yet — preview will appear once a contact is verified)")}
           </div>
         </div>
@@ -813,9 +812,9 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           <.link
             href={~p"/campaigns/#{@campaign.id}/export.csv"}
             class={[
-              "inline-flex items-center gap-2 border rounded-[2px] font-medium cursor-pointer transition-all",
-              "px-[18px] py-[10px] text-[13px] font-mono tracking-[0.04em]",
-              "bg-ink text-paper border-ink",
+              "inline-flex items-center gap-2 border rounded-[8px] font-semibold cursor-pointer transition-all",
+              "px-[18px] py-[10px] text-[13px]",
+              "bg-accent text-white border-accent [box-shadow:0_1px_2px_rgba(59,122,224,.3)] hover:bg-[#3169c8] hover:border-[#3169c8]",
               @count == 0 && "opacity-50 pointer-events-none"
             ]}
           >
@@ -834,24 +833,18 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   defp format_card(assigns) do
     ~H"""
-    <div
-      class={[
-        "rounded-sharp",
-        @enabled && "border cursor-pointer",
-        !@enabled && "border border-ink20 opacity-45 cursor-not-allowed"
-      ]}
-      style={
-        if @enabled,
-          do:
-            "padding: 14px 16px; border-color: var(--accent); background: color-mix(in oklch, var(--accent) 5%, transparent);",
-          else: "padding: 14px 16px;"
-      }
-    >
+    <div class={[
+      "rounded-[8px] px-4 py-3.5",
+      @enabled && "border border-accentRing bg-accentSoft cursor-pointer",
+      !@enabled && "border border-border bg-card opacity-45 cursor-not-allowed"
+    ]}>
       <div class="flex justify-between items-baseline">
-        <span class="text-[14px] font-semibold text-ink">{@name}</span>
-        <span class="font-mono text-[10px] text-ink40">{@note}</span>
+        <span class={["text-[14px] font-semibold", @enabled && "text-accent", !@enabled && "text-ink"]}>
+          {@name}
+        </span>
+        <span class="text-[10px] text-inkFaint">{@note}</span>
       </div>
-      <div class="text-[12px] text-ink55 mt-1">{@desc}</div>
+      <div class="text-[12px] text-inkSoft mt-1">{@desc}</div>
     </div>
     """
   end
@@ -867,7 +860,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
     >
       <div
-        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        class="bg-card border border-border rounded-[11px] w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
         style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
         phx-click-away="close_api_calls"
         phx-window-keydown="close_api_calls"
@@ -875,10 +868,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       >
         <div class="flex justify-between items-start gap-3 mb-5">
           <div class="min-w-0">
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+            <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-1.5 truncate">
               {gettext("LLM calls · %{name}", name: @row.name)}
             </div>
-            <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
+            <h2 class="font-semibold text-[20px] md:text-[24px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
               {gettext("%{n} recorded calls", n: length(@calls))}
             </h2>
           </div>

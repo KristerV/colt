@@ -804,7 +804,7 @@ defmodule ColtWeb.Sending.WriteLive do
       <div class="w-full max-w-[640px] mx-auto px-6 py-6">
         <%= case @state do %>
           <% :loading -> %>
-            <div class="font-mono text-[11px] text-ink40">{gettext("loading…")}</div>
+            <div class="text-[12px] text-inkFaint">{gettext("loading…")}</div>
           <% :empty -> %>
             <.empty_state />
           <% s when s in [:default, :drafting] -> %>
@@ -851,12 +851,14 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp variant_bar(assigns) do
     ~H"""
-    <div class="mt-5 flex items-center gap-2 font-mono text-[11px] tracking-[0.04em]">
-      <span class="text-[10px] tracking-[0.14em] uppercase text-ink55">{gettext("Writing")}</span>
+    <div class="mt-5 flex items-center gap-2.5 text-[11px]">
+      <span class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+        {gettext("Variant")}
+      </span>
       <form phx-change="switch_variant" class="inline-flex">
         <select
           name="variant_id"
-          class="px-2.5 py-1 border border-ink20 bg-paper text-[12px] text-ink rounded-[2px] outline-none cursor-pointer"
+          class="px-3 py-1.5 border border-border bg-card text-[12px] text-ink rounded-[8px] outline-none cursor-pointer focus:border-accentRing"
         >
           <option :for={v <- @variants} value={v.id} selected={v.id == @selected_id}>
             {v.name}
@@ -885,11 +887,11 @@ defmodule ColtWeb.Sending.WriteLive do
   defp empty_state(assigns) do
     ~H"""
     <div class="flex flex-col items-center text-center gap-6 py-10">
-      <div class="font-serif text-[96px] leading-none text-accent opacity-40">0</div>
-      <h2 class="font-serif text-[36px] tracking-[-0.02em] leading-[1.05] m-0 max-w-[520px]">
-        {raw(gettext("All caught <em class=\"text-accent\">up</em>."))}
+      <div class="text-[80px] font-bold leading-none text-ink20">0</div>
+      <h2 class="text-[30px] font-semibold tracking-[-0.02em] leading-[1.1] m-0 max-w-[520px]">
+        {raw(gettext("All caught <em>up</em>."))}
       </h2>
-      <p class="text-[14px] text-ink55 max-w-[460px] leading-[1.6]">
+      <p class="text-[14px] text-inkSoft max-w-[460px] leading-[1.6]">
         {gettext(
           "Every enriched contact has been brought into sending. New ones appear here as enrichment finds them."
         )}
@@ -916,15 +918,15 @@ defmodule ColtWeb.Sending.WriteLive do
     assigns = assign(assigns, :step_by_position, step_by_position)
 
     ~H"""
-    <div class="flex items-center gap-2 font-mono text-[11px] tracking-[0.04em]">
-      <span class="text-[10px] tracking-[0.14em] uppercase text-ink55">
+    <div class="mt-5 flex items-center gap-2 text-[11px]">
+      <span class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
         {gettext("Sending as")}
       </span>
       <%= if @sender do %>
         <span class="text-ink font-medium">{sender_display_or_local(@sender)}</span>
-        <span class="text-ink40">&lt;{@sender.address}&gt;</span>
+        <span class="text-inkFaint">&lt;{@sender.address}&gt;</span>
       <% else %>
-        <span class="text-ink40">
+        <span class="text-inkFaint">
           {gettext("no inbox available — connect one under Sending accounts")}
         </span>
       <% end %>
@@ -933,20 +935,32 @@ defmodule ColtWeb.Sending.WriteLive do
     <%= if @drafting do %>
       <.generating_notice />
     <% else %>
-      <div class="mt-7 flex items-center justify-between gap-4">
-        <div class="font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
-          {gettext("Subject")}
-        </div>
+      <div class="mt-5 flex items-center gap-2.5 text-[11px]">
+        <span class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+          {gettext("Language")}
+        </span>
         <form phx-change="set_language" class="inline-flex">
           <select
             name="language"
-            class="px-2.5 py-1 border border-ink20 bg-paper text-[12px] text-ink rounded-[2px] outline-none cursor-pointer"
+            class="px-3 py-1.5 border border-border bg-card text-[12px] text-ink rounded-[8px] outline-none cursor-pointer focus:border-accentRing"
           >
             <option :for={{code, label} <- languages()} value={code} selected={@language == code}>
               {label}
             </option>
           </select>
         </form>
+      </div>
+      <div
+        :if={@first_email}
+        class="mt-5 px-4 py-3 border border-accentRing bg-accentSoft rounded-[11px] text-[12.5px] leading-[1.55] text-inkSoft"
+      >
+        {gettext(
+          "Write this first sequence yourself. The AI writer stays out of the way until you've sent one — then it learns your voice from it and drafts the rest."
+        )}
+      </div>
+
+      <div class="mt-5 text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold">
+        {gettext("Subject")}
       </div>
       <form id="subject-form" phx-change="set_subject" class="block mt-2.5">
         <input
@@ -956,20 +970,9 @@ defmodule ColtWeb.Sending.WriteLive do
           value={@subject}
           phx-debounce="400"
           placeholder={gettext("subject line")}
-          class="w-full px-5 py-3 border border-ink20 border-l-2 bg-paper rounded-[2px] text-[13.5px] text-ink outline-none placeholder:text-ink40"
-          style="border-left-color: var(--accent);"
+          class="w-full px-4 py-2.5 border border-border bg-bgSoft rounded-[8px] text-[13.5px] text-ink outline-none placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
         />
       </form>
-
-      <div
-        :if={@first_email}
-        class="mt-7 px-4 py-3 border border-rule border-l-2 bg-paperAlt rounded-[2px] text-[12.5px] leading-[1.55] text-ink70"
-        style="border-left-color: var(--accent);"
-      >
-        {gettext(
-          "Write this first sequence yourself. The AI writer stays out of the way until you've sent one — then it learns your voice from it and drafts the rest."
-        )}
-      </div>
 
       <div class="mt-5 flex flex-col gap-5">
         <%= for {email, idx} <- Enum.with_index(@drafts) do %>
@@ -995,7 +998,7 @@ defmodule ColtWeb.Sending.WriteLive do
           :if={not @seeded}
           type="button"
           phx-click="add_step"
-          class="py-3 border border-dashed border-ink20 text-ink55 font-mono text-[11px] tracking-[0.08em] uppercase rounded-[2px] cursor-pointer hover:border-ink40 hover:text-ink"
+          class="py-3 border border-dashed border-borderStrong text-inkSoft text-[12px] font-medium rounded-[11px] cursor-pointer hover:border-accentRing hover:text-accent hover:bg-accentSoft transition-colors"
         >
           {gettext("+ add follow-up")}
         </button>
@@ -1011,7 +1014,7 @@ defmodule ColtWeb.Sending.WriteLive do
         <% end %>
       </div>
 
-      <div :if={@saved_at} class="mt-6 font-mono text-[11px] text-ink40">
+      <div :if={@saved_at} class="mt-6 text-[11px] text-inkFaint tabular-nums">
         {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
       </div>
     <% end %>
@@ -1020,11 +1023,12 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp generating_notice(assigns) do
     ~H"""
-    <div class="mt-10 flex items-center gap-2.5 font-mono text-[11px] tracking-[0.06em] text-ink55">
-      <span
-        class="w-[6px] h-[6px] rounded-full"
-        style="background: var(--accent); animation: liid-pulse 1.4s ease-in-out infinite;"
-      /> {gettext("generating sequence…")}
+    <div class="mt-10 flex items-center gap-2.5 text-[12px] text-inkSoft">
+      <span class="relative w-[7px] h-[7px] shrink-0">
+        <span class="absolute inset-0 rounded-full bg-accent" />
+        <span class="absolute -inset-[3px] rounded-full bg-accent opacity-40 animate-[pulse-halo_1.8s_ease-out_infinite]" />
+      </span>
+      {gettext("generating sequence…")}
     </div>
     """
   end
@@ -1062,32 +1066,32 @@ defmodule ColtWeb.Sending.WriteLive do
       |> assign(:registry_link, Colt.CompanyRegistry.link(assigns[:company]))
 
     ~H"""
-    <div class="p-5 border border-rule bg-paper rounded-[2px]">
+    <div class="p-5 border border-border bg-card rounded-[11px]" style="box-shadow:var(--shadow)">
       <div
         :if={@company && @company.status != :registered}
         class={[
-          "mb-3 font-mono text-[10px] tracking-[0.06em] uppercase rounded-[2px] px-2 py-1 border",
-          (@company.status == :other && "text-warn border-warn/40 bg-warn/10") ||
-            "text-fail border-fail/40 bg-fail/10"
+          "mb-3 text-[10px] tracking-[0.06em] uppercase font-semibold rounded-[8px] px-2 py-1 border inline-block",
+          (@company.status == :other && "text-amber border-amber/30 bg-amberSoft") ||
+            "text-red border-red/30 bg-redSoft"
         ]}
       >
         ⚠ {status_label(@company.status)}
       </div>
       <div class="flex items-baseline justify-between gap-4">
         <div>
-          <div class="font-serif text-[28px] tracking-[-0.02em] leading-none text-ink">
+          <div class="text-[24px] font-bold tracking-[-0.02em] leading-none text-ink">
             {(@person && @person.name) || "—"}
           </div>
-          <div class="mt-1 text-[13px] text-ink55">
+          <div class="mt-1.5 text-[13px] text-inkSoft">
             {(@person && @person.title) || "—"}
           </div>
-          <div class="mt-1 font-mono text-[11px] text-ink70">
+          <div class="mt-1 text-[11.5px] text-accent font-medium">
             {(@person && @person.email) || ""}
           </div>
         </div>
         <div :if={@company} class="text-right">
-          <div class="text-[14px] font-medium text-ink">{@company.name}</div>
-          <div class="font-mono text-[10px] tracking-[0.06em] uppercase text-ink40 mt-0.5">
+          <div class="text-[14px] font-semibold text-ink">{@company.name}</div>
+          <div class="text-[10px] tracking-[0.06em] uppercase text-inkFaint font-semibold mt-0.5">
             {[
               @company.industry_code,
               @company.employees_latest && "#{@company.employees_latest} emp"
@@ -1100,7 +1104,7 @@ defmodule ColtWeb.Sending.WriteLive do
             href={href_url(@company.website_url)}
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-block mt-1 font-mono text-[10px] text-accent hover:underline"
+            class="inline-block mt-1 text-[11px] text-accent font-medium hover:underline"
           >
             ↗ {display_host(@company.website_url)}
           </a>
@@ -1109,7 +1113,7 @@ defmodule ColtWeb.Sending.WriteLive do
             href={@registry_link.url}
             target="_blank"
             rel="noopener noreferrer"
-            class="block mt-1 font-mono text-[10px] text-ink40 hover:text-accent hover:underline"
+            class="block mt-1 text-[11px] text-inkFaint hover:text-accent hover:underline"
           >
             ↗ {@registry_link.label} {@company.registry_code}
           </a>
@@ -1117,23 +1121,23 @@ defmodule ColtWeb.Sending.WriteLive do
       </div>
       <div
         :if={@company && @company.ai_summary}
-        class="mt-3 text-[13px] leading-[1.55] text-ink70 border-t border-rule pt-3"
+        class="mt-3.5 text-[13px] leading-[1.55] text-inkSoft border-t border-border pt-3.5"
       >
         {@company.ai_summary}
       </div>
-      <div :if={@reports != []} class="mt-3 border-t border-rule pt-3">
-        <table class="w-full font-mono text-[11px] tabular-nums">
+      <div :if={@reports != []} class="mt-3.5 border-t border-border pt-3.5">
+        <table class="w-full text-[11.5px] tabular-nums">
           <thead>
-            <tr class="text-ink40 text-[9px] tracking-[0.08em] uppercase">
-              <th class="text-left font-normal pb-1">{gettext("Year")}</th>
-              <th class="text-right font-normal pb-1">{gettext("Revenue")}</th>
-              <th class="text-right font-normal pb-1 pl-2"></th>
-              <th class="text-right font-normal pb-1 pl-3">{gettext("Employees")}</th>
-              <th class="text-right font-normal pb-1 pl-2"></th>
+            <tr class="text-inkFaint text-[9px] tracking-[0.08em] uppercase font-semibold">
+              <th class="text-left font-semibold pb-1">{gettext("Year")}</th>
+              <th class="text-right font-semibold pb-1">{gettext("Revenue")}</th>
+              <th class="text-right font-semibold pb-1 pl-2"></th>
+              <th class="text-right font-semibold pb-1 pl-3">{gettext("Employees")}</th>
+              <th class="text-right font-semibold pb-1 pl-2"></th>
             </tr>
           </thead>
           <tbody>
-            <tr :for={r <- @reports} class="text-ink70">
+            <tr :for={r <- @reports} class="text-inkSoft">
               <td class="text-left py-0.5 text-ink">{r.year}</td>
               <td class="text-right py-0.5">{format_eur(r.revenue)}</td>
               <td class="text-right py-0.5 pl-2"><.delta_badge value={r.rev_delta} suffix="%" /></td>
@@ -1154,7 +1158,7 @@ defmodule ColtWeb.Sending.WriteLive do
     ~H"""
     <span
       :if={@value not in [nil, 0]}
-      class={["font-mono text-[9px] ml-1", (@value > 0 && "text-accent") || "text-fail"]}
+      class={["text-[9px] ml-1 font-medium", (@value > 0 && "text-accent") || "text-red"]}
     >
       {(@value > 0 && "▲") || "▼"}{abs(@value)}{@suffix}
     </span>
@@ -1232,9 +1236,9 @@ defmodule ColtWeb.Sending.WriteLive do
   defp wait_edit(assigns) do
     ~H"""
     <div class="relative pl-8 flex items-center -my-1">
-      <span class="absolute left-[14px] top-0 bottom-0 w-px bg-ink20" />
-      <span class="absolute left-[9px] top-[calc(50%-5px)] w-[11px] h-[11px] rounded-full bg-paper border border-ink20" />
-      <span class="font-mono text-[11px] tracking-[0.06em] text-ink55 inline-flex items-center gap-2">
+      <span class="absolute left-[14px] top-0 bottom-0 w-px bg-border" />
+      <span class="absolute left-[9px] top-[calc(50%-5px)] w-[11px] h-[11px] rounded-full bg-card border border-border" />
+      <span class="text-[11.5px] text-inkSoft inline-flex items-center gap-2">
         {gettext("wait")}
         <%= if @editable do %>
           <form id={"delay-form-#{@id}"} phx-change="set_delay" class="inline-flex">
@@ -1246,14 +1250,14 @@ defmodule ColtWeb.Sending.WriteLive do
               value={@days}
               min="0"
               phx-debounce="400"
-              class="w-[52px] px-1.5 py-1 border border-ink20 rounded-[2px] font-mono text-[12px] text-center bg-paper text-ink tabular-nums outline-none"
+              class="w-[52px] px-1.5 py-1 border border-border rounded-[8px] text-[12px] text-center bg-card text-ink tabular-nums outline-none focus:border-accentRing"
             />
           </form>
         <% else %>
-          <span class="text-ink tabular-nums">{@days}</span>
+          <span class="text-ink tabular-nums font-medium">{@days}</span>
         <% end %>
         {gettext("days")}
-        <span :if={@terminal} class="font-mono text-[11px] tracking-[0.04em] text-ink40">
+        <span :if={@terminal} class="text-[11px] text-inkFaint">
           {gettext("· then")}
         </span>
       </span>
@@ -1266,17 +1270,17 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp terminal_block(assigns) do
     ~H"""
-    <div class="border border-dashed border-ink20 rounded-[2px] bg-paperAlt px-[18px] py-4 flex items-center gap-3.5">
-      <span class="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border border-ink40 text-ink55 font-mono text-[11px] font-semibold">
+    <div class="border border-dashed border-borderStrong rounded-[11px] bg-paperAlt px-[18px] py-4 flex items-center gap-3.5">
+      <span class="inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border border-inkFaint text-inkSoft text-[11px] font-semibold">
         ×
       </span>
-      <span class="text-[13px] text-ink70">{gettext("If still no reply, mark contact as")}</span>
+      <span class="text-[13px] text-inkSoft">{gettext("If still no reply, mark contact as")}</span>
       <%= if @editable do %>
         <form id={"terminal-form-#{@step.id}"} phx-change="set_terminal_action" class="inline-flex">
           <input type="hidden" name="step_id" value={@step.id} />
           <select
             name="value"
-            class="px-3 py-1 border border-ink20 bg-paper text-[12px] font-mono text-ink rounded-[2px] outline-none cursor-pointer"
+            class="px-3 py-1.5 border border-border bg-card text-[12px] text-ink rounded-[8px] outline-none cursor-pointer focus:border-accentRing"
           >
             <option value="no_reply" selected={@step.terminal_action in [nil, :no_reply]}>
               no_reply
@@ -1287,10 +1291,10 @@ defmodule ColtWeb.Sending.WriteLive do
           </select>
         </form>
       <% else %>
-        <span class="font-mono text-[12px] text-ink">{@step.terminal_action || :no_reply}</span>
+        <span class="text-[12px] text-ink font-medium">{@step.terminal_action || :no_reply}</span>
       <% end %>
       <span class="flex-1" />
-      <span class="font-mono text-[10px] tracking-[0.04em] text-ink40">
+      <span class="text-[10px] tracking-[0.06em] uppercase text-inkFaint font-semibold">
         {gettext("end of sequence")}
       </span>
     </div>
@@ -1308,11 +1312,20 @@ defmodule ColtWeb.Sending.WriteLive do
     ~H"""
     <div
       id={"step-card-#{@email.step_position}"}
-      class="border border-rule rounded-[2px] bg-paper"
-      style={if @idx == 0, do: "border-left: 2px solid var(--accent);", else: ""}
+      class={[
+        "rounded-[11px] bg-card border overflow-hidden",
+        if(@idx == 0, do: "border-accentRing", else: "border-border")
+      ]}
+      style={"box-shadow:var(--shadow)#{if @idx == 0, do: ";box-shadow:0 0 0 1px var(--accentRing), var(--shadow)", else: ""}"}
     >
-      <div class="flex items-center gap-3.5 px-5 py-3 border-b border-rule bg-paperAlt">
-        <span class="text-[13px] text-ink">
+      <div class={[
+        "flex items-center gap-3.5 px-5 py-3 border-b",
+        if(@idx == 0, do: "bg-accentSoft border-[#dbe7fa]", else: "bg-bgSoft border-border")
+      ]}>
+        <span class={[
+          "text-[13px] font-semibold",
+          if(@idx == 0, do: "text-accent", else: "text-ink")
+        ]}>
           {if @idx == 0, do: gettext("First email"), else: gettext("Follow-up %{n}", n: @idx)}
         </span>
         <span class="flex-1" />
@@ -1321,7 +1334,7 @@ defmodule ColtWeb.Sending.WriteLive do
           type="button"
           phx-click="remove_step"
           phx-value-id={@step_id}
-          class="text-ink40 hover:text-fail cursor-pointer"
+          class="text-inkFaint hover:text-red cursor-pointer"
           aria-label={gettext("Remove follow-up")}
         >
           <Liid.icon name="x" size={12} />
@@ -1335,7 +1348,7 @@ defmodule ColtWeb.Sending.WriteLive do
           rows="6"
           phx-debounce="600"
           disabled={@disabled}
-          class="w-full px-5 py-4 bg-paper text-[13.5px] leading-[1.6] text-ink70 outline-none border-0 resize-none font-sans block"
+          class="w-full px-5 py-4 bg-card text-[13.5px] leading-[1.6] text-inkSoft outline-none border-0 resize-none block"
           style="field-sizing: content;"
         >{@body}</textarea>
       </form>
@@ -1348,11 +1361,11 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp action_bar(assigns) do
     ~H"""
-    <div class="mt-8 pt-5 border-t border-ink20 flex items-center justify-end gap-3">
+    <div class="mt-8 flex items-center justify-end gap-3">
       <button
         type="button"
         phx-click="open_learning"
-        class="inline-flex items-center gap-1.5 px-2.5 py-1 font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 border border-ink20 rounded-sharp hover:text-ink hover:border-ink40 cursor-pointer"
+        class="inline-flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-semibold text-inkSoft border border-borderStrong rounded-[8px] hover:text-red hover:border-red/40 hover:bg-redSoft cursor-pointer bg-card"
       >
         <Liid.icon name="x" size={11} /> {gettext("Not a good fit")}
       </button>

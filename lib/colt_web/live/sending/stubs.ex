@@ -11,17 +11,20 @@ defmodule ColtWeb.Sending.Stubs do
 
   def coming_soon(assigns) do
     ~H"""
-    <div class="max-w-[640px] border border-rule rounded-[2px] bg-paper p-8">
-      <div class="font-mono text-[11px] tracking-[0.12em] uppercase text-ink55 mb-3.5">
+    <div
+      class="max-w-[640px] border border-border rounded-[11px] bg-card p-8"
+      style="box-shadow:var(--shadow)"
+    >
+      <div class="text-[11px] tracking-[0.08em] uppercase text-inkFaint font-semibold mb-3.5">
         {@kicker}
       </div>
-      <h1 class="font-serif font-normal text-[32px] leading-[1.05] tracking-[-0.03em] m-0 text-pretty">
+      <h1 class="text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] m-0 text-ink text-pretty">
         {@title}
       </h1>
-      <p class="mt-5 text-[15px] leading-[1.55] text-ink55 max-w-[520px] text-pretty">
+      <p class="mt-5 text-[15px] leading-[1.55] text-inkSoft max-w-[520px] text-pretty">
         {@body}
       </p>
-      <div class="mt-7 font-mono text-[11px] tracking-[0.08em] uppercase text-ink40">
+      <div class="mt-7 text-[11px] tracking-[0.08em] uppercase text-inkFaint font-semibold">
         coming soon
       </div>
     </div>

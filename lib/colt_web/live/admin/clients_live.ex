@@ -62,56 +62,63 @@ defmodule ColtWeb.Admin.ClientsLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-        <h1 class="text-3xl font-semibold">Clients</h1>
+        <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">All <em>clients</em></h1>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-px bg-base-300 border border-base-300 rounded-sharp overflow-hidden md:max-w-2xl">
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 md:max-w-2xl">
           <.stat label="users" value={@total_users} />
           <.stat label="paying" value={@paying} />
           <.stat label="API cost · lifetime" value={"$" <> format_money(@total_cost)} />
         </div>
 
         <div>
-          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
             all users · sorted by lifetime API cost
           </div>
-          <div class="overflow-x-auto">
-            <table class="text-xs font-mono w-full min-w-[820px]">
-              <thead class="opacity-60">
-                <tr class="border-b border-base-300">
-                  <th class="text-left py-1 pr-3">client</th>
-                  <th class="text-left py-1 pr-3">registered</th>
-                  <th class="text-left py-1 pr-3">status</th>
-                  <th class="text-right py-1 pr-3">used / plan</th>
-                  <th class="text-right py-1 pr-3">campaigns</th>
-                  <th class="text-right py-1 pr-3">renews</th>
-                  <th class="text-right py-1 pr-3">calls</th>
-                  <th class="text-right py-1 pr-3">last active</th>
-                  <th class="text-right py-1 pr-3">API cost</th>
+          <div
+            class="border border-border rounded-[11px] bg-card overflow-x-auto"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <table class="text-[12px] w-full min-w-[820px]">
+              <thead>
+                <tr class="border-b border-border bg-paperAlt text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
+                  <th class="text-left px-3 py-2">client</th>
+                  <th class="text-left px-3 py-2">registered</th>
+                  <th class="text-left px-3 py-2">status</th>
+                  <th class="text-right px-3 py-2">used / plan</th>
+                  <th class="text-right px-3 py-2">campaigns</th>
+                  <th class="text-right px-3 py-2">renews</th>
+                  <th class="text-right px-3 py-2">calls</th>
+                  <th class="text-right px-3 py-2">last active</th>
+                  <th class="text-right px-3 py-2">API cost</th>
                 </tr>
               </thead>
               <tbody>
-                <tr :for={r <- @rows} class="border-b border-base-300/40">
-                  <td class="py-1 pr-3 truncate max-w-[18rem]">
+                <tr :for={r <- @rows} class="border-b border-border last:border-b-0 hover:bg-paperAlt">
+                  <td class="px-3 py-1.5 truncate max-w-[18rem] text-ink">
                     {r.email}
-                    <span :if={r.is_admin} class="opacity-50">· admin</span>
+                    <span :if={r.is_admin} class="text-ink40">· admin</span>
                   </td>
-                  <td class="py-1 pr-3 tabular-nums">{format_date(r.registered)}</td>
-                  <td class="py-1 pr-3">
+                  <td class="px-3 py-1.5 tabular-nums text-ink70">{format_date(r.registered)}</td>
+                  <td class="px-3 py-1.5">
                     <span class={status_class(r.status)}>{r.status}</span>
                   </td>
-                  <td class="py-1 pr-3 text-right tabular-nums">
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
                     {r.used} / {r.capacity}
                   </td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{r.campaigns}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{format_date(r.period_end)}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{r.calls}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{format_date(r.last_call_at)}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums font-semibold">
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{r.campaigns}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
+                    {format_date(r.period_end)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{r.calls}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
+                    {format_date(r.last_call_at)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums font-semibold text-ink">
                     ${format_money(r.cost)}
                   </td>
                 </tr>
                 <tr :if={@rows == []}>
-                  <td colspan="9" class="py-2 opacity-60">no users yet</td>
+                  <td colspan="9" class="px-3 py-2 text-ink40">no users yet</td>
                 </tr>
               </tbody>
             </table>
@@ -127,17 +134,19 @@ defmodule ColtWeb.Admin.ClientsLive do
 
   defp stat(assigns) do
     ~H"""
-    <div class="bg-base-200 p-4">
-      <div class="text-xs uppercase tracking-wider opacity-60 font-mono">{@label}</div>
-      <div class="font-serif text-4xl tabular-nums leading-none mt-2">{@value}</div>
+    <div class="bg-card border border-border rounded-[11px] p-4" style="box-shadow:var(--shadow)">
+      <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">{@label}</div>
+      <div class="text-[27px] font-bold tabular-nums leading-none tracking-[-0.02em] text-ink mt-2">
+        {@value}
+      </div>
     </div>
     """
   end
 
-  defp status_class(:active), do: "text-success"
-  defp status_class(:past_due), do: "text-warning"
-  defp status_class(:canceled), do: "opacity-60 line-through"
-  defp status_class(_), do: "opacity-60"
+  defp status_class(:active), do: "text-green font-medium"
+  defp status_class(:past_due), do: "text-amber font-medium"
+  defp status_class(:canceled), do: "text-ink40 line-through"
+  defp status_class(_), do: "text-ink40"
 
   defp format_date(nil), do: "—"
   defp format_date(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d")

@@ -1,236 +1,131 @@
-# Design system — Liid
+# Design system — Liid ("Calm Pro")
 
-> **Product name in the UI is "Liid".** The repo is `colt` (working name); the user-facing brand is **Liid**. Use Liid in all copy, page titles, the wordmark, and the marketing surface. Use `colt` only for the OTP app name and module namespace if you keep it.
+> **Product name in the UI is "Liid".** The repo is `colt` (working name); the user-facing brand is **Liid**. Use Liid in all copy, page titles, the wordmark, and the marketing surface. Use `colt` only for the OTP app name and module namespace.
 
-The full design prototype lives at `priv/design_prototype/`. **When implementing any UI, open the relevant file there and match it.** This document distills the system; the prototype is the source of truth.
+**Source of truth: the living prototype in `priv/design_demos/`.** When implementing any UI, open the relevant demo file there and match it. This document distills the system; the demo files are the reference.
 
-Direction set in the design chat:
-- **Minimal Scandi** — warm paper, generous whitespace, serif accents
-- **Operator / blunt** copy — "500 companies match", "Take 312 enriched companies somewhere"
-- Static layouts in the prototype; interactivity is our job to add
+- App interface (the design we ship): `priv/design_demos/d1-calm.html` — the "Calm Pro" sending-funnel screen. This is the canonical app look: sidebar + headline + stat boxes + a two-column list/thread body.
+- Landing / marketing page: `priv/design_demos/landing/l0-combined.html` — the agreed landing layout. Other `l1…l6` files in that folder are earlier explorations; `l0` is the one we ship.
+- The funnel switcher `priv/design_demos/index.html` lets you flip designs 1–6; we chose **#1 Calm Pro**.
+
+> The older `priv/design_prototype/` (the warm-paper / serif / hairline-rule system with oklch forest-green accent) is **superseded** by Calm Pro and kept only for history. Do not match it.
+
+## 0. The feel — what "Calm Pro" means
+
+Direction, set with the user over a long design review:
+
+- **Light, calm, approachable.** Warm off-white canvas, soft charcoal ink. No dark mode, no glow, no terminal/console look, no neon.
+- **Compartmentalized.** *Every meaningful unit is its own bounded box.* One email = one card with all of its own metadata inside its own border. Buckets, notes, the composer, list rows — each is a self-contained box. This is the single most important rule.
+- **Contrast comes from real boxes**, not from a lone faint hairline. **Never separate sections with a single thin divider rule.** Use bordered, softly-shadowed cards with clear gaps between them.
+- **Restrained, functional color.** Color is welcome but contained: the accent blue for emphasis / primary actions / the active state; green / amber / red **only** as small status chips and dots. Never a loud multi-color scheme — this is a tool for salespeople; it must read clear and trustworthy.
+- **Operator / blunt copy** — numbers-driven, no fluff: "500 companies match", "Stop sending to dead inboxes", "One tool, not five."
 
 ## 1. Tokens
 
-All colors are **oklch**. Don't convert to hex; modern browsers support oklch and the perceptual uniformity matters when the user tweaks the accent.
+All values are plain sRGB hex (the app previously used oklch; Calm Pro uses hex for parity with the prototype). Tokens live in `assets/css/app.css` — both as Tailwind v4 `@theme` (utility classes like `bg-card`, `text-ink`, `text-accent`) and as `:root` CSS vars (read directly by inline `style=` in components, e.g. `var(--accent)`).
 
 ```
-paper      oklch(98% 0.005 80)        /* warm off-white */
-paperAlt   oklch(96% 0.006 80)        /* card / hover surface */
-ink        oklch(20% 0.012 250)       /* near-black, slightly cool */
-ink70      ink @ 70% alpha            /* secondary text */
-ink55      ink @ 55% alpha            /* tertiary text */
-ink40      ink @ 40% alpha            /* placeholders, ticks */
-ink20      ink @ 20% alpha            /* borders */
-ink10      ink @ 10% alpha            /* progress track bg */
-rule       ink @ 12% alpha            /* hairline dividers */
+/* surfaces */
+bg          #f7f7f5     /* warm off-white page canvas (set on <body>) */
+bg-soft     #fbfbfa     /* slightly lighter inset lane (e.g. the thread scroll area) */
+card        #ffffff     /* every bounded card/box */
+paperAlt    #f2f2ef     /* hover / pressed soft fill */
 
-accent     oklch(55% 0.13 145)        /* default forest green */
-accentSoft oklch(94% 0.04 145)        /* very pale accent wash */
-warn       oklch(60% 0.13 60)         /* amber — fallback search, etc. */
-fail       oklch(58% 0.18 28)         /* red — hard errors */
-ok         oklch(55% 0.12 145)        /* same family as accent */
+/* ink (text) */
+ink         #37352f     /* primary text — soft charcoal, NOT pure black */
+ink-soft    #6b6862     /* secondary text */
+ink-faint   #97948d     /* tertiary text, placeholders, captions, ticks */
+
+/* lines */
+border        #e3e3e0   /* default card border */
+border-strong #d6d6d1   /* heavier border / secondary-button outline */
+
+/* accent — the single brand color */
+accent      #3b7ae0     /* calm blue: primary buttons, active state, emphasis, links */
+accent-soft #eef3fc     /* pale accent wash — active bucket / selected row fill */
+accent-ring #bcd2f5     /* accent border/ring on active elements */
+
+/* functional status — small chips & dots only */
+green       #2f9e6b   green-soft #e7f5ee   /* interested / sent / verified / good */
+amber       #c98a1e   amber-soft #fbf1dd   /* bounced / warning / notes */
+red         #d05a4f   red-soft   #fbeae8   /* failed / hard errors */
 ```
 
-Accent is a single global value: forest `#3d7a3d`. Set as a CSS custom property `--accent` on the screen root and consumed by status dots, primary buttons, progress bars, etc. (The prototype's accent picker — ink / rust / cobalt — is not built; v1 has no theming UI.)
+Existing semantic class names from the old system are **remapped, not removed** — `bg-paper` now resolves to white (`card`), `border-rule`/`border-ink20` to `border`, `text-ink55` to a faint ink, `text-accent` to the blue. So legacy markup keeps working; new markup should prefer the names above.
 
-### Type
-
-```
-sans     "Inter Tight", "Inter", system-ui, sans-serif    /* UI */
-serif    "Instrument Serif", Georgia, serif               /* display accents only */
-mono     "JetBrains Mono", ui-monospace, Menlo, monospace /* numbers, labels, log */
-```
-
-Load all three from Google Fonts. The `<em>` element is hard-rebound to the serif globally.
-
-Type scale (used in the prototype — match these):
-
-| Use                         | Family         | Size | Weight | Letter-spacing |
-|-----------------------------|----------------|------|--------|----------------|
-| Hero / display heading       | serif          | 64   | 400    | -1.4           |
-| View 4 page title           | serif          | 44   | 400    | -0.8           |
-| Counter (View 3 "847")      | serif          | 76   | 400    | -2.0           |
-| Card title (markets, modal) | serif          | 32–38| 400    | -0.6           |
-| Body                        | sans           | 13–15| 400/500| 0              |
-| Label (uppercase mono)      | mono           | 10–11| 400    | +0.08–0.12     |
-| Data / numbers              | mono           | 10–12| 400/500| +0.04          |
-| Stepper segment             | mono           | 11   | 400/600| +0.04 (+0.08 on label, uppercase) |
-
-Always use `font-variant-numeric: tabular-nums` on counters and table data.
-
-### Spacing & shape
-
-- **Border radius**: 2px on cards, inputs, buttons, pills. Sharp by intent.
-- **Borders**: 1px solid `ink20` for default, 1px solid `ink` for selected, 1px solid `accent` for active.
-- **Density**: ship `comfy` only — screen padding `40px / 56px` (y/x). The prototype's compact mode is not built; no user toggle in v1.
-
-### Animation
-
-Defined in `liid-shared.jsx` keyframes:
+### Shadows & shape
 
 ```
-liid-pulse     scale .85→1, opacity .55→1, 1.4s ease-in-out infinite
-liid-blink     opacity 1/0, 1s steps(1) infinite (cursor)
-liid-shimmer   linear-gradient swept across width, 1.8s linear infinite
-liid-tick      width 0→var(--w), used for progress bar fills
+--shadow       0 1px 2px rgba(35,32,28,.05), 0 2px 6px rgba(35,32,28,.04)   /* default card */
+--shadow-card  0 1px 2px rgba(35,32,28,.06), 0 4px 12px rgba(35,32,28,.05)  /* primary panels (list, thread) */
+radius         11px   (cards, panels)
+radius-sm      8px    (inputs, buttons, chips, nav items)
 ```
 
-Use `liid-pulse` for any "currently active" indicator (running workers, live preview, status dots in `work` state). Use `liid-shimmer` for skeleton placeholders in table cells while data loads.
+Border radius is **11px / 8px — soft, not sharp.** (The old system's 2px is gone. Sweep any hardcoded `rounded-[2px]` to `rounded-[11px]` / `rounded-lg`.)
 
-### Iconography
+### Type — **Inter only**
 
-Hairline 1.25px stroke, 16×16 viewBox, `currentColor`. Path data is in `priv/design_prototype/project/liid-shared.jsx` under `LiidIcon`. Available: `arrow, chev, chevR, chevL, plus, x, check, search, globe, spark, download, file, user, mail, link, code, filter, grid`. **Reuse this set verbatim; don't pull in lucide/heroicons.**
+```
+sans   "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif    /* everything */
+```
 
-## 2. Components
+Load Inter from Google Fonts at weights `400;450;500;600;700`, with `-webkit-font-smoothing:antialiased`. **No serif, no monospace.** (The old Inter Tight / Instrument Serif / JetBrains Mono trio is retired. `--font-serif` and `--font-mono` are aliased to Inter so legacy `font-serif`/`font-mono` classes render as Inter; strip them when you touch a file.)
 
-Component file map in the prototype:
+Type scale (match the prototype):
 
-| File | What's in it |
+| Use | Size / weight / tracking |
 |---|---|
-| `liid-shared.jsx` | tokens, `StatusDot`, `LiidIcon`, `LiidScreen`, `LiidTopBar` (wordmark + stepper + campaign chip + avatar), `LiidBtn`, `LiidH` (kicker + serif headline + sub) |
-| `views-0-2.jsx` | View 0 (campaign name), View 1 (ICP + job titles), View 2 (market) |
-| `view-3.jsx` | Filter panel + counter + live preview + `Fset`, `GrowthGlyph` |
-| `view-4.jsx` | Funnel hero, `StatsStrip`, `FunnelRow`, three viz styles, `ExpandedDetail`, `ExportModal` |
-| `data.jsx` | Mock company seeds, `STAGE_KEYS`, `STAGE_LABEL`, `ROW_STATES` |
+| Page headline (with one italic accent word) | 25px / 600 / -0.02em |
+| Section heading (landing) | 30–40px / 600–700 / -0.02em |
+| Card / thread name | 17px / 700 |
+| Big stat number (bucket) | 27px / 700 / -0.02em, tabular-nums |
+| Body | 13–15px / 400–450 |
+| Label / chip (small caps optional) | 10.5–11.5px / 600, uppercase +0.08em where used |
 
-When implementing in Phoenix LiveView, recreate these as function components / heex partials. Don't try to port the JSX structure 1:1 — match the visual output. Patterns to keep:
+The `<em>` element is globally rebound to **italic + accent color** (still Inter, not serif) — use it for the one emphasized word in a heading, e.g. "Where the <em>conversation</em> is going." Always `font-variant-numeric: tabular-nums` on numbers, stats, counts, and progress (`.tnum` / `.tabular-nums`).
 
-### TopBar / stepper
-Stepper labels (uppercase mono, padding 6/12, hairline dividers between segments):
-```
-00 NAME — 01 ICP — 02 MARKET — 03 FILTERS — 04 FUNNEL
-```
-Active step: ink color + accent number + weight 600. Done: ink55. Future: ink40.
+## 2. Components — the recipes
 
-The campaign name + user avatar live on the right. Avatar is a 24px ink-filled circle with a single uppercase initial in paper.
+When implementing in Phoenix, recreate these as function components / heex. The reference markup is in `priv/design_demos/d1-calm.html` (app) and `landing/l0-combined.html` (marketing). Don't approximate from memory — open the file.
 
-### Status dot (`StatusDot`)
-6–8px circle with optional outer halo (`accent22` 3px box-shadow) and `liid-pulse` animation when state is `work`. State-to-color:
-- `idle` → ink20 outline only
-- `work` → accent fill + pulse + halo
-- `done` → accent fill
-- `skip` → ink40 fill
-- `fall` → warn fill (used for fallback states like Google search)
-- `fail` → fail fill
+### Card (the atom)
+White `card` background, `1px solid border`, `--shadow`, `radius:11px`. Everything compartmentalized is a card. Cards sit on the `bg` canvas with **visible gaps** between them (≈12–16px). A card may carry a small meta header row inside it (chips + timestamp) above its body.
 
-### Buttons (`LiidBtn`)
-- **Primary**: ink background, paper text, ink border, 10/18 padding (7/12 small), 13px font, weight 500. Mono variant has letter-spacing 0.04.
-- **Secondary**: transparent bg, ink20 border, ink text.
-- Border radius 2px. Always pair with a small inline icon when there's room.
+### Sidebar
+Fixed ~248px left column on `bg-soft`, `1px` right border. Top: the wordmark — a 26px rounded (7px) accent-blue square with a white "L" + "Liid" 18px bold. A small white "Campaign" card showing the active campaign name. Nav groups (uppercase faint group label + items). A nav item is `8px` radius, `ink-soft`; **active item** = `accent-soft` fill, `accent` text, `inset 0 0 0 1px accent-ring`, weight 600. Footer: Email accounts / Billing / Feedback + a user row (28px avatar + email).
 
-### Headlines (`LiidH`)
-Three pieces: kicker (mono uppercase, ink55), title (serif 64, line-height 1.02), sub (sans 15, ink55, max-width 520). Title supports an embedded `<em>` rendered in `Instrument Serif` italic + accent color — used to give every page a single accented word. Examples: "What are we calling this *hunt*?", "Describe the *customer* you want.", "Narrow the *funnel*.", "Which *register* do we pull from?". **Keep the one-italicized-word pattern on every step.**
+### Bucket / stat box
+White card, label (11.5px, `ink-soft`) + big tabular number (27px, 700) + a faint sub-line. **Active** bucket = `accent-soft` fill, `accent-ring` border + ring, accent label & number. A "live" bucket shows a green dot with a pulsing halo. Error/warn buckets tint only the sub-line red/amber.
 
-## 3. Per-view layout
+### Contact / list row
+A row inside the list card: a 34px rounded-square avatar (initials), name (600) + title (`ink-faint`) + a small status line (green dot + "replied · interested"), and a right-aligned progress pill ("3/4", tabular). **Selected** row = `accent-soft` fill + `accent-ring` inset; its avatar and progress pill go accent-tinted.
 
-### View 0 — name campaign
-Open file: `priv/design_prototype/project/views-0-2.jsx` lines 5–76.
-- LiidH on the left (max-width 760).
-- Below: serif input, max-width 560, 44px text, no border except 1px bottom rule on ink, transparent bg.
-- Status line under the input in mono ink55: `● draft · auto-saved 0s ago` (the dot is accent).
-- Continue button (primary mono with arrow icon) + ⏎ to continue hint.
-- Right side: 240px-wide "Recent" sidebar with a left rule, listing 4 recent campaigns: name, `ratio` (e.g. `847 / 1,000`), and relative time. List items separated by hairline rules.
+### Email card (timeline)
+Its own bounded card. A meta row (chips: "Step 1", "You", "Sent", + timestamp) sits inside the card above a bold subject + body. Outbound aligns left, inbound aligns right (inbound border + meta tinted `accent-soft`). A **note** is a distinct `amber-soft` card with an amber "Note" chip. Chips are small rounded tinted pills (`step` grey, `you/them` accent, `sent` green, `manual` violet, `note` amber).
 
-### View 1 — ICP + target titles
-Open file: `views-0-2.jsx` lines 78–177.
-Two-column layout with 64px gap. Left: 320px LiidH ("Describe the *customer* you want."). Right: max-width 640.
-- ICP textarea: label (mono uppercase) on the left, `length / 2000` counter on the right. Box: ink20 border, paperAlt bg, 20/22 padding, 15/1.55 type, min-height 200, blinking accent caret at the end of pasted content.
-- **Target job title** (single): one labelled text input. Same paperAlt bg + ink20 border, 12/14 padding, sans 14, blinking accent caret. The prototype's multi-chip pattern is **not** used — see §5.
+### Thread pane (compartmentalized scroll)
+The right column is a `bg-soft` bordered scroll **lane** holding three+ separate cards: the **company-info header card**, the stack of **email cards**, and the **reply composer card** — each its own block, scrolling together with gaps. (Do **not** make the whole pane one card that scrolls, and do **not** pin the header/composer.)
 
-### View 2 — market
-Open file: `views-0-2.jsx` lines 179–269.
-- LiidH ("Which *register* do we pull from?").
-- Grid of 6 market cards, 3 columns × 2 rows, 14px gap. Each card: 24/24/20 padding, min-height 200, 1px border, 2px radius. Selected card has ink border + paperAlt bg.
-- **Active**: EE only (pre-selected). **Disabled**: FI, LV, LT, SE, NO. Disabled cards: opacity 0.45, cursor not-allowed, small uppercase mono **"soon"** badge top-right (the prototype shows "Q3" — use "soon" instead, since we're not gating on a quarter).
-- Card content: small radio (14px circle) + 2-letter ISO code (mono, ink55) at top; serif 38px country name + mono row showing API host + company count at bottom.
-- Footer: Back + Continue → filters buttons, plus a small mono right-aligned status `<count> active companies in <api> · last sync HH:MM EET`.
+### Buttons
+- **Primary**: `accent` bg, white text, `radius:8px`, soft accent shadow, weight 600. (e.g. "Send reply", "Start a campaign".)
+- **Secondary**: white bg, `border-strong` outline, `ink-soft` text.
+- **Tabs** (composer Reply/Note): active tab = `accent-soft` fill + `accent` text + ring.
 
-### View 3 — filters + live preview
-Open file: `priv/design_prototype/project/view-3.jsx`.
-Two columns: 360px filter panel + flexible right side.
+### Animations
+`pulse` halo for live/active dots (`scale .6→1.9, opacity .5→0, 1.8s infinite`). Keep motion subtle. No shimmer/CRT/blink.
 
-Filter panel sections (all wrapped in `Fset` — label mono uppercase top-left, optional hint top-right, hairline rule, content):
-1. **Industry** — chips, multi-select. Selected: accent bg + paper text. Unselected: ink20 border. `+ N more` chip uses mono.
-2. **Employees** — dual-thumb range slider with 1/10/50/500/5k+ scale ticks below.
-3. **Trajectory** — checkbox list with mono count on the right. Selected rows have a 2px accent left border and `accent11` background tint.
-4. **Region** — same chip pattern as Industry.
-5. **Founded** — two inputs separated by an em dash.
-6. **Signals** — checkbox list (Has registered website, VAT registered, Filed annual report 2024).
+## 3. Landing page
 
-Right side:
-- **Counter card**: paperAlt bg, ink20 border. Big serif number (76px, tabular-nums) of matches, `of N` mono caption beside it; on the right, "Funnel cap 1,000" in serif. Below: 6px capacity bar with three quarter-tick marks; mono caption shows `% of cap` and `slots remaining`.
-- **Active chips row**: tiny chips listing currently active filter summaries with X icons.
-- **Live preview list**: 4-column grid (name | industry | size | growth glyph), 11/16 row padding, hairline row dividers. Header strip at top: pulsing dot + `preview · updated 0.2s ago` left, `showing 12 of 847` right. 60px paper-to-transparent gradient at the bottom edge.
-- Footer: Back + primary "Run enrichment on N" with spark icon. **Skip** the prototype's cost estimate (`~ €0.18 / company · est. €152.46`) — see §5.
+Ship `priv/design_demos/landing/l0-combined.html`. Structure, in order: sticky nav → hero (the 4-step funnel **Filter → Enrich → Send → Interested** as the focal visual, narrowing counts 300k → 10k → 2,400 → 230) → "Everything you need for cold outreach" (the full app UI mock) → step-by-step walkthrough (numbered spine 01–06, **text left / visual right on every row, never alternating**, ending on Calling) → low on the page: the "100 prospects" time-comparison table (By hand / Apollo + automation tools / Liid — explains *why* each approach is slow) → "One tool, not five." (the stack it replaces) → pricing (€49 / €159 "Most popular" / €699) → final CTA "Stop sending to dead inboxes." → footer. Inter throughout, the same Calm Pro tokens, no serif. No speed promises; comparison times are labelled illustrative.
 
-### View 4 — funnel (hero)
-Open file: `priv/design_prototype/project/view-4.jsx`. This is the most important screen.
+## 4. Hard rules (quick reference for any UI work)
 
-**Header**: kicker (`05 / Funnel · <campaign name>`), then serif 44px `Enriching <accent>847</accent> companies.` Right side: Filter, Columns, Export buttons (small).
-
-**StatsStrip** — single row of 5 stat tiles, equal flex, hairline borders between, no outer corners but 2px radius on the strip itself:
-- Queued / Working / Enriched / ICP miss / Failed
-- Each tile: mono uppercase label + percentage on the right; serif 36 number; 2px progress bar below sized as `pct * 2` (capped at 100%).
-- "Working" tile has a pulsing dot next to the label and uses accent.
-- "Failed" tile uses `fail` color.
-
-**Pipeline meta strip** (mono 11, ink55): `● running · 14 workers · 4.2/s    queue: 422    elapsed: 00:18:42    eta: 00:34:11`. Right-aligned: `sort: status ↓ · 28 of 847 visible`.
-
-**Table**:
-- Columns (in compact mode): 24 | 1.5fr | 1fr | 70 | 60 | 2fr | 100 | 1fr
-  → checkbox | Company | Industry | Size | Growth | Enrichment | Contact | Status.
-- Header: paperAlt bg, mono uppercase ink55.
-- Rows: 12/16 padding, hairline bottom rule. Working rows get an `accent06` background tint. Expanded rows get paperAlt.
-- Company cell: name (13/500) + mono 10 ink40 sub-line: `domain · registry-code`. Use italic `resolving...` when domain is null.
-- Growth cell: 4 vertical bars with heights from a per-bucket map (`shrinking [4,3,2,1]`, `stagnant [3,3,3,3]`, `slow [2,3,4,5]`, `2x [2,4,6,8]`, `10x [2,5,8,11]`). Color-coded.
-- Contact cell when done: name (12/500) + mono 10 title sub-line. When `no-contact`: mono `hallucinated` in fail color. When `skip-icp`: mono `—`. When loading: shimmer placeholder.
-- Status cell: mono right-aligned, dot + label, dot pulses while working/fallback.
-
-**Enrichment cell — Pills only**: 6 labelled chips with status dots, separated by 4px hairline ticks. Border colors by state. Done: accent14 fill. Working: accent1f fill + pulse. (The prototype's Bar and Log alternates are not built in v1 — no per-user toggle.)
-
-**Expanded detail row** (when a row is opened): paperAlt bg, top hairline rule, 20/24/24/56 padding. Two-column grid (1.4fr / 1fr, 32px gap):
-- Left: timestamped mono pipeline log (`HH:MM:SS  ✓  message`), 70px / 14px / 1fr grid per line.
-- Right: extracted contact card on paper bg, 1px ink20 border. Serif 24 name, ink55 sub `Title · Company`, mono lines for email + source URL with a small `verified` accent label. Bottom: hairline rule + 12/1.5 quote-style "What this company does" summary.
-
-**Export modal**: 640px wide, paper bg, ink20 border, soft 24/80 shadow, full-screen overlay using `rgba(20,18,14,0.45)` + `backdrop-filter: blur(2px)`. Title: kicker + serif 32 `Take N enriched companies somewhere.` 2×3 grid of format cards. CSV is enabled and selected by default; **JSON, HubSpot, Pipedrive, Apollo, Webhook are disabled** with a "soon" badge — see §5. Each card: name (14/600) + mono right-aligned size/note + 12px ink55 description. Below: paperAlt code block previewing the CSV output. Footer: Cancel + primary Download CSV.
-
-## 4. Implementation rules for Phoenix LiveView
-
-- **Recreate, don't transliterate.** The prototype is JSX; we ship heex. Match the rendered pixels, not the React tree.
-- **Use CSS custom properties for theming.** Set `--accent` (and others) on a top-level wrapper. All variants (`done`, `work`, `fail`, `warn`) should reference custom properties so the user's accent choice cascades.
-- **Keep component boundaries**: `LiidScreen`, `LiidTopBar`, `LiidBtn`, `LiidH`, `StatusDot`, `Fset`, `FunnelRow`, `EnrichmentViz`, `StatsStrip`. One function component per concept, mirroring the prototype.
-- **Tailwind**: if we use Tailwind, extend the config with the oklch values as named colors and the three font families. Don't approximate in default Tailwind palette — the warm paper / cool ink combination dies if you use `gray-50` / `gray-900`.
-- **Tabular nums** everywhere there's a number in a table or counter.
-- **Animations**: copy the four keyframes (`liid-pulse`, `liid-blink`, `liid-shimmer`, `liid-tick`) into our base CSS verbatim.
-
-## 5. Spec/design reconciliation — decisions
-
-All conflicts between the original spec and the prototype have been resolved. Build to these:
-
-| Topic | Decision |
-|---|---|
-| **Target job title** | Single free-text field on Campaign (per spec). The prototype's multi-chip UI is **not** built — replace with one labelled text input. |
-| **Markets** | **EE only** in v1. FI, LV, LT, SE, NO render as disabled cards with a "soon" badge (opacity 0.45, cursor not-allowed, not selectable). EE pre-selected since it's the only option. |
-| **Growth buckets** | 5 buckets per design: `:declining, :stagnant, :slow, :growing_2x, :growing_10x`. UI labels: Shrinking / Stagnant / Growing · slow / Growing · 2× / Growing · 10×. |
-| **Enrichment stages (visible row)** | 6 visible stages — `web → scrape → parse → icp → contact → verify`. 9 internal Oban jobs map onto these per the table in spec §5.5. |
-| **Funnel viz styles** | Pills only. The prototype's Bar and Log alternates are not built; no user toggle. |
-| **Theming / accent** | Single global accent (forest). No accent picker, no density toggle, no settings page in v1. |
-| **Export modal** | Modal as designed. CSV enabled. JSON / HubSpot / Pipedrive / Apollo / Webhook cards render but are disabled with "soon" badge. |
-| **View 0 recent sidebar** | Built. Shows the user's 4 most recent campaigns with `done / total` ratio and relative time. |
-| **View 3 cost estimator** | **Not built.** Don't show the `~ €0.18 / company · est. €152.46` line from the prototype. Pricing comes later. |
-| **View 4 pipeline meta** | Built. `running · N workers · X/s · queue: N · elapsed · eta` from Oban telemetry, plus the right-aligned `sort · visible / total`. |
-
-## 6. Implementing Liid.html
-
-`Liid.html` itself is a **canvas viewer** — a React harness that lays out all 5 views as artboards on a `#f0eee9` paper background with a Tweaks panel. **Do not port the canvas/tweaks scaffold.** Port the artboard contents (Views 0–4) into LiveViews under `LiidWeb`. The Tweaks panel is design-time only — it doesn't map to anything in the shipped product (no settings page, single global accent, comfy density, pills viz).
-
-Order of implementation (low risk first):
-1. Tokens + global styles + `LiidScreen` + `LiidTopBar` + `LiidBtn` + `LiidH` (used everywhere)
-2. View 0 (`/campaigns/new`)
-3. View 1
-4. View 2
-5. View 3 with live counter
-6. View 4 with PubSub-driven row updates and Pills viz
-7. Bar + Log viz toggles
-8. Expanded row detail
-9. Export modal (CSV only enabled)
+1. Brand name in all UI copy is **Liid**.
+2. Use the Calm Pro tokens in §1 (and `assets/css/app.css`). Don't substitute raw Tailwind grays.
+3. **Inter only.** No serif, no mono.
+4. **Everything is a box.** One email = one card; buckets, notes, composer, rows are each their own bounded, softly-shadowed card with gaps. Never divide sections with a single faint hairline.
+5. Border radius **11px / 8px**. Soft by intent.
+6. **Restrained color**: accent blue for emphasis/active/CTA; green/amber/red only as small chips & dots.
+7. Tabular-nums on all numbers.
+8. Match the demo files in `priv/design_demos/`, not memory.

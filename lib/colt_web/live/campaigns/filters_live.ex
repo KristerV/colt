@@ -323,7 +323,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
-      <div class="flex flex-col lg:flex-row gap-6 lg:gap-12 flex-1 min-h-0">
+      <div class="flex flex-col lg:flex-row gap-5 lg:gap-6 flex-1 min-h-0">
         <.filter_panel
           form={@form}
           top_industries={@top_industries}
@@ -339,22 +339,21 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         <div class="flex-1 flex flex-col min-h-0 gap-5">
           <.counter_card count={@count} total={@total} pending?={@pending?} />
 
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-3">
             <.link
               navigate={~p"/campaigns/#{@campaign.id}/market"}
-              class="inline-flex items-center gap-2 px-3 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+              class="inline-flex items-center gap-2 px-3.5 py-[7px] text-[12px] font-semibold border border-borderStrong bg-card rounded-[8px] no-underline text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"
             >
               <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
             </.link>
             <Liid.btn
               variant={:primary}
-              mono
               phx-click="confirm"
               disabled={@confirming? or @count == 0}
             >
               {confirm_label(@campaign.status)}
             </Liid.btn>
-            <span :if={@error} class="font-mono text-[11px] text-fail">{@error}</span>
+            <span :if={@error} class="text-[11px] text-red">{@error}</span>
           </div>
 
           <.active_chips form={@form} />
@@ -382,23 +381,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     assigns = assign(assigns, growth_buckets: @growth_buckets)
 
     ~H"""
-    <div class="lg:basis-[360px] lg:shrink-0 flex flex-col min-h-0 gap-7">
+    <div class="lg:basis-[360px] lg:shrink-0 flex flex-col min-h-0 gap-6">
       <Liid.headline kicker={gettext("03 / Filters")}>
         {raw(gettext("Narrow the <em>funnel</em>."))}
       </Liid.headline>
 
-      <div class="flex flex-col gap-6 overflow-auto pr-2">
-        <.fset label={gettext("Industry")} hint={industry_hint(@form.industries)}>
-          <.industry_box
-            mode={:include}
-            selected={@form.industries}
-            top_industries={@top_industries}
-            query={@industry_query}
-            results={@industry_results}
-            open={@industry_open}
-          />
-        </.fset>
-
+      <div class="flex flex-col gap-4 overflow-auto pr-1">
         <.fset label={gettext("Exclude industries")} hint={industry_hint(@form.industries_exclude)}>
           <.industry_box
             mode={:exclude}
@@ -440,23 +428,39 @@ defmodule ColtWeb.Campaigns.FiltersLive do
                 phx-value-field="growth_buckets"
                 phx-value-v={bucket}
                 class={[
-                  "flex items-center gap-2.5 px-2.5 py-2 cursor-pointer text-left border-l-2",
-                  on && "border-l-[var(--accent)]",
-                  not on && "border-l-transparent"
+                  "flex items-center gap-2.5 px-2.5 py-2 cursor-pointer text-left rounded-[8px] border",
+                  on && "bg-accentSoft border-accentRing",
+                  not on && "border-transparent hover:bg-paperAlt"
                 ]}
-                style={on && "background: color-mix(in oklch, var(--accent) 7%, transparent);"}
               >
                 <.checkbox checked={on} />
-                <span class="text-[13px] text-ink flex-1">{label}</span>
-                <span class="font-mono text-[11px] text-ink40 tnum">
+                <span class={[
+                  "text-[13px] flex-1",
+                  on && "text-accent font-medium",
+                  not on && "text-ink"
+                ]}>
+                  {label}
+                </span>
+                <span class="text-[11px] text-inkFaint tnum">
                   {Map.get(@bucket_totals, bucket, 0)}
                 </span>
               </button>
             <% end %>
           </div>
-          <div class="font-mono text-[11px] text-ink40 mt-2 tracking-[0.04em]">
+          <div class="text-[11px] text-inkFaint mt-2">
             {gettext("growth = revenue Δ over 3 fiscal years")}
           </div>
+        </.fset>
+
+        <.fset label={gettext("Industry")} hint={industry_hint(@form.industries)}>
+          <.industry_box
+            mode={:include}
+            selected={@form.industries}
+            top_industries={@top_industries}
+            query={@industry_query}
+            results={@industry_results}
+            open={@industry_open}
+          />
         </.fset>
       </div>
     </div>
@@ -499,16 +503,16 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     ~H"""
     <div class="relative" phx-click-away={@close_evt}>
-      <div class="flex flex-wrap items-center gap-1.5 min-h-[36px] px-2 py-1.5 border border-ink20 bg-paperAlt rounded-sharp focus-within:border-ink">
+      <div class="flex flex-wrap items-center gap-1.5 min-h-[38px] px-2 py-1.5 border border-border bg-card rounded-[8px] [box-shadow:var(--shadow)] focus-within:border-accentRing focus-within:[box-shadow:inset_0_0_0_1px_var(--accentRing)]">
         <%= for code <- @selected do %>
-          <span class="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 text-[11px] bg-paper border border-ink20 rounded-sharp">
+          <span class="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 text-[11px] bg-accentSoft text-accent border border-accentRing rounded-[8px]">
             {industry_label(code)}
             <button
               type="button"
               phx-click="clear_chip"
               phx-value-field={@field}
               phx-value-v={code}
-              class="text-ink55 hover:text-ink cursor-pointer"
+              class="text-accent/70 hover:text-accent cursor-pointer"
             >
               <Liid.icon name="x" size={9} />
             </button>
@@ -528,19 +532,19 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             placeholder={if @selected == [], do: @placeholder, else: gettext("+ add")}
             phx-focus={@open_evt}
             phx-debounce="150"
-            class="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-ink40"
+            class="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-inkFaint"
           />
         </form>
       </div>
 
       <div
         :if={@open}
-        class="absolute z-10 left-0 right-0 top-full mt-1 bg-paper border border-ink20 rounded-sharp shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] max-h-[280px] overflow-auto"
+        class="absolute z-10 left-0 right-0 top-full mt-1.5 bg-card border border-border rounded-[8px] [box-shadow:var(--shadow-card)] max-h-[280px] overflow-auto"
       >
-        <div class="px-3 py-1.5 font-mono text-[10px] tracking-[0.12em] uppercase text-ink40 border-b border-rule">
+        <div class="px-3 py-2 text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold border-b border-border">
           {@items_label}
         </div>
-        <div :if={@items == []} class="px-3 py-2.5 font-mono text-[11px] text-ink40">
+        <div :if={@items == []} class="px-3 py-2.5 text-[11px] text-inkFaint">
           {gettext("no matches")}
         </div>
         <%= for item <- @items do %>
@@ -552,14 +556,14 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             phx-value-code={code}
             disabled={disabled}
             class={[
-              "w-full text-left px-3 py-2 flex items-baseline gap-2 border-b border-rule last:border-b-0",
+              "w-full text-left px-3 py-2 flex items-baseline gap-2 border-b border-border last:border-b-0",
               disabled && "opacity-40 cursor-not-allowed",
-              not disabled && "hover:bg-paperAlt cursor-pointer"
+              not disabled && "hover:bg-accentSoft cursor-pointer"
             ]}
           >
-            <span class="font-mono text-[10px] text-ink40 tnum w-9 shrink-0">{code}</span>
+            <span class="text-[10px] text-inkFaint tnum w-9 shrink-0">{code}</span>
             <span class="text-[12px] text-ink truncate flex-1">{industry_label(code)}</span>
-            <span :if={is_integer(right)} class="font-mono text-[10px] text-ink40 tnum">
+            <span :if={is_integer(right)} class="text-[10px] text-inkFaint tnum">
               {right}
             </span>
           </button>
@@ -602,9 +606,9 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         <input type="hidden" name="field" value={@field} />
 
         <div class="relative h-5">
-          <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-ink20" />
+          <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[5px] rounded-full bg-border" />
           <div
-            class="absolute top-1/2 -translate-y-1/2 h-[3px]"
+            class="absolute top-1/2 -translate-y-1/2 h-[5px] rounded-full"
             style={"left: #{@min_pct}%; right: #{100 - @max_pct}%; background: var(--accent);"}
           />
           <input
@@ -642,9 +646,9 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           value={format_grouped(@min)}
           placeholder={gettext("min")}
           phx-debounce="600"
-          class="flex-1 px-2.5 py-1.5 border border-ink20 bg-paperAlt font-mono text-[12px] rounded-sharp outline-none focus:border-ink"
+          class="flex-1 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
         />
-        <span class="self-center text-ink40">—</span>
+        <span class="self-center text-inkFaint">—</span>
         <input
           type="text"
           id={"range-max-#{@field}"}
@@ -653,7 +657,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           value={format_grouped(@max)}
           placeholder={gettext("max")}
           phx-debounce="600"
-          class="flex-1 px-2.5 py-1.5 border border-ink20 bg-paperAlt font-mono text-[12px] rounded-sharp outline-none focus:border-ink"
+          class="flex-1 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
         />
       </form>
     </.fset>
@@ -700,15 +704,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   defp checkbox(assigns) do
     ~H"""
-    <span
-      class={[
-        "w-3 h-3 border flex items-center justify-center rounded-[2px]",
-        @checked && "border-[var(--accent)]",
-        not @checked && "border-ink40"
-      ]}
-      style={@checked && "background: var(--accent);"}
-    >
-      <Liid.icon :if={@checked} name="check" size={9} class="text-paper" />
+    <span class={[
+      "w-3.5 h-3.5 border flex items-center justify-center rounded-[4px]",
+      @checked && "border-accent bg-accent",
+      not @checked && "border-borderStrong bg-card"
+    ]}>
+      <Liid.icon :if={@checked} name="check" size={9} class="text-white" />
     </span>
     """
   end
@@ -719,12 +720,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   defp fset(assigns) do
     ~H"""
-    <div>
-      <div class="flex justify-between items-baseline mb-2.5 pb-2 border-b border-rule">
-        <span class="font-mono text-[11px] tracking-[0.08em] uppercase text-ink70">
+    <div class="bg-card border border-border rounded-[11px] [box-shadow:var(--shadow)] p-4">
+      <div class="flex justify-between items-baseline mb-3">
+        <span class="text-[11px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
           {@label}
         </span>
-        <span :if={@hint} class="font-mono text-[10px] text-ink40">{@hint}</span>
+        <span :if={@hint} class="text-[10px] text-inkFaint tnum">{@hint}</span>
       </div>
       {render_slot(@inner_block)}
     </div>
@@ -737,25 +738,29 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
   defp counter_card(assigns) do
     ~H"""
-    <div class="border border-ink20 bg-paperAlt rounded-sharp p-5 md:p-7 relative">
+    <div class="bg-accentSoft border border-accentRing rounded-[11px] [box-shadow:0_0_0_1px_var(--accentRing),var(--shadow-card)] p-5 md:p-7 relative">
       <div>
-        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-2 flex items-center gap-2">
+        <div class="text-[10px] tracking-[0.12em] uppercase text-accent font-semibold mb-2 flex items-center gap-2">
           {gettext("Companies match")}
           <span
             :if={@pending?}
-            class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
+            class="relative w-1.5 h-1.5 rounded-full"
             style="background: var(--accent);"
-          />
+          >
+            <span
+              class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+              style="background: var(--accent);"
+            />
+          </span>
         </div>
         <div class="flex items-baseline gap-3">
           <div class={[
-            "font-serif text-[56px] md:text-[76px] font-normal leading-[0.9] tnum tracking-[-0.02em] transition-opacity",
-            @pending? && "opacity-40",
-            not @pending? && "text-ink"
+            "text-[56px] md:text-[76px] font-bold leading-[0.9] tnum tracking-[-0.02em] transition-opacity text-accent",
+            @pending? && "opacity-40"
           ]}>
             {format_int(@count)}
           </div>
-          <div class="font-mono text-[12px] text-ink55 pb-2">
+          <div class="text-[12px] text-inkSoft tnum pb-2">
             {gettext("of %{n}", n: format_int(@total))}
           </div>
         </div>
@@ -775,7 +780,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
     ~H"""
     <div :if={@chips != []} class="flex flex-wrap gap-1.5 items-center">
-      <span class="font-mono text-[10px] text-ink40 tracking-[0.12em] uppercase mr-1">
+      <span class="text-[10px] text-inkFaint tracking-[0.12em] uppercase font-semibold mr-1">
         {gettext("active")}
       </span>
       <%= for {field, value, label} <- @chips do %>
@@ -784,10 +789,10 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           phx-click="clear_chip"
           phx-value-field={field}
           phx-value-v={value}
-          class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] bg-paperAlt border border-ink20 rounded-sharp cursor-pointer"
+          class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] bg-accentSoft text-accent border border-accentRing rounded-[8px] cursor-pointer"
         >
           {label}
-          <Liid.icon name="x" size={9} class="text-ink55" />
+          <Liid.icon name="x" size={9} class="text-accent/70" />
         </button>
       <% end %>
     </div>
@@ -805,20 +810,20 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   defp top_categories(assigns) do
     ~H"""
     <div :if={@categories != []} class="flex flex-wrap gap-1.5 items-center">
-      <span class="font-mono text-[10px] text-ink40 tracking-[0.12em] uppercase mr-1">
+      <span class="text-[10px] text-inkFaint tracking-[0.12em] uppercase font-semibold mr-1">
         {gettext("top categories")}
       </span>
       <%= for cat <- @categories do %>
-        <span class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] bg-paperAlt border border-ink20 rounded-sharp">
+        <span class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] text-ink bg-card border border-border rounded-[8px] [box-shadow:var(--shadow)]">
           <span class="truncate max-w-[180px]">{industry_label(cat.code)}</span>
-          <span class="font-mono text-[10px] text-ink55">{cat.count}</span>
+          <span class="text-[10px] text-inkFaint tnum">{cat.count}</span>
           <button
             type="button"
             phx-click="exclude_category"
             phx-value-code={cat.code}
             title={gettext("Exclude this category from the funnel")}
             aria-label={gettext("Exclude this category from the funnel")}
-            class="shrink-0 text-ink40 hover:text-fail cursor-pointer"
+            class="shrink-0 text-inkFaint hover:text-red cursor-pointer"
           >
             <Liid.icon name="x" size={9} />
           </button>
@@ -841,23 +846,33 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       )
 
     ~H"""
-    <div class="flex-1 min-h-0 flex flex-col border border-rule rounded-sharp relative">
-      <div class="px-4 py-3 border-b border-rule flex items-center justify-between font-mono text-[11px] tracking-[0.04em] text-ink55">
+    <div class="flex-1 min-h-0 flex flex-col bg-card border border-border rounded-[11px] [box-shadow:var(--shadow-card)] relative overflow-hidden">
+      <div class="px-4 py-3 border-b border-border flex items-center justify-between text-[11px] text-inkSoft">
         <span class="flex items-center gap-2">
           <span
             :if={@pending?}
-            class="w-1.5 h-1.5 rounded-full animate-[liid-pulse_1.4s_ease-in-out_infinite]"
-            style="background: var(--accent);"
+            class="relative w-1.5 h-1.5 rounded-full"
+            style="background: var(--green);"
+          >
+            <span
+              class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+              style="background: var(--green);"
+            />
+          </span>
+          <span
+            :if={not @pending?}
+            class="w-1.5 h-1.5 rounded-full"
+            style="background: var(--green);"
           /> {gettext("preview")} {if @pending?, do: gettext("· refreshing"), else: gettext("· live")}
         </span>
-        <span>
+        <span class="tnum">
           {gettext("showing %{shown} of %{total}", shown: length(@preview), total: format_int(@count))}
         </span>
       </div>
 
       <div class={[
         @grid,
-        "py-2 border-b border-rule font-mono text-[10px] tracking-[0.1em] uppercase text-ink40"
+        "py-2 border-b border-border text-[10px] tracking-[0.1em] uppercase text-inkFaint font-semibold bg-bgSoft"
       ]}>
         <span>{gettext("Company")}</span>
         <span class="hidden sm:block">{gettext("Category")}</span>
@@ -878,14 +893,17 @@ defmodule ColtWeb.Campaigns.FiltersLive do
 
       <div class="flex-1 overflow-auto">
         <%= for c <- @preview do %>
-          <div class={["group border-b border-rule py-2.5 text-[13px]", @grid]}>
+          <div class={[
+            "group border-b border-border last:border-b-0 py-2.5 text-[13px] hover:bg-bgSoft",
+            @grid
+          ]}>
             <div class="min-w-0">
               <div class="text-ink font-medium truncate">{c.name}</div>
-              <div class="text-ink55 text-[11px] truncate sm:hidden">
+              <div class="text-inkSoft text-[11px] truncate sm:hidden">
                 {industry_label(c.industry_code)}
               </div>
             </div>
-            <span class="hidden sm:flex items-center gap-1.5 min-w-0 text-ink55 text-[12px]">
+            <span class="hidden sm:flex items-center gap-1.5 min-w-0 text-inkSoft text-[12px]">
               <span class="truncate">{industry_label(c.industry_code)}</span>
               <button
                 :if={c.industry_code}
@@ -894,19 +912,19 @@ defmodule ColtWeb.Campaigns.FiltersLive do
                 phx-value-code={c.industry_code}
                 title={gettext("Exclude this category from the funnel")}
                 aria-label={gettext("Exclude this category from the funnel")}
-                class="shrink-0 text-ink40 hover:text-fail cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+                class="shrink-0 text-inkFaint hover:text-red cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
               >
                 <Liid.icon name="x" size={10} />
               </button>
             </span>
             <span
-              class="font-mono text-[11px] text-ink55 text-right tnum"
+              class="text-[11px] text-inkSoft text-right tnum"
               title={gettext("Employees — most recent annual filing")}
             >
               {c.employees_latest || "—"}
             </span>
             <span
-              class="font-mono text-[11px] text-right"
+              class="text-[11px] text-right tnum"
               title={growth_title(c.revenue_growth_bucket)}
             >
               {growth_glyph(c.revenue_growth_bucket)}

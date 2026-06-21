@@ -68,47 +68,56 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-        <h1 class="text-3xl font-semibold">Clients Spending</h1>
+        <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
+          Client <em>spending</em>
+        </h1>
 
-        <div class="card bg-base-200 border border-base-300 md:max-w-md">
-          <div class="card-body">
-            <div class="text-xs uppercase tracking-wider opacity-60 font-mono">
-              this month · {@current_month}
-            </div>
-            <div class="font-serif text-7xl tabular-nums leading-none mt-2">
-              ${format_money(@current_total)}
-            </div>
-            <div class="text-sm font-mono opacity-60 mt-2">
-              {@current_clients} clients spending
-            </div>
+        <div
+          class="bg-card border border-border rounded-[11px] md:max-w-md p-6"
+          style="box-shadow:var(--shadow-card)"
+        >
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">
+            this month · {@current_month}
+          </div>
+          <div class="text-[56px] font-bold tabular-nums leading-none tracking-[-0.02em] text-ink mt-2">
+            ${format_money(@current_total)}
+          </div>
+          <div class="text-[13px] text-ink55 mt-2">
+            {@current_clients} clients spending
           </div>
         </div>
 
         <div>
-          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
             per client · last {length(@months)} months · API cost incurred
           </div>
-          <div class="overflow-x-auto">
-            <table class="text-xs font-mono w-full min-w-[640px]">
-              <thead class="opacity-60">
-                <tr class="border-b border-base-300">
-                  <th class="text-left py-1 pr-3">client</th>
-                  <th :for={m <- @months} class="text-right py-1 pr-3 tabular-nums">{m}</th>
-                  <th class="text-right py-1 pr-3">total</th>
+          <div
+            class="border border-border rounded-[11px] bg-card overflow-x-auto"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <table class="text-[12px] w-full min-w-[640px]">
+              <thead>
+                <tr class="border-b border-border bg-paperAlt text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
+                  <th class="text-left px-3 py-2">client</th>
+                  <th :for={m <- @months} class="text-right px-3 py-2 tabular-nums">{m}</th>
+                  <th class="text-right px-3 py-2">total</th>
                 </tr>
               </thead>
               <tbody>
-                <tr :for={c <- @clients} class="border-b border-base-300/40">
-                  <td class="py-1 pr-3 truncate max-w-[18rem]">{c.email}</td>
-                  <td :for={m <- @months} class="py-1 pr-3 text-right tabular-nums">
+                <tr
+                  :for={c <- @clients}
+                  class="border-b border-border last:border-b-0 hover:bg-paperAlt"
+                >
+                  <td class="px-3 py-1.5 truncate max-w-[18rem] text-ink">{c.email}</td>
+                  <td :for={m <- @months} class="px-3 py-1.5 text-right tabular-nums text-ink70">
                     {cell(c.by_month, m)}
                   </td>
-                  <td class="py-1 pr-3 text-right tabular-nums font-semibold">
+                  <td class="px-3 py-1.5 text-right tabular-nums font-semibold text-ink">
                     ${format_money(c.total)}
                   </td>
                 </tr>
                 <tr :if={@clients == []}>
-                  <td colspan={length(@months) + 2} class="py-2 opacity-60">
+                  <td colspan={length(@months) + 2} class="px-3 py-2 text-ink40">
                     no client spending in this period yet
                   </td>
                 </tr>

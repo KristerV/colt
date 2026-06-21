@@ -94,53 +94,61 @@ defmodule ColtWeb.Sending.SettingsLive do
           {raw(gettext("Sending <em>settings</em>."))}
         </Liid.headline>
 
-        <.section_divider label={gettext("Tracking")} />
-        <.setting_row
-          label={gettext("Open tracking")}
-          hint={gettext("Pixel embedded in every email. Requires a CNAME you set up yourself.")}
-        >
-          <.toggle on={@campaign.tracking_opens?} field="opens" />
-        </.setting_row>
-        <.setting_row
-          label={gettext("Click tracking")}
-          hint={gettext("Wraps every link through a redirector on the same CNAME.")}
-        >
-          <.toggle on={@campaign.tracking_clicks?} field="clicks" />
-        </.setting_row>
+        <.section_card label={gettext("Tracking")}>
+          <.setting_row
+            label={gettext("Open tracking")}
+            hint={gettext("Pixel embedded in every email. Requires a CNAME you set up yourself.")}
+          >
+            <.toggle on={@campaign.tracking_opens?} field="opens" />
+          </.setting_row>
+          <.setting_row
+            label={gettext("Click tracking")}
+            hint={gettext("Wraps every link through a redirector on the same CNAME.")}
+            last
+          >
+            <.toggle on={@campaign.tracking_clicks?} field="clicks" />
+          </.setting_row>
+        </.section_card>
         <.cname_card :if={@tracking_on?} domain={Colt.AppSettings.tracking_domain()} />
 
-        <.section_divider label={gettext("Approval")} />
-        <.setting_row
-          label={gettext("Auto-approve drafts")}
-          hint={
-            gettext(
-              "New contacts skip the editor: a job picks an active variant (fair rotation), writes it, and schedules it. Turn it on once you're happy with a couple of variants."
-            )
-          }
-        >
-          <.auto_toggle on={@campaign.auto_approve_on?} />
-        </.setting_row>
+        <.section_card label={gettext("Approval")}>
+          <.setting_row
+            label={gettext("Auto-approve drafts")}
+            hint={
+              gettext(
+                "New contacts skip the editor: a job picks an active variant (fair rotation), writes it, and schedules it. Turn it on once you're happy with a couple of variants."
+              )
+            }
+            last
+          >
+            <.auto_toggle on={@campaign.auto_approve_on?} />
+          </.setting_row>
+        </.section_card>
 
-        <.section_divider label={gettext("Emergency")} />
-        <.setting_row
-          label={gettext("Pause all sending")}
-          hint={
-            gettext(
-              "Halts every scheduled email immediately. The system also trips this on its own if bounces spike, to protect your domain. Turn off to resume."
-            )
-          }
-        >
-          <.panic_toggle on={@campaign.panic_switch_on} />
-        </.setting_row>
+        <.section_card label={gettext("Emergency")}>
+          <.setting_row
+            label={gettext("Pause all sending")}
+            hint={
+              gettext(
+                "Halts every scheduled email immediately. The system also trips this on its own if bounces spike, to protect your domain. Turn off to resume."
+              )
+            }
+            last
+          >
+            <.panic_toggle on={@campaign.panic_switch_on} />
+          </.setting_row>
+        </.section_card>
 
         <div class="mt-10 flex flex-wrap items-center gap-4">
           <.link
             navigate={~p"/campaigns/#{@campaign.id}/sending-accounts"}
-            class="inline-flex items-center gap-2 px-4 py-[7px] text-[12px] border border-ink20 rounded-sharp no-underline text-ink"
+            class="no-underline"
           >
-            {gettext("Sending accounts")} <Liid.icon name="arrow" />
+            <Liid.btn size={:small}>
+              {gettext("Sending accounts")} <Liid.icon name="arrow" />
+            </Liid.btn>
           </.link>
-          <span :if={@saved_at} class="font-mono text-[11px] text-ink40">
+          <span :if={@saved_at} class="text-[11px] text-inkFaint tabular-nums">
             {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}
           </span>
         </div>
@@ -150,25 +158,38 @@ defmodule ColtWeb.Sending.SettingsLive do
   end
 
   attr :label, :string, required: true
+  slot :inner_block, required: true
 
-  defp section_divider(assigns) do
+  defp section_card(assigns) do
     ~H"""
-    <div class="mt-10 mb-4 pb-2 border-b border-rule font-mono text-[10px] tracking-[0.14em] uppercase text-ink55">
-      {@label}
+    <div class="mt-7">
+      <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-2.5 px-1">
+        {@label}
+      </div>
+      <div
+        class="bg-card border border-border rounded-[11px] px-5"
+        style="box-shadow:var(--shadow)"
+      >
+        {render_slot(@inner_block)}
+      </div>
     </div>
     """
   end
 
   attr :label, :string, required: true
   attr :hint, :string, default: nil
+  attr :last, :boolean, default: false
   slot :inner_block, required: true
 
   defp setting_row(assigns) do
     ~H"""
-    <div class="grid grid-cols-[1fr_auto] gap-6 py-3.5 border-b border-rule items-center">
+    <div class={[
+      "grid grid-cols-[1fr_auto] gap-6 py-4 items-center",
+      !@last && "border-b border-border"
+    ]}>
       <div>
         <div class="text-[13px] text-ink font-medium mb-0.5">{@label}</div>
-        <div :if={@hint} class="text-[12px] text-ink55 leading-[1.5]">{@hint}</div>
+        <div :if={@hint} class="text-[12px] text-inkSoft leading-[1.5]">{@hint}</div>
       </div>
       <div>{render_slot(@inner_block)}</div>
     </div>
@@ -232,19 +253,28 @@ defmodule ColtWeb.Sending.SettingsLive do
 
   defp cname_card(assigns) do
     ~H"""
-    <div class="mt-3.5 p-5 bg-paperAlt border border-rule rounded-[2px]">
-      <div class="flex items-baseline justify-between mb-3.5">
+    <div
+      class="mt-3.5 p-5 bg-card border border-border rounded-[11px]"
+      style="box-shadow:var(--shadow)"
+    >
+      <div class="flex items-baseline justify-between gap-4">
         <div>
           <div class="text-[13px] text-ink font-medium">{gettext("Tracking CNAME")}</div>
-          <div class="text-[12px] text-ink55 mt-0.5">
+          <div class="text-[12px] text-inkSoft mt-0.5 leading-[1.5]">
             {raw(
               gettext(
-                "Required for opens/clicks. One CNAME at your DNS provider, reused across all sending accounts. Configure under <span class=\"font-mono text-ink70\">/admin/tracking-domain</span>."
+                "Required for opens/clicks. One CNAME at your DNS provider, reused across all sending accounts. Configure under <span class=\"text-inkSoft font-medium\">/admin/tracking-domain</span>."
               )
             )}
           </div>
         </div>
-        <span class="font-mono text-[10px] tracking-[0.06em] uppercase text-ink40 px-2 py-0.5 border border-ink20 rounded-[2px]">
+        <span class={[
+          "shrink-0 text-[10px] tracking-[0.06em] uppercase font-semibold px-2 py-0.5 rounded-[6px] border",
+          if(@domain,
+            do: "bg-greenSoft border-green/30 text-green",
+            else: "bg-amberSoft border-amber/30 text-amber"
+          )
+        ]}>
           {if @domain, do: gettext("set"), else: gettext("unset")}
         </span>
       </div>

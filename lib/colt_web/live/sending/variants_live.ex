@@ -130,13 +130,13 @@ defmodule ColtWeb.Sending.VariantsLive do
           {raw(gettext("The <em>A/B</em> board."))}
         </Liid.headline>
 
-        <div class="mt-10 flex flex-col gap-2.5">
+        <div class="mt-10 flex flex-col gap-3">
           <.variant_row :for={v <- @variants} v={v} />
 
           <button
             type="button"
             phx-click="new_variant"
-            class="mt-1 py-3 border border-dashed border-ink20 text-ink55 font-mono text-[11px] tracking-[0.08em] uppercase rounded-[2px] cursor-pointer hover:border-ink40 hover:text-ink"
+            class="mt-1 py-3 border border-dashed border-borderStrong text-inkSoft text-[12px] font-medium rounded-[11px] cursor-pointer hover:border-accentRing hover:text-accent hover:bg-accentSoft transition-colors"
           >
             {gettext("+ new variant")}
           </button>
@@ -155,9 +155,10 @@ defmodule ColtWeb.Sending.VariantsLive do
     <div
       id={"variant-row-#{@seq.id}"}
       class={[
-        "flex items-center gap-4 px-5 py-4 border rounded-[2px] bg-paper",
-        if(@seq.enabled, do: "border-rule", else: "border-rule opacity-60")
+        "flex items-center gap-4 px-5 py-4 border rounded-[11px] bg-card transition-opacity",
+        if(@seq.enabled, do: "border-border", else: "border-border opacity-60")
       ]}
+      style="box-shadow:var(--shadow)"
     >
       <form id={"rename-form-#{@seq.id}"} phx-change="rename" class="flex-1 min-w-0">
         <input type="hidden" name="seq_id" value={@seq.id} />
@@ -167,11 +168,11 @@ defmodule ColtWeb.Sending.VariantsLive do
           name="value"
           value={@seq.name}
           phx-debounce="blur"
-          class="w-full bg-transparent text-[15px] font-medium text-ink outline-none border-0 p-0"
+          class="w-full bg-transparent text-[15px] font-semibold text-ink outline-none border-0 p-0"
         />
-        <div class="mt-1 font-mono text-[11px] tracking-[0.04em] text-ink40">
+        <div class="mt-1 text-[11.5px] text-inkFaint tabular-nums">
           {gettext("sent to %{n}", n: @v.sent)} · {gettext("%{n} replied", n: @v.replied)}
-          <span :if={@v.reply_rate} class="text-ink70">· {@v.reply_rate}%</span>
+          <span :if={@v.reply_rate} class="text-inkSoft font-medium">· {@v.reply_rate}%</span>
         </div>
       </form>
 
@@ -194,19 +195,22 @@ defmodule ColtWeb.Sending.VariantsLive do
           do: gettext("Active — in the A/B rotation. Click to retire it."),
           else: gettext("Off — not in the rotation. Click to put it back in the test.")
       }
-      class="shrink-0 inline-flex items-center gap-1.5 cursor-pointer bg-transparent border-0 p-0"
+      class="shrink-0 inline-flex items-center gap-2 cursor-pointer bg-transparent border-0 p-0"
     >
-      <span class="font-mono text-[9px] tracking-[0.12em] uppercase text-ink40">
+      <span class={[
+        "text-[9px] tracking-[0.12em] uppercase font-semibold",
+        if(@on, do: "text-accent", else: "text-inkFaint")
+      ]}>
         {gettext("active")}
       </span>
-      <span class="relative inline-block w-6 h-[13px] rounded-full">
+      <span class="relative inline-block w-[34px] h-[18px] rounded-full">
         <span
           class="absolute inset-0 rounded-full"
           style={"background: #{if @on, do: "var(--accent)", else: "var(--ink20)"}; transition: background .12s;"}
         />
         <span
-          class="absolute top-px w-[11px] h-[11px] rounded-full bg-paper"
-          style={"left: #{if @on, do: "12px", else: "1px"}; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left .12s;"}
+          class="absolute top-[2px] w-[14px] h-[14px] rounded-full bg-card"
+          style={"left: #{if @on, do: "18px", else: "2px"}; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left .12s;"}
         />
       </span>
     </button>

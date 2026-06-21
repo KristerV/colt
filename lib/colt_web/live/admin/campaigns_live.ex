@@ -23,15 +23,20 @@ defmodule ColtWeb.Admin.CampaignsLive do
       <div class="space-y-6">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <div>
-          <h1 class="text-3xl font-semibold">Campaigns</h1>
-          <div class="font-mono text-[11px] text-ink55 mt-1">
+          <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
+            All <em>campaigns</em>
+          </h1>
+          <div class="text-[13px] text-ink55 mt-1">
             {length(@campaigns)} most recent across all users
           </div>
         </div>
 
-        <div class="border border-rule rounded-sharp overflow-hidden">
+        <div
+          class="border border-border rounded-[11px] bg-card overflow-hidden"
+          style="box-shadow:var(--shadow-card)"
+        >
           <div
-            class="hidden md:grid items-center gap-3 px-4 py-2.5 border-b border-rule bg-paperAlt font-mono text-[10px] tracking-[0.12em] uppercase text-ink55"
+            class="hidden md:grid items-center gap-3 px-4 py-2.5 border-b border-border bg-paperAlt text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55"
             style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 110px 130px;"
           >
             <span>Name</span>
@@ -46,22 +51,22 @@ defmodule ColtWeb.Admin.CampaignsLive do
           <%= for c <- @campaigns do %>
             <.link
               navigate={~p"/campaigns/#{c.id}/funnel"}
-              class="grid grid-cols-2 md:grid-cols-none items-center gap-2 md:gap-3 px-4 py-3 border-b border-rule last:border-b-0 hover:bg-paperAlt no-underline text-ink"
+              class="grid grid-cols-2 md:grid-cols-none items-center gap-2 md:gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-paperAlt no-underline text-ink"
               style="grid-template-columns: 2fr 1.5fr 100px 100px 110px 110px 130px;"
             >
               <span class="text-[13px] font-medium truncate">{c.name}</span>
               <span class="text-[12px] text-ink55 truncate">{owner_email(c.owner)}</span>
-              <span class="font-mono text-[11px] tnum text-right">{c.done_count}</span>
-              <span class="font-mono text-[11px] tnum text-right">{c.total_count}</span>
-              <span class="font-mono text-[11px] tnum text-right">{fmt_cost(c.cost_usd)}</span>
-              <span class="font-mono text-[10px] uppercase tracking-[0.08em] text-ink55">
+              <span class="text-[12px] tabular-nums text-right">{c.done_count}</span>
+              <span class="text-[12px] tabular-nums text-right">{c.total_count}</span>
+              <span class="text-[12px] tabular-nums text-right">{fmt_cost(c.cost_usd)}</span>
+              <span class="text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
                 {c.status}
               </span>
-              <span class="font-mono text-[10px] text-ink55">{fmt_dt(c.inserted_at)}</span>
+              <span class="text-[11px] tabular-nums text-ink55">{fmt_dt(c.inserted_at)}</span>
             </.link>
           <% end %>
 
-          <div :if={@campaigns == []} class="px-4 py-8 text-center font-mono text-[12px] text-ink40">
+          <div :if={@campaigns == []} class="px-4 py-8 text-center text-[13px] text-ink40">
             no campaigns yet
           </div>
         </div>

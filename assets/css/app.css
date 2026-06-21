@@ -1,6 +1,7 @@
-/* Liid — global styles, design tokens, fonts, keyframes. */
+/* Liid — global styles, design tokens, fonts, keyframes. "Calm Pro" system.
+   See docs/design.md and priv/design_demos/d1-calm.html for the reference. */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&display=swap");
 
 @import "tailwindcss" source(none);
 @source "../../deps/ash_authentication_phoenix";
@@ -11,7 +12,7 @@
 @plugin "../vendor/heroicons";
 
 /* ── DaisyUI: kept for ash_authentication_phoenix sign-in screens.
-   Mapped to Liid tokens so auth pages inherit the brand. ─────────── */
+   Mapped to Calm Pro tokens so auth pages inherit the brand. ─────── */
 @plugin "../vendor/daisyui" {
   themes: false;
 }
@@ -21,29 +22,29 @@
   default: true;
   prefersdark: false;
   color-scheme: "light";
-  --color-base-100: oklch(98% 0.005 80);          /* paper */
-  --color-base-200: oklch(96% 0.006 80);          /* paperAlt */
-  --color-base-300: oklch(94% 0.006 80);
-  --color-base-content: oklch(20% 0.012 250);     /* ink */
-  --color-primary: oklch(20% 0.012 250);          /* ink (Liid primary btn) */
-  --color-primary-content: oklch(98% 0.005 80);
-  --color-secondary: oklch(20% 0.012 250 / 0.20);
-  --color-secondary-content: oklch(20% 0.012 250);
-  --color-accent: oklch(55% 0.13 145);            /* forest accent */
-  --color-accent-content: oklch(98% 0.005 80);
-  --color-neutral: oklch(20% 0.012 250 / 0.55);
-  --color-neutral-content: oklch(98% 0.005 80);
-  --color-info: oklch(55% 0.13 145);
-  --color-info-content: oklch(98% 0.005 80);
-  --color-success: oklch(55% 0.12 145);
-  --color-success-content: oklch(98% 0.005 80);
-  --color-warning: oklch(60% 0.13 60);
-  --color-warning-content: oklch(20% 0.012 250);
-  --color-error: oklch(58% 0.18 28);
-  --color-error-content: oklch(98% 0.005 80);
-  --radius-selector: 2px;
-  --radius-field: 2px;
-  --radius-box: 2px;
+  --color-base-100: #ffffff;          /* card */
+  --color-base-200: #f7f7f5;          /* canvas */
+  --color-base-300: #f2f2ef;          /* hover */
+  --color-base-content: #37352f;      /* ink */
+  --color-primary: #3b7ae0;           /* accent blue (primary btn) */
+  --color-primary-content: #ffffff;
+  --color-secondary: #d6d6d1;
+  --color-secondary-content: #37352f;
+  --color-accent: #3b7ae0;
+  --color-accent-content: #ffffff;
+  --color-neutral: #6b6862;
+  --color-neutral-content: #ffffff;
+  --color-info: #3b7ae0;
+  --color-info-content: #ffffff;
+  --color-success: #2f9e6b;
+  --color-success-content: #ffffff;
+  --color-warning: #c98a1e;
+  --color-warning-content: #ffffff;
+  --color-error: #d05a4f;
+  --color-error-content: #ffffff;
+  --radius-selector: 8px;
+  --radius-field: 8px;
+  --radius-box: 11px;
   --size-selector: 0.21875rem;
   --size-field: 0.21875rem;
   --border: 1px;
@@ -51,66 +52,131 @@
   --noise: 0;
 }
 
-/* ── Liid tokens for direct utility access (Tailwind v4 @theme) ──── */
+/* ── Calm Pro tokens for utility access (Tailwind v4 @theme) ─────── */
 @theme {
-  --color-paper: oklch(98% 0.005 80);
-  --color-paperAlt: oklch(96% 0.006 80);
-  --color-ink: oklch(20% 0.012 250);
-  --color-ink70: oklch(20% 0.012 250 / 0.70);
-  --color-ink55: oklch(20% 0.012 250 / 0.55);
-  --color-ink40: oklch(20% 0.012 250 / 0.40);
-  --color-ink20: oklch(20% 0.012 250 / 0.20);
-  --color-ink10: oklch(20% 0.012 250 / 0.10);
-  --color-rule: oklch(20% 0.012 250 / 0.12);
-  --color-accent: oklch(55% 0.13 145);
-  --color-accentSoft: oklch(94% 0.04 145);
-  --color-warn: oklch(60% 0.13 60);
-  --color-fail: oklch(58% 0.18 28);
-  --color-ok: oklch(55% 0.12 145);
+  /* surfaces */
+  --color-canvas: #f7f7f5;
+  --color-bgSoft: #fbfbfa;
+  --color-card: #ffffff;
+  --color-paper: #ffffff;       /* legacy alias → white card */
+  --color-paperAlt: #f2f2ef;    /* hover / pressed soft fill */
 
-  --font-sans: "Inter Tight", "Inter", system-ui, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, serif;
-  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  /* ink */
+  --color-ink: #37352f;
+  --color-ink70: #6b6862;
+  --color-ink55: #87847d;
+  --color-ink40: #97948d;
+  --color-ink20: #e3e3e0;       /* mostly used as a border → border color */
+  --color-ink10: #efeeec;
+  --color-rule: #e3e3e0;        /* legacy hairline → card border */
+  --color-inkSoft: #6b6862;
+  --color-inkFaint: #97948d;
 
-  --radius-sharp: 2px;
+  /* lines */
+  --color-border: #e3e3e0;
+  --color-borderStrong: #d6d6d1;
+
+  /* accent */
+  --color-accent: #3b7ae0;
+  --color-accentSoft: #eef3fc;
+  --color-accentRing: #bcd2f5;
+
+  /* functional status */
+  --color-green: #2f9e6b;
+  --color-greenSoft: #e7f5ee;
+  --color-amber: #c98a1e;
+  --color-amberSoft: #fbf1dd;
+  --color-red: #d05a4f;
+  --color-redSoft: #fbeae8;
+  --color-warn: #c98a1e;        /* legacy alias → amber */
+  --color-fail: #d05a4f;        /* legacy alias → red */
+  --color-ok: #2f9e6b;          /* legacy alias → green */
+
+  /* type — Inter only; serif/mono aliased so legacy classes render as Inter */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-serif: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  /* shape */
+  --radius-card: 11px;
+  --radius-soft: 8px;
+  --radius-sharp: 8px;          /* legacy alias — softened */
+
+  /* elevation */
+  --shadow-soft: 0 1px 2px rgba(35,32,28,.05), 0 2px 6px rgba(35,32,28,.04);
+  --shadow-card: 0 1px 2px rgba(35,32,28,.06), 0 4px 12px rgba(35,32,28,.05);
 }
 
-/* ── Root tokens (so components can read --accent etc directly) ──── */
+/* ── Root tokens (so components can read --accent etc directly in inline
+   style= attributes) ─────────────────────────────────────────────── */
 :root {
-  --paper: oklch(98% 0.005 80);
-  --paperAlt: oklch(96% 0.006 80);
-  --ink: oklch(20% 0.012 250);
-  --ink70: oklch(20% 0.012 250 / 0.70);
-  --ink55: oklch(20% 0.012 250 / 0.55);
-  --ink40: oklch(20% 0.012 250 / 0.40);
-  --ink20: oklch(20% 0.012 250 / 0.20);
-  --ink10: oklch(20% 0.012 250 / 0.10);
-  --rule: oklch(20% 0.012 250 / 0.12);
-  --accent: oklch(55% 0.13 145);
-  --accentSoft: oklch(94% 0.04 145);
-  --warn: oklch(60% 0.13 60);
-  --fail: oklch(58% 0.18 28);
-  --ok: oklch(55% 0.12 145);
+  /* surfaces */
+  --bg: #f7f7f5;
+  --bgSoft: #fbfbfa;
+  --card: #ffffff;
+  --paper: #ffffff;        /* legacy alias → white card */
+  --paperAlt: #f2f2ef;
+
+  /* ink */
+  --ink: #37352f;
+  --ink70: #6b6862;
+  --ink55: #87847d;
+  --ink40: #97948d;
+  --ink20: #e3e3e0;
+  --ink10: #efeeec;
+  --rule: #e3e3e0;
+  --inkSoft: #6b6862;
+  --inkFaint: #97948d;
+
+  /* lines */
+  --border: #e3e3e0;
+  --borderStrong: #d6d6d1;
+
+  /* accent */
+  --accent: #3b7ae0;
+  --accentSoft: #eef3fc;
+  --accentRing: #bcd2f5;
+
+  /* functional status */
+  --green: #2f9e6b;
+  --greenSoft: #e7f5ee;
+  --amber: #c98a1e;
+  --amberSoft: #fbf1dd;
+  --red: #d05a4f;
+  --redSoft: #fbeae8;
+  --warn: #c98a1e;
+  --fail: #d05a4f;
+  --ok: #2f9e6b;
+
+  /* elevation */
+  --shadow: 0 1px 2px rgba(35,32,28,.05), 0 2px 6px rgba(35,32,28,.04);
+  --shadow-card: 0 1px 2px rgba(35,32,28,.06), 0 4px 12px rgba(35,32,28,.05);
 }
 
 html, body {
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
-  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
 }
 
+/* One italicised accent word per heading — italic + accent, still Inter. */
 em {
-  font-family: var(--font-serif);
   font-style: italic;
   color: var(--accent);
 }
 
-.font-tnum, .tnum, table, .liid-table {
+.font-tnum, .tnum, .tabular-nums, table, .liid-table {
   font-variant-numeric: tabular-nums;
 }
 
-/* ── Keyframes (per design §1) ────────────────────────────────────── */
+/* ── Keyframes ────────────────────────────────────────────────────── */
+/* Calm Pro live/active dot halo. */
+@keyframes pulse-halo {
+  0%   { transform: scale(.6); opacity: .5; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+/* Legacy keyframes kept so existing components keep animating. */
 @keyframes liid-pulse {
   0%, 100% { opacity: .55; transform: scale(.85); }
   50%      { opacity: 1;  transform: scale(1); }
@@ -163,7 +229,7 @@ em {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: var(--paper);
+  background: var(--card);
   border: 1.5px solid var(--accent);
   cursor: grab;
   margin-top: -7px;
@@ -173,7 +239,7 @@ em {
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  background: var(--paper);
+  background: var(--card);
   border: 1.5px solid var(--accent);
   cursor: grab;
 }

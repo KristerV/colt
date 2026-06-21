@@ -405,6 +405,21 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp local_part(_), do: nil
 
+  # Up-to-two-letter initials from a person's name for the list/thread avatar.
+  defp initials(name) when is_binary(name) do
+    name
+    |> String.split(~r/\s+/, trim: true)
+    |> Enum.take(2)
+    |> Enum.map_join("", &String.first/1)
+    |> String.upcase()
+    |> case do
+      "" -> "?"
+      s -> s
+    end
+  end
+
+  defp initials(_), do: "?"
+
   defp website_href("http" <> _ = url), do: url
   defp website_href(url), do: "https://" <> url
 
@@ -455,6 +470,20 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp terminal?(s), do: s in [:replied, :no_reply, :bounced, :failed, :call_ready]
 
+  # Soft pill styling for the thread-header status control, keyed by the tone
+  # returned from status_label/1.
+  defp status_ctl_class("accent"),
+    do: "bg-accentSoft border-accentRing text-accent"
+
+  defp status_ctl_class("warn"), do: "bg-amberSoft border-amber/30 text-amber"
+  defp status_ctl_class("fail"), do: "bg-redSoft border-red/30 text-red"
+  defp status_ctl_class(_), do: "bg-paperAlt border-border text-inkSoft"
+
+  defp status_dot_class("accent"), do: "bg-accent"
+  defp status_dot_class("warn"), do: "bg-amber"
+  defp status_dot_class("fail"), do: "bg-red"
+  defp status_dot_class(_), do: "bg-inkFaint"
+
   # ── Render ───────────────────────────────────────────────────────────
 
   def render(assigns) do
@@ -467,28 +496,28 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       campaign_id={@campaign.id}
       campaign_name={@campaign.name}
     >
-      <div class="flex flex-col h-[calc(100vh-120px)]">
+      <div class="flex flex-col h-screen -mx-4 -my-6 md:-mx-14 md:-my-10">
         <.bounce_banner
           :if={@campaign.panic_switch_on and @stats.bounce_rate >= 5.0}
           rate={@stats.bounce_rate}
         />
-        <div class="px-7 pt-6 pb-4">
+        <div class="px-7 pt-6 pb-4 flex-none">
           <Liid.headline kicker={gettext("Sending · Funnel")}>
             {raw(gettext("Where the <em class=\"text-accent\">conversation</em> is going."))}
           </Liid.headline>
+
+          <div class="mt-4">
+            <.bucket_strip stats={@stats} selected_bucket={@selected_bucket} />
+          </div>
+
+          <.tracking_strip
+            :if={@campaign.tracking_opens? or @campaign.tracking_clicks?}
+            campaign={@campaign}
+            stats={@stats}
+          />
         </div>
 
-        <div class="px-7 pb-4">
-          <.bucket_strip stats={@stats} selected_bucket={@selected_bucket} />
-        </div>
-
-        <.tracking_strip
-          :if={@campaign.tracking_opens? or @campaign.tracking_clicks?}
-          campaign={@campaign}
-          stats={@stats}
-        />
-
-        <div class="grid grid-cols-[360px_1fr] flex-1 min-h-0 border-t border-rule">
+        <div class="grid grid-cols-[360px_1fr] flex-1 min-h-0 gap-4 px-7 pb-6">
           <.contact_list
             contacts={visible_contacts(@contacts, @selected_bucket, @sent_steps)}
             selected={@selected}
@@ -524,13 +553,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp bounce_banner(assigns) do
     ~H"""
-    <div
-      class="px-6 py-2.5 text-paper font-mono text-[11px] tracking-[0.06em] uppercase flex items-center gap-3"
-      style="background: var(--fail);"
-    >
-      <span class="inline-block w-[7px] h-[7px] rounded-full bg-paper animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
-      <span class="font-semibold tracking-[0.12em]">{gettext("Campaign auto-paused")}</span>
-      <span class="opacity-90 normal-case tracking-normal">
+    <div class="mx-7 mt-6 bg-redSoft border border-red/30 rounded-[11px] px-5 py-3 flex items-center gap-3">
+      <span class="inline-block w-[7px] h-[7px] rounded-full bg-red animate-[liid-pulse_1.4s_ease-in-out_infinite]" />
+      <span class="text-[12.5px] font-semibold text-red">{gettext("Campaign auto-paused")}</span>
+      <span class="text-[12.5px] text-red/90">
         {gettext(
           "Bounce rate %{rate}% · above the 5% threshold. Investigate before resuming.",
           rate: @rate
@@ -618,41 +644,44 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     assigns = assign(assigns, tiles: tiles)
 
     ~H"""
-    <div class="grid grid-cols-6 border border-rule rounded-[2px] bg-paper">
-      <%= for {t, i} <- Enum.with_index(@tiles) do %>
+    <div class="grid grid-cols-6 gap-3">
+      <%= for t <- @tiles do %>
         <% active? = @selected_bucket == t.k %>
+        <% tone = Map.get(t, :tone) %>
         <button
           phx-click="select_bucket"
           phx-value-bucket={t.k}
+          style={"box-shadow: #{if active?, do: "0 0 0 1px var(--accentRing), var(--shadow-card)", else: "var(--shadow)"};"}
           class={[
-            "text-left p-4 cursor-pointer relative",
-            i < length(@tiles) - 1 && "border-r border-rule",
-            active? && "bg-paperAlt"
+            "text-left p-[13px] cursor-pointer flex flex-col gap-0.5 min-h-[96px] rounded-[11px] border transition-colors",
+            if(active?,
+              do: "bg-accentSoft border-accentRing",
+              else: "bg-card border-border hover:bg-bgSoft"
+            )
           ]}
         >
-          <span
-            :if={active?}
-            class="absolute left-0 right-0 bottom-0 h-[2px]"
-            style="background: var(--accent);"
-          />
-          <div class="flex items-center gap-2 mb-1.5 font-mono text-[10px] uppercase tracking-[0.12em] text-ink55">
-            <span
-              :if={Map.get(t, :pulse)}
-              class="w-[5px] h-[5px] rounded-full"
-              style={"background: #{tone_color(Map.get(t, :tone, :ink))}; animation: liid-pulse 1.4s ease-in-out infinite;"}
-            />
+          <div class={[
+            "flex items-center gap-1.5 text-[11.5px] font-semibold",
+            if(active?, do: "text-accent", else: "text-inkSoft")
+          ]}>
+            <span :if={Map.get(t, :pulse)} class="relative w-[7px] h-[7px] shrink-0">
+              <span class="absolute inset-0 rounded-full bg-green" />
+              <span class="absolute -inset-[3px] rounded-full bg-green opacity-40 animate-[pulse-halo_1.8s_ease-out_infinite]" />
+            </span>
             {t.label}
           </div>
-          <div class="flex items-baseline gap-1.5">
-            <span
-              class="font-serif text-[36px] leading-none tabular-nums"
-              style={"color: #{tone_color(Map.get(t, :tone, :ink))};"}
-            >
-              {t.big}
-            </span>
-            <span class="font-mono text-[11px] text-ink55">{t.unit}</span>
+          <div class={[
+            "text-[27px] font-bold leading-[1.05] tracking-[-0.02em] tabular-nums mt-0.5",
+            if(active?, do: "text-accent", else: "text-ink")
+          ]}>
+            {t.big}
           </div>
-          <div class="mt-2.5 pt-2 border-t border-rule font-mono text-[10px] text-ink55">
+          <div class={[
+            "text-[11.5px] min-h-[14px] tabular-nums",
+            tone == :fail && "text-red",
+            tone == :warn && "text-amber",
+            tone not in [:fail, :warn] && "text-inkFaint"
+          ]}>
             {t.sub}
           </div>
         </button>
@@ -683,16 +712,24 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     assigns = assign(assigns, bucket_label: bucket_label)
 
     ~H"""
-    <div class="flex flex-col items-center justify-center text-center px-8 py-16 gap-4">
-      <div class="font-serif text-[64px] leading-none text-ink20">0</div>
-      <div class="font-serif text-[22px] tracking-[-0.01em] text-ink">
+    <div
+      class="bg-bgSoft border border-border rounded-[11px] flex flex-col items-center justify-center text-center px-8 py-16 gap-4"
+      style="box-shadow:var(--shadow-card)"
+    >
+      <div class="text-[64px] font-bold leading-none text-ink20">0</div>
+      <div class="text-[22px] font-semibold tracking-[-0.01em] text-ink">
         {raw(
-          gettext("Nothing in <em class=\"text-accent\">%{bucket}</em> yet.", bucket: @bucket_label)
+          gettext("Nothing in <em class=\"text-accent italic font-semibold\">%{bucket}</em> yet.",
+            bucket: @bucket_label
+          )
         )}
       </div>
-      <div class="text-[13px] text-ink55 max-w-[360px] leading-[1.55]">
+      <div class="text-[13px] text-inkSoft max-w-[360px] leading-[1.55]">
         {gettext("Pick another tile above, or approve more contacts under")}
-        <.link navigate={~p"/campaigns/#{@campaign_id}/write"} class="underline text-ink70">
+        <.link
+          navigate={~p"/campaigns/#{@campaign_id}/write"}
+          class="text-accent font-medium hover:underline"
+        >
           {gettext("Write")}
         </.link>
         {gettext("to feed the funnel.")}
@@ -706,43 +743,23 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp tracking_strip(assigns) do
     ~H"""
-    <div class="px-7 pb-4">
-      <div class="grid grid-cols-2 border border-rule rounded-[2px] bg-paper">
-        <div :if={@campaign.tracking_opens?} class="p-4 border-r border-rule">
-          <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
-            {gettext("Opens")}
-          </div>
-          <div class="flex items-baseline gap-1.5">
-            <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
-              {@stats.open_rate}%
-            </span>
-            <span class="font-mono text-[11px] text-ink55">
-              {@stats.total_opened}/{@stats.total_sent}
-            </span>
-          </div>
-        </div>
-        <div :if={@campaign.tracking_clicks?} class="p-4">
-          <div class="font-mono text-[10px] uppercase tracking-[0.12em] text-ink55 mb-1.5">
-            {gettext("Clicks")}
-          </div>
-          <div class="flex items-baseline gap-1.5">
-            <span class="font-serif text-[28px] leading-none tabular-nums text-ink">
-              {@stats.click_rate}%
-            </span>
-            <span class="font-mono text-[11px] text-ink55">
-              {@stats.total_clicked}/{@stats.total_sent}
-            </span>
-          </div>
-        </div>
+    <div
+      class="mt-3 flex gap-6 bg-card border border-border rounded-[8px] px-3.5 py-2.5"
+      style="box-shadow:var(--shadow)"
+    >
+      <div :if={@campaign.tracking_opens?} class="flex items-center gap-2 text-[12px] text-inkSoft">
+        <span class="font-semibold text-inkSoft">{gettext("Opens")}</span>
+        <b class="text-ink font-bold tabular-nums">{@stats.open_rate}%</b>
+        <span class="text-inkFaint tabular-nums">({@stats.total_opened}/{@stats.total_sent})</span>
+      </div>
+      <div :if={@campaign.tracking_clicks?} class="flex items-center gap-2 text-[12px] text-inkSoft">
+        <span class="font-semibold text-inkSoft">{gettext("Clicks")}</span>
+        <b class="text-ink font-bold tabular-nums">{@stats.click_rate}%</b>
+        <span class="text-inkFaint tabular-nums">({@stats.total_clicked}/{@stats.total_sent})</span>
       </div>
     </div>
     """
   end
-
-  defp tone_color(:accent), do: "var(--accent)"
-  defp tone_color(:fail), do: "var(--fail)"
-  defp tone_color(:warn), do: "var(--warn)"
-  defp tone_color(_), do: "var(--ink)"
 
   attr :contacts, :list, required: true
   attr :selected, :map, default: nil
@@ -752,40 +769,66 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp contact_list(assigns) do
     ~H"""
-    <div class="border-r border-rule overflow-y-auto bg-paper">
-      <div class="px-4 py-3 border-b border-rule font-mono text-[10px] tracking-[0.04em] text-ink55 sticky top-0 bg-paper z-10">
-        {gettext("%{n} contacts", n: length(@contacts))}
+    <div
+      class="flex flex-col min-h-0 bg-card border border-border rounded-[11px] overflow-hidden"
+      style="box-shadow:var(--shadow-card)"
+    >
+      <div class="flex-none px-4 py-[13px] border-b border-border flex items-center justify-between">
+        <div class="text-[13.5px] font-semibold text-ink">
+          <span :if={@selected_bucket} class="text-accent capitalize">
+            {@selected_bucket |> Atom.to_string() |> String.replace("_", " ")}
+          </span>
+        </div>
+        <div class="text-[12px] font-medium text-inkFaint tabular-nums">
+          {gettext("%{n} contacts", n: length(@contacts))}
+        </div>
       </div>
-      <%= for c <- @contacts do %>
-        <% active? = @selected && @selected.id == c.id %>
-        <% {label, tone} = status_label(c) %>
-        <button
-          phx-click="select_contact"
-          phx-value-id={c.id}
-          class={[
-            "w-full text-left px-4 py-3 border-b border-rule relative cursor-pointer block",
-            if(active?, do: "bg-paperAlt", else: "bg-paper hover:bg-paperAlt")
-          ]}
-        >
-          <span
-            :if={active?}
-            class="absolute left-0 top-1 bottom-1 w-[2px]"
-            style="background: var(--accent);"
-          />
-          <div class="flex justify-between items-baseline mb-1">
-            <span class={["text-[13px] text-ink truncate", active? && "font-semibold"]}>
-              {(c.person && c.person.name) || "—"}
+      <div class="flex-1 overflow-y-auto p-2">
+        <%= for c <- @contacts do %>
+          <% active? = @selected && @selected.id == c.id %>
+          <% {label, tone} = status_label(c) %>
+          <button
+            phx-click="select_contact"
+            phx-value-id={c.id}
+            style={active? && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
+            class={[
+              "w-full text-left flex items-center gap-3 px-[11px] py-2.5 rounded-[8px] mb-1 border cursor-pointer",
+              if(active?,
+                do: "bg-accentSoft border-accentRing",
+                else: "bg-transparent border-transparent hover:bg-paperAlt"
+              )
+            ]}
+          >
+            <span class={[
+              "w-[34px] h-[34px] rounded-[9px] shrink-0 flex items-center justify-center text-[13px] font-semibold",
+              if(active?, do: "bg-[#dbe7fa] text-accent", else: "bg-[#ece9e2] text-[#7a6f5f]")
+            ]}>
+              {initials(c.person && c.person.name)}
             </span>
-            <span class={"font-mono text-[10px] text-#{tone}"}>{label}</span>
-          </div>
-          <div class="flex justify-between items-baseline text-[11px] text-ink55 gap-2">
-            <span class="truncate">{(c.person && c.person.title) || ""}</span>
-            <span :if={@total_steps > 0} class="font-mono text-[10px] text-ink40 shrink-0">
+            <div class="flex-1 min-w-0">
+              <div class="text-[13.5px] font-semibold text-ink truncate">
+                {(c.person && c.person.name) || "—"}
+              </div>
+              <div class="text-[12px] text-inkFaint truncate">
+                {(c.person && c.person.title) || ""}
+              </div>
+              <div class={["flex items-center gap-1.5 mt-[3px] text-[11px] font-medium text-#{tone}"]}>
+                <span class={"w-[5px] h-[5px] rounded-full shrink-0 bg-#{tone}"} />
+                <span class="truncate">{label}</span>
+              </div>
+            </div>
+            <span
+              :if={@total_steps > 0}
+              class={[
+                "shrink-0 text-[12px] font-semibold rounded-[6px] px-[7px] py-0.5 tabular-nums",
+                if(active?, do: "bg-[#dbe7fa] text-accent", else: "bg-paperAlt text-inkSoft")
+              ]}
+            >
               {Map.get(@sent_steps, c.id, 0)}/{@total_steps}
             </span>
-          </div>
-        </button>
-      <% end %>
+          </button>
+        <% end %>
+      </div>
     </div>
     """
   end
@@ -819,105 +862,123 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       )
 
     ~H"""
-    <div class="flex flex-col min-h-0 bg-paper">
-      <div class="px-7 py-4 border-b border-rule flex items-start gap-4">
-        <div class="flex-1 min-w-0">
-          <div class="flex items-baseline gap-3 flex-wrap">
-            <span class="font-serif text-[24px] text-ink leading-none">
-              {(@contact.person && @contact.person.name) || "—"}
+    <div
+      class="flex flex-col gap-3.5 min-h-0 overflow-y-auto p-4 bg-bgSoft border border-border rounded-[11px]"
+      style="box-shadow:var(--shadow-card)"
+    >
+      <div
+        class="flex-none bg-card border border-border rounded-[11px] px-5 py-[15px]"
+        style="box-shadow:var(--shadow)"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div class="flex items-center gap-3.5 min-w-0">
+            <span class="w-[42px] h-[42px] rounded-[11px] shrink-0 flex items-center justify-center text-[16px] font-bold bg-[#dbe7fa] text-accent">
+              {initials(@contact.person && @contact.person.name)}
             </span>
-            <span class="text-[12px] text-ink55">
-              {(@contact.person && @contact.person.title) || ""}
-            </span>
-            <span class="font-mono text-[10px] text-ink40">{@recipient}</span>
-          </div>
-          <div
-            :if={@company}
-            class="mt-2 flex items-center gap-3 font-mono text-[10px] text-ink40 flex-wrap"
-          >
-            <span class="text-ink55">{@company.name}</span>
-            <a
-              :if={@registry_link}
-              href={@registry_link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-ink40 hover:text-accent hover:underline"
-            >
-              ↗ {@registry_link.label}
-            </a>
-            <a
-              :if={@company.website_url}
-              href={website_href(@company.website_url)}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-ink40 hover:text-accent hover:underline"
-            >
-              ↗ {website_host(@company.website_url)}
-            </a>
-            <span :if={@from_name}>
-              {gettext("From:")} <span class="text-ink55">{@from_name}</span>
-            </span>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2 relative">
-          <button
-            type="button"
-            phx-click={JS.toggle(to: "#status-menu-#{@contact.id}")}
-            class={"font-mono text-[10px] uppercase tracking-[0.08em] px-2 py-1 border border-rule rounded-[2px] cursor-pointer hover:bg-paperAlt text-#{@status_tone}"}
-          >
-            ● {@status_text} ▾
-          </button>
-          <div
-            id={"status-menu-#{@contact.id}"}
-            class="hidden absolute right-0 top-full mt-1 bg-paper border border-rule rounded-[2px] z-20 min-w-[180px] shadow-sm"
-            phx-click-away={JS.hide(to: "#status-menu-#{@contact.id}")}
-          >
-            <%= for o <- @overrides do %>
-              <button
-                phx-click={
-                  JS.push("mark_as", value: %{override: o})
-                  |> JS.hide(to: "#status-menu-#{@contact.id}")
-                }
-                class="block w-full text-left px-3 py-2 font-mono text-[11px] hover:bg-paperAlt"
+            <div class="min-w-0">
+              <div class="text-[17px] font-bold tracking-[-0.01em] text-ink truncate">
+                {(@contact.person && @contact.person.name) || "—"}
+              </div>
+              <div class="text-[12.5px] text-inkSoft mt-px">
+                <span :if={@contact.person && @contact.person.title}>
+                  {@contact.person.title} ·
+                </span>
+                <span class="text-accent font-medium">{@recipient}</span>
+              </div>
+              <div
+                :if={@company}
+                class="mt-1.5 flex items-center gap-2.5 flex-wrap text-[12px] text-inkSoft"
               >
-                {format_override(o)}
-              </button>
-            <% end %>
+                <span class="font-semibold text-ink">{@company.name}</span>
+                <a
+                  :if={@registry_link}
+                  href={@registry_link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-accent font-medium hover:underline"
+                >
+                  ↗ {@registry_link.label}
+                </a>
+                <a
+                  :if={@company.website_url}
+                  href={website_href(@company.website_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-accent font-medium hover:underline"
+                >
+                  ↗ {website_host(@company.website_url)}
+                </a>
+                <span :if={@from_name} class="text-inkFaint">
+                  {gettext("From:")} {@from_name}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <Liid.btn
-            size={:small}
-            mono
-            phx-click="stop_sequence"
-            disabled={terminal?(@contact.status)}
-          >
-            {gettext("Stop sequence")}
-          </Liid.btn>
+          <div class="flex items-center gap-2.5 shrink-0 relative">
+            <button
+              type="button"
+              phx-click={JS.toggle(to: "#status-menu-#{@contact.id}")}
+              class={[
+                "inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border",
+                status_ctl_class(@status_tone)
+              ]}
+            >
+              <span class={["w-[7px] h-[7px] rounded-full", status_dot_class(@status_tone)]} />
+              {@status_text} <span class="opacity-70 text-[10px]">▾</span>
+            </button>
+            <div
+              id={"status-menu-#{@contact.id}"}
+              class="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-[8px] z-20 min-w-[180px] py-1"
+              style="box-shadow:var(--shadow-card)"
+              phx-click-away={JS.hide(to: "#status-menu-#{@contact.id}")}
+            >
+              <%= for o <- @overrides do %>
+                <button
+                  phx-click={
+                    JS.push("mark_as", value: %{override: o})
+                    |> JS.hide(to: "#status-menu-#{@contact.id}")
+                  }
+                  class="block w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-paperAlt"
+                >
+                  {format_override(o)}
+                </button>
+              <% end %>
+            </div>
+
+            <Liid.btn
+              size={:small}
+              phx-click="stop_sequence"
+              disabled={terminal?(@contact.status)}
+            >
+              {gettext("Stop sequence")}
+            </Liid.btn>
+          </div>
         </div>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-7 py-6">
-        <%= if @timeline == [] do %>
-          <div class="text-ink40 font-mono text-[11px]">
-            {gettext("No messages yet. The first step will appear here once it sends.")}
-          </div>
-        <% else %>
-          <%= for item <- @timeline do %>
-            <.timeline_item item={item} />
-          <% end %>
+      <%= if @timeline == [] do %>
+        <div
+          class="flex-none bg-card border border-border rounded-[11px] px-5 py-4 text-[12.5px] text-inkFaint"
+          style="box-shadow:var(--shadow)"
+        >
+          {gettext("No messages yet. The first step will appear here once it sends.")}
+        </div>
+      <% else %>
+        <%= for item <- @timeline do %>
+          <.timeline_item item={item} />
         <% end %>
+      <% end %>
 
-        <.composer
-          active_tab={@active_tab}
-          reply_html={@reply_html}
-          reply_nonce={@reply_nonce}
-          note_body={@note_body}
-          sending?={@sending?}
-          recipient={@recipient}
-          error={@error}
-        />
-      </div>
+      <.composer
+        active_tab={@active_tab}
+        reply_html={@reply_html}
+        reply_nonce={@reply_nonce}
+        note_body={@note_body}
+        sending?={@sending?}
+        recipient={@recipient}
+        error={@error}
+      />
     </div>
     """
   end
@@ -926,19 +987,22 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp timeline_item(%{item: %{kind: :note}} = assigns) do
     ~H"""
-    <div
-      class="my-4 max-w-[640px] p-4 rounded-[2px] border"
-      style="background:#fef4a8;border-color:rgba(220,190,80,0.4);"
-    >
+    <div class="flex-none flex justify-center">
       <div
-        class="flex justify-between font-mono text-[10px] uppercase mb-1.5"
-        style="color:rgba(90,74,42,0.7);"
+        class="w-[72%] max-w-[520px] bg-amberSoft border border-[#f0dcb0] rounded-[11px] overflow-hidden"
+        style="box-shadow:var(--shadow)"
       >
-        <span>{gettext("Note")}</span>
-        <span>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
-      </div>
-      <div class="font-serif italic text-[15px] leading-[1.5]" style="color:#5a4a2a;">
-        {@item.note.body}
+        <div class="flex items-center gap-2 px-3.5 py-[9px] bg-[#f7ecd2] border-b border-[#f0dcb0]">
+          <span class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-[#efd9a8] text-[#9a6f17]">
+            {gettext("Note")}
+          </span>
+          <span class="ml-auto text-[11px] font-medium text-[#9a6f17] tabular-nums">
+            {Calendar.strftime(@item.at, "%b %d · %H:%M")}
+          </span>
+        </div>
+        <div class="px-[15px] py-3 text-[13px] leading-[1.55] font-medium text-[#6e5417] whitespace-pre-wrap">
+          {@item.note.body}
+        </div>
       </div>
     </div>
     """
@@ -955,11 +1019,11 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     draft? = outbound? and status == :drafted
     queued? = outbound? and status == :approved
 
-    chip =
+    step_chip =
       cond do
-        manual? -> gettext("reply (you)")
-        outbound? -> gettext("step %{n}", n: (assigns.item.email.step_position || 0) + 1)
-        true -> gettext("reply")
+        manual? -> gettext("Reply · You")
+        outbound? -> gettext("Step %{n}", n: (assigns.item.email.step_position || 0) + 1)
+        true -> gettext("Reply")
       end
 
     body =
@@ -974,81 +1038,106 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         assigns.item.email.user_subject || assigns.item.email.ai_subject
       end
 
-    sender = if inbound?, do: assigns.item.email.from_address, else: gettext("you")
-
-    # Accent everywhere in this component is applied via CSS vars in inline
-    # styles (inbound chip, sent border, "· sent" label) — keep the chip on
-    # the same footing rather than mixing in a `bg-accent` utility.
-    chip_style =
-      cond do
-        sent? ->
-          "background:var(--accent);color:var(--paper);"
-
-        outbound? ->
-          "background:var(--ink);color:var(--paper);"
-
-        true ->
-          "background:color-mix(in oklch, var(--accent) 12%, transparent);color:var(--accent);"
-      end
+    sender = if inbound?, do: assigns.item.email.from_address, else: gettext("You")
 
     assigns =
       assign(assigns,
         outbound?: outbound?,
         inbound?: inbound?,
+        manual?: manual?,
         sent?: sent?,
         draft?: draft?,
         queued?: queued?,
-        chip: chip,
-        chip_style: chip_style,
+        step_chip: step_chip,
         body: body,
         subject: subject,
         sender: sender
       )
 
     ~H"""
-    <div class={["my-4 max-w-[720px]", if(@outbound?, do: "mr-auto", else: "ml-auto")]}>
-      <div class="flex items-center gap-2 mb-1.5 font-mono text-[10px] text-ink55">
-        <span
-          class="inline-flex items-center px-2 py-0.5 rounded-[2px] uppercase font-semibold"
-          style={@chip_style}
-        >
-          {@chip}
-        </span>
-        <span>{@sender}</span>
-        <span :if={@item.at}>·</span>
-        <span :if={@item.at}>{Calendar.strftime(@item.at, "%b %d · %H:%M")}</span>
-        <span :if={@sent?} class="font-semibold" style="color:var(--accent);">
-          {gettext("· sent")}
-        </span>
-        <span :if={@queued?} class="text-ink40">
-          {gettext("· queued")}
-        </span>
-        <span :if={@draft?} class="text-ink40">
-          {gettext("· draft")}
-        </span>
-        <span :if={@outbound? and @item.email.status == :scheduled} class="text-ink40">
-          {gettext("· scheduled")}
-        </span>
-        <span :if={@outbound? and @item.email.status == :bounced} class="text-warn">
-          {gettext("· bounced")}
-        </span>
-        <span :if={@outbound? and @item.email.status == :failed} class="text-fail">
-          {gettext("· failed")}
-        </span>
-        <span :if={@outbound? and @item.email.status == :skipped} class="text-ink40">
-          {gettext("· skipped")}
-        </span>
-      </div>
+    <div class={["flex-none flex", if(@outbound?, do: "justify-start", else: "justify-end")]}>
       <div
         class={[
-          "p-4 border border-rule rounded-[2px]",
-          if(@outbound?, do: "bg-paper", else: "bg-paperAlt")
+          "w-[90%] max-w-[680px] bg-card rounded-[11px] overflow-hidden border",
+          if(@inbound?, do: "border-[#cdddf3]", else: "border-border")
         ]}
-        style={if(@inbound? or @sent?, do: "border-left:2px solid var(--accent);")}
+        style="box-shadow:var(--shadow)"
       >
-        <div :if={@subject} class="text-[13px] font-semibold text-ink mb-2">{@subject}</div>
-        <div class="text-[13px] leading-[1.6] text-ink70 whitespace-pre-wrap">
-          {body_text(@body)}
+        <div class={[
+          "flex items-center gap-2 flex-wrap px-3.5 py-[9px] border-b",
+          if(@inbound?, do: "bg-accentSoft border-[#dbe7fa]", else: "bg-bgSoft border-border")
+        ]}>
+          <span class={[
+            "inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px]",
+            if(@inbound?, do: "bg-[#dbe7fa] text-accent", else: "bg-[#efece6] text-inkSoft")
+          ]}>
+            {@step_chip}
+          </span>
+          <span class={[
+            "inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px]",
+            if(@inbound?, do: "bg-[#dbe7fa] text-accent", else: "bg-accentSoft text-accent")
+          ]}>
+            {@sender}
+          </span>
+          <span
+            :if={@manual?}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-[#f0ecfb] text-[#7a5fc0]"
+          >
+            {gettext("Manual")}
+          </span>
+          <span
+            :if={@sent?}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-greenSoft text-green"
+          >
+            {gettext("Sent")}
+          </span>
+          <span
+            :if={@queued?}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-paperAlt text-inkSoft"
+          >
+            {gettext("Queued")}
+          </span>
+          <span
+            :if={@draft?}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-paperAlt text-inkSoft"
+          >
+            {gettext("Draft")}
+          </span>
+          <span
+            :if={@outbound? and @item.email.status == :scheduled}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-paperAlt text-inkSoft"
+          >
+            {gettext("Scheduled")}
+          </span>
+          <span
+            :if={@outbound? and @item.email.status == :bounced}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-amberSoft text-amber"
+          >
+            {gettext("Bounced")}
+          </span>
+          <span
+            :if={@outbound? and @item.email.status == :failed}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-redSoft text-red"
+          >
+            {gettext("Failed")}
+          </span>
+          <span
+            :if={@outbound? and @item.email.status == :skipped}
+            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-paperAlt text-inkFaint"
+          >
+            {gettext("Skipped")}
+          </span>
+          <span :if={@item.at} class="ml-auto text-[11px] font-medium text-inkFaint tabular-nums">
+            {Calendar.strftime(@item.at, "%b %d · %H:%M")}
+          </span>
+        </div>
+        <div class="px-[15px] py-3.5">
+          <div :if={@subject} class="text-[13.5px] font-bold tracking-[-0.005em] text-ink mb-1.5">
+            {@subject}
+          </div>
+          <div class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">
+            {body_text(@body)}
+          </div>
         </div>
       </div>
     </div>
@@ -1061,6 +1150,9 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     text
     |> String.replace(~r/<br\s*\/?>/i, "\n")
     |> String.replace(~r/<[^>]+>/, "")
+    |> String.replace(~r/[ \t]+\n/, "\n")
+    |> String.replace(~r/\n[ \t]+/, "\n")
+    |> String.trim()
   end
 
   defp body_text(_), do: ""
@@ -1075,17 +1167,18 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp composer(assigns) do
     ~H"""
-    <div class="mt-8 max-w-[720px] border border-ink20 rounded-[2px] bg-paper">
-      <div class="flex items-center border-b border-rule px-6">
+    <div
+      class="flex-none bg-card border border-border rounded-[11px] overflow-hidden"
+      style="box-shadow:var(--shadow)"
+    >
+      <div class="flex items-center gap-1 px-2.5 py-2 border-b border-border bg-bgSoft">
         <button
           phx-click="switch_tab"
           phx-value-tab="reply"
+          style={@active_tab == :reply && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
           class={[
-            "px-4 py-3 text-[12px]",
-            if(@active_tab == :reply,
-              do: "font-semibold text-ink border-b-2 border-ink -mb-px",
-              else: "text-ink55"
-            )
+            "text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer",
+            if(@active_tab == :reply, do: "bg-accentSoft text-accent", else: "text-inkFaint")
           ]}
         >
           {gettext("Reply")}
@@ -1093,27 +1186,27 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         <button
           phx-click="switch_tab"
           phx-value-tab="note"
+          style={@active_tab == :note && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
           class={[
-            "px-4 py-3 text-[12px]",
-            if(@active_tab == :note,
-              do: "font-semibold text-ink border-b-2 border-ink -mb-px",
-              else: "text-ink55"
-            )
+            "text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer",
+            if(@active_tab == :note, do: "bg-accentSoft text-accent", else: "text-inkFaint")
           ]}
         >
           {gettext("Note")}
         </button>
-        <span class="flex-1" />
-        <span :if={@active_tab == :reply} class="font-mono text-[10px] text-ink40 truncate">
-          {gettext("To: %{recipient}", recipient: @recipient)}
+        <span
+          :if={@active_tab == :reply}
+          class="ml-auto text-[12px] text-inkFaint font-medium truncate"
+        >
+          {gettext("To:")} <b class="text-inkSoft font-semibold">{@recipient}</b>
         </span>
       </div>
 
-      <div :if={@error} class="px-6 pt-3 text-[12px] text-fail">{@error}</div>
+      <div :if={@error} class="px-3.5 pt-3 text-[12px] text-red">{@error}</div>
 
       <div
         :if={@active_tab == :reply}
-        class="px-6 py-4"
+        class="px-3.5 py-3"
         id={"trix-wrap-#{@reply_nonce}"}
         phx-hook="TrixEditor"
         phx-update="ignore"
@@ -1126,19 +1219,18 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         >
         </trix-editor>
         <div class="mt-3 flex justify-end">
-          <Liid.btn
-            variant={:primary}
-            size={:small}
-            mono
+          <button
             phx-click="send_reply"
             disabled={@sending?}
+            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer disabled:opacity-60"
+            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
           >
             <Liid.icon name="arrow" size={11} /> {gettext("Send reply")}
-          </Liid.btn>
+          </button>
         </div>
       </div>
 
-      <div :if={@active_tab == :note} class="px-6 py-4">
+      <div :if={@active_tab == :note} class="px-3.5 py-3">
         <form id={"note-form-#{@reply_nonce}"} phx-change="set_note">
           <textarea
             id={"note-input-#{@reply_nonce}"}
@@ -1146,13 +1238,17 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             rows="4"
             phx-debounce="300"
             placeholder={gettext("Internal note — not sent to recipient.")}
-            class="w-full px-3 py-2 border border-ink20 rounded-[2px] text-[13px] outline-none resize-none"
+            class="w-full px-3 py-2 border border-border rounded-[8px] text-[13px] outline-none resize-none focus:border-accentRing"
           >{@note_body}</textarea>
         </form>
         <div class="mt-3 flex justify-end">
-          <Liid.btn variant={:primary} size={:small} mono phx-click="save_note">
+          <button
+            phx-click="save_note"
+            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer"
+            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
+          >
             {gettext("Save note")}
-          </Liid.btn>
+          </button>
         </div>
       </div>
     </div>

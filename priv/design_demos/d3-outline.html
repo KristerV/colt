@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liid — Sending Funnel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;450;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fcfcfc;
+    --panel:#ffffff;
+    --ink:#1c1c1a;
+    --ink-soft:#5a5a54;
+    --ink-faint:#8a8a82;
+    --border:#cfcfca;
+    --border-strong:#222220;
+    --accent:#2563eb;
+    --accent-soft:#eef3fe;
+    --accent-tint:#f5f8ff;
+    --green:#15803d;
+    --green-soft:#eaf6ee;
+    --amber:#b45309;
+    --amber-soft:#fbf3e6;
+    --red:#b91c1c;
+    --red-soft:#fdeeee;
+    --label: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:'Inter',system-ui,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+    font-size:13.5px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .tnum{font-variant-numeric:tabular-nums}
+  .lbl{
+    font-family:var(--label);
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    font-size:10px;
+    font-weight:500;
+  }
+
+  /* ---------- SHELL ---------- */
+  .app{
+    height:100vh;
+    display:grid;
+    grid-template-columns:236px 1fr;
+    background:var(--bg);
+  }
+
+  /* ---------- (A) SIDEBAR ---------- */
+  .sidebar{
+    background:var(--panel);
+    border-right:1.5px solid var(--border);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .brand{
+    padding:18px 20px 14px;
+    border-bottom:1.5px solid var(--border);
+  }
+  .wordmark{
+    font-size:22px;
+    font-weight:700;
+    letter-spacing:-.02em;
+  }
+  .wordmark .dot{color:var(--accent)}
+  .campaign{
+    margin-top:8px;
+    display:inline-block;
+    font-family:var(--label);
+    font-size:10.5px;
+    color:var(--ink-soft);
+    background:var(--accent-soft);
+    border:1px solid #d7e2fb;
+    border-radius:4px;
+    padding:3px 7px;
+    letter-spacing:.02em;
+  }
+  .nav{flex:1;overflow-y:auto;padding:14px 12px}
+  .nav-group{margin-bottom:16px}
+  .nav-group > .lbl{
+    color:var(--ink-faint);
+    padding:0 8px 6px;
+    display:block;
+  }
+  .nav-item{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    padding:6px 8px;
+    border-radius:4px;
+    color:var(--ink-soft);
+    font-size:13px;
+    font-weight:450;
+    border:1.5px solid transparent;
+    margin-bottom:1px;
+    cursor:default;
+  }
+  .nav-item:hover{background:#f4f4f2}
+  .nav-item.active{
+    background:var(--accent-tint);
+    border:1.5px solid var(--accent);
+    color:var(--accent);
+    font-weight:600;
+  }
+  .nav-item .ico{
+    width:6px;height:6px;border-radius:1px;
+    background:#c9c9c2;flex:none;
+  }
+  .nav-item.active .ico{background:var(--accent)}
+  .nav-footer{
+    border-top:1.5px solid var(--border);
+    padding:10px 12px;
+  }
+  .nav-footer .nav-item{font-size:12.5px;padding:5px 8px}
+  .user{
+    display:flex;align-items:center;gap:9px;
+    margin-top:6px;padding:8px;
+    border:1.5px solid var(--border);
+    border-radius:4px;
+    background:#fafaf8;
+  }
+  .avatar{
+    width:26px;height:26px;border-radius:4px;flex:none;
+    background:var(--ink);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:600;font-size:11px;
+  }
+  .user-mail{font-size:12px;color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* ---------- MAIN ---------- */
+  .main{display:flex;flex-direction:column;overflow:hidden;height:100vh}
+
+  /* (B) HEADLINE + BUCKETS */
+  .topbar{
+    padding:20px 26px 16px;
+    border-bottom:1.5px solid var(--border);
+    background:var(--panel);
+    flex:none;
+  }
+  .headline{
+    font-size:25px;
+    font-weight:700;
+    letter-spacing:-.02em;
+    margin:0 0 16px;
+  }
+  .headline em{
+    font-style:italic;
+    font-weight:600;
+    color:var(--accent);
+  }
+  .buckets{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:10px;
+  }
+  .bucket{
+    border:1.5px solid var(--border);
+    border-radius:5px;
+    background:var(--panel);
+    overflow:hidden;
+    display:flex;flex-direction:column;
+  }
+  .bucket-strip{
+    padding:5px 9px;
+    border-bottom:1.5px solid var(--border);
+    background:#fafaf8;
+    color:var(--ink-faint);
+    display:flex;align-items:center;gap:6px;
+  }
+  .bucket-body{padding:9px 11px 11px}
+  .bucket-num{
+    font-size:26px;font-weight:700;letter-spacing:-.02em;
+    line-height:1;margin-bottom:5px;
+  }
+  .bucket-sub{font-size:11px;color:var(--ink-faint);min-height:14px}
+  .bucket.sel{
+    border-color:var(--accent);
+    box-shadow:0 0 0 1px var(--accent);
+  }
+  .bucket.sel .bucket-strip{
+    background:var(--accent);color:#fff;border-bottom-color:var(--accent);
+  }
+  .bucket.sel .bucket-num{color:var(--accent)}
+  .bucket.sel .bucket-sub{color:var(--green);font-weight:500}
+  .bucket.tone-err .bucket-num{color:var(--red)}
+  .bucket.tone-err .bucket-sub{color:var(--red)}
+  .bucket.tone-err .bucket-strip{background:var(--red-soft);color:var(--red)}
+  .bucket.tone-warn .bucket-num{color:var(--amber)}
+  .bucket.tone-warn .bucket-sub{color:var(--amber)}
+  .bucket.tone-warn .bucket-strip{background:var(--amber-soft);color:var(--amber)}
+  .live{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--green);flex:none;
+    box-shadow:0 0 0 0 rgba(21,128,61,.5);
+    animation:pulse 1.8s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(21,128,61,.45)}
+    70%{box-shadow:0 0 0 6px rgba(21,128,61,0)}
+    100%{box-shadow:0 0 0 0 rgba(21,128,61,0)}
+  }
+  .track-strip{
+    margin-top:12px;
+    display:flex;gap:24px;align-items:center;
+    border:1.5px solid var(--border);
+    border-radius:5px;
+    padding:8px 14px;
+    background:#fafaf8;
+  }
+  .track-item{display:flex;align-items:baseline;gap:8px}
+  .track-item .lbl{color:var(--ink-faint)}
+  .track-item .big{font-weight:700;font-size:14px}
+  .track-item .frac{color:var(--ink-faint);font-size:11px}
+
+  /* (C) BODY */
+  .body{
+    flex:1;
+    display:grid;
+    grid-template-columns:360px 1fr;
+    overflow:hidden;
+    padding:16px;
+    gap:16px;
+  }
+
+  /* (C-list) */
+  .list-panel{
+    border:1.5px solid var(--border);
+    border-radius:6px;
+    background:var(--panel);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .list-head{
+    padding:9px 14px;
+    border-bottom:1.5px solid var(--border);
+    background:#fafaf8;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .list-head .lbl{color:var(--ink-soft)}
+  .list-head .count{
+    font-family:var(--label);font-size:11px;color:var(--ink-faint);
+  }
+  .list-scroll{flex:1;overflow-y:auto;padding:8px}
+  .row{
+    border:1.5px solid var(--border);
+    border-radius:5px;
+    background:var(--panel);
+    padding:9px 11px;
+    margin-bottom:7px;
+    cursor:default;
+  }
+  .row:hover{background:#fafaf8}
+  .row.sel{
+    border-color:var(--border-strong);
+    box-shadow:0 0 0 1px var(--border-strong);
+    background:#fff;
+  }
+  .row-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .row-name{font-weight:600;font-size:13.5px}
+  .row-prog{
+    font-family:var(--label);font-size:11px;color:var(--ink-soft);
+    background:#f1f1ee;border:1px solid var(--border);
+    border-radius:3px;padding:1px 6px;
+  }
+  .row.sel .row-prog{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .row-title{font-size:12px;color:var(--ink-soft);margin-top:2px}
+  .row-status{
+    margin-top:6px;display:inline-flex;align-items:center;gap:6px;
+    font-size:11px;color:var(--green);font-weight:500;
+  }
+  .row-status .d{width:6px;height:6px;border-radius:50%;background:var(--green)}
+
+  /* (C-thread) */
+  .thread-panel{
+    border:1.5px solid var(--border);
+    border-radius:6px;
+    background:var(--panel);
+    display:flex;flex-direction:column;
+    overflow:hidden;
+  }
+  .thread-head{
+    padding:13px 18px;
+    border-bottom:1.5px solid var(--border);
+    background:#fafaf8;
+    flex:none;
+  }
+  .th-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .th-name{font-size:17px;font-weight:700;letter-spacing:-.01em}
+  .th-title{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+  .th-mail{font-family:var(--label);font-size:11.5px;color:var(--accent);margin-top:3px}
+  .th-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px;align-items:center}
+  .chip{
+    font-size:11.5px;color:var(--ink-soft);
+    border:1.5px solid var(--border);border-radius:4px;
+    padding:3px 8px;background:var(--panel);
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .chip.link{color:var(--accent);font-family:var(--label);font-size:11px}
+  .chip.from{color:var(--ink-faint)}
+  .th-actions{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+  .status-ctl{
+    display:inline-flex;align-items:center;gap:7px;
+    border:1.5px solid var(--green);background:var(--green-soft);
+    color:var(--green);font-weight:600;font-size:12px;
+    border-radius:4px;padding:6px 10px;
+  }
+  .status-ctl .d{width:7px;height:7px;border-radius:50%;background:var(--green)}
+  .btn-stop{
+    border:1.5px solid var(--border);background:var(--panel);
+    color:var(--ink-soft);font-weight:500;font-size:12px;
+    border-radius:4px;padding:6px 11px;cursor:default;
+  }
+  .btn-stop:hover{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+
+  .timeline{flex:1;overflow-y:auto;padding:18px 18px 6px}
+
+  .item{margin-bottom:16px;display:flex}
+  .item.out{justify-content:flex-start}
+  .item.in{justify-content:flex-end}
+  .item.note-wrap{justify-content:center}
+
+  .email{
+    width:78%;
+    border:1.5px solid var(--border);
+    border-radius:6px;
+    background:var(--panel);
+    overflow:hidden;
+  }
+  .email.inbound{border-color:#c4d2ef}
+  .estrip{
+    display:flex;align-items:center;gap:7px;
+    padding:6px 12px;
+    border-bottom:1.5px solid var(--border);
+    background:#fafaf8;
+    color:var(--ink-faint);
+    flex-wrap:wrap;
+  }
+  .email.inbound .estrip{background:var(--accent-soft);color:var(--accent);border-bottom-color:#c4d2ef}
+  .estrip .sep{opacity:.4}
+  .estrip .tag-sent{color:var(--green);font-weight:600}
+  .estrip .tag-manual{
+    color:var(--accent);font-weight:600;
+  }
+  .ebody{padding:11px 14px 13px}
+  .esubj{font-weight:600;font-size:13.5px;margin-bottom:5px}
+  .etext{font-size:13px;color:var(--ink);line-height:1.55}
+
+  .note{
+    width:62%;
+    border:1.5px solid var(--amber);
+    border-radius:6px;
+    background:var(--amber-soft);
+    overflow:hidden;
+  }
+  .note .estrip{
+    background:var(--amber);color:#fff;border-bottom-color:var(--amber);
+  }
+  .note .ebody{padding:10px 14px 12px}
+  .note .etext{color:#5a3d12}
+
+  /* composer */
+  .composer{
+    flex:none;
+    margin:6px 18px 18px;
+    border:1.5px solid var(--accent);
+    border-radius:6px;
+    background:var(--panel);
+    overflow:hidden;
+  }
+  .comp-tabs{
+    display:flex;align-items:center;gap:0;
+    border-bottom:1.5px solid var(--accent);
+    background:var(--accent);
+  }
+  .comp-tab{
+    font-family:var(--label);font-size:10.5px;letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:7px 16px;color:#cfe0fe;font-weight:500;
+    cursor:default;border-right:1.5px solid rgba(255,255,255,.25);
+  }
+  .comp-tab.active{background:var(--panel);color:var(--accent);font-weight:600}
+  .comp-to{
+    margin-left:auto;padding:0 14px;color:#dbe7ff;
+    font-family:var(--label);font-size:10.5px;letter-spacing:.04em;
+  }
+  .comp-body{padding:12px 14px 14px}
+  .comp-area{
+    border:1.5px solid var(--border);border-radius:5px;
+    background:#fafaf8;padding:11px 12px;
+    font-size:13px;color:var(--ink-soft);min-height:64px;
+    line-height:1.5;
+  }
+  .comp-foot{display:flex;justify-content:flex-end;margin-top:11px}
+  .btn-send{
+    background:var(--accent);color:#fff;border:1.5px solid var(--accent);
+    border-radius:4px;padding:8px 18px;font-weight:600;font-size:13px;
+    cursor:default;
+  }
+  .btn-send:hover{filter:brightness(1.06)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- (A) SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="wordmark">Liid<span class="dot">.</span></div>
+      <span class="campaign">Tallinn SaaS founders Q2</span>
+    </div>
+    <nav class="nav">
+      <div class="nav-group">
+        <span class="lbl">Enrichment</span>
+        <div class="nav-item"><span class="ico"></span>Name</div>
+        <div class="nav-item"><span class="ico"></span>ICP</div>
+        <div class="nav-item"><span class="ico"></span>Market</div>
+        <div class="nav-item"><span class="ico"></span>Filters</div>
+        <div class="nav-item"><span class="ico"></span>Exclude</div>
+        <div class="nav-item"><span class="ico"></span>Target</div>
+        <div class="nav-item"><span class="ico"></span>Funnel</div>
+      </div>
+      <div class="nav-group">
+        <span class="lbl">Sending</span>
+        <div class="nav-item"><span class="ico"></span>Pitch</div>
+        <div class="nav-item"><span class="ico"></span>Sequence</div>
+        <div class="nav-item"><span class="ico"></span>Sending accounts</div>
+        <div class="nav-item"><span class="ico"></span>Writing</div>
+        <div class="nav-item active"><span class="ico"></span>Sending funnel</div>
+        <div class="nav-item"><span class="ico"></span>Write</div>
+        <div class="nav-item"><span class="ico"></span>Variants</div>
+        <div class="nav-item"><span class="ico"></span>Settings</div>
+      </div>
+    </nav>
+    <div class="nav-footer">
+      <div class="nav-item"><span class="ico"></span>Email accounts</div>
+      <div class="nav-item"><span class="ico"></span>Billing</div>
+      <div class="nav-item"><span class="ico"></span>Feedback</div>
+      <div class="user">
+        <div class="avatar">K</div>
+        <div class="user-mail">krister@liid.ee</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- (B) HEADLINE + BUCKETS -->
+    <div class="topbar">
+      <h1 class="headline">Where the <em>conversation</em> is going.</h1>
+      <div class="buckets">
+        <div class="bucket">
+          <div class="bucket-strip lbl"><span class="live"></span>Sending</div>
+          <div class="bucket-body">
+            <div class="bucket-num tnum">312</div>
+            <div class="bucket-sub tnum">1,847 emails sent</div>
+          </div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-strip lbl">Call ready</div>
+          <div class="bucket-body">
+            <div class="bucket-num tnum">8</div>
+            <div class="bucket-sub">&nbsp;</div>
+          </div>
+        </div>
+        <div class="bucket sel">
+          <div class="bucket-strip lbl">Interested</div>
+          <div class="bucket-body">
+            <div class="bucket-num tnum">23</div>
+            <div class="bucket-sub tnum">7% interest</div>
+          </div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-strip lbl">Not interested</div>
+          <div class="bucket-body">
+            <div class="bucket-num tnum">141</div>
+            <div class="bucket-sub tnum">34% reply rate</div>
+          </div>
+        </div>
+        <div class="bucket tone-err">
+          <div class="bucket-strip lbl">Failed</div>
+          <div class="bucket-body">
+            <div class="bucket-num tnum">4</div>
+            <div class="bucket-sub tnum">1% failure rate</div>
+          </div>
+        </div>
+        <div class="bucket tone-warn">
+          <div class="bucket-strip lbl">Bounced</div>
+          <div class="bucket-body">
+            <div class="bucket-num tnum">6</div>
+            <div class="bucket-sub tnum">2% bounce rate</div>
+          </div>
+        </div>
+      </div>
+      <div class="track-strip">
+        <div class="track-item">
+          <span class="lbl">Opens</span>
+          <span class="big tnum">64%</span>
+          <span class="frac tnum">(1182/1847)</span>
+        </div>
+        <div class="track-item">
+          <span class="lbl">Clicks</span>
+          <span class="big tnum">18%</span>
+          <span class="frac tnum">(332/1847)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- (C) BODY -->
+    <div class="body">
+
+      <!-- (C-list) -->
+      <section class="list-panel">
+        <div class="list-head">
+          <span class="lbl">Interested</span>
+          <span class="count tnum">8 contacts</span>
+        </div>
+        <div class="list-scroll">
+
+          <div class="row sel">
+            <div class="row-top"><span class="row-name">Mart Tamm</span><span class="row-prog tnum">3/4</span></div>
+            <div class="row-title">CEO</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Liis Kask</span><span class="row-prog tnum">4/4</span></div>
+            <div class="row-title">Founder</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Jaan Org</span><span class="row-prog tnum">2/4</span></div>
+            <div class="row-title">CTO</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Kadri Saar</span><span class="row-prog tnum">3/4</span></div>
+            <div class="row-title">Head of Growth</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Toomas Lepp</span><span class="row-prog tnum">4/4</span></div>
+            <div class="row-title">Co-founder</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Anna Mägi</span><span class="row-prog tnum">2/4</span></div>
+            <div class="row-title">COO</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Priit Raud</span><span class="row-prog tnum">3/4</span></div>
+            <div class="row-title">VP Sales</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+          <div class="row">
+            <div class="row-top"><span class="row-name">Eva Kuusk</span><span class="row-prog tnum">4/4</span></div>
+            <div class="row-title">Founder</div>
+            <div class="row-status"><span class="d"></span>replied · interested</div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- (C-thread) -->
+      <section class="thread-panel">
+        <div class="thread-head">
+          <div class="th-top">
+            <div>
+              <div class="th-name">Mart Tamm</div>
+              <div class="th-title">CEO</div>
+              <div class="th-mail">mart@fendr.ee</div>
+              <div class="th-meta">
+                <span class="chip">Fendr OÜ</span>
+                <span class="chip link">↗ e-äriregister</span>
+                <span class="chip link">↗ fendr.ee</span>
+                <span class="chip from">From: Krister @ Liid</span>
+              </div>
+            </div>
+            <div class="th-actions">
+              <span class="status-ctl"><span class="d"></span>replied · interested ▾</span>
+              <button class="btn-stop">Stop sequence</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="timeline">
+
+          <!-- 1 -->
+          <div class="item out">
+            <div class="email">
+              <div class="estrip lbl">
+                <span>Step 1</span><span class="sep">·</span><span>You</span><span class="sep">·</span>
+                <span class="tnum">Jun 8</span><span class="sep">·</span><span class="tnum">09:12</span>
+                <span class="sep">·</span><span class="tag-sent">Sent</span>
+              </div>
+              <div class="ebody">
+                <div class="esubj">Quick question about Fendr's onboarding</div>
+                <div class="etext">Hi Mart, I noticed Fendr just shipped a self-serve flow — congrats. We help Estonian SaaS teams turn trial signups into booked calls without adding headcount. Worth a quick look?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2 -->
+          <div class="item out">
+            <div class="email">
+              <div class="estrip lbl">
+                <span>Step 2</span><span class="sep">·</span><span>You</span><span class="sep">·</span>
+                <span class="tnum">Jun 11</span><span class="sep">·</span><span class="tnum">09:05</span>
+                <span class="sep">·</span><span class="tag-sent">Sent</span>
+              </div>
+              <div class="ebody">
+                <div class="esubj">Re: Quick question about Fendr's onboarding</div>
+                <div class="etext">Following up — happy to send a 2-minute Loom showing how it'd work for Fendr specifically.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 inbound -->
+          <div class="item in">
+            <div class="email inbound">
+              <div class="estrip lbl">
+                <span>Reply</span><span class="sep">·</span><span>Mart Tamm</span><span class="sep">·</span>
+                <span class="tnum">Jun 11</span><span class="sep">·</span><span class="tnum">14:32</span>
+              </div>
+              <div class="ebody">
+                <div class="etext">Hi Krister, this is timely. We're drowning in trials that never convert. Can you do Thursday afternoon?</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 note -->
+          <div class="item note-wrap">
+            <div class="note">
+              <div class="estrip lbl">
+                <span>Note</span><span class="sep">·</span><span class="tnum">Jun 11</span><span class="sep">·</span><span class="tnum">14:40</span>
+              </div>
+              <div class="ebody">
+                <div class="etext">Hot lead — wants Thursday. Check calendar, propose 15:00.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5 manual outbound -->
+          <div class="item out">
+            <div class="email">
+              <div class="estrip lbl">
+                <span class="tag-manual">Reply · You</span><span class="sep">·</span>
+                <span class="tnum">Jun 11</span><span class="sep">·</span><span class="tnum">15:01</span>
+                <span class="sep">·</span><span class="tag-sent">Sent</span>
+              </div>
+              <div class="ebody">
+                <div class="etext">Thursday 15:00 works great. Sending a calendar invite now — talk soon!</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- composer -->
+        <div class="composer">
+          <div class="comp-tabs">
+            <div class="comp-tab active">Reply</div>
+            <div class="comp-tab">Note</div>
+            <div class="comp-to">To: mart@fendr.ee</div>
+          </div>
+          <div class="comp-body">
+            <div class="comp-area">Write your reply to Mart…</div>
+            <div class="comp-foot">
+              <button class="btn-send">Send reply</button>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

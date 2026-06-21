@@ -24,9 +24,9 @@ defmodule ColtWeb.Admin.FeedbackLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-6">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-        <h1 class="text-3xl font-semibold">Feedback</h1>
+        <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">User <em>feedback</em></h1>
 
-        <div :if={@items == []} class="text-ink55 text-sm font-mono">
+        <div :if={@items == []} class="text-ink55 text-[13px]">
           No feedback yet.
         </div>
 
@@ -42,16 +42,26 @@ defmodule ColtWeb.Admin.FeedbackLive do
 
   defp card(assigns) do
     ~H"""
-    <div class={[
-      "border border-ink20 rounded-sharp p-5 flex flex-col gap-4",
-      @item.status == :done && "opacity-60"
-    ]}>
+    <div
+      class={[
+        "border border-border rounded-[11px] bg-card p-5 flex flex-col gap-4",
+        @item.status == :done && "opacity-60"
+      ]}
+      style="box-shadow:var(--shadow)"
+    >
       <div class="flex items-start justify-between gap-3">
-        <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55">
-          {status_label(@item.status)} ·
-          <span class="text-ink40">{format_when(@item.inserted_at)}</span>
+        <div class="flex items-center gap-2 text-[10px] font-semibold tracking-[0.08em] uppercase">
+          <span class={[
+            "w-1.5 h-1.5 rounded-full shrink-0",
+            if(@item.status == :done, do: "bg-green", else: "bg-amber")
+          ]}>
+          </span>
+          <span class="text-ink55">{status_label(@item.status)}</span>
+          <span class="text-ink40 normal-case font-normal tracking-normal tabular-nums">
+            · {format_when(@item.inserted_at)}
+          </span>
         </div>
-        <div class="font-mono text-[10px] text-ink40 truncate max-w-[180px]">
+        <div class="text-[11px] text-ink40 truncate max-w-[180px]">
           {user_label(@item.user)}
         </div>
       </div>
@@ -63,7 +73,7 @@ defmodule ColtWeb.Admin.FeedbackLive do
         {@item.body}
       </div>
 
-      <div :if={@item.url} class="font-mono text-[10px] text-ink40 truncate">
+      <div :if={@item.url} class="text-[11px] text-ink40 truncate">
         on {@item.url}
       </div>
 
@@ -72,7 +82,7 @@ defmodule ColtWeb.Admin.FeedbackLive do
           type="button"
           phx-click="toggle"
           phx-value-id={@item.id}
-          class="font-mono text-[11px] uppercase tracking-[0.08em] text-ink55 hover:text-ink cursor-pointer border border-ink20 rounded-sharp px-3 py-1.5 bg-transparent"
+          class="text-[11px] font-semibold uppercase tracking-[0.06em] text-ink55 hover:text-ink cursor-pointer border border-borderStrong rounded-[8px] px-3 py-1.5 bg-card"
         >
           {if @item.status == :open, do: "mark done", else: "reopen"}
         </button>

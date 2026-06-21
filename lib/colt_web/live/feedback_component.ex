@@ -21,22 +21,22 @@ defmodule ColtWeb.FeedbackComponent do
       phx-key="escape"
     >
       <div
-        class="bg-paper border border-ink20 rounded-sharp w-full max-w-[520px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
-        style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
+        class="bg-card border border-border rounded-[11px] w-full max-w-[520px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+        style="box-shadow: 0 24px 80px rgba(35,32,28,0.18);"
         phx-click-away={close()}
       >
         <div class="flex justify-between items-start gap-3 mb-6">
           <div class="min-w-0">
-            <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5">
+            <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-2">
               Feedback
             </div>
-            <h2 class="font-serif font-normal text-[24px] md:text-[32px] leading-[1.1] tracking-[-0.02em] m-0">
-              Tell us what's <em class="italic">off</em>.
+            <h2 class="font-semibold text-[22px] md:text-[25px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
+              Tell us what's <em>off</em>.
             </h2>
           </div>
           <button
             type="button"
-            class="w-6 h-6 flex items-center justify-center cursor-pointer"
+            class="w-7 h-7 flex items-center justify-center cursor-pointer rounded-[8px] text-inkFaint hover:text-ink hover:bg-paperAlt"
             phx-click={close()}
           >
             <Liid.icon name="x" size={14} />
@@ -51,7 +51,7 @@ defmodule ColtWeb.FeedbackComponent do
             rows="6"
             required
             placeholder="What's broken, missing, or just bad?"
-            class="w-full bg-transparent border border-ink20 rounded-sharp px-3.5 py-3 text-[14px] text-ink placeholder:text-ink40 focus:outline-none focus:border-ink resize-y"
+            class="w-full bg-card border border-borderStrong rounded-[8px] px-3.5 py-3 text-[14px] text-ink placeholder:text-inkFaint focus:outline-none focus:border-accent focus:[box-shadow:0_0_0_3px_var(--accentSoft)] resize-y"
           ></textarea>
 
           <div class="flex justify-end gap-2">

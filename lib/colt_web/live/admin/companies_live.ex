@@ -17,29 +17,37 @@ defmodule ColtWeb.Admin.CompaniesLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-        <h1 class="text-3xl font-semibold">Companies</h1>
+        <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
+          Companies by <em>market</em>
+        </h1>
 
         <div class="flex items-center gap-3">
-          <.link navigate="/admin/oban" class="text-sm opacity-60 hover:opacity-100 font-mono">
+          <.link navigate="/admin/oban" class="text-[13px] text-accent hover:underline">
             View Oban &rarr;
           </.link>
         </div>
 
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm font-mono border border-base-300">
-            <thead class="bg-base-200">
-              <tr class="text-left text-xs uppercase tracking-wider opacity-70">
-                <th class="px-3 py-2 font-medium">Market</th>
-                <th class="px-3 py-2 font-medium text-right">Active</th>
-                <th class="px-3 py-2 font-medium text-right">With ≥1 report</th>
-                <th class="px-3 py-2 font-medium text-right">With employees</th>
-                <th class="px-3 py-2 font-medium text-right w-px"></th>
+        <div
+          class="border border-border rounded-[11px] bg-card overflow-x-auto"
+          style="box-shadow:var(--shadow-card)"
+        >
+          <table class="w-full text-[13px]">
+            <thead>
+              <tr class="text-left text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55 bg-paperAlt border-b border-border">
+                <th class="px-3 py-2">Market</th>
+                <th class="px-3 py-2 text-right">Active</th>
+                <th class="px-3 py-2 text-right">With ≥1 report</th>
+                <th class="px-3 py-2 text-right">With employees</th>
+                <th class="px-3 py-2 text-right w-px"></th>
               </tr>
             </thead>
             <tbody>
-              <tr :for={m <- @markets} class="border-t border-base-300">
-                <td class="px-3 py-1.5">{market_label(m.market)}</td>
-                <td :for={s <- m.stats} class="px-3 py-1.5 text-right tabular-nums">
+              <tr
+                :for={m <- @markets}
+                class="border-b border-border last:border-b-0 hover:bg-paperAlt"
+              >
+                <td class="px-3 py-1.5 text-ink">{market_label(m.market)}</td>
+                <td :for={s <- m.stats} class="px-3 py-1.5 text-right tabular-nums text-ink70">
                   {format(s.value)}
                 </td>
                 <td class="px-3 py-1.5 text-right">
@@ -47,7 +55,7 @@ defmodule ColtWeb.Admin.CompaniesLive do
                     type="button"
                     phx-click="schedule_ingest"
                     phx-value-market={Atom.to_string(m.market)}
-                    class="btn btn-xs btn-primary rounded-none"
+                    class="bg-accent text-white text-[11px] font-semibold rounded-[8px] px-3 py-1.5 cursor-pointer hover:opacity-90"
                   >
                     Schedule
                   </button>

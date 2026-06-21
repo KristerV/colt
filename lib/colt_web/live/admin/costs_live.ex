@@ -73,68 +73,83 @@ defmodule ColtWeb.Admin.CostsLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
         <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-        <h1 class="text-3xl font-semibold">Costs</h1>
+        <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">API <em>costs</em></h1>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="card bg-base-200 border border-base-300 md:col-span-2">
-            <div class="card-body">
-              <div class="text-xs uppercase tracking-wider opacity-60 font-mono">
-                this month · {@current.month}
-              </div>
-              <div class="font-serif text-7xl tabular-nums leading-none mt-2">
-                ${format_money(@current.total)}
-              </div>
-              <div class="text-sm font-mono opacity-60 mt-2">
-                {@current.calls} calls
-              </div>
-              <div class="mt-4 space-y-1 text-sm font-mono">
-                <div
-                  :for={p <- @current.providers}
-                  class="flex justify-between border-b border-base-300 py-1"
-                >
-                  <span>{p.provider} · {p.calls}</span>
-                  <span class="tabular-nums">${format_money(p.cost_usd)}</span>
-                </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div
+            class="bg-card border border-border rounded-[11px] md:col-span-2 p-6"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">
+              this month · {@current.month}
+            </div>
+            <div class="text-[56px] font-bold tabular-nums leading-none tracking-[-0.02em] text-ink mt-2">
+              ${format_money(@current.total)}
+            </div>
+            <div class="text-[13px] text-ink55 mt-2">
+              {@current.calls} calls
+            </div>
+            <div class="mt-4 space-y-1 text-[13px]">
+              <div
+                :for={p <- @current.providers}
+                class="flex justify-between border-b border-border py-1 text-ink70"
+              >
+                <span>{p.provider} · {p.calls}</span>
+                <span class="tabular-nums text-ink">${format_money(p.cost_usd)}</span>
               </div>
             </div>
           </div>
 
-          <div class="card bg-base-200 border border-base-300">
-            <div class="card-body">
-              <div class="text-xs uppercase tracking-wider opacity-60 font-mono">last 12 months</div>
-              <div class="space-y-1 mt-2 text-sm font-mono">
-                <div :for={m <- @months} class="flex justify-between border-b border-base-300 py-1">
-                  <span>{m.month}</span>
-                  <span class="tabular-nums">${format_money(m.total)}</span>
-                </div>
+          <div
+            class="bg-card border border-border rounded-[11px] p-6"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">
+              last 12 months
+            </div>
+            <div class="space-y-1 mt-2 text-[13px]">
+              <div
+                :for={m <- @months}
+                class="flex justify-between border-b border-border py-1 text-ink70"
+              >
+                <span>{m.month}</span>
+                <span class="tabular-nums text-ink">${format_money(m.total)}</span>
               </div>
             </div>
           </div>
         </div>
 
         <div>
-          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
             this month · by task
           </div>
-          <div class="overflow-x-auto">
-            <table class="text-xs font-mono w-full min-w-[480px]">
-              <thead class="opacity-60">
-                <tr class="border-b border-base-300">
-                  <th class="text-left py-1 pr-3">task</th>
-                  <th class="text-left py-1 pr-3">provider</th>
-                  <th class="text-right py-1 pr-3">calls</th>
-                  <th class="text-right py-1 pr-3">$</th>
+          <div
+            class="border border-border rounded-[11px] bg-card overflow-x-auto"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <table class="text-[12px] w-full min-w-[480px]">
+              <thead>
+                <tr class="border-b border-border bg-paperAlt text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
+                  <th class="text-left px-3 py-2">task</th>
+                  <th class="text-left px-3 py-2">provider</th>
+                  <th class="text-right px-3 py-2">calls</th>
+                  <th class="text-right px-3 py-2">$</th>
                 </tr>
               </thead>
               <tbody>
-                <tr :for={t <- @by_task} class="border-b border-base-300/40">
-                  <td class="py-1 pr-3">{t.task || "—"}</td>
-                  <td class="py-1 pr-3 opacity-70">{t.provider}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{t.calls}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">${format_money(t.cost_usd)}</td>
+                <tr
+                  :for={t <- @by_task}
+                  class="border-b border-border last:border-b-0 hover:bg-paperAlt"
+                >
+                  <td class="px-3 py-1.5 text-ink">{t.task || "—"}</td>
+                  <td class="px-3 py-1.5 text-ink70">{t.provider}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{t.calls}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink">
+                    ${format_money(t.cost_usd)}
+                  </td>
                 </tr>
                 <tr :if={@by_task == []}>
-                  <td colspan="4" class="py-2 opacity-60">no calls this month yet</td>
+                  <td colspan="4" class="px-3 py-2 text-ink40">no calls this month yet</td>
                 </tr>
               </tbody>
             </table>
@@ -142,38 +157,48 @@ defmodule ColtWeb.Admin.CostsLive do
         </div>
 
         <div>
-          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
             openrouter · recent 50
           </div>
-          <div class="overflow-x-auto">
-            <table class="text-xs font-mono w-full min-w-[480px]">
-              <thead class="opacity-60">
-                <tr class="border-b border-base-300">
-                  <th class="text-left py-1 pr-3">time</th>
-                  <th class="text-left py-1 pr-3">task</th>
-                  <th class="text-left py-1 pr-3">model</th>
-                  <th class="text-right py-1 pr-3">in</th>
-                  <th class="text-right py-1 pr-3">out</th>
-                  <th class="text-right py-1 pr-3">$</th>
-                  <th class="text-right py-1 pr-3">ms</th>
-                  <th class="text-left py-1 pr-3">status</th>
+          <div
+            class="border border-border rounded-[11px] bg-card overflow-x-auto"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <table class="text-[12px] w-full min-w-[480px]">
+              <thead>
+                <tr class="border-b border-border bg-paperAlt text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
+                  <th class="text-left px-3 py-2">time</th>
+                  <th class="text-left px-3 py-2">task</th>
+                  <th class="text-left px-3 py-2">model</th>
+                  <th class="text-right px-3 py-2">in</th>
+                  <th class="text-right px-3 py-2">out</th>
+                  <th class="text-right px-3 py-2">$</th>
+                  <th class="text-right px-3 py-2">ms</th>
+                  <th class="text-left px-3 py-2">status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   :for={c <- @openrouter}
-                  class="border-b border-base-300/40 cursor-pointer hover:bg-base-200"
+                  class="border-b border-border last:border-b-0 cursor-pointer hover:bg-paperAlt"
                   phx-click="open_call"
                   phx-value-id={c.id}
                 >
-                  <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
-                  <td class="py-1 pr-3">{c.task || "—"}</td>
-                  <td class="py-1 pr-3 truncate max-w-[14rem]">{c.model}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{c.input_tokens}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{c.output_tokens}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{format_money(c.cost_usd)}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{c.latency_ms}</td>
-                  <td class={["py-1 pr-3", c.status == :error && "text-error"]}>{c.status}</td>
+                  <td class="px-3 py-1.5 tabular-nums text-ink70">{format_time(c.inserted_at)}</td>
+                  <td class="px-3 py-1.5 text-ink">{c.task || "—"}</td>
+                  <td class="px-3 py-1.5 truncate max-w-[14rem] text-ink70">{c.model}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{c.input_tokens}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{c.output_tokens}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink">
+                    {format_money(c.cost_usd)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{c.latency_ms}</td>
+                  <td class={[
+                    "px-3 py-1.5 font-medium",
+                    if(c.status == :error, do: "text-red", else: "text-green")
+                  ]}>
+                    {c.status}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -181,36 +206,46 @@ defmodule ColtWeb.Admin.CostsLive do
         </div>
 
         <div>
-          <div class="text-xs uppercase tracking-wider opacity-60 font-mono mb-2">
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
             google cse · recent 50
           </div>
-          <div class="overflow-x-auto">
-            <table class="text-xs font-mono w-full min-w-[480px]">
-              <thead class="opacity-60">
-                <tr class="border-b border-base-300">
-                  <th class="text-left py-1 pr-3">time</th>
-                  <th class="text-left py-1 pr-3">task</th>
-                  <th class="text-left py-1 pr-3">query</th>
-                  <th class="text-right py-1 pr-3">results</th>
-                  <th class="text-right py-1 pr-3">$</th>
-                  <th class="text-right py-1 pr-3">ms</th>
-                  <th class="text-left py-1 pr-3">status</th>
+          <div
+            class="border border-border rounded-[11px] bg-card overflow-x-auto"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <table class="text-[12px] w-full min-w-[480px]">
+              <thead>
+                <tr class="border-b border-border bg-paperAlt text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
+                  <th class="text-left px-3 py-2">time</th>
+                  <th class="text-left px-3 py-2">task</th>
+                  <th class="text-left px-3 py-2">query</th>
+                  <th class="text-right px-3 py-2">results</th>
+                  <th class="text-right px-3 py-2">$</th>
+                  <th class="text-right px-3 py-2">ms</th>
+                  <th class="text-left px-3 py-2">status</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   :for={c <- @google}
-                  class="border-b border-base-300/40 cursor-pointer hover:bg-base-200"
+                  class="border-b border-border last:border-b-0 cursor-pointer hover:bg-paperAlt"
                   phx-click="open_call"
                   phx-value-id={c.id}
                 >
-                  <td class="py-1 pr-3 opacity-70">{format_time(c.inserted_at)}</td>
-                  <td class="py-1 pr-3">{c.task || "—"}</td>
-                  <td class="py-1 pr-3 truncate max-w-[24rem]">{c.query}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{c.results_count}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{format_money(c.cost_usd)}</td>
-                  <td class="py-1 pr-3 text-right tabular-nums">{c.latency_ms}</td>
-                  <td class={["py-1 pr-3", c.status == :error && "text-error"]}>{c.status}</td>
+                  <td class="px-3 py-1.5 tabular-nums text-ink70">{format_time(c.inserted_at)}</td>
+                  <td class="px-3 py-1.5 text-ink">{c.task || "—"}</td>
+                  <td class="px-3 py-1.5 truncate max-w-[24rem] text-ink70">{c.query}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{c.results_count}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink">
+                    {format_money(c.cost_usd)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{c.latency_ms}</td>
+                  <td class={[
+                    "px-3 py-1.5 font-medium",
+                    if(c.status == :error, do: "text-red", else: "text-green")
+                  ]}>
+                    {c.status}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -224,7 +259,7 @@ defmodule ColtWeb.Admin.CostsLive do
         style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
       >
         <div
-          class="bg-paper border border-ink20 rounded-sharp w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
+          class="bg-card border border-border rounded-[11px] w-full max-w-[920px] my-auto px-6 py-7 md:px-9 md:pt-8 md:pb-7"
           style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
           phx-click-away="close_call"
           phx-window-keydown="close_call"
@@ -232,10 +267,10 @@ defmodule ColtWeb.Admin.CostsLive do
         >
           <div class="flex justify-between items-start gap-3 mb-5">
             <div class="min-w-0">
-              <div class="font-mono text-[10px] tracking-[0.12em] uppercase text-ink55 mb-1.5 truncate">
+              <div class="text-[10px] font-semibold tracking-[0.08em] uppercase text-ink55 mb-1.5 truncate">
                 API call · {@open_call.task || "—"}
               </div>
-              <h2 class="font-serif font-normal text-[22px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0">
+              <h2 class="font-semibold text-[22px] md:text-[26px] leading-[1.15] tracking-[-0.02em] text-ink m-0">
                 {@open_call.model || @open_call.provider}
               </h2>
             </div>

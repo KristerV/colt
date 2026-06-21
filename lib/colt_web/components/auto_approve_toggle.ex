@@ -71,14 +71,14 @@ defmodule ColtWeb.Components.AutoApproveToggle do
         if(@unlocked?, do: "cursor-pointer", else: "cursor-not-allowed opacity-45")
       ]}
     >
-      <span class="font-mono text-[9px] tracking-[0.14em] uppercase text-ink40">auto</span>
+      <span class="text-[9px] tracking-[0.12em] uppercase text-inkFaint font-semibold">auto</span>
       <span class="relative inline-block w-6 h-[13px] rounded-full">
         <span
           class="absolute inset-0 rounded-full"
-          style={"background: #{if @on, do: "var(--color-accent)", else: "var(--color-ink20)"}; transition: background .12s;"}
+          style={"background: #{if @on, do: "var(--accent)", else: "var(--borderStrong)"}; transition: background .12s;"}
         />
         <span
-          class="absolute top-px w-[11px] h-[11px] rounded-full bg-paper"
+          class="absolute top-px w-[11px] h-[11px] rounded-full bg-card"
           style={"left: #{if @on, do: "12px", else: "1px"}; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: left .12s;"}
         />
       </span>
