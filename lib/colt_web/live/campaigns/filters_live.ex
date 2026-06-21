@@ -387,17 +387,6 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       </Liid.headline>
 
       <div class="flex flex-col gap-4 overflow-auto pr-1">
-        <.fset label={gettext("Exclude industries")} hint={industry_hint(@form.industries_exclude)}>
-          <.industry_box
-            mode={:exclude}
-            selected={@form.industries_exclude}
-            top_industries={@top_industries}
-            query={@exclude_query}
-            results={@exclude_results}
-            open={@exclude_open}
-          />
-        </.fset>
-
         <.range_fset
           label={gettext("Employees")}
           field="employees"
@@ -460,6 +449,17 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             query={@industry_query}
             results={@industry_results}
             open={@industry_open}
+          />
+        </.fset>
+
+        <.fset label={gettext("Exclude industries")} hint={industry_hint(@form.industries_exclude)}>
+          <.industry_box
+            mode={:exclude}
+            selected={@form.industries_exclude}
+            top_industries={@top_industries}
+            query={@exclude_query}
+            results={@exclude_results}
+            open={@exclude_open}
           />
         </.fset>
       </div>
@@ -605,7 +605,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       <form id={"slider-form-#{@field}"} phx-change="update_slider" class="space-y-3">
         <input type="hidden" name="field" value={@field} />
 
-        <div class="relative h-5">
+        <div class="relative h-5 mx-2">
           <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[5px] rounded-full bg-border" />
           <div
             class="absolute top-1/2 -translate-y-1/2 h-[5px] rounded-full"
@@ -646,7 +646,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           value={format_grouped(@min)}
           placeholder={gettext("min")}
           phx-debounce="600"
-          class="flex-1 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
+          class="flex-1 min-w-0 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
         />
         <span class="self-center text-inkFaint">—</span>
         <input
@@ -657,7 +657,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           value={format_grouped(@max)}
           placeholder={gettext("max")}
           phx-debounce="600"
-          class="flex-1 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
+          class="flex-1 min-w-0 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
         />
       </form>
     </.fset>

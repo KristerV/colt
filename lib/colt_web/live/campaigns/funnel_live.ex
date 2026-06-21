@@ -13,7 +13,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     GenerateIcpLearning,
     RecheckIcp,
     Retry,
-    Stats,
     SweepRecheckIcp
   }
 
@@ -56,10 +55,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:ok, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/target")}
 
       {:ok, campaign} ->
-        selected_bucket = :enriched
-        rows = load_page(campaign.id, selected_bucket, 1)
-        rows_index = Map.new(rows, &{&1.cc_id, &1})
-
         if connected?(socket) do
           Broadcast.subscribe(campaign.id)
           Process.send_after(self(), :tick, @tick_ms)
@@ -70,14 +65,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
           |> assign(
             page_title: gettext("Funnel — %{name}", name: campaign.name),
             campaign: campaign,
-            rows_index: rows_index,
+            rows_index: %{},
             expanded_id: nil,
             stats: stats_from_campaign(campaign),
-            selected_bucket: selected_bucket,
+            selected_bucket: nil,
             total: campaign.total_count,
             page: 1,
-            page_rows: length(rows),
-            meta: Stats.run(campaign.finalized_at),
+            page_rows: 0,
             show_export?: false,
             export_preview: nil,
             export_count: 0,
@@ -89,7 +83,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             api_calls: [],
             api_call_expanded_id: nil
           )
-          |> stream(:rows, rows)
+          |> stream(:rows, [])
 
         {:ok, socket}
 
@@ -97,6 +91,28 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         {:ok, push_navigate(socket, to: ~p"/")}
     end
   end
+
+  # The open status lives in the URL (/funnel/:bucket), so the browser back
+  # button walks the drill-down. No bucket = the top-level status view (just the
+  # strip); mobile shows one level at a time, desktop shows strip + table.
+  def handle_params(params, _uri, socket) do
+    case parse_bucket(params["bucket"]) do
+      nil ->
+        {:noreply,
+         socket
+         |> assign(selected_bucket: nil, page: 1, page_rows: 0, rows_index: %{}, expanded_id: nil)
+         |> stream(:rows, [], reset: true)}
+
+      bucket ->
+        {:noreply, load_into_stream(socket, bucket, 1)}
+    end
+  end
+
+  @url_buckets ~w(queued working enriched rejected excluded failed)a
+  defp parse_bucket(b) when is_binary(b),
+    do: Enum.find(@url_buckets, &(Atom.to_string(&1) == b))
+
+  defp parse_bucket(_), do: nil
 
   # New companies were scaffolded into the campaign. They land in the queued
   # bucket; rather than splice each one into a paginated stream at the right
@@ -172,7 +188,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     {:noreply,
      socket
      |> refresh_counts()
-     |> assign(meta: Stats.run(socket.assigns.campaign.finalized_at))
      |> assign(current_user: ColtWeb.UsageAssign.load_usage(socket.assigns.current_user))}
   end
 
@@ -180,10 +195,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   # parent assign changes, so the expanded flag has to live *on the row* and
   # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
   # previous row when opening a new one.
-  def handle_event("select_bucket", %{"bucket" => bucket}, socket) do
-    {:noreply, load_into_stream(socket, String.to_existing_atom(bucket), 1)}
-  end
-
   def handle_event("prev_page", _params, socket) do
     {:noreply, load_into_stream(socket, socket.assigns.selected_bucket, socket.assigns.page - 1)}
   end
@@ -595,107 +606,128 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       campaign_id={@campaign.id}
     >
       <div class="flex flex-col gap-[18px] flex-1 min-h-0">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
-          <div class="min-w-0">
-            <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-1.5 truncate">
-              {gettext("05 / Funnel · %{name}", name: @campaign.name)}
+        <.link
+          :if={@selected_bucket}
+          patch={~p"/campaigns/#{@campaign.id}/funnel"}
+          class="md:hidden inline-flex items-center gap-2 py-1 px-2 -mb-2 text-[15px] font-medium text-inkSoft active:text-ink hover:text-ink no-underline"
+        >
+          <span class="text-[30px] leading-none -mt-0.5">‹</span>
+          {gettext("All statuses")}
+        </.link>
+
+        <div class={[
+          "flex flex-col gap-[18px]",
+          (@selected_bucket && "hidden md:flex") || "flex"
+        ]}>
+          <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
+            <div class="min-w-0">
+              <div class="text-[10.5px] tracking-[0.09em] uppercase text-inkFaint font-semibold mb-1.5 truncate">
+                {gettext("05 / Funnel · %{name}", name: @campaign.name)}
+              </div>
+              <h1 class="font-semibold text-[25px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
+                {gettext("Enriching")}
+                <span class="text-accent tnum">{@total}</span> {gettext("companies.")}
+              </h1>
             </div>
-            <h1 class="font-semibold text-[25px] md:text-[28px] leading-[1.15] tracking-[-0.02em] m-0 text-ink">
-              {gettext("Enriching")}
-              <span class="text-accent tnum">{@total}</span> {gettext("companies.")}
-            </h1>
+            <% busy = work_in_flight?(@stats) %>
+            <div class="flex items-center gap-3">
+              <Liid.btn
+                size={:small}
+                disabled={busy}
+                phx-click="recheck_icp"
+                data-confirm={gettext("Re-check ICP fit on all enriched and ICP-rejected companies?")}
+              >
+                <Liid.icon name="refresh" size={11} /> {gettext("Re-check ICP")}
+              </Liid.btn>
+              <Liid.btn
+                size={:small}
+                variant={:primary}
+                disabled={busy or @stats.enriched == 0}
+                phx-click="open_export"
+              >
+                <Liid.icon name="download" size={11} /> {gettext("Export")}
+              </Liid.btn>
+            </div>
           </div>
-          <% busy = work_in_flight?(@stats) %>
-          <div class="flex items-center gap-3">
-            <Liid.btn
-              size={:small}
-              disabled={busy}
-              phx-click="recheck_icp"
-              data-confirm={gettext("Re-check ICP fit on all enriched and ICP-rejected companies?")}
-            >
-              <Liid.icon name="refresh" size={11} /> {gettext("Re-check ICP")}
-            </Liid.btn>
-            <Liid.btn
-              size={:small}
-              variant={:primary}
-              disabled={busy or @stats.enriched == 0}
-              phx-click="open_export"
-            >
-              <Liid.icon name="download" size={11} /> {gettext("Export")}
-            </Liid.btn>
-          </div>
+
+          <Funnel.stats_strip
+            stats={@stats}
+            total={@total}
+            selected={@selected_bucket}
+            target={@campaign.target_contact_count}
+            campaign_id={@campaign.id}
+          />
         </div>
 
-        <Funnel.stats_strip
-          stats={@stats}
-          total={@total}
-          selected={@selected_bucket}
-          target={@campaign.target_contact_count}
-        />
-
-        <Funnel.meta_strip meta={@meta} visible={@page_rows} total={@total} />
-
-        <div class="flex-1 min-h-0 flex flex-col bg-card md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)] md:overflow-hidden -mx-4 md:mx-0">
-          <Funnel.funnel_header />
-          <% bucket_count = Map.get(@stats, @selected_bucket, 0) %>
-          <div :if={bucket_count == 0} class="flex-1 flex items-center justify-center px-6 py-12">
-            <div class="text-center">
-              <div class="text-[11px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
-                {bucket_label(@selected_bucket)}
-              </div>
-              <div class="text-[14px] text-inkSoft max-w-[420px]">
-                {empty_message(@selected_bucket)}
+        <%= if @selected_bucket do %>
+          <div class="flex-1 min-h-0 flex flex-col bg-card md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)] md:overflow-hidden -mx-4 md:mx-0">
+            <Funnel.funnel_header />
+            <% bucket_count = Map.get(@stats, @selected_bucket, 0) %>
+            <div :if={bucket_count == 0} class="flex-1 flex items-center justify-center px-6 py-12">
+              <div class="text-center">
+                <div class="text-[11px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-2">
+                  {bucket_label(@selected_bucket)}
+                </div>
+                <div class="text-[14px] text-inkSoft max-w-[420px]">
+                  {empty_message(@selected_bucket)}
+                </div>
               </div>
             </div>
+            <div :if={bucket_count > 0} class="flex-1 overflow-auto" id="funnel-scroll">
+              <div id="funnel-body" phx-update="stream">
+                <Funnel.funnel_row
+                  :for={{dom_id, row} <- @streams.rows}
+                  id={dom_id}
+                  row={row}
+                  expanded?={row.expanded?}
+                  admin?={@current_user.is_admin}
+                />
+              </div>
+            </div>
+            <% total_pages = page_count(bucket_count) %>
+            <nav
+              :if={bucket_count > 0 and total_pages > 1}
+              class="flex items-center justify-center gap-1 flex-wrap px-4 py-3 border-t border-border bg-bgSoft"
+            >
+              <button
+                type="button"
+                phx-click="prev_page"
+                disabled={@page <= 1}
+                class="inline-flex items-center justify-center w-7 h-7 border border-border bg-card rounded-[8px] text-inkSoft hover:text-ink hover:border-borderStrong disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                <Liid.icon name="chev-l" size={11} />
+              </button>
+              <button
+                :for={p <- 1..total_pages}
+                type="button"
+                phx-click="goto_page"
+                phx-value-page={p}
+                class={[
+                  "inline-flex items-center justify-center min-w-7 h-7 px-2 border rounded-[8px] text-[11px] tnum cursor-pointer",
+                  p == @page && "bg-accentSoft text-accent border-accentRing font-semibold",
+                  p != @page &&
+                    "border-border bg-card text-inkSoft hover:text-ink hover:border-borderStrong"
+                ]}
+              >
+                {p}
+              </button>
+              <button
+                type="button"
+                phx-click="next_page"
+                disabled={@page >= total_pages}
+                class="inline-flex items-center justify-center w-7 h-7 border border-border bg-card rounded-[8px] text-inkSoft hover:text-ink hover:border-borderStrong disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                <Liid.icon name="chev-r" size={11} />
+              </button>
+            </nav>
           </div>
-          <div :if={bucket_count > 0} class="flex-1 overflow-auto" id="funnel-scroll">
-            <div id="funnel-body" phx-update="stream">
-              <Funnel.funnel_row
-                :for={{dom_id, row} <- @streams.rows}
-                id={dom_id}
-                row={row}
-                expanded?={row.expanded?}
-                admin?={@current_user.is_admin}
-              />
+        <% else %>
+          <div class="hidden md:flex flex-1 items-center justify-center text-center px-8">
+            <div class="text-[14px] text-inkSoft max-w-[340px] leading-[1.55]">
+              {gettext("Select a status above to see its companies.")}
             </div>
           </div>
-          <% total_pages = page_count(bucket_count) %>
-          <nav
-            :if={bucket_count > 0 and total_pages > 1}
-            class="flex items-center justify-center gap-1 flex-wrap px-4 py-3 border-t border-border bg-bgSoft"
-          >
-            <button
-              type="button"
-              phx-click="prev_page"
-              disabled={@page <= 1}
-              class="inline-flex items-center justify-center w-7 h-7 border border-border bg-card rounded-[8px] text-inkSoft hover:text-ink hover:border-borderStrong disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-            >
-              <Liid.icon name="chev-l" size={11} />
-            </button>
-            <button
-              :for={p <- 1..total_pages}
-              type="button"
-              phx-click="goto_page"
-              phx-value-page={p}
-              class={[
-                "inline-flex items-center justify-center min-w-7 h-7 px-2 border rounded-[8px] text-[11px] tnum cursor-pointer",
-                p == @page && "bg-accentSoft text-accent border-accentRing font-semibold",
-                p != @page &&
-                  "border-border bg-card text-inkSoft hover:text-ink hover:border-borderStrong"
-              ]}
-            >
-              {p}
-            </button>
-            <button
-              type="button"
-              phx-click="next_page"
-              disabled={@page >= total_pages}
-              class="inline-flex items-center justify-center w-7 h-7 border border-border bg-card rounded-[8px] text-inkSoft hover:text-ink hover:border-borderStrong disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-            >
-              <Liid.icon name="chev-r" size={11} />
-            </button>
-          </nav>
-        </div>
+        <% end %>
       </div>
 
       <.export_modal

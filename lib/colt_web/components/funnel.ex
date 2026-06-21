@@ -29,8 +29,9 @@ defmodule ColtWeb.Components.Funnel do
 
   attr :stats, :map, required: true
   attr :total, :integer, required: true
-  attr :selected, :atom, default: :enriched
+  attr :selected, :atom, default: nil
   attr :target, :integer, default: nil
+  attr :campaign_id, :string, required: true
 
   def stats_strip(assigns) do
     enriched_label =
@@ -55,17 +56,15 @@ defmodule ColtWeb.Components.Funnel do
     assigns = assign(assigns, tiles: tiles)
 
     ~H"""
-    <div class="flex gap-2.5 overflow-x-auto md:overflow-visible md:grid md:grid-cols-6">
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5">
       <%= for tile <- @tiles do %>
         <% n = Map.get(@stats, tile.key, 0) %>
         <% pct = if @total > 0, do: n / @total * 100, else: 0.0 %>
         <% active? = @selected == tile.key %>
-        <button
-          type="button"
-          phx-click="select_bucket"
-          phx-value-bucket={tile.key}
+        <.link
+          patch={"/campaigns/#{@campaign_id}/funnel/#{tile.key}"}
           class={[
-            "shrink-0 md:shrink min-w-[124px] md:min-w-0 px-[13px] py-[12px] relative text-left cursor-pointer rounded-[11px] border transition-all",
+            "no-underline px-[13px] py-[12px] relative text-left cursor-pointer rounded-[11px] border transition-all",
             active? &&
               "bg-accentSoft border-accentRing [box-shadow:0_0_0_1px_var(--accentRing),var(--shadow-card)]",
             not active? &&
@@ -99,7 +98,7 @@ defmodule ColtWeb.Components.Funnel do
           >
             {n}
           </div>
-        </button>
+        </.link>
       <% end %>
     </div>
     """

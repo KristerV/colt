@@ -569,7 +569,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         </div>
 
         <%= if @selected_bucket do %>
-          <div class="grid grid-cols-1 md:grid-cols-[360px_1fr] flex-1 min-h-0 gap-4 px-4 md:px-7 pb-4 md:pb-6">
+          <div class="grid grid-cols-1 md:grid-cols-[360px_1fr] flex-1 min-h-0 gap-4 px-0 md:px-7 pb-4 md:pb-6">
             <div class={["min-h-0", (@level == :list && "block") || "hidden", "md:block"]}>
               <.contact_list
                 contacts={@visible}
@@ -941,16 +941,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       )
 
     ~H"""
-    <div
-      class="h-full flex flex-col gap-3.5 min-h-0 overflow-y-auto p-4 bg-bgSoft border border-border rounded-[11px]"
-      style="box-shadow:var(--shadow-card)"
-    >
+    <div class="h-full flex flex-col gap-3 md:gap-3.5 min-h-0 overflow-y-auto md:p-4 md:bg-bgSoft md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)]">
       <div
-        class="flex-none bg-card border border-border rounded-[11px] px-5 py-[15px]"
+        class="flex-none bg-card border border-border rounded-[11px] px-4 md:px-5 py-[15px]"
         style="box-shadow:var(--shadow)"
       >
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex items-center gap-3.5 min-w-0">
+        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
+          <div class="flex items-center gap-3 md:gap-3.5 min-w-0">
             <span class="w-[42px] h-[42px] rounded-[11px] shrink-0 flex items-center justify-center text-[16px] font-bold bg-[#dbe7fa] text-accent">
               {initials(@contact.person && @contact.person.name)}
             </span>
@@ -958,43 +955,43 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               <div class="text-[17px] font-bold tracking-[-0.01em] text-ink truncate">
                 {(@contact.person && @contact.person.name) || "—"}
               </div>
-              <div class="text-[12.5px] text-inkSoft mt-px">
-                <span :if={@contact.person && @contact.person.title}>
-                  {@contact.person.title} ·
-                </span>
-                <span class="text-accent font-medium">{@recipient}</span>
-              </div>
               <div
-                :if={@company}
-                class="mt-1.5 flex items-center gap-2.5 flex-wrap text-[12px] text-inkSoft"
+                :if={@contact.person && @contact.person.title}
+                class="text-[12.5px] text-inkSoft mt-0.5"
               >
-                <span class="font-semibold text-ink">{@company.name}</span>
-                <a
-                  :if={@registry_link}
-                  href={@registry_link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-accent font-medium hover:underline"
-                >
-                  ↗ {@registry_link.label}
-                </a>
-                <a
-                  :if={@company.website_url}
-                  href={website_href(@company.website_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-accent font-medium hover:underline"
-                >
-                  ↗ {website_host(@company.website_url)}
-                </a>
-                <span :if={@from_name} class="text-inkFaint">
+                {@contact.person.title}
+              </div>
+              <div class="text-[12px] text-accent font-medium mt-0.5 break-all">{@recipient}</div>
+              <div :if={@company} class="mt-2 text-[12px] text-inkSoft">
+                <div class="font-semibold text-ink">{@company.name}</div>
+                <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1">
+                  <a
+                    :if={@registry_link}
+                    href={@registry_link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-accent font-medium hover:underline"
+                  >
+                    ↗ {@registry_link.label}
+                  </a>
+                  <a
+                    :if={@company.website_url}
+                    href={website_href(@company.website_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-accent font-medium hover:underline"
+                  >
+                    ↗ {website_host(@company.website_url)}
+                  </a>
+                </div>
+                <div :if={@from_name} class="text-inkFaint mt-1">
                   {gettext("From:")} {@from_name}
-                </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <div class="flex items-center gap-2.5 shrink-0 relative">
+          <div class="flex items-center gap-2.5 flex-wrap shrink-0 relative">
             <button
               type="button"
               phx-click={JS.toggle(to: "#status-menu-#{@contact.id}")}
@@ -1068,7 +1065,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     ~H"""
     <div class="flex-none flex justify-center">
       <div
-        class="w-[72%] max-w-[520px] bg-amberSoft border border-[#f0dcb0] rounded-[11px] overflow-hidden"
+        class="w-full md:w-[72%] max-w-[520px] bg-amberSoft border border-[#f0dcb0] rounded-[11px] overflow-hidden"
         style="box-shadow:var(--shadow)"
       >
         <div class="flex items-center gap-2 px-3.5 py-[9px] bg-[#f7ecd2] border-b border-[#f0dcb0]">
@@ -1134,10 +1131,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       )
 
     ~H"""
-    <div class={["flex-none flex", if(@outbound?, do: "justify-start", else: "justify-end")]}>
+    <div class={["flex-none flex", if(@outbound?, do: "md:justify-start", else: "md:justify-end")]}>
       <div
         class={[
-          "w-[90%] max-w-[680px] bg-card rounded-[11px] overflow-hidden border",
+          "w-full md:w-[90%] max-w-[680px] bg-card rounded-[11px] overflow-hidden border",
           if(@inbound?, do: "border-[#cdddf3]", else: "border-border")
         ]}
         style="box-shadow:var(--shadow)"
