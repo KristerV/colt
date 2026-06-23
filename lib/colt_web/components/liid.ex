@@ -425,7 +425,7 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:filters), do: gettext("Filters")
   defp nav_label(:exclude), do: gettext("Exclude")
   defp nav_label(:target), do: gettext("Target")
-  defp nav_label(:enrichment_funnel), do: gettext("Funnel")
+  defp nav_label(:enrichment_funnel), do: gettext("Enrichment funnel")
   defp nav_label(:pitch), do: gettext("Pitch")
   defp nav_label(:sequence), do: gettext("Sequence")
   defp nav_label(:sending_accounts), do: gettext("Sending accounts")
@@ -744,16 +744,17 @@ defmodule ColtWeb.Components.Liid do
 
   defp campaign_scope_header(assigns) do
     ~H"""
-    <div class="mx-1.5 mb-3.5 px-2.5 py-2 bg-card border border-border rounded-[8px] [box-shadow:var(--shadow)]">
+    <div class="mx-1.5 mb-3.5 px-2.5 py-2 bg-accentSoft border border-accentRing rounded-[8px]">
       <div class="flex items-center justify-between mb-0.5">
-        <span class="text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkFaint">
+        <span class="flex items-center gap-1.5 text-[10.5px] tracking-[0.08em] uppercase font-semibold text-accent">
+          <.status_dot state={:done} size={6} />
           {gettext("Campaign")}
         </span>
         <.link
           :if={@campaign}
           navigate="/campaigns"
           phx-click={close_nav()}
-          class="text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkFaint hover:text-ink no-underline"
+          class="text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkSoft hover:text-accent no-underline"
         >
           {gettext("Change")} →
         </.link>

@@ -94,6 +94,11 @@ msgstr "Suodattimet"
 msgid "Finland"
 msgstr "Suomi"
 
+#: lib/colt_web/components/liid.ex:428
+#, elixir-autogen, elixir-format
+msgid "Enrichment funnel"
+msgstr "Rikastussuppilo"
+
 #: lib/colt_web/components/liid.ex:368
 #: lib/colt_web/live/home_live.ex:332
 #, elixir-autogen, elixir-format
