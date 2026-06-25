@@ -52,8 +52,7 @@ defmodule Colt.Services.Enrichment.PickBestResult do
            schema: @schema,
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
-           task: "pick_best_result",
-           max_tokens: 1500
+           task: "pick_best_result"
          ) do
       {:ok, %{content: %{"url" => url}}} when is_binary(url) and url != "" -> {:ok, url}
       {:ok, _} -> {:ok, :none}

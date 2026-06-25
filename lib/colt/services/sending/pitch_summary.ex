@@ -144,8 +144,7 @@ defmodule Colt.Services.Sending.PitchSummary do
                schema: @pick_schema,
                campaign_id: opts[:campaign_id],
                subject: opts[:subject],
-               task: "pick_pitch_paths",
-               max_tokens: 2000
+               task: "pick_pitch_paths"
              ) do
           {:ok, %{content: %{"paths" => paths}}} when is_list(paths) ->
             {:ok, paths |> Enum.filter(&is_binary/1) |> Enum.take(3)}
@@ -199,7 +198,6 @@ defmodule Colt.Services.Sending.PitchSummary do
     case Complete.run(:smart, user,
            system: @summary_system,
            temperature: 0.4,
-           max_tokens: 700,
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
            task: "pitch_summary"

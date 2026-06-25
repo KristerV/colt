@@ -476,7 +476,6 @@ defmodule Colt.Services.Sending.EmailWriter do
            response_format: :json,
            schema: @schema,
            temperature: 0.7,
-           max_tokens: 2500,
            task: :email_writer,
            campaign_id: ctx.contact.campaign_id,
            subject: {:campaign_contact, ctx.contact.id}

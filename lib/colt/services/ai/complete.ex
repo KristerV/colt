@@ -16,14 +16,13 @@ defmodule Colt.Services.Ai.Complete do
 
   ## Models
 
-    * `:cheap` → GLM 4.7 (`z-ai/glm-4.7`)
-    * `:smart` → Claude 4.5 Sonnet (`anthropic/claude-sonnet-4.5`)
+  Tier (`:cheap` / `:smart`) → model id is configured in `config :colt, :ai, models:`.
 
   ## Caching
 
-  When `system:` is supplied and the underlying model supports prompt caching
-  (Anthropic), a `cache_control: %{type: "ephemeral"}` breakpoint is attached
-  to the system message so the same system prompt across calls reuses the cache.
+  When `system:` is supplied and the underlying model supports prompt caching,
+  a `cache_control: %{type: "ephemeral"}` breakpoint is attached to the system
+  message so the same system prompt across calls reuses the cache.
 
   ## Response
 
@@ -33,7 +32,7 @@ defmodule Colt.Services.Ai.Complete do
         output_tokens: 56,
         cost_usd: 0.0008,
         cached: false,
-        model: "anthropic/claude-sonnet-4.5"
+        model: "..."
       }}
       | {:error, reason}
   """
@@ -43,10 +42,6 @@ defmodule Colt.Services.Ai.Complete do
   alias Colt.Services.Costs.Track
 
   @endpoint "https://openrouter.ai/api/v1/chat/completions"
-  @model_map %{
-    cheap: "z-ai/glm-4.7",
-    smart: "anthropic/claude-sonnet-4.5"
-  }
   @retry_statuses [408, 429, 500, 502, 503, 504]
   @empty_response_retries 3
   @max_message_bytes 50_000
@@ -54,7 +49,7 @@ defmodule Colt.Services.Ai.Complete do
   def run(model_alias, prompt_or_messages, opts \\ []) do
     case attempt(model_alias, prompt_or_messages, opts) do
       {:error, "model returned empty response" <> _} when model_alias == :cheap ->
-        # GLM 4.7 deterministically dead-ends on some inputs (reasoning never
+        # `:cheap` deterministically dead-ends on some inputs (reasoning never
         # produces visible content). Same-body retries don't help; escalate
         # to :smart for one final shot before giving up.
         Logger.warning("ai.complete: :cheap returned empty, escalating to :smart")
@@ -65,8 +60,12 @@ defmodule Colt.Services.Ai.Complete do
     end
   end
 
+  defp model_for(model_alias) do
+    Application.fetch_env!(:colt, :ai)[:models] |> Keyword.fetch!(model_alias)
+  end
+
   defp attempt(model_alias, prompt_or_messages, opts) do
-    model = Map.fetch!(@model_map, model_alias)
+    model = model_for(model_alias)
     messages = build_messages(prompt_or_messages, opts, model_alias)
 
     body = %{
@@ -170,8 +169,8 @@ defmodule Colt.Services.Ai.Complete do
   end
 
   defp system_message(system, :smart) do
-    # Anthropic prompt caching via OpenRouter — attach cache_control so the
-    # system block becomes a cacheable prefix.
+    # Prompt caching via OpenRouter — attach cache_control so the system block
+    # becomes a cacheable prefix.
     %{
       role: "system",
       content: [
@@ -197,13 +196,14 @@ defmodule Colt.Services.Ai.Complete do
     })
   end
 
-  # GLM 4.7 (and the Google Gemini route OpenRouter sometimes picks for it) is
-  # a reasoning model. For `:cheap` we use it as a classifier — pin reasoning
-  # to the lowest tier so we don't burn tokens on chain-of-thought. We used to
-  # pass "none" but Google's surface only accepts {high|low|medium|minimal};
-  # "minimal" is the closest equivalent.
+  # Both tiers are reasoning models. Our tasks are extraction / classification /
+  # writing, not deep reasoning — keep effort on the low end to avoid burning
+  # tokens (and latency) on chain-of-thought.
   defp maybe_put_reasoning(map, :cheap),
     do: Map.put(map, :reasoning, %{effort: "medium"})
+
+  defp maybe_put_reasoning(map, :smart),
+    do: Map.put(map, :reasoning, %{effort: "low"})
 
   defp maybe_put_reasoning(map, _), do: map
 
@@ -276,9 +276,9 @@ defmodule Colt.Services.Ai.Complete do
 
   defp parse_content(raw, _), do: {:ok, raw}
 
-  # Backup for the json_schema response_format: even with strict schema,
-  # Claude/GLM occasionally wrap JSON in ```json … ``` fences. Strip them
-  # before decoding so the caller never sees this quirk.
+  # Backup for the json_schema response_format: even with strict schema, models
+  # occasionally wrap JSON in ```json … ``` fences. Strip them before decoding
+  # so the caller never sees this quirk.
   defp strip_code_fence(raw) when is_binary(raw) do
     trimmed = String.trim(raw)
 

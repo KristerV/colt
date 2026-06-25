@@ -49,7 +49,6 @@ defmodule Colt.Services.Enrichment.ExtractContacts do
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
            task: "extract_contacts",
-           max_tokens: 16_000,
            temperature: 0.0
          ) do
       {:ok, %{content: %{"people" => people}}} when is_list(people) ->

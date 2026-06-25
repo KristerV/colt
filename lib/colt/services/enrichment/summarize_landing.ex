@@ -19,8 +19,7 @@ defmodule Colt.Services.Enrichment.SummarizeLanding do
            system: @system,
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
-           task: "summarize_landing",
-           max_tokens: 2500
+           task: "summarize_landing"
          ) do
       {:ok, %{content: text}} -> {:ok, String.trim(text)}
       {:error, _} = err -> err

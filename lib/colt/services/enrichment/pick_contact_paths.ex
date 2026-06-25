@@ -64,8 +64,7 @@ defmodule Colt.Services.Enrichment.PickContactPaths do
            schema: @schema,
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
-           task: "pick_contact_paths",
-           max_tokens: 4000
+           task: "pick_contact_paths"
          ) do
       {:ok, %{content: %{"paths" => paths}}} when is_list(paths) ->
         {:ok, paths |> Enum.filter(&is_binary/1) |> Enum.take(3)}

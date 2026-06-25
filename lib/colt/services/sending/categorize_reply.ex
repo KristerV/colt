@@ -124,7 +124,6 @@ defmodule Colt.Services.Sending.CategorizeReply do
            response_format: :json,
            schema: response_schema(),
            temperature: 0.0,
-           max_tokens: 256,
            task: "reply_categorize",
            subject: {:inbound_email, inbound.id}
          ) do

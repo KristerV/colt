@@ -42,7 +42,6 @@ defmodule Colt.Services.Sending.ExtractOooReturn do
            response_format: :json,
            schema: schema(),
            temperature: 0.0,
-           max_tokens: 128,
            task: "extract_ooo_return",
            subject: {:inbound_email, inbound.id}
          ) do

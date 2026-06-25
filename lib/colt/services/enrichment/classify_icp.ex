@@ -54,7 +54,6 @@ defmodule Colt.Services.Enrichment.ClassifyIcp do
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
            task: "classify_icp",
-           max_tokens: 1500,
            temperature: 0.0
          ) do
       {:ok, %{content: %{"match" => m, "reason" => r}}} ->

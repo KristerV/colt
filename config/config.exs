@@ -13,6 +13,13 @@ config :ash_oban, pro?: false
 # Override in dev.secrets.exs or via NYLAS_API_URI in prod when on a different region.
 config :colt, :nylas, api_uri: "https://api.eu.nylas.com"
 
+# LLM model per tier. Single place to swap models — see Colt.Services.Ai.Complete.
+config :colt, :ai,
+  models: [
+    cheap: "z-ai/glm-4.7",
+    smart: "google/gemini-3.5-flash"
+  ]
+
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :colt, Oban,

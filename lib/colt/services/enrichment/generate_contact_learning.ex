@@ -53,7 +53,6 @@ defmodule Colt.Services.Enrichment.GenerateContactLearning do
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
            task: "generate_contact_learning",
-           max_tokens: 500,
            temperature: 0.2
          ) do
       {:ok, %{content: %{"rule" => rule}}} when is_binary(rule) ->

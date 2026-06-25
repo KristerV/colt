@@ -89,8 +89,7 @@ defmodule Colt.Services.Enrichment.PickBestContact do
            schema: @schema,
            campaign_id: opts[:campaign_id],
            subject: opts[:subject],
-           task: "pick_best_contact",
-           max_tokens: 1500
+           task: "pick_best_contact"
          ) do
       {:ok, %{content: %{"index" => i}}} when is_integer(i) and i >= 0 and i < length(titles) ->
         {:ok, i}
