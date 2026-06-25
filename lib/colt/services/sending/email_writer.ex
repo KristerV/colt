@@ -222,9 +222,18 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp build_prompt(ctx) do
     system = """
     You are a cold-outreach writer composing a multi-step email sequence
-    in #{language_name(ctx.language)}. Mimic the user's natural tone —
-    plain, direct, no marketing fluff. Output plain text only; no
+    in #{language_name(ctx.language)}. Output plain text only; no
     Markdown, no HTML, no signatures (the inbox appends those).
+
+    What to learn from where:
+    - The example sequences under "Examples" are the primary source. Take
+      your style, structure, tone, length, angle, level of detail, opening
+      moves and sign-off from them. Write like those emails were written.
+    - The "Sender context" pitch is reference only — facts so you don't
+      lie, invent claims, or misstate what the sender does. Do NOT treat it
+      as the script, the talking points, or the structure. If the examples
+      barely mention the product, neither should you. Never let the pitch
+      override the voice and approach the examples demonstrate.
 
     Sender identity:
     - You are writing AS the sender named under "Sender" below. When you
@@ -255,7 +264,8 @@ defmodule Colt.Services.Sending.EmailWriter do
     Sender (write as this person — use this name to introduce/sign):
     #{sender_block(ctx.sender)}
 
-    Sender context (what we sell):
+    Sender context (factual reference only — what we sell, so you stay
+    accurate; not a script and not the source of style or structure):
     #{pitch_block(ctx.pitch)}
 
     Target person:
@@ -355,12 +365,14 @@ defmodule Colt.Services.Sending.EmailWriter do
     point, not one uniform script:
     #{rendered_examples(examples)}
     Instruction: every example is a full sequence the user actually sent —
-    real, finished writing in their own voice. Find the examples whose
-    companies most resemble THIS target (revenue, employees, industry,
-    situation) and follow their angle and specific moves; don't average all
-    examples into one generic approach. Keep the user's voice and tone
-    throughout, match style per step (opener style from openers, followup
-    style from followups), and write fresh wording tailored to this company.
+    real, finished writing in their own voice, and your primary model for
+    how this email should read. Find the examples whose companies most
+    resemble THIS target (revenue, employees, industry, situation) and
+    follow their angle and specific moves; don't average all examples into
+    one generic approach. Let these decide the style, structure, length and
+    tone — not the pitch. Match style per step (opener style from openers,
+    followup style from followups), and write fresh wording tailored to
+    this company.
     """
   end
 
