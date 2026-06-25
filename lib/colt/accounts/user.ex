@@ -94,6 +94,11 @@ defmodule Colt.Accounts.User do
       filter expr(stripe_customer_id == ^arg(:stripe_customer_id))
     end
 
+    read :with_stripe_customer do
+      description "Users linked to a Stripe customer — for revenue sync."
+      filter expr(not is_nil(stripe_customer_id))
+    end
+
     create :sign_in_with_magic_link do
       description "Sign in or register a user with magic link."
 

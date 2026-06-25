@@ -14,6 +14,9 @@ defmodule Colt.Accounts do
       define :get_user_by_stripe_customer,
         action: :get_by_stripe_customer,
         args: [:stripe_customer_id]
+
+      define :users_with_stripe_customer, action: :with_stripe_customer
+      define :list_users, action: :read
     end
   end
 end

@@ -8,6 +8,7 @@ defmodule Colt.Domain do
     resource Colt.Resources.Campaign
     resource Colt.Resources.CampaignCompany
     resource Colt.Resources.ApiCall
+    resource Colt.Resources.RevenueEntry
     resource Colt.Resources.Page
     resource Colt.Resources.Person
     resource Colt.Resources.Feedback

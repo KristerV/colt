@@ -38,6 +38,7 @@ defmodule Colt.Resources.CampaignCompany do
     define :reset
     define :reset_for_icp_recheck
     define :clear_failure
+    define :enriched_by_month, args: [:months_back]
   end
 
   actions do
@@ -46,6 +47,17 @@ defmodule Colt.Resources.CampaignCompany do
 
     create :create do
       accept [:campaign_id, :company_id]
+    end
+
+    # Enriched-company (credit) count per campaign-owner per month, last
+    # `months_back` months — the per-month credit usage for the admin profit
+    # view. Returns {:ok, [%{user_id, month, count}]}.
+    action :enriched_by_month, {:array, :map} do
+      argument :months_back, :integer, default: 12
+
+      run fn input, _ctx ->
+        enriched_by_month_rows(input.arguments.months_back)
+      end
     end
 
     read :list_for_campaign do
@@ -275,5 +287,35 @@ defmodule Colt.Resources.CampaignCompany do
 
   identities do
     identity :campaign_company, [:campaign_id, :company_id]
+  end
+
+  @doc false
+  # Count of enriched companies per campaign-owner per "YYYY-MM" month over the
+  # last `months_back` months. owner_id cast to text so it matches Ash User ids
+  # (schemaless queries return uuid columns as raw binaries). Returns
+  # {:ok, [%{user_id, month, count}]}.
+  def enriched_by_month_rows(months_back) when is_integer(months_back) and months_back > 0 do
+    import Ecto.Query
+
+    cutoff = DateTime.add(DateTime.utc_now(), -months_back * 31 * 86_400, :second)
+
+    rows =
+      from(cc in "campaign_companies",
+        join: camp in "campaigns",
+        on: camp.id == cc.campaign_id,
+        where: cc.status == "enriched" and cc.inserted_at >= ^cutoff,
+        group_by: [
+          fragment("?::text", camp.owner_id),
+          fragment("to_char(?, 'YYYY-MM')", cc.inserted_at)
+        ],
+        select: %{
+          user_id: fragment("?::text", camp.owner_id),
+          month: fragment("to_char(?, 'YYYY-MM')", cc.inserted_at),
+          count: count(cc.id)
+        }
+      )
+      |> Colt.Repo.all()
+
+    {:ok, rows}
   end
 end

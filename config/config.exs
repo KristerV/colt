@@ -41,7 +41,8 @@ config :colt, Oban,
        {"* * * * *", Colt.Jobs.SendDueEmails},
        {"0 * * * *", Colt.Jobs.AutoApproveDue},
        {"* * * * *", Colt.Jobs.PollInbounds},
-       {"*/10 * * * *", Colt.Jobs.PollTracking}
+       {"*/10 * * * *", Colt.Jobs.PollTracking},
+       {"0 6 * * *", Colt.Jobs.SyncRevenue}
      ]}
   ]
 

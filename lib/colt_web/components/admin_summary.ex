@@ -45,7 +45,7 @@ defmodule ColtWeb.Admin.Summary do
       },
       %{
         kicker: "Clients",
-        title: "Spending",
+        title: "Profit",
         value: format_int(current_month_clients()) <> " clients",
         path: "/admin/clients-spending"
       },

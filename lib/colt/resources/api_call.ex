@@ -23,10 +23,12 @@ defmodule Colt.Resources.ApiCall do
     define :get_by_id, action: :read, get_by: [:id]
     define :recent, args: [:limit]
     define :recent_by_provider, args: [:provider, :limit]
+    define :recent_in_month, args: [:month, :limit]
     define :list_for_subject, args: [:subject_type, :subject_id]
     define :client_spending, args: [:months_back]
     define :client_totals
     define :model_breakdown
+    define :month_rollup, args: [:month]
   end
 
   actions do
@@ -69,6 +71,14 @@ defmodule Colt.Resources.ApiCall do
       prepare fn query, _ -> Ash.Query.limit(query, query.arguments.limit) end
     end
 
+    read :recent_in_month do
+      argument :month, :string, allow_nil?: false
+      argument :limit, :integer, allow_nil?: false
+      filter expr(fragment("to_char(?, 'YYYY-MM')", inserted_at) == ^arg(:month))
+      prepare build(sort: [inserted_at: :desc])
+      prepare fn query, _ -> Ash.Query.limit(query, query.arguments.limit) end
+    end
+
     read :list_for_subject do
       argument :subject_type, :atom, allow_nil?: false
       argument :subject_id, :uuid, allow_nil?: false
@@ -103,6 +113,19 @@ defmodule Colt.Resources.ApiCall do
     action :model_breakdown, {:array, :map} do
       run fn _input, _ctx ->
         model_breakdown_rows()
+      end
+    end
+
+    # All calls in a single "YYYY-MM" month grouped by provider + model + task.
+    # Fine-grained on purpose: the caller rolls these up into per-provider,
+    # per-task and per-model views (and maps model -> end provider) without
+    # re-querying. Returns {:ok, [%{provider, model, task, calls, errors,
+    # cost_usd, out_tokens, latency_ms}]}.
+    action :month_rollup, {:array, :map} do
+      argument :month, :string, allow_nil?: false
+
+      run fn input, _ctx ->
+        month_rollup_rows(input.arguments.month)
       end
     end
   end
@@ -172,7 +195,7 @@ defmodule Colt.Resources.ApiCall do
         group_by: [u.id, u.email, fragment("to_char(?, 'YYYY-MM')", c.inserted_at)],
         order_by: [desc: fragment("to_char(?, 'YYYY-MM')", c.inserted_at)],
         select: %{
-          user_id: u.id,
+          user_id: fragment("?::text", u.id),
           email: u.email,
           month: fragment("to_char(?, 'YYYY-MM')", c.inserted_at),
           cost_usd: coalesce(sum(c.cost_usd), 0),
@@ -238,4 +261,34 @@ defmodule Colt.Resources.ApiCall do
 
     {:ok, rows}
   end
+
+  @doc false
+  # All calls in one "YYYY-MM" month grouped by provider/model/task. The caller
+  # re-aggregates into per-provider / per-task / per-model views.
+  def month_rollup_rows(month) when is_binary(month) do
+    import Ecto.Query
+
+    rows =
+      from(c in "api_calls",
+        where: fragment("to_char(?, 'YYYY-MM') = ?", c.inserted_at, ^month),
+        group_by: [c.provider, c.model, c.task],
+        select: %{
+          provider: c.provider,
+          model: c.model,
+          task: c.task,
+          calls: count(c.id),
+          errors: fragment("count(*) filter (where ? = 'error')", c.status),
+          cost_usd: coalesce(sum(c.cost_usd), 0),
+          out_tokens: coalesce(sum(c.output_tokens), 0),
+          latency_ms: avg(c.latency_ms)
+        }
+      )
+      |> Colt.Repo.all()
+      |> Enum.map(fn row -> %{row | provider: provider_atom(row.provider)} end)
+
+    {:ok, rows}
+  end
+
+  defp provider_atom(p) when is_atom(p), do: p
+  defp provider_atom(p) when is_binary(p), do: String.to_existing_atom(p)
 end
