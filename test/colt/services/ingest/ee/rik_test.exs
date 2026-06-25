@@ -15,12 +15,13 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
   @fixture_dir Path.join([:code.priv_dir(:colt), "fixtures", "rik_ee"])
 
   setup do
-    # Rik.run deletes cache files it has processed. Point the cache at a
-    # tmp copy of the fixtures so the originals survive.
+    # Rik.run wipes the cache dir once an ingest succeeds, so point the cache at
+    # a tmp copy of the fixtures (the originals survive) and re-seed it before
+    # every `from: 2` run that follows a successful one.
     tmp =
       Path.join(System.tmp_dir!(), "rik_ee_fixtures_#{System.unique_integer([:positive])}")
 
-    File.cp_r!(@fixture_dir, tmp)
+    seed_cache(tmp)
 
     prev = Application.get_env(:colt, :rik_ee_cache_dir)
     Application.put_env(:colt, :rik_ee_cache_dir, tmp)
@@ -30,7 +31,17 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
       File.rm_rf!(tmp)
     end)
 
-    :ok
+    {:ok, tmp: tmp}
+  end
+
+  # Copy the fixture files into the cache dir. `Rik.run` deletes them on success,
+  # so callers that re-run the ingest must seed again first.
+  defp seed_cache(tmp) do
+    File.mkdir_p!(tmp)
+
+    for name <- File.ls!(@fixture_dir) do
+      File.cp!(Path.join(@fixture_dir, name), Path.join(tmp, name))
+    end
   end
 
   test "imports the fixture set end-to-end" do
@@ -95,23 +106,25 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
     assert zeta_reports == [], "no annual reports inserted for liquidation-only filings"
   end
 
-  test "is idempotent on re-run" do
+  test "is idempotent on re-run", %{tmp: tmp} do
     {:ok, _} = Rik.run(from: 2)
     counts_before = {Ash.count!(Company), Ash.count!(AnnualReport)}
 
+    seed_cache(tmp)
     {:ok, _} = Rik.run(from: 2)
     counts_after = {Ash.count!(Company), Ash.count!(AnnualReport)}
 
     assert counts_before == counts_after
   end
 
-  test "company_details overrides on re-run" do
+  test "company_details overrides on re-run", %{tmp: tmp} do
     {:ok, _} = Rik.run(from: 2)
 
     [alpha] = Ash.read!(Company |> Ash.Query.filter(registry_code == "10000001"))
 
     Ash.update!(alpha, %{website_url: "https://stale.example"}, action: :patch_details)
 
+    seed_cache(tmp)
     {:ok, _} = Rik.run(from: 2)
 
     [alpha2] = Ash.read!(Company |> Ash.Query.filter(registry_code == "10000001"))

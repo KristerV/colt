@@ -196,10 +196,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
      |> assign(current_user: ColtWeb.UsageAssign.load_usage(socket.assigns.current_user))}
   end
 
-  # Toggle expand/collapse. Streams don't re-render existing items when a
-  # parent assign changes, so the expanded flag has to live *on the row* and
-  # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
-  # previous row when opening a new one.
   def handle_event("prev_page", _params, socket) do
     {:noreply, load_into_stream(socket, socket.assigns.selected_bucket, socket.assigns.page - 1)}
   end
@@ -210,25 +206,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
   def handle_event("goto_page", %{"page" => page}, socket) do
     {:noreply, load_into_stream(socket, socket.assigns.selected_bucket, String.to_integer(page))}
-  end
-
-  # Clamp the target page to the bucket's available pages, load it, and reset
-  # the stream. Only the current page's rows live in memory.
-  defp load_into_stream(socket, bucket, page) do
-    count = Map.get(socket.assigns.stats, bucket, 0)
-    page = page |> max(1) |> min(page_count(count))
-    rows = load_page(socket.assigns.campaign.id, bucket, page)
-    rows_index = Map.new(rows, &{&1.cc_id, &1})
-
-    socket
-    |> assign(
-      selected_bucket: bucket,
-      rows_index: rows_index,
-      page: page,
-      page_rows: length(rows),
-      expanded_id: nil
-    )
-    |> stream(:rows, rows, reset: true)
   end
 
   def handle_event("open_export", _params, socket) do
@@ -291,9 +268,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     end
   end
 
-  defp parse_mode("include"), do: :include
-  defp parse_mode(_), do: :exclude
-
+  # Toggle expand/collapse. Streams don't re-render existing items when a
+  # parent assign changes, so the expanded flag has to live *on the row* and
+  # be pushed via stream_insert. Tracking @expanded_id lets us collapse the
+  # previous row when opening a new one.
   def handle_event("toggle_row", %{"id" => id}, socket) do
     case socket.assigns.expanded_id do
       ^id ->
@@ -354,6 +332,28 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       {:noreply, socket}
     end
   end
+
+  # Clamp the target page to the bucket's available pages, load it, and reset
+  # the stream. Only the current page's rows live in memory.
+  defp load_into_stream(socket, bucket, page) do
+    count = Map.get(socket.assigns.stats, bucket, 0)
+    page = page |> max(1) |> min(page_count(count))
+    rows = load_page(socket.assigns.campaign.id, bucket, page)
+    rows_index = Map.new(rows, &{&1.cc_id, &1})
+
+    socket
+    |> assign(
+      selected_bucket: bucket,
+      rows_index: rows_index,
+      page: page,
+      page_rows: length(rows),
+      expanded_id: nil
+    )
+    |> stream(:rows, rows, reset: true)
+  end
+
+  defp parse_mode("include"), do: :include
+  defp parse_mode(_), do: :exclude
 
   defp expand(socket, id), do: replace_row(socket, id, expanded?: true)
   defp collapse(socket, id), do: replace_row(socket, id, expanded?: false)

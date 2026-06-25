@@ -30,14 +30,4 @@ defmodule Colt.Services.Ingest.Progress do
     |> Enum.map_join(",", &Enum.join/1)
     |> String.reverse()
   end
-
-  defp thousands(n) do
-    n
-    |> Integer.to_string()
-    |> String.reverse()
-    |> String.graphemes()
-    |> Enum.chunk_every(3)
-    |> Enum.map_join(",", &Enum.join/1)
-    |> String.reverse()
-  end
 end

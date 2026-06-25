@@ -144,7 +144,7 @@ defmodule Colt.Services.Ai.Complete do
     latency_ms = System.monotonic_time(:millisecond) - started
 
     case handle_result(result, Map.put(ctx, :latency_ms, latency_ms)) do
-      {:error, "model returned empty response" <> _ = err} when attempts_left > 1 ->
+      {:error, "model returned empty response" <> _} when attempts_left > 1 ->
         Logger.warning(
           "ai.complete: empty response from #{ctx.model}, retrying (#{attempts_left - 1} left)"
         )
@@ -274,6 +274,8 @@ defmodule Colt.Services.Ai.Complete do
     end
   end
 
+  defp parse_content(raw, _), do: {:ok, raw}
+
   # Backup for the json_schema response_format: even with strict schema,
   # Claude/GLM occasionally wrap JSON in ```json … ``` fences. Strip them
   # before decoding so the caller never sees this quirk.
@@ -287,8 +289,6 @@ defmodule Colt.Services.Ai.Complete do
   end
 
   defp strip_code_fence(raw), do: raw
-
-  defp parse_content(raw, _), do: {:ok, raw}
 
   defp finish_ok(content, usage, ctx) do
     input_tokens = Map.get(usage, "prompt_tokens")

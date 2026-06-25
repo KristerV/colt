@@ -81,6 +81,13 @@ defmodule ColtWeb.Campaigns.TargetLive do
     end
   end
 
+  def handle_event("pick", %{"target" => target}, socket) do
+    case parse_target(target) do
+      nil -> {:noreply, socket}
+      n -> {:noreply, assign(socket, draft: clamp(n, socket.assigns.max_target), saved?: false)}
+    end
+  end
+
   # Pull a human-readable message out of an Ash error, dropping the internal
   # `over_capacity:` prefix the change tags it with. Falls back to a generic
   # line rather than dumping the whole struct.
@@ -97,13 +104,6 @@ defmodule ColtWeb.Campaigns.TargetLive do
 
   defp message_for(%{message: msg}) when is_binary(msg), do: msg
   defp message_for(_), do: ""
-
-  def handle_event("pick", %{"target" => target}, socket) do
-    case parse_target(target) do
-      nil -> {:noreply, socket}
-      n -> {:noreply, assign(socket, draft: clamp(n, socket.assigns.max_target), saved?: false)}
-    end
-  end
 
   defp clamp(n, nil), do: n
   defp clamp(n, max) when n > max, do: max
