@@ -29,7 +29,7 @@ defmodule Colt.Services.Enrichment.PickBestResult do
   def run(company, results, opts) when is_list(results) do
     listing =
       results
-      |> Enum.take(5)
+      |> Enum.take(10)
       |> Enum.with_index(1)
       |> Enum.map_join("\n", fn {%Result{title: t, url: u, snippet: s}, i} ->
         "#{i}. #{u}\n   title: #{t}\n   snippet: #{s}"
