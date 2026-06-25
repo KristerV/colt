@@ -1,7 +1,6 @@
 defmodule ColtWeb.Admin.CostsLive do
   use ColtWeb, :live_view
 
-  alias Colt.Costs.Provider
   alias Colt.Resources.{ApiCall, RevenueEntry}
   alias Colt.Services.Costs.MonthlySummary
   alias ColtWeb.Admin.Summary
@@ -67,7 +66,6 @@ defmodule ColtWeb.Admin.CostsLive do
     recent = ApiCall.recent_in_month!(month, 50, authorize?: false)
 
     %{
-      by_provider: rollup(rows, &Provider.label(&1.provider, &1.model)),
       by_task: rollup(rows, &(&1.task || "—")),
       by_model: model_rollup(rows),
       recent: recent
@@ -86,7 +84,7 @@ defmodule ColtWeb.Admin.CostsLive do
 
   defp model_rollup(rows) do
     rows
-    |> Enum.group_by(&(&1.model || "—"))
+    |> Enum.group_by(&model_key/1)
     |> Enum.map(fn {model, group} ->
       %{
         key: model,
@@ -98,6 +96,11 @@ defmodule ColtWeb.Admin.CostsLive do
     end)
     |> Enum.sort_by(& &1.cost, &(Decimal.compare(&1, &2) != :lt))
   end
+
+  # Search calls (Google CSE) carry no model id — surface them as their own
+  # "search" row in the by-model table so they sit beside the LLM models.
+  defp model_key(%{provider: :google_cse}), do: "search"
+  defp model_key(%{model: model}), do: model || "—"
 
   def render(assigns) do
     ~H"""
@@ -188,11 +191,6 @@ defmodule ColtWeb.Admin.CostsLive do
 
     ~H"""
     <div :if={@detail} class="space-y-5">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <.mini_table title="by provider" rows={@detail.by_provider} />
-        <.mini_table title="by task" rows={@detail.by_task} />
-      </div>
-
       <div>
         <.section_label>by model</.section_label>
         <div class="border border-border rounded-[8px] bg-card overflow-x-auto">
@@ -222,6 +220,8 @@ defmodule ColtWeb.Admin.CostsLive do
         </div>
       </div>
 
+      <.mini_table title="by task" rows={@detail.by_task} />
+
       <div>
         <.section_label>recent calls</.section_label>
         <div class="border border-border rounded-[8px] bg-card overflow-x-auto">
@@ -247,7 +247,7 @@ defmodule ColtWeb.Admin.CostsLive do
                 <td class="px-3 py-1.5 text-ink">{c.task || "—"}</td>
                 <td class="px-3 py-1.5 truncate max-w-[20rem] text-ink70">{c.model || c.query}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums text-ink">
-                  ${format_money(c.cost_usd)}
+                  ${format_micro(c.cost_usd)}
                 </td>
                 <td class="px-3 py-1.5 text-right tabular-nums text-ink70">{c.latency_ms}</td>
                 <td class={[
@@ -443,10 +443,16 @@ defmodule ColtWeb.Admin.CostsLive do
   defp to_f(n) when is_number(n), do: n / 1
   defp to_f(_), do: 0.0
 
-  defp format_money(nil), do: "0.0000"
-  defp format_money(%Decimal{} = d), do: d |> Decimal.round(4) |> Decimal.to_string(:normal)
+  # Whole-dollar rounding for sums — the user doesn't want cents on totals.
+  defp format_money(nil), do: "0"
+  defp format_money(%Decimal{} = d), do: d |> Decimal.round(0) |> Decimal.to_string(:normal)
   defp format_money(n) when is_number(n), do: n |> to_dec() |> format_money()
-  defp format_money(_), do: "0.0000"
+  defp format_money(_), do: "0"
+
+  # Sub-dollar precision, kept only for individual recent-call costs.
+  defp format_micro(%Decimal{} = d), do: d |> Decimal.round(4) |> Decimal.to_string(:normal)
+  defp format_micro(n) when is_number(n), do: n |> to_dec() |> format_micro()
+  defp format_micro(_), do: "0.0000"
 
   defp format_time(%DateTime{} = dt), do: Calendar.strftime(dt, "%m-%d %H:%M:%S")
   defp format_time(_), do: ""

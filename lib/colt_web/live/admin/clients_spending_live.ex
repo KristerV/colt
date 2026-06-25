@@ -88,11 +88,14 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
     {:ok, credit_rows} = CampaignCompany.enriched_by_month(@months_back, authorize?: false)
     users = Accounts.list_users!(load: [:enriched_this_period_count], authorize?: false)
 
+    # Most recent @months_back months, oldest-first so the table reads
+    # left→right with the newest month on the right.
     months =
       (Enum.map(cost_rows, & &1.month) ++ Enum.map(rev_rows, & &1.month))
       |> Enum.uniq()
       |> Enum.sort(:desc)
       |> Enum.take(@months_back)
+      |> Enum.reverse()
 
     cost_um = sum_by_user_month(cost_rows, :cost_usd)
     rev_um = sum_by_user_month(rev_rows, :amount_usd)
@@ -317,7 +320,7 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
               <span class="text-right">profit</span>
             </div>
             <div
-              :for={m <- @months}
+              :for={m <- Enum.reverse(@months)}
               class="grid grid-cols-5 px-3 py-1.5 border-t border-border text-[12px]"
             >
               <span class="tabular-nums text-ink">{m}</span>
@@ -510,10 +513,11 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
     end
   end
 
-  defp profit_color(%Decimal{} = d) do
-    case Decimal.compare(d, 0) do
+  defp profit_color(d) do
+    case d |> to_dec() |> Decimal.round(0) |> Decimal.compare(0) do
       :lt -> "text-red"
-      _ -> "text-green"
+      :eq -> "text-ink70"
+      :gt -> "text-green"
     end
   end
 
@@ -530,14 +534,24 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
   defp to_dec(n) when is_float(n), do: Decimal.from_float(n)
   defp to_dec(_), do: Decimal.new(0)
 
-  defp format_usd(%Decimal{} = d), do: d |> Decimal.round(2) |> Decimal.to_string(:normal)
+  # Whole dollars throughout — the user doesn't want cents.
+  defp format_usd(%Decimal{} = d), do: d |> Decimal.round(0) |> Decimal.to_string(:normal)
   defp format_usd(n), do: n |> to_dec() |> format_usd()
 
-  defp format_cost(%Decimal{} = d), do: d |> Decimal.round(4) |> Decimal.to_string(:normal)
-  defp format_cost(n), do: n |> to_dec() |> format_cost()
+  defp format_cost(d), do: format_usd(d)
 
-  defp format_signed(%Decimal{} = d) do
-    sign = if Decimal.compare(d, 0) == :lt, do: "-$", else: "$"
-    sign <> (d |> Decimal.abs() |> Decimal.round(2) |> Decimal.to_string(:normal))
+  defp format_signed(d) do
+    rounded = d |> to_dec() |> Decimal.round(0)
+
+    cond do
+      Decimal.equal?(rounded, 0) ->
+        "$0"
+
+      Decimal.compare(rounded, 0) == :lt ->
+        "-$" <> (rounded |> Decimal.abs() |> Decimal.to_string(:normal))
+
+      true ->
+        "$" <> Decimal.to_string(rounded, :normal)
+    end
   end
 end
