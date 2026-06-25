@@ -64,6 +64,7 @@ defmodule Colt.Resources.CampaignCompany do
 
       filter expr(
                campaign_id == ^arg(:campaign_id) and
+                 status == :enriched and
                  not is_nil(picked_person_id) and
                  not exists(
                    Colt.Resources.CampaignContact,
