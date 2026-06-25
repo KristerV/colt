@@ -41,7 +41,7 @@ defmodule ColtWeb.Components.Funnel do
 
     tiles = [
       %{key: :queued, label: gettext("Queued"), color: "var(--ink40)", pulse?: false},
-      %{key: :working, label: gettext("Working"), color: "var(--green)", pulse?: true},
+      %{key: :working, label: gettext("Working"), color: "var(--ink40)", pulse?: true},
       %{key: :enriched, label: enriched_label, color: "var(--green)", pulse?: false},
       %{key: :rejected, label: gettext("ICP miss"), color: "var(--amber)", pulse?: false},
       %{
@@ -175,7 +175,6 @@ defmodule ColtWeb.Components.Funnel do
       <div
         class={[
           "hidden md:grid items-center gap-3 px-4 py-3 cursor-pointer",
-          @row.status == :scraping && "bg-greenSoft/40",
           @expanded? && "bg-bgSoft"
         ]}
         style="grid-template-columns: 24px 1.5fr 1.6fr 1.2fr 1.2fr 1fr;"
@@ -202,7 +201,6 @@ defmodule ColtWeb.Components.Funnel do
       <div
         class={[
           "md:hidden flex flex-col gap-2.5 px-4 py-3 cursor-pointer rounded-[11px]",
-          @row.status == :scraping && "bg-greenSoft/40",
           @expanded? && "bg-bgSoft"
         ]}
         phx-click="toggle_row"
@@ -614,7 +612,7 @@ defmodule ColtWeb.Components.Funnel do
     do: "border-color: var(--red); color: var(--red); background: var(--redSoft);"
 
   defp status_view(:pending, _), do: {gettext("queued"), "var(--ink40)", false}
-  defp status_view(:scraping, _), do: {gettext("working"), "var(--green)", true}
+  defp status_view(:scraping, _), do: {gettext("working"), "var(--ink40)", true}
   defp status_view(:enriched, _), do: {gettext("enriched"), "var(--green)", false}
   defp status_view(:rejected, _), do: {gettext("icp miss"), "var(--amber)", false}
   defp status_view(:no_website, _), do: {gettext("no website"), "var(--amber)", false}

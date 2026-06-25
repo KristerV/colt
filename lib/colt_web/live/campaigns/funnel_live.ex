@@ -69,6 +69,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
             expanded_id: nil,
             stats: stats_from_campaign(campaign),
             selected_bucket: nil,
+            drilled?: false,
             total: campaign.total_count,
             page: 1,
             page_rows: 0,
@@ -93,18 +94,22 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   end
 
   # The open status lives in the URL (/funnel/:bucket), so the browser back
-  # button walks the drill-down. No bucket = the top-level status view (just the
-  # strip); mobile shows one level at a time, desktop shows strip + table.
+  # button walks the drill-down. No bucket in the URL = the top-level status
+  # view: mobile shows just the status grid (one level at a time), while desktop
+  # shows the strip *and* a table — and there the table defaults to :enriched, so
+  # landing on the page lands on enriched companies (restored from pre-dbcc2a2).
+  #
+  # `drilled?` (not `selected_bucket`) is what the template keys the mobile
+  # back-link and grid-vs-table swap off, so the default desktop table never
+  # collapses the mobile grid level: at top-level mobile stays on the grid even
+  # though `selected_bucket` is preloaded with :enriched for desktop.
   def handle_params(params, _uri, socket) do
     case parse_bucket(params["bucket"]) do
       nil ->
-        {:noreply,
-         socket
-         |> assign(selected_bucket: nil, page: 1, page_rows: 0, rows_index: %{}, expanded_id: nil)
-         |> stream(:rows, [], reset: true)}
+        {:noreply, socket |> load_into_stream(:enriched, 1) |> assign(drilled?: false)}
 
       bucket ->
-        {:noreply, load_into_stream(socket, bucket, 1)}
+        {:noreply, socket |> load_into_stream(bucket, 1) |> assign(drilled?: true)}
     end
   end
 
@@ -141,7 +146,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   def handle_info({:row, cc_id, patch}, socket) do
     case Map.get(socket.assigns.rows_index, cc_id) do
       nil ->
-        {:noreply, socket}
+        {:noreply, maybe_append_row(socket, cc_id, patch)}
 
       row ->
         new_row = apply_patch(row, patch)
@@ -366,6 +371,26 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   defp replace_row(socket, id, fields) when is_binary(id) do
     row = Map.fetch!(socket.assigns.rows_index, id) |> Map.merge(Map.new(fields))
     replace_row(socket, row)
+  end
+
+  # A company transitioned into a bucket the user is viewing, but it wasn't on
+  # the loaded page (e.g. live-enriched while watching :enriched). If the patch's
+  # new status maps to the open bucket and we're on page 1, load that one row via
+  # the same read path `load_page` uses and append it at the bottom — rows sort
+  # inserted_at ASC, so the newest lands below any expanded row, leaving it
+  # undisturbed. Deeper pages stay put (an appended row would be out of place).
+  defp maybe_append_row(socket, cc_id, patch) do
+    status = patch[:status] || patch["status"]
+
+    if socket.assigns.page == 1 and not is_nil(status) and
+         bucket(status) == socket.assigns.selected_bucket do
+      case CampaignCompany.get(cc_id, authorize?: false, load: [company: [:persons, :pages]]) do
+        {:ok, cc} -> replace_row(socket, row_for(cc))
+        {:error, _} -> socket
+      end
+    else
+      socket
+    end
   end
 
   defp apply_patch(row, patch) do
@@ -607,7 +632,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     >
       <div class="flex flex-col gap-[18px] flex-1 min-h-0">
         <.link
-          :if={@selected_bucket}
+          :if={@drilled?}
           patch={~p"/campaigns/#{@campaign.id}/funnel"}
           class="md:hidden inline-flex items-center gap-2 py-1 px-2 -mb-2 text-[15px] font-medium text-inkSoft active:text-ink hover:text-ink no-underline"
         >
@@ -617,7 +642,7 @@ defmodule ColtWeb.Campaigns.FunnelLive do
 
         <div class={[
           "flex flex-col gap-[18px]",
-          (@selected_bucket && "hidden md:flex") || "flex"
+          (@drilled? && "hidden md:flex") || "flex"
         ]}>
           <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 sm:gap-6">
             <div class="min-w-0">
@@ -660,7 +685,10 @@ defmodule ColtWeb.Campaigns.FunnelLive do
         </div>
 
         <%= if @selected_bucket do %>
-          <div class="flex-1 min-h-0 flex flex-col bg-card md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)] md:overflow-hidden -mx-4 md:mx-0">
+          <div class={[
+            "flex-1 min-h-0 flex-col bg-card md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)] md:overflow-hidden -mx-4 md:mx-0",
+            (@drilled? && "flex") || "hidden md:flex"
+          ]}>
             <Funnel.funnel_header />
             <% bucket_count = Map.get(@stats, @selected_bucket, 0) %>
             <div :if={bucket_count == 0} class="flex-1 flex items-center justify-center px-6 py-12">
@@ -720,12 +748,6 @@ defmodule ColtWeb.Campaigns.FunnelLive do
                 <Liid.icon name="chev-r" size={11} />
               </button>
             </nav>
-          </div>
-        <% else %>
-          <div class="hidden md:flex flex-1 items-center justify-center text-center px-8">
-            <div class="text-[14px] text-inkSoft max-w-[340px] leading-[1.55]">
-              {gettext("Select a status above to see its companies.")}
-            </div>
           </div>
         <% end %>
       </div>

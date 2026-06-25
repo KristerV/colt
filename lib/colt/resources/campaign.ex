@@ -232,9 +232,11 @@ defmodule Colt.Resources.Campaign do
     has_many :api_calls, Colt.Resources.ApiCall
     has_many :campaign_email_accounts, Colt.Resources.CampaignEmailAccount
     has_many :sequences, Colt.Resources.Sequence
+    has_many :suppressed_domains, Colt.Resources.SuppressedDomain
   end
 
   aggregates do
+    count :suppressed_count, :suppressed_domains
     count :total_count, :campaign_companies
     count :done_count, :campaign_companies, filter: expr(status == :enriched)
     sum :cost_usd, :api_calls, :cost_usd

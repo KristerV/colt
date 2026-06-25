@@ -51,7 +51,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
     end
   end
 
-  def handle_event("set_name", %{"id" => id, "value" => raw}, socket) do
+  def handle_event("set_name", %{"_id" => id, "value" => raw}, socket) do
     name = raw |> to_string() |> String.trim()
     name = if name == "", do: nil, else: name
     user = socket.assigns.current_user
@@ -64,7 +64,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
     end
   end
 
-  def handle_event("set_quota", %{"id" => id, "value" => raw}, socket) do
+  def handle_event("set_quota", %{"_id" => id, "value" => raw}, socket) do
     quota =
       case Integer.parse(to_string(raw)) do
         {n, _} when n >= 0 -> n
@@ -238,9 +238,10 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                   :if={a.status != :disconnected}
                   id={"name-form-#{a.id}"}
                   phx-change="set_name"
+                  phx-update="ignore"
                   class="mt-3 flex items-center gap-2"
                 >
-                  <input type="hidden" name="id" value={a.id} />
+                  <input type="hidden" name="_id" value={a.id} />
                   <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold shrink-0">
                     {gettext("sender name")}
                   </label>
@@ -259,9 +260,10 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 :if={a.status != :disconnected}
                 id={"quota-form-#{a.id}"}
                 phx-change="set_quota"
+                phx-update="ignore"
                 class="flex items-center gap-2 shrink-0"
               >
-                <input type="hidden" name="id" value={a.id} />
+                <input type="hidden" name="_id" value={a.id} />
                 <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
                   {gettext("quota")}
                 </label>

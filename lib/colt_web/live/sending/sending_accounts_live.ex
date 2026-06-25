@@ -232,6 +232,19 @@ defmodule ColtWeb.Sending.SendingAccountsLive do
             sub={gettext("contacts / day · %{days}d each", days: @cycle_days)}
           />
         </div>
+
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <.link navigate={~p"/campaigns/#{@campaign.id}/pitch"} class="no-underline">
+            <Liid.btn size={:small}>
+              <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
+            </Liid.btn>
+          </.link>
+          <.link navigate={~p"/campaigns/#{@campaign.id}/write"} class="no-underline">
+            <Liid.btn variant={:primary}>
+              {gettext("Continue → sequence")} <Liid.icon name="arrow" />
+            </Liid.btn>
+          </.link>
+        </div>
       </div>
     </Layouts.app>
     """

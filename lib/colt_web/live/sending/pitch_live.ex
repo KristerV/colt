@@ -79,7 +79,8 @@ defmodule ColtWeb.Sending.PitchLive do
   end
 
   def handle_event("continue", _params, socket) do
-    {:noreply, push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/write")}
+    {:noreply,
+     push_navigate(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sending-accounts")}
   end
 
   def handle_info({:pitch_updated, pitch_id}, socket) do
@@ -223,7 +224,7 @@ defmodule ColtWeb.Sending.PitchLive do
             </Liid.btn>
           </.link>
           <Liid.btn variant={:primary} phx-click="continue">
-            {gettext("Continue → sequence")} <Liid.icon name="arrow" />
+            {gettext("Continue → sending accounts")} <Liid.icon name="arrow" />
           </Liid.btn>
           <span :if={@saved_at} class="text-[11px] text-inkFaint tabular-nums">
             {gettext("saved %{at}", at: Calendar.strftime(@saved_at, "%H:%M:%S"))}

@@ -11,18 +11,18 @@ msgstr ""
 "Language: lv\n"
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100 != 11 ? 0 : n != 0 ? 1 : 2);\n"
 
-#: lib/colt_web/components/core_components.ex:414
+#: lib/colt_web/components/core_components.ex:417
 #, elixir-autogen, elixir-format
 msgid "Actions"
 msgstr "Darbības"
 
-#: lib/colt_web/components/liid.ex:467
+#: lib/colt_web/components/liid.ex:546
 #, elixir-autogen, elixir-format
 msgid "Admin"
 msgstr "Administrators"
 
-#: lib/colt_web/components/funnel.ex:48
-#: lib/colt_web/live/campaigns/funnel_live.ex:568
+#: lib/colt_web/components/funnel.ex:49
+#: lib/colt_web/live/campaigns/funnel_live.ex:604
 #, elixir-autogen, elixir-format
 msgid "Already contacted"
 msgstr "Jau sazināts"
@@ -33,63 +33,63 @@ msgstr "Jau sazināts"
 msgid "Attempting to reconnect"
 msgstr "Mēģina atjaunot savienojumu"
 
-#: lib/colt_web/components/liid.ex:361
-#: lib/colt_web/components/liid.ex:451
+#: lib/colt_web/components/liid.ex:421
+#: lib/colt_web/components/liid.ex:530
 #: lib/colt_web/live/account/billing_live.ex:24
 #, elixir-autogen, elixir-format
 msgid "Billing"
 msgstr "Norēķini"
 
-#: lib/colt_web/components/liid.ex:668
+#: lib/colt_web/components/liid.ex:751
 #, elixir-autogen, elixir-format
 msgid "Campaign"
 msgstr "Kampaņa"
 
-#: lib/colt_web/components/liid.ex:258
-#: lib/colt_web/components/liid.ex:359
+#: lib/colt_web/components/liid.ex:318
+#: lib/colt_web/components/liid.ex:419
 #: lib/colt_web/live/campaigns/index_live.ex:16
 #, elixir-autogen, elixir-format
 msgid "Campaigns"
 msgstr "Kampaņas"
 
-#: lib/colt_web/components/liid.ex:360
-#: lib/colt_web/components/liid.ex:438
+#: lib/colt_web/components/liid.ex:420
+#: lib/colt_web/components/liid.ex:515
 #: lib/colt_web/live/account/email_accounts_live.ex:17
-#: lib/colt_web/live/sending/sending_accounts_live.ex:317
+#: lib/colt_web/live/sending/sending_accounts_live.ex:330
 #, elixir-autogen, elixir-format
 msgid "Email accounts"
 msgstr "E-pasta konti"
 
-#: lib/colt_web/components/funnel.ex:148
-#: lib/colt_web/components/liid.ex:404
-#: lib/colt_web/live/home_live.ex:328
-#: lib/colt_web/live/home_live.ex:858
-#: lib/colt_web/live/home_live.ex:1045
-#: lib/colt_web/live/pricing_live.ex:252
+#: lib/colt_web/components/funnel.ex:149
+#: lib/colt_web/components/liid.ex:479
+#: lib/colt_web/live/home_live.ex:355
+#: lib/colt_web/live/home_live.ex:1110
+#: lib/colt_web/live/home_live.ex:1345
+#: lib/colt_web/live/pricing_live.ex:281
 #, elixir-autogen, elixir-format
 msgid "Enrichment"
 msgstr "Bagātināšana"
 
-#: lib/colt_web/live/home_live.ex:553
+#: lib/colt_web/live/home_live.ex:651
 #, elixir-autogen, elixir-format
 msgid "Estonia"
 msgstr "Igaunija"
 
-#: lib/colt_web/components/liid.ex:459
+#: lib/colt_web/components/liid.ex:538
 #, elixir-autogen, elixir-format
 msgid "Feedback"
 msgstr "Atsauksmes"
 
-#: lib/colt_web/components/liid.ex:365
-#: lib/colt_web/live/home_live.ex:331
-#: lib/colt_web/live/home_live.ex:566
-#: lib/colt_web/live/home_live.ex:1044
-#: lib/colt_web/live/pricing_live.ex:251
+#: lib/colt_web/components/liid.ex:425
+#: lib/colt_web/live/home_live.ex:358
+#: lib/colt_web/live/home_live.ex:670
+#: lib/colt_web/live/home_live.ex:1344
+#: lib/colt_web/live/pricing_live.ex:280
 #, elixir-autogen, elixir-format
 msgid "Filters"
 msgstr "Filtri"
 
-#: lib/colt_web/live/home_live.ex:554
+#: lib/colt_web/live/home_live.ex:652
 #, elixir-autogen, elixir-format
 msgid "Finland"
 msgstr "Somija"
@@ -99,90 +99,89 @@ msgstr "Somija"
 msgid "Enrichment funnel"
 msgstr "Bagātināšanas piltuve"
 
-#: lib/colt_web/components/liid.ex:368
-#: lib/colt_web/live/home_live.ex:332
+#: lib/colt_web/live/home_live.ex:359
 #, elixir-autogen, elixir-format
 msgid "Funnel"
 msgstr "Piltuve"
 
-#: lib/colt_web/live/home_live.ex:77
-#: lib/colt_web/live/home_live.ex:519
-#: lib/colt_web/live/pricing_live.ex:130
+#: lib/colt_web/live/home_live.ex:80
+#: lib/colt_web/live/home_live.ex:603
+#: lib/colt_web/live/pricing_live.ex:141
 #, elixir-autogen, elixir-format
 msgid "How it works"
 msgstr "Kā tas darbojas"
 
-#: lib/colt_web/components/liid.ex:363
+#: lib/colt_web/components/liid.ex:423
 #, elixir-autogen, elixir-format
 msgid "ICP"
 msgstr "ICP"
 
-#: lib/colt_web/live/home_live.ex:555
+#: lib/colt_web/live/home_live.ex:653
 #, elixir-autogen, elixir-format
 msgid "Latvia"
 msgstr "Latvija"
 
-#: lib/colt_web/live/home_live.ex:556
+#: lib/colt_web/live/home_live.ex:654
 #, elixir-autogen, elixir-format
 msgid "Lithuania"
 msgstr "Lietuva"
 
-#: lib/colt_web/components/liid.ex:364
+#: lib/colt_web/components/liid.ex:424
 #, elixir-autogen, elixir-format
 msgid "Market"
 msgstr "Tirgus"
 
-#: lib/colt_web/components/liid.ex:362
+#: lib/colt_web/components/liid.ex:422
 #, elixir-autogen, elixir-format
 msgid "Name"
 msgstr "Nosaukums"
 
-#: lib/colt_web/live/home_live.ex:558
+#: lib/colt_web/live/home_live.ex:656
 #, elixir-autogen, elixir-format
 msgid "Norway"
 msgstr "Norvēģija"
 
-#: lib/colt_web/components/liid.ex:369
+#: lib/colt_web/components/liid.ex:429
 #, elixir-autogen, elixir-format
 msgid "Pitch"
 msgstr "Piedāvājums"
 
-#: lib/colt_web/components/liid.ex:411
-#: lib/colt_web/live/home_live.ex:336
-#: lib/colt_web/live/home_live.ex:354
-#: lib/colt_web/live/sending/sending_funnel_live.ex:591
+#: lib/colt_web/components/liid.ex:486
+#: lib/colt_web/live/home_live.ex:363
+#: lib/colt_web/live/home_live.ex:385
+#: lib/colt_web/live/sending/sending_funnel_live.ex:669
 #, elixir-autogen, elixir-format
 msgid "Sending"
 msgstr "Sūtīšana"
 
-#: lib/colt_web/components/liid.ex:371
+#: lib/colt_web/components/liid.ex:431
 #: lib/colt_web/live/sending/settings_live.ex:148
 #, elixir-autogen, elixir-format
 msgid "Sending accounts"
 msgstr "Sūtīšanas konti"
 
-#: lib/colt_web/components/liid.ex:373
-#: lib/colt_web/live/home_live.ex:1043
-#: lib/colt_web/live/pricing_live.ex:250
+#: lib/colt_web/components/liid.ex:433
+#: lib/colt_web/live/home_live.ex:1343
+#: lib/colt_web/live/pricing_live.ex:279
 #, elixir-autogen, elixir-format
 msgid "Sending funnel"
 msgstr "Sūtīšanas piltuve"
 
-#: lib/colt_web/components/liid.ex:370
-#: lib/colt_web/live/home_live.ex:598
+#: lib/colt_web/components/liid.ex:430
+#: lib/colt_web/live/home_live.ex:734
 #, elixir-autogen, elixir-format
 msgid "Sequence"
 msgstr "Secība"
 
-#: lib/colt_web/components/liid.ex:272
-#: lib/colt_web/live/home_live.ex:90
-#: lib/colt_web/live/pricing_live.ex:143
+#: lib/colt_web/components/liid.ex:332
+#: lib/colt_web/live/home_live.ex:96
+#: lib/colt_web/live/pricing_live.ex:154
 #, elixir-autogen, elixir-format
 msgid "Sign in"
 msgstr "Pieslēgties"
 
-#: lib/colt_web/components/liid.ex:265
-#: lib/colt_web/components/liid.ex:482
+#: lib/colt_web/components/liid.ex:325
+#: lib/colt_web/components/liid.ex:561
 #, elixir-autogen, elixir-format
 msgid "Sign out"
 msgstr "Iziet"
@@ -192,17 +191,17 @@ msgstr "Iziet"
 msgid "Something went wrong!"
 msgstr "Kaut kas nogāja greizi!"
 
-#: lib/colt_web/live/home_live.ex:1006
+#: lib/colt_web/live/home_live.ex:1299
 #, elixir-autogen, elixir-format
 msgid "Stop sending to <em>dead</em> inboxes."
 msgstr "Beidz sūtīt uz <em>mirušajām</em> pastkastēm."
 
-#: lib/colt_web/live/home_live.ex:557
+#: lib/colt_web/live/home_live.ex:655
 #, elixir-autogen, elixir-format
 msgid "Sweden"
 msgstr "Zviedrija"
 
-#: lib/colt_web/components/liid.ex:367
+#: lib/colt_web/components/liid.ex:427
 #, elixir-autogen, elixir-format
 msgid "Target"
 msgstr "Mērķis"
@@ -212,7 +211,7 @@ msgstr "Mērķis"
 msgid "We can't find the internet"
 msgstr "Nevaram atrast internetu"
 
-#: lib/colt_web/components/liid.ex:372
+#: lib/colt_web/components/liid.ex:432
 #, elixir-autogen, elixir-format
 msgid "Writing"
 msgstr "Rakstīšana"
@@ -222,17 +221,17 @@ msgstr "Rakstīšana"
 msgid "close"
 msgstr "aizvērt"
 
-#: lib/colt_web/components/liid.ex:494
+#: lib/colt_web/components/liid.ex:573
 #, elixir-autogen, elixir-format
 msgid "sign in"
 msgstr "pieslēgties"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:773
-#: lib/colt_web/live/campaigns/funnel_live.ex:778
-#: lib/colt_web/live/campaigns/funnel_live.ex:783
-#: lib/colt_web/live/campaigns/funnel_live.ex:785
-#: lib/colt_web/live/campaigns/funnel_live.ex:786
-#: lib/colt_web/live/campaigns/market_live.ex:199
+#: lib/colt_web/live/campaigns/funnel_live.ex:828
+#: lib/colt_web/live/campaigns/funnel_live.ex:833
+#: lib/colt_web/live/campaigns/funnel_live.ex:838
+#: lib/colt_web/live/campaigns/funnel_live.ex:840
+#: lib/colt_web/live/campaigns/funnel_live.ex:841
+#: lib/colt_web/live/campaigns/market_live.ex:200
 #, elixir-autogen, elixir-format
 msgid "soon"
 msgstr "drīzumā"
@@ -247,33 +246,33 @@ msgstr "%{count} aktīvi uzņēmumi rik.ee · pēdējā sinhronizācija %{sync}"
 msgid "%{done} / %{total} enriched"
 msgstr "%{done} / %{total} bagātināti"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:780
+#: lib/colt_web/live/sending/sending_funnel_live.ex:861
 #, elixir-autogen, elixir-format
 msgid "%{n} contacts"
 msgstr "%{n} kontakti"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:594
+#: lib/colt_web/live/sending/sending_funnel_live.ex:672
 #, elixir-autogen, elixir-format
 msgid "%{n} emails sent"
 msgstr "%{n} e-pasti nosūtīti"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:876
+#: lib/colt_web/live/campaigns/funnel_live.ex:929
 #, elixir-autogen, elixir-format
 msgid "%{n} recorded calls"
 msgstr "%{n} ierakstīti izsaukumi"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:767
+#: lib/colt_web/live/campaigns/funnel_live.ex:822
 #, elixir-autogen, elixir-format
 msgid "%{n} rows"
 msgstr "%{n} rindas"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:419
-#: lib/colt_web/live/campaigns/filters_live.ex:573
+#: lib/colt_web/live/campaigns/filters_live.ex:408
+#: lib/colt_web/live/campaigns/filters_live.ex:577
 #, elixir-autogen, elixir-format
 msgid "%{n} selected"
 msgstr "%{n} atlasīti"
 
-#: lib/colt_web/components/funnel.ex:514
+#: lib/colt_web/components/funnel.ex:518
 #, elixir-autogen, elixir-format
 msgid "%{n} total"
 msgstr "%{n} kopā"
@@ -298,23 +297,25 @@ msgstr "pirms %{n}m"
 msgid "%{n}w ago"
 msgstr "pirms %{n}n"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:371
-#: lib/colt_web/live/sending/sending_accounts_live.ex:500
+#: lib/colt_web/live/sending/sending_accounts_live.ex:383
+#: lib/colt_web/live/sending/sending_accounts_live.ex:421
+#: lib/colt_web/live/sending/sending_accounts_live.ex:559
+#: lib/colt_web/live/sending/sending_accounts_live.ex:600
 #, elixir-autogen, elixir-format
 msgid "%{quota}/day"
 msgstr "%{quota}/dienā"
 
-#: lib/colt_web/components/funnel.ex:129
+#: lib/colt_web/components/funnel.ex:130
 #, elixir-autogen, elixir-format
 msgid "%{visible} of %{total} visible"
 msgstr "%{visible} no %{total} redzami"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:804
+#: lib/colt_web/live/campaigns/funnel_live.ex:859
 #, elixir-autogen, elixir-format
 msgid "(no rows yet — preview will appear once a contact is verified)"
 msgstr "(vēl nav rindu — priekšskatījums parādīsies, tiklīdz kontakts būs pārbaudīts)"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:528
+#: lib/colt_web/live/campaigns/filters_live.ex:532
 #, elixir-autogen, elixir-format
 msgid "+ add"
 msgstr "+ pievienot"
@@ -334,7 +335,7 @@ msgstr "/dienā"
 msgid "01 / Campaign"
 msgstr "01 / Kampaņa"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:601
+#: lib/colt_web/live/campaigns/funnel_live.ex:650
 #, elixir-autogen, elixir-format
 msgid "05 / Funnel · %{name}"
 msgstr "05 / Piltuve · %{name}"
@@ -345,7 +346,7 @@ msgid "AI writer failed: %{reason}"
 msgstr "MI rakstītājs neizdevās: %{reason}"
 
 #: lib/colt_web/live/sending/sending_accounts_live.ex:198
-#: lib/colt_web/live/sending/sending_accounts_live.ex:302
+#: lib/colt_web/live/sending/sending_accounts_live.ex:315
 #, elixir-autogen, elixir-format
 msgid "Account"
 msgstr "Konts"
@@ -365,8 +366,8 @@ msgstr "Konts · Norēķini"
 msgid "Account · Email accounts"
 msgstr "Konts · E-pasta konti"
 
-#: lib/colt_web/components/funnel.ex:388
-#: lib/colt_web/components/funnel.ex:747
+#: lib/colt_web/components/funnel.ex:392
+#: lib/colt_web/components/funnel.ex:750
 #, elixir-autogen, elixir-format
 msgid "Actually a good fit"
 msgstr "Patiesībā labi atbilst"
@@ -377,12 +378,12 @@ msgid "Add a target job title."
 msgstr "Pievieno mērķa amata nosaukumu."
 
 #: lib/colt_web/live/sending/sending_accounts_live.ex:188
-#: lib/colt_web/live/sending/sending_accounts_live.ex:446
+#: lib/colt_web/live/sending/sending_accounts_live.ex:503
 #, elixir-autogen, elixir-format
 msgid "Add accounts"
 msgstr "Pievienot kontus"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:785
+#: lib/colt_web/live/campaigns/funnel_live.ex:840
 #, elixir-autogen, elixir-format
 msgid "Add to sequence"
 msgstr "Pievienot secībai"
@@ -392,7 +393,7 @@ msgstr "Pievienot secībai"
 msgid "All accounts"
 msgstr "Visi konti"
 
-#: lib/colt_web/components/funnel.ex:472
+#: lib/colt_web/components/funnel.ex:476
 #, elixir-autogen, elixir-format
 msgid "All pages above were combined into one input for the contact-extraction LLM call."
 msgstr "Visas augstāk redzamās lapas tika apvienotas vienā ievadē kontaktu izvilkšanas LLM izsaukumam."
@@ -412,43 +413,44 @@ msgstr "Apstiprināt un tālāk"
 msgid "Auto-approve drafts"
 msgstr "Automātiski apstiprināt melnrakstus"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:143
+#: lib/colt_web/live/campaigns/icp_live.ex:146
 #, elixir-autogen, elixir-format
 msgid "B2B"
 msgstr "B2B"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:143
+#: lib/colt_web/live/campaigns/icp_live.ex:146
 #, elixir-autogen, elixir-format
 msgid "B2C"
 msgstr "B2C"
 
 #: lib/colt_web/live/campaigns/filters_live.ex:347
-#: lib/colt_web/live/campaigns/icp_live.ex:255
+#: lib/colt_web/live/campaigns/icp_live.ex:260
 #: lib/colt_web/live/campaigns/suppression_live.ex:169
-#: lib/colt_web/live/sending/pitch_live.ex:222
+#: lib/colt_web/live/sending/pitch_live.ex:223
+#: lib/colt_web/live/sending/sending_accounts_live.ex:239
 #, elixir-autogen, elixir-format
 msgid "Back"
 msgstr "Atpakaļ"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:143
+#: lib/colt_web/live/campaigns/icp_live.ex:146
 #, elixir-autogen, elixir-format
 msgid "Both"
 msgstr "Abi"
 
-#: lib/colt_web/live/home_live.ex:359
-#: lib/colt_web/live/sending/sending_funnel_live.ex:633
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1105
+#: lib/colt_web/live/home_live.ex:390
+#: lib/colt_web/live/sending/sending_funnel_live.ex:711
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1192
 #, elixir-autogen, elixir-format
 msgid "Bounced"
 msgstr "Atlēca"
 
-#: lib/colt_web/live/home_live.ex:355
-#: lib/colt_web/live/sending/sending_funnel_live.ex:599
+#: lib/colt_web/live/home_live.ex:386
+#: lib/colt_web/live/sending/sending_funnel_live.ex:677
 #, elixir-autogen, elixir-format
 msgid "Call ready"
 msgstr "Gatavs zvanam"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:558
+#: lib/colt_web/live/sending/sending_funnel_live.ex:635
 #, elixir-autogen, elixir-format
 msgid "Campaign auto-paused"
 msgstr "Kampaņa automātiski apturēta"
@@ -463,9 +465,9 @@ msgstr "Kampaņas nosaukums nevar būt tukšs."
 msgid "Campaign · Name"
 msgstr "Kampaņa · Nosaukums"
 
-#: lib/colt_web/components/funnel.ex:700
-#: lib/colt_web/live/campaigns/funnel_live.ex:809
-#: lib/colt_web/live/sending/sending_accounts_live.ex:279
+#: lib/colt_web/components/funnel.ex:703
+#: lib/colt_web/live/campaigns/funnel_live.ex:864
+#: lib/colt_web/live/sending/sending_accounts_live.ex:292
 #, elixir-autogen, elixir-format
 msgid "Cancel"
 msgstr "Atcelt"
@@ -475,25 +477,25 @@ msgstr "Atcelt"
 msgid "Click tracking"
 msgstr "Klikšķu izsekošana"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:753
+#: lib/colt_web/live/sending/sending_funnel_live.ex:833
 #, elixir-autogen, elixir-format
 msgid "Clicks"
 msgstr "Klikšķi"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:742
+#: lib/colt_web/live/campaigns/filters_live.ex:744
 #, elixir-autogen, elixir-format
 msgid "Companies match"
 msgstr "Uzņēmumi atbilst"
 
-#: lib/colt_web/components/funnel.ex:145
-#: lib/colt_web/live/campaigns/filters_live.ex:875
-#: lib/colt_web/live/home_live.ex:1048
-#: lib/colt_web/live/pricing_live.ex:255
+#: lib/colt_web/components/funnel.ex:146
+#: lib/colt_web/live/campaigns/filters_live.ex:877
+#: lib/colt_web/live/home_live.ex:1348
+#: lib/colt_web/live/pricing_live.ex:284
 #, elixir-autogen, elixir-format
 msgid "Company"
 msgstr "Uzņēmums"
 
-#: lib/colt_web/components/funnel.ex:423
+#: lib/colt_web/components/funnel.ex:427
 #, elixir-autogen, elixir-format
 msgid "Company summary"
 msgstr "Uzņēmuma kopsavilkums"
@@ -513,12 +515,12 @@ msgstr "Pievienot IMAP"
 msgid "Connect Outlook"
 msgstr "Pievienot Outlook"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:343
+#: lib/colt_web/live/sending/sending_accounts_live.ex:356
 #, elixir-autogen, elixir-format
 msgid "Connect a new one in Email accounts →"
 msgstr "Pievieno jaunu sadaļā E-pasta konti →"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:313
+#: lib/colt_web/live/sending/sending_accounts_live.ex:326
 #, elixir-autogen, elixir-format
 msgid "Connect at least one in Email accounts to enroll it here."
 msgstr "Pievieno vismaz vienu sadaļā E-pasta konti, lai to šeit reģistrētu."
@@ -529,9 +531,9 @@ msgid "Connected <em>inboxes</em>."
 msgstr "Pievienotās <em>pastkastes</em>."
 
 #: lib/colt_web/components/funnel.ex:22
-#: lib/colt_web/components/funnel.ex:151
-#: lib/colt_web/live/home_live.ex:1050
-#: lib/colt_web/live/pricing_live.ex:257
+#: lib/colt_web/components/funnel.ex:152
+#: lib/colt_web/live/home_live.ex:1350
+#: lib/colt_web/live/pricing_live.ex:286
 #, elixir-autogen, elixir-format
 msgid "Contact"
 msgstr "Kontakts"
@@ -556,22 +558,22 @@ msgstr "Nevarēja atvienot — Nylas vēl rēķina par šo pastkasti. Mēģini v
 msgid "Couldn't approve: %{reason}"
 msgstr "Nevarēja apstiprināt: %{reason}"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:162
+#: lib/colt_web/live/campaigns/funnel_live.ex:183
 #, elixir-autogen, elixir-format
 msgid "Couldn't generate the learning. Try again."
 msgstr "Neizdevās ģenerēt mācību. Mēģini vēlreiz."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:169
+#: lib/colt_web/live/sending/sending_funnel_live.ex:180
 #, elixir-autogen, elixir-format
 msgid "Couldn't save note: %{reason}"
 msgstr "Nevarēja saglabāt piezīmi: %{reason}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:188
+#: lib/colt_web/live/sending/sending_funnel_live.ex:199
 #, elixir-autogen, elixir-format
 msgid "Couldn't stop sequence: %{reason}"
 msgstr "Nevarēja apturēt secību: %{reason}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:207
+#: lib/colt_web/live/sending/sending_funnel_live.ex:218
 #, elixir-autogen, elixir-format
 msgid "Couldn't update: %{reason}"
 msgstr "Nevarēja atjaunināt: %{reason}"
@@ -586,80 +588,80 @@ msgstr "Dienas vidējais · pēdējās 7d"
 msgid "Daily capacity"
 msgstr "Dienas kapacitāte"
 
-#: lib/colt_web/components/funnel.ex:414
+#: lib/colt_web/components/funnel.ex:418
 #, elixir-autogen, elixir-format
 msgid "Delete all enrichment data for this company and start over?"
 msgstr "Dzēst visus bagātināšanas datus šim uzņēmumam un sākt no jauna?"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:214
+#: lib/colt_web/live/campaigns/icp_live.ex:219
 #, elixir-autogen, elixir-format
 msgid "Delete learning"
 msgstr "Dzēst mācību"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:126
+#: lib/colt_web/live/campaigns/icp_live.ex:129
 #, elixir-autogen, elixir-format
 msgid "Describe the <em>customer</em> you want."
 msgstr "Apraksti <em>klientu</em>, kuru vēlies."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:172
+#: lib/colt_web/live/campaigns/icp_live.ex:177
 #, elixir-autogen, elixir-format
 msgid "Describe the ideal customer in plain English. The AI agent visits each prospect's website and uses this to decide if they're a fit. Spell out what a good customer looks like — industry, size, business model, what they sell or do — and just as importantly, what a <em>bad</em> fit looks like (e.g. \"not solo freelancers\", \"not B2C\", \"not agencies\")."
 msgstr "Apraksti ideālo klientu vienkāršā valodā. MI aģents apmeklē katra potenciālā klienta mājaslapu un izmanto šo aprakstu, lai izlemtu, vai viņi atbilst. Izklāsti, kāds izskatās labs klients — nozare, izmērs, biznesa modelis, ko viņi pārdod vai dara — un tikpat svarīgi, kā izskatās <em>slikta</em> atbilstība (piem., „nav individuāli ārštata darbinieki”, „nav B2C”, „nav aģentūras”)."
 
-#: lib/colt_web/live/account/email_accounts_live.ex:294
+#: lib/colt_web/live/account/email_accounts_live.ex:295
 #, elixir-autogen, elixir-format
 msgid "Disconnect"
 msgstr "Atvienot"
 
-#: lib/colt_web/live/account/email_accounts_live.ex:292
+#: lib/colt_web/live/account/email_accounts_live.ex:293
 #, elixir-autogen, elixir-format
 msgid "Disconnect %{address}?"
 msgstr "Atvienot %{address}?"
 
-#: lib/colt_web/live/account/email_accounts_live.ex:291
+#: lib/colt_web/live/account/email_accounts_live.ex:292
 #, elixir-autogen, elixir-format
 msgid "Disconnecting…"
 msgstr "Atvieno…"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:338
+#: lib/colt_web/live/sending/sending_accounts_live.ex:351
 #, elixir-autogen, elixir-format
 msgid "Don't see the inbox you want?"
 msgstr "Neredzi vajadzīgo pastkasti?"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:820
+#: lib/colt_web/live/campaigns/funnel_live.ex:875
 #, elixir-autogen, elixir-format
 msgid "Download CSV"
 msgstr "Lejupielādēt CSV"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:266
+#: lib/colt_web/live/sending/sending_accounts_live.ex:279
 #, elixir-autogen, elixir-format
 msgid "Each inbox respects its global daily quota. Disconnected accounts are unselectable."
 msgstr "Katra pastkaste ievēro savu globālo dienas kvotu. Atvienotos kontus nevar atlasīt."
 
-#: lib/colt_web/components/funnel.ex:154
+#: lib/colt_web/components/funnel.ex:155
 #, elixir-autogen, elixir-format
 msgid "Email / Phone"
 msgstr "E-pasts / Tālrunis"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:402
-#: lib/colt_web/live/home_live.ex:569
+#: lib/colt_web/live/campaigns/filters_live.ex:391
+#: lib/colt_web/live/home_live.ex:680
 #: lib/colt_web/live/sending/write_live.ex:1135
 #, elixir-autogen, elixir-format
 msgid "Employees"
 msgstr "Darbinieki"
 
-#: lib/colt_web/components/funnel.ex:39
-#: lib/colt_web/live/campaigns/funnel_live.ex:566
+#: lib/colt_web/components/funnel.ex:40
+#: lib/colt_web/live/campaigns/funnel_live.ex:602
 #, elixir-autogen, elixir-format
 msgid "Enriched"
 msgstr "Bagātināti"
 
-#: lib/colt_web/components/funnel.ex:38
+#: lib/colt_web/components/funnel.ex:39
 #, elixir-autogen, elixir-format
 msgid "Enriched (target: %{n})"
 msgstr "Bagātināti (mērķis: %{n})"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:604
+#: lib/colt_web/live/campaigns/funnel_live.ex:653
 #, elixir-autogen, elixir-format
 msgid "Enriching"
 msgstr "Bagātina"
@@ -669,31 +671,31 @@ msgstr "Bagātina"
 msgid "Every search you've started, newest first."
 msgstr "Katra tava uzsāktā meklēšana, jaunākās augšā."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:390
+#: lib/colt_web/live/campaigns/filters_live.ex:455
 #, elixir-autogen, elixir-format
 msgid "Exclude industries"
 msgstr "Izslēgt nozares"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:624
+#: lib/colt_web/live/campaigns/funnel_live.ex:673
 #, elixir-autogen, elixir-format
 msgid "Export"
 msgstr "Eksportēt"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:745
+#: lib/colt_web/live/campaigns/funnel_live.ex:800
 #, elixir-autogen, elixir-format
 msgid "Export · %{name}"
 msgstr "Eksports · %{name}"
 
-#: lib/colt_web/components/funnel.ex:511
+#: lib/colt_web/components/funnel.ex:515
 #, elixir-autogen, elixir-format
 msgid "Extracted contact"
 msgstr "Izvilktais kontakts"
 
-#: lib/colt_web/components/funnel.ex:52
-#: lib/colt_web/live/campaigns/funnel_live.ex:569
-#: lib/colt_web/live/home_live.ex:358
-#: lib/colt_web/live/sending/sending_funnel_live.ex:622
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1111
+#: lib/colt_web/components/funnel.ex:53
+#: lib/colt_web/live/campaigns/funnel_live.ex:605
+#: lib/colt_web/live/home_live.ex:389
+#: lib/colt_web/live/sending/sending_funnel_live.ex:700
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1198
 #, elixir-autogen, elixir-format
 msgid "Failed"
 msgstr "Neizdevās"
@@ -713,7 +715,7 @@ msgstr "Filtri — %{name}"
 msgid "First email"
 msgstr "Pirmais e-pasts"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:766
+#: lib/colt_web/live/campaigns/funnel_live.ex:821
 #, elixir-autogen, elixir-format
 msgid "Flat sheet · companies + primary contact"
 msgstr "Plakana lapa · uzņēmumi + galvenais kontakts"
@@ -723,29 +725,29 @@ msgstr "Plakana lapa · uzņēmumi + galvenais kontakts"
 msgid "Follow-up %{n}"
 msgstr "Atgādinājums %{n}"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:71
+#: lib/colt_web/live/campaigns/funnel_live.ex:66
 #, elixir-autogen, elixir-format
 msgid "Funnel — %{name}"
 msgstr "Piltuve — %{name}"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:951
+#: lib/colt_web/live/campaigns/filters_live.ex:953
 #, elixir-autogen, elixir-format
 msgid "Growing · 10×"
 msgstr "Aug · 10×"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:952
+#: lib/colt_web/live/campaigns/filters_live.ex:954
 #, elixir-autogen, elixir-format
 msgid "Growing · 2×"
 msgstr "Aug · 2×"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:953
+#: lib/colt_web/live/campaigns/filters_live.ex:955
 #, elixir-autogen, elixir-format
 msgid "Growing · slow"
 msgstr "Aug · lēni"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:888
-#: lib/colt_web/live/home_live.ex:922
-#: lib/colt_web/live/pricing_live.ex:51
+#: lib/colt_web/live/campaigns/filters_live.ex:890
+#: lib/colt_web/live/home_live.ex:1191
+#: lib/colt_web/live/pricing_live.ex:53
 #, elixir-autogen, elixir-format
 msgid "Growth"
 msgstr "Izaugsme"
@@ -755,20 +757,20 @@ msgstr "Izaugsme"
 msgid "Hit \"Connect\" above and Nylas's hosted auth will walk you through it."
 msgstr "Nospied „Pievienot” augšā, un Nylas mitinātā autentifikācija tevi izvedīs cauri."
 
-#: lib/colt_web/components/funnel.ex:432
+#: lib/colt_web/components/funnel.ex:436
 #, elixir-autogen, elixir-format
 msgid "ICP decision"
 msgstr "ICP lēmums"
 
 #: lib/colt_web/components/funnel.ex:21
-#: lib/colt_web/live/home_live.ex:183
-#: lib/colt_web/live/home_live.ex:737
+#: lib/colt_web/live/home_live.ex:193
+#: lib/colt_web/live/home_live.ex:921
 #, elixir-autogen, elixir-format
 msgid "ICP fit"
 msgstr "ICP atbilstība"
 
-#: lib/colt_web/components/funnel.ex:45
-#: lib/colt_web/live/campaigns/funnel_live.ex:567
+#: lib/colt_web/components/funnel.ex:46
+#: lib/colt_web/live/campaigns/funnel_live.ex:603
 #, elixir-autogen, elixir-format
 msgid "ICP miss"
 msgstr "ICP neatbilst"
@@ -778,7 +780,7 @@ msgstr "ICP neatbilst"
 msgid "ICP — %{name}"
 msgstr "ICP — %{name}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:168
+#: lib/colt_web/live/campaigns/icp_live.ex:173
 #, elixir-autogen, elixir-format
 msgid "Ideal customer profile"
 msgstr "Ideālā klienta profils"
@@ -798,39 +800,39 @@ msgstr "Pastkaste atvienota. Norēķini Nylas apturēti."
 msgid "Inboxes you've connected through Nylas. Pick any of them per campaign under Sending accounts."
 msgstr "Pastkastes, ko esi pievienojis caur Nylas. Izvēlies jebkuru no tām katrai kampaņai sadaļā Sūtīšanas konti."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:451
+#: lib/colt_web/live/campaigns/filters_live.ex:444
 #, elixir-autogen, elixir-format
 msgid "Industry"
 msgstr "Nozare"
 
-#: lib/colt_web/live/home_live.ex:205
-#: lib/colt_web/live/home_live.ex:356
-#: lib/colt_web/live/sending/sending_funnel_live.ex:607
+#: lib/colt_web/live/home_live.ex:215
+#: lib/colt_web/live/home_live.ex:387
+#: lib/colt_web/live/sending/sending_funnel_live.ex:685
 #, elixir-autogen, elixir-format
 msgid "Interested"
 msgstr "Ieinteresēts"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1224
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1316
 #, elixir-autogen, elixir-format
 msgid "Internal note — not sent to recipient."
 msgstr "Iekšēja piezīme — netiek sūtīta saņēmējam."
 
-#: lib/colt_web/components/funnel.ex:407
+#: lib/colt_web/components/funnel.ex:411
 #, elixir-autogen, elixir-format
 msgid "LLM calls (admin)"
 msgstr "LLM izsaukumi (admin)"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:873
+#: lib/colt_web/live/campaigns/funnel_live.ex:926
 #, elixir-autogen, elixir-format
 msgid "LLM calls · %{name}"
 msgstr "LLM izsaukumi · %{name}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:187
+#: lib/colt_web/live/campaigns/icp_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "Learned refinements (%{n})"
 msgstr "Apgūtie precizējumi (%{n})"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:202
+#: lib/colt_web/live/sending/sending_funnel_live.ex:213
 #, elixir-autogen, elixir-format
 msgid "Marked as %{label}."
 msgstr "Atzīmēts kā %{label}."
@@ -865,7 +867,7 @@ msgstr "Nosaukums — %{name}"
 msgid "Narrow the <em>funnel</em>."
 msgstr "Sašaurini <em>piltuvi</em>."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:772
+#: lib/colt_web/live/campaigns/funnel_live.ex:827
 #, elixir-autogen, elixir-format
 msgid "Nested · companies → people → pages"
 msgstr "Ligzdots · uzņēmumi → cilvēki → lapas"
@@ -882,12 +884,12 @@ msgstr "Jauna kampaņa"
 msgid "No campaigns yet."
 msgstr "Vēl nav kampaņu."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:573
+#: lib/colt_web/live/campaigns/funnel_live.ex:609
 #, elixir-autogen, elixir-format
 msgid "No companies currently being processed."
 msgstr "Pašlaik netiek apstrādāti nekādi uzņēmumi."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:579
+#: lib/colt_web/live/campaigns/funnel_live.ex:615
 #, elixir-autogen, elixir-format
 msgid "No companies have been rejected on ICP fit yet."
 msgstr "Pagaidām neviens uzņēmums nav noraidīts pēc ICP atbilstības."
@@ -897,12 +899,12 @@ msgstr "Pagaidām neviens uzņēmums nav noraidīts pēc ICP atbilstības."
 msgid "No healthy sending inbox enrolled in this campaign. Add one under Sending accounts."
 msgstr "Šajā kampaņā nav reģistrēta neviena darbderīga sūtīšanas pastkaste. Pievieno vienu sadaļā Sūtīšanas konti."
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:310
+#: lib/colt_web/live/sending/sending_accounts_live.ex:323
 #, elixir-autogen, elixir-format
 msgid "No inboxes connected yet."
 msgstr "Vēl nav pievienotu pastkastu."
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:439
+#: lib/colt_web/live/sending/sending_accounts_live.ex:493
 #, elixir-autogen, elixir-format
 msgid "No inboxes enrolled yet."
 msgstr "Vēl nav reģistrētu pastkastu."
@@ -912,7 +914,7 @@ msgstr "Vēl nav reģistrētu pastkastu."
 msgid "No inboxes yet."
 msgstr "Vēl nav pastkastu."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:956
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1041
 #, elixir-autogen, elixir-format
 msgid "No messages yet. The first step will appear here once it sends."
 msgstr "Vēl nav ziņojumu. Pirmais solis parādīsies šeit, tiklīdz tiks nosūtīts."
@@ -922,47 +924,47 @@ msgstr "Vēl nav ziņojumu. Pirmais solis parādīsies šeit, tiklīdz tiks nos�
 msgid "Nordic CTOs Q2"
 msgstr "Ziemeļvalstu CTO 2. ceturksnis"
 
-#: lib/colt_web/components/funnel.ex:378
-#: lib/colt_web/components/funnel.ex:746
-#: lib/colt_web/components/funnel.ex:748
+#: lib/colt_web/components/funnel.ex:382
+#: lib/colt_web/components/funnel.ex:749
+#: lib/colt_web/components/funnel.ex:751
 #: lib/colt_web/live/sending/write_live.ex:1370
 #, elixir-autogen, elixir-format
 msgid "Not a good fit"
 msgstr "Neatbilst labi"
 
-#: lib/colt_web/live/home_live.ex:357
-#: lib/colt_web/live/sending/sending_funnel_live.ex:615
+#: lib/colt_web/live/home_live.ex:388
+#: lib/colt_web/live/sending/sending_funnel_live.ex:693
 #, elixir-autogen, elixir-format
 msgid "Not interested"
 msgstr "Nav ieinteresēts"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:988
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1182
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1073
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1271
 #, elixir-autogen, elixir-format
 msgid "Note"
 msgstr "Piezīme"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:153
+#: lib/colt_web/live/sending/sending_funnel_live.ex:164
 #, elixir-autogen, elixir-format
 msgid "Note is empty."
 msgstr "Piezīme ir tukša."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:162
+#: lib/colt_web/live/sending/sending_funnel_live.ex:173
 #, elixir-autogen, elixir-format
 msgid "Note saved."
 msgstr "Piezīme saglabāta."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:576
+#: lib/colt_web/live/campaigns/funnel_live.ex:612
 #, elixir-autogen, elixir-format
 msgid "Nothing has been fully enriched yet. Pick another bucket to watch progress."
 msgstr "Vēl nekas nav pilnībā bagātināts. Izvēlies citu kategoriju, lai vērotu progresu."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:584
+#: lib/colt_web/live/campaigns/funnel_live.ex:620
 #, elixir-autogen, elixir-format
 msgid "Nothing has failed. Enjoy it."
 msgstr "Nekas nav neizdevies. Izbaudi to."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:572
+#: lib/colt_web/live/campaigns/funnel_live.ex:608
 #, elixir-autogen, elixir-format
 msgid "Nothing waiting in line."
 msgstr "Nekas negaida rindā."
@@ -977,37 +979,37 @@ msgstr "Viens tirgus uz kampaņu. Liid vēršas pie valsts reģistra un iziet ca
 msgid "Open tracking"
 msgstr "Atvēršanas izsekošana"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:748
+#: lib/colt_web/live/sending/sending_funnel_live.ex:828
 #, elixir-autogen, elixir-format
 msgid "Opens"
 msgstr "Atvēršanas"
 
-#: lib/colt_web/components/funnel.ex:552
+#: lib/colt_web/components/funnel.ex:556
 #, elixir-autogen, elixir-format
 msgid "Other contacts"
 msgstr "Citi kontakti"
 
-#: lib/colt_web/components/funnel.ex:482
+#: lib/colt_web/components/funnel.ex:486
 #, elixir-autogen, elixir-format
 msgid "Outcome"
 msgstr "Iznākums"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:786
+#: lib/colt_web/live/campaigns/funnel_live.ex:841
 #, elixir-autogen, elixir-format
 msgid "POST to your URL"
 msgstr "POST uz tavu URL"
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:189
+#: lib/colt_web/live/account/email_account_stats_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "Pattern · time of day × day"
 msgstr "Modelis · diennakts laiks × diena"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:117
+#: lib/colt_web/live/sending/sending_funnel_live.ex:128
 #, elixir-autogen, elixir-format
 msgid "Pick a contact first."
 msgstr "Vispirms izvēlies kontaktu."
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:271
+#: lib/colt_web/live/sending/sending_accounts_live.ex:284
 #, elixir-autogen, elixir-format
 msgid "Pick inboxes for this <em>campaign</em>."
 msgstr "Izvēlies pastkastes šai <em>kampaņai</em>."
@@ -1022,51 +1024,53 @@ msgstr "Piedāvājums — %{name}"
 msgid "Pixel embedded in every email. Requires a CNAME you set up yourself."
 msgstr "Pikselis iegults katrā e-pastā. Nepieciešams CNAME, ko iestati pats."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:121
+#: lib/colt_web/live/campaigns/icp_live.ex:124
 #, elixir-autogen, elixir-format
 msgid "Plain English. The model reads this against every company's website to decide if it's a fit. Be specific about what disqualifies."
 msgstr "Vienkārša valoda. Modelis to lasa pret katra uzņēmuma mājaslapu, lai izlemtu par atbilstību. Esi konkrēts par to, kas diskvalificē."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:777
+#: lib/colt_web/live/campaigns/funnel_live.ex:832
 #, elixir-autogen, elixir-format
 msgid "Push directly · de-dupe by domain"
 msgstr "Sūtīt tieši · dublikātu noņemšana pēc domēna"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:782
+#: lib/colt_web/live/campaigns/funnel_live.ex:837
 #, elixir-autogen, elixir-format
 msgid "Push directly · org + person + deal"
 msgstr "Sūtīt tieši · organizācija + persona + darījums"
 
-#: lib/colt_web/components/funnel.ex:42
-#: lib/colt_web/live/campaigns/funnel_live.ex:564
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1087
+#: lib/colt_web/components/funnel.ex:43
+#: lib/colt_web/live/campaigns/funnel_live.ex:600
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1174
 #, elixir-autogen, elixir-format
 msgid "Queued"
 msgstr "Rindā"
 
 #: lib/colt_web/live/sending/sending_accounts_live.ex:199
-#: lib/colt_web/live/sending/sending_accounts_live.ex:303
+#: lib/colt_web/live/sending/sending_accounts_live.ex:316
+#: lib/colt_web/live/sending/sending_accounts_live.ex:418
 #, elixir-autogen, elixir-format
 msgid "Quota"
 msgstr "Kvota"
 
-#: lib/colt_web/components/funnel.ex:398
-#: lib/colt_web/live/campaigns/funnel_live.ex:616
+#: lib/colt_web/components/funnel.ex:402
+#: lib/colt_web/live/campaigns/funnel_live.ex:665
 #, elixir-autogen, elixir-format
 msgid "Re-check ICP"
 msgstr "Pārbaudīt ICP no jauna"
 
-#: lib/colt_web/components/funnel.ex:395
+#: lib/colt_web/components/funnel.ex:399
 #, elixir-autogen, elixir-format
 msgid "Re-check ICP fit for this company?"
 msgstr "Pārbaudīt ICP atbilstību šim uzņēmumam no jauna?"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:614
+#: lib/colt_web/live/campaigns/funnel_live.ex:663
 #, elixir-autogen, elixir-format
 msgid "Re-check ICP fit on all enriched and ICP-rejected companies?"
 msgstr "Pārbaudīt ICP atbilstību visiem bagātinātajiem un ICP noraidītajiem uzņēmumiem?"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:388
+#: lib/colt_web/live/sending/sending_accounts_live.ex:400
+#: lib/colt_web/live/sending/sending_accounts_live.ex:441
 #, elixir-autogen, elixir-format
 msgid "Remove %{address} from this campaign?"
 msgstr "Noņemt %{address} no šīs kampaņas?"
@@ -1076,77 +1080,77 @@ msgstr "Noņemt %{address} no šīs kampaņas?"
 msgid "Rename it. Stored immediately on save."
 msgstr "Pārdēvē. Saglabājas uzreiz pēc saglabāšanas."
 
-#: lib/colt_web/live/home_live.ex:402
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1015
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1171
+#: lib/colt_web/live/home_live.ex:470
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1102
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1260
 #, elixir-autogen, elixir-format
 msgid "Reply"
 msgstr "Atbildēt"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:120
+#: lib/colt_web/live/sending/sending_funnel_live.ex:131
 #, elixir-autogen, elixir-format
 msgid "Reply body is empty."
 msgstr "Atbildes saturs ir tukšs."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:134
+#: lib/colt_web/live/sending/sending_funnel_live.ex:145
 #, elixir-autogen, elixir-format
 msgid "Reply sent."
 msgstr "Atbilde nosūtīta."
 
-#: lib/colt_web/components/funnel.ex:417
+#: lib/colt_web/components/funnel.ex:421
 #, elixir-autogen, elixir-format
 msgid "Retry (admin)"
 msgstr "Mēģināt vēlreiz (admin)"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:410
+#: lib/colt_web/live/campaigns/filters_live.ex:399
 #, elixir-autogen, elixir-format
 msgid "Revenue (€)"
 msgstr "Apgrozījums (€)"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:242
+#: lib/colt_web/live/campaigns/icp_live.ex:247
 #, elixir-autogen, elixir-format
 msgid "Sales Manager, COO, CEO"
 msgstr "Pārdošanas vadītājs, COO, CEO"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:259
+#: lib/colt_web/live/campaigns/icp_live.ex:264
 #: lib/colt_web/live/campaigns/market_live.ex:138
 #: lib/colt_web/live/campaigns/name_live.ex:103
 #, elixir-autogen, elixir-format
 msgid "Save"
 msgstr "Saglabāt"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:770
+#: lib/colt_web/live/campaigns/filters_live.ex:772
 #, elixir-autogen, elixir-format
 msgid "Save filters"
 msgstr "Saglabāt filtrus"
 
-#: lib/colt_web/components/funnel.ex:730
+#: lib/colt_web/components/funnel.ex:733
 #, elixir-autogen, elixir-format
 msgid "Save learning"
 msgstr "Saglabāt mācību"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1234
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1326
 #, elixir-autogen, elixir-format
 msgid "Save note"
 msgstr "Saglabāt piezīmi"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:286
+#: lib/colt_web/live/sending/sending_accounts_live.ex:299
 #, elixir-autogen, elixir-format
 msgid "Save selection"
 msgstr "Saglabāt izvēli"
 
-#: lib/colt_web/live/campaigns/target_live.ex:234
+#: lib/colt_web/live/campaigns/target_live.ex:236
 #, elixir-autogen, elixir-format
 msgid "Save · %{n} contacts"
 msgstr "Saglabāt · %{n} kontakti"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:190
+#: lib/colt_web/live/campaigns/icp_live.ex:195
 #, elixir-autogen, elixir-format
 msgid "Saved from \"not a good fit\" / \"actually a good fit\" feedback on the funnel. Applied on top of the ICP above. Delete any that no longer reflect what you want — then re-check ICP on the funnel."
 msgstr "Saglabāts no „neatbilst labi” / „patiesībā labi atbilst” atsauksmēm piltuvē. Tiek piemērots virs ICP augstāk. Dzēs tos, kas vairs neatspoguļo to, ko vēlies — tad atkārtoti pārbaudi ICP piltuvē."
 
-#: lib/colt_web/components/funnel.ex:721
-#: lib/colt_web/components/funnel.ex:730
+#: lib/colt_web/components/funnel.ex:724
+#: lib/colt_web/components/funnel.ex:733
 #, elixir-autogen, elixir-format
 msgid "Saving…"
 msgstr "Saglabā…"
@@ -1156,17 +1160,17 @@ msgstr "Saglabā…"
 msgid "Scheduled ahead"
 msgstr "Ieplānots uz priekšu"
 
-#: lib/colt_web/components/funnel.ex:458
+#: lib/colt_web/components/funnel.ex:462
 #, elixir-autogen, elixir-format
 msgid "Scraped pages (%{n})"
 msgstr "Nokasītās lapas (%{n})"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:141
+#: lib/colt_web/live/sending/sending_funnel_live.ex:152
 #, elixir-autogen, elixir-format
 msgid "Send failed: %{reason}"
 msgstr "Sūtīšana neizdevās: %{reason}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1212
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1304
 #, elixir-autogen, elixir-format
 msgid "Send reply"
 msgstr "Nosūtīt atbildi"
@@ -1181,7 +1185,7 @@ msgstr "Sūtīšanas <em>modelis</em>."
 msgid "Sending accounts — %{name}"
 msgstr "Sūtīšanas konti — %{name}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:50
+#: lib/colt_web/live/sending/sending_funnel_live.ex:48
 #, elixir-autogen, elixir-format
 msgid "Sending funnel — %{name}"
 msgstr "Sūtīšanas piltuve — %{name}"
@@ -1191,17 +1195,17 @@ msgstr "Sūtīšanas piltuve — %{name}"
 msgid "Sending · Accounts"
 msgstr "Sūtīšana · Konti"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:264
+#: lib/colt_web/live/sending/sending_accounts_live.ex:277
 #, elixir-autogen, elixir-format
 msgid "Sending · Accounts · Add"
 msgstr "Sūtīšana · Konti · Pievienot"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:505
+#: lib/colt_web/live/sending/sending_funnel_live.ex:552
 #, elixir-autogen, elixir-format
 msgid "Sending · Funnel"
 msgstr "Sūtīšana · Piltuve"
 
-#: lib/colt_web/live/sending/pitch_live.ex:132
+#: lib/colt_web/live/sending/pitch_live.ex:133
 #, elixir-autogen, elixir-format
 msgid "Sending · Pitch"
 msgstr "Sūtīšana · Piedāvājums"
@@ -1211,22 +1215,22 @@ msgstr "Sūtīšana · Piedāvājums"
 msgid "Sent · 28d window"
 msgstr "Nosūtīts · 28d logs"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:182
+#: lib/colt_web/live/sending/sending_funnel_live.ex:193
 #, elixir-autogen, elixir-format
 msgid "Sequence stopped — contact marked no-reply."
 msgstr "Secība apturēta — kontakts atzīmēts kā bez atbildes."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:137
+#: lib/colt_web/live/campaigns/icp_live.ex:140
 #, elixir-autogen, elixir-format
 msgid "Sets the buyer side. Used as a hard filter before the model reads your ICP — saves you spelling it out below."
 msgstr "Nosaka pircēja pusi. Tiek izmantots kā stingrs filtrs pirms modelis lasa tavu ICP — ietaupa to izklāstīšanu zemāk."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:955
+#: lib/colt_web/live/campaigns/filters_live.ex:957
 #, elixir-autogen, elixir-format
 msgid "Shrinking"
 msgstr "Sarūk"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:954
+#: lib/colt_web/live/campaigns/filters_live.ex:956
 #, elixir-autogen, elixir-format
 msgid "Stagnant"
 msgstr "Stagnē"
@@ -1236,7 +1240,7 @@ msgstr "Stagnē"
 msgid "Start by naming the first one."
 msgstr "Sāc, nosaucot pirmo."
 
-#: lib/colt_web/live/campaigns/target_live.ex:232
+#: lib/colt_web/live/campaigns/target_live.ex:234
 #, elixir-autogen, elixir-format
 msgid "Start enrichment · %{n} contacts"
 msgstr "Sākt bagātināšanu · %{n} kontakti"
@@ -1246,14 +1250,15 @@ msgstr "Sākt bagātināšanu · %{n} kontakti"
 msgid "Stats — %{address}"
 msgstr "Statistika — %{address}"
 
-#: lib/colt_web/components/funnel.ex:157
+#: lib/colt_web/components/funnel.ex:158
 #: lib/colt_web/live/sending/sending_accounts_live.ex:200
-#: lib/colt_web/live/sending/sending_accounts_live.ex:304
+#: lib/colt_web/live/sending/sending_accounts_live.ex:317
+#: lib/colt_web/live/sending/sending_accounts_live.ex:426
 #, elixir-autogen, elixir-format
 msgid "Status"
 msgstr "Statuss"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:948
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1030
 #, elixir-autogen, elixir-format
 msgid "Stop sequence"
 msgstr "Apturēt secību"
@@ -1263,17 +1268,17 @@ msgstr "Apturēt secību"
 msgid "Subject"
 msgstr "Temats"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:748
+#: lib/colt_web/live/campaigns/funnel_live.ex:803
 #, elixir-autogen, elixir-format
 msgid "Take"
 msgstr "Paņemt"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:134
+#: lib/colt_web/live/campaigns/icp_live.ex:137
 #, elixir-autogen, elixir-format
 msgid "Target audience"
 msgstr "Mērķauditorija"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:229
+#: lib/colt_web/live/campaigns/icp_live.ex:234
 #, elixir-autogen, elixir-format
 msgid "Target job title"
 msgstr "Mērķa amata nosaukums"
@@ -1283,17 +1288,17 @@ msgstr "Mērķa amata nosaukums"
 msgid "Target — %{name}"
 msgstr "Mērķis — %{name}"
 
-#: lib/colt_web/components/funnel.ex:503
+#: lib/colt_web/components/funnel.ex:507
 #, elixir-autogen, elixir-format
 msgid "Technical detail (admin)"
 msgstr "Tehniska detaļa (admin)"
 
-#: lib/colt_web/components/funnel.ex:741
+#: lib/colt_web/components/funnel.ex:744
 #, elixir-autogen, elixir-format
 msgid "Tell us in your own words. We'll save it as a rule and apply it next time you re-check ICP — no other companies move until you do."
 msgstr "Pastāsti mums saviem vārdiem. Mēs to saglabāsim kā noteikumu un piemērosim, kad nākamreiz pārbaudīsi ICP — citi uzņēmumi nepārvietosies, kamēr to neizdarīsi."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:269
+#: lib/colt_web/live/campaigns/funnel_live.ex:285
 #: lib/colt_web/live/sending/write_live.ex:279
 #, elixir-autogen, elixir-format
 msgid "Tell us why so we can learn the rule."
@@ -1304,17 +1309,17 @@ msgstr "Pastāsti kāpēc, lai mēs varētu apgūt noteikumu."
 msgid "The <em>name</em> of this campaign."
 msgstr "Šīs kampaņas <em>nosaukums</em>."
 
-#: lib/colt_web/live/sending/pitch_live.ex:139
+#: lib/colt_web/live/sending/pitch_live.ex:140
 #, elixir-autogen, elixir-format
 msgid "The <em>offer</em> behind every email."
 msgstr "<em>Piedāvājums</em> aiz katra e-pasta."
 
-#: lib/colt_web/live/campaigns/icp_live.ex:232
+#: lib/colt_web/live/campaigns/icp_live.ex:237
 #, elixir-autogen, elixir-format
 msgid "The contact we'll try to extract per company. You can list multiple titles in order of importance — e.g. \"Sales Manager, COO, CEO\" — and we'll pick the highest-priority match found."
 msgstr "Kontakts, ko mēģināsim izvilkt katram uzņēmumam. Vari uzskaitīt vairākus amatus svarīguma secībā — piem., „Pārdošanas vadītājs, COO, CEO” — un mēs izvēlēsimies augstākās prioritātes atrasto atbilstību."
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:442
+#: lib/colt_web/live/sending/sending_accounts_live.ex:496
 #, elixir-autogen, elixir-format
 msgid "This campaign can't send until at least one is added."
 msgstr "Šī kampaņa nevar sūtīt, kamēr nav pievienots vismaz viens."
@@ -1334,12 +1339,12 @@ msgstr "Izsekošana"
 msgid "Tracking CNAME"
 msgstr "Izsekošanas CNAME"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:418
+#: lib/colt_web/live/campaigns/filters_live.ex:407
 #, elixir-autogen, elixir-format
 msgid "Trajectory"
 msgstr "Trajektorija"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:802
+#: lib/colt_web/live/campaigns/filters_live.ex:804
 #, elixir-autogen, elixir-format
 msgid "Trajectory · %{label}"
 msgstr "Trajektorija · %{label}"
@@ -1354,7 +1359,7 @@ msgstr "Pārbaudīt"
 msgid "Volume · ±%{days} days"
 msgstr "Apjoms · ±%{days} dienas"
 
-#: lib/colt_web/live/sending/pitch_live.ex:197
+#: lib/colt_web/live/sending/pitch_live.ex:198
 #, elixir-autogen, elixir-format
 msgid "We'll fill this in once you set a domain. Or type your own pitch here."
 msgstr "Mēs to aizpildīsim, tiklīdz iestatīsi domēnu. Vai arī ieraksti savu piedāvājumu šeit."
@@ -1365,7 +1370,7 @@ msgid "We'll keep pulling and enriching companies until we hit this number of na
 msgstr "Mēs turpināsim izvilkt un bagātināt uzņēmumus, līdz sasniegsim šo nosaukto kontaktu skaitu (vai beigsies atbilstības). Apmēram 1 no 5 uzņēmumiem dod kontaktu, tāpēc piltuvē būs nepieciešami ~5× tik daudz uzņēmumu."
 
 #: lib/colt_web/components/funnel.ex:20
-#: lib/colt_web/components/funnel.ex:443
+#: lib/colt_web/components/funnel.ex:447
 #, elixir-autogen, elixir-format
 msgid "Website"
 msgstr "Mājaslapa"
@@ -1375,27 +1380,27 @@ msgstr "Mājaslapa"
 msgid "What are we calling this <em>hunt</em>?"
 msgstr "Kā mēs sauksim šo <em>medību</em>?"
 
-#: lib/colt_web/components/funnel.ex:751
+#: lib/colt_web/components/funnel.ex:754
 #, elixir-autogen, elixir-format
 msgid "What makes this a <em>match</em>?"
 msgstr "Kas padara šo par <em>atbilstību</em>?"
 
-#: lib/colt_web/components/funnel.ex:750
+#: lib/colt_web/components/funnel.ex:753
 #, elixir-autogen, elixir-format
 msgid "What makes this a <em>miss</em>?"
 msgstr "Kas padara šo par <em>neatbilstību</em>?"
 
-#: lib/colt_web/live/sending/pitch_live.ex:173
+#: lib/colt_web/live/sending/pitch_live.ex:174
 #, elixir-autogen, elixir-format
 msgid "What you sell"
 msgstr "Ko tu pārdod"
 
-#: lib/colt_web/live/sending/pitch_live.ex:134
+#: lib/colt_web/live/sending/pitch_live.ex:135
 #, elixir-autogen, elixir-format
 msgid "What you sell, in your words. We read your site once and draft this for you — the AI writer reuses it on every outbound email."
 msgstr "Ko tu pārdod, taviem vārdiem. Mēs vienreiz izlasām tavu vietni un sagatavojam šo melnrakstu — MI rakstītājs to izmanto katrā izsūtāmajā e-pastā."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:506
+#: lib/colt_web/live/sending/sending_funnel_live.ex:553
 #, elixir-autogen, elixir-format
 msgid "Where the <em class=\"text-accent\">conversation</em> is going."
 msgstr "Kurp virzās <em class=\"text-accent\">saruna</em>."
@@ -1410,8 +1415,8 @@ msgstr "No kura <em>reģistra</em> mēs paņemam datus?"
 msgid "Which inboxes this campaign <em>sends through</em>."
 msgstr "Caur kurām pastkastēm šī kampaņa <em>sūta</em>."
 
-#: lib/colt_web/components/funnel.ex:43
-#: lib/colt_web/live/campaigns/funnel_live.ex:565
+#: lib/colt_web/components/funnel.ex:44
+#: lib/colt_web/live/campaigns/funnel_live.ex:601
 #, elixir-autogen, elixir-format
 msgid "Working"
 msgstr "Strādā"
@@ -1431,71 +1436,72 @@ msgstr "Apvij katru saiti caur novirzītāju tajā pašā CNAME."
 msgid "Your <em>campaigns</em>."
 msgstr "Tavas <em>kampaņas</em>."
 
-#: lib/colt_web/live/sending/pitch_live.ex:147
+#: lib/colt_web/live/sending/pitch_live.ex:148
 #, elixir-autogen, elixir-format
 msgid "Your domain"
 msgstr "Tavs domēns"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:782
-#: lib/colt_web/live/home_live.ex:696
-#: lib/colt_web/live/sending/sending_accounts_live.ex:414
-#: lib/colt_web/live/sending/sending_accounts_live.ex:515
+#: lib/colt_web/live/campaigns/filters_live.ex:784
+#: lib/colt_web/live/home_live.ex:868
+#: lib/colt_web/live/sending/sending_accounts_live.ex:468
+#: lib/colt_web/live/sending/sending_accounts_live.ex:615
 #: lib/colt_web/live/sending/variants_live.ex:204
 #, elixir-autogen, elixir-format
 msgid "active"
 msgstr "aktīvs"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:458
+#: lib/colt_web/live/sending/sending_funnel_live.ex:462
 #, elixir-autogen, elixir-format
 msgid "approved"
 msgstr "apstiprināts"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:408
-#: lib/colt_web/live/sending/sending_accounts_live.ex:518
+#: lib/colt_web/live/sending/sending_accounts_live.ex:462
+#: lib/colt_web/live/sending/sending_accounts_live.ex:618
 #, elixir-autogen, elixir-format
 msgid "auth error"
 msgstr "autentifikācijas kļūda"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:495
+#: lib/colt_web/live/sending/sending_accounts_live.ex:554
+#: lib/colt_web/live/sending/sending_accounts_live.ex:595
 #, elixir-autogen, elixir-format
 msgid "auth error — re-auth in Email accounts"
 msgstr "autentifikācijas kļūda — autentificējies no jauna sadaļā E-pasta konti"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:463
+#: lib/colt_web/live/sending/sending_funnel_live.ex:467
 #, elixir-autogen, elixir-format
 msgid "bounced"
 msgstr "atlēca"
 
-#: lib/colt_web/live/home_live.ex:372
-#: lib/colt_web/live/sending/sending_funnel_live.ex:445
-#: lib/colt_web/live/sending/sending_funnel_live.ex:461
+#: lib/colt_web/live/home_live.ex:429
+#: lib/colt_web/live/sending/sending_funnel_live.ex:449
+#: lib/colt_web/live/sending/sending_funnel_live.ex:465
 #, elixir-autogen, elixir-format
 msgid "call ready"
 msgstr "gatavs zvanam"
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:476
+#: lib/colt_web/live/account/email_account_stats_live.ex:482
 #, elixir-autogen, elixir-format
 msgid "campaign: %{campaign}"
 msgstr "kampaņa: %{campaign}"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:605
+#: lib/colt_web/live/campaigns/funnel_live.ex:654
 #, elixir-autogen, elixir-format
 msgid "companies."
 msgstr "uzņēmumi."
 
-#: lib/colt_web/components/funnel.ex:585
-#: lib/colt_web/components/funnel.ex:620
+#: lib/colt_web/components/funnel.ex:589
+#: lib/colt_web/components/funnel.ex:623
 #, elixir-autogen, elixir-format
 msgid "contact failed"
 msgstr "kontakts neizdevās"
 
-#: lib/colt_web/components/liid.ex:529
-#: lib/colt_web/live/sending/sending_funnel_live.ex:593
-#: lib/colt_web/live/sending/sending_funnel_live.ex:601
-#: lib/colt_web/live/sending/sending_funnel_live.ex:609
-#: lib/colt_web/live/sending/sending_funnel_live.ex:617
-#: lib/colt_web/live/sending/sending_funnel_live.ex:624
-#: lib/colt_web/live/sending/sending_funnel_live.ex:635
+#: lib/colt_web/components/liid.ex:609
+#: lib/colt_web/live/sending/sending_funnel_live.ex:671
+#: lib/colt_web/live/sending/sending_funnel_live.ex:679
+#: lib/colt_web/live/sending/sending_funnel_live.ex:687
+#: lib/colt_web/live/sending/sending_funnel_live.ex:695
+#: lib/colt_web/live/sending/sending_funnel_live.ex:702
+#: lib/colt_web/live/sending/sending_funnel_live.ex:713
 #, elixir-autogen, elixir-format
 msgid "contacts"
 msgstr "kontakti"
@@ -1510,13 +1516,14 @@ msgstr "kontakti / dienā · %{days}d katrs"
 msgid "days"
 msgstr "dienas"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:405
-#: lib/colt_web/live/sending/sending_accounts_live.ex:517
+#: lib/colt_web/live/sending/sending_accounts_live.ex:459
+#: lib/colt_web/live/sending/sending_accounts_live.ex:617
 #, elixir-autogen, elixir-format
 msgid "disconnected"
 msgstr "atvienots"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:494
+#: lib/colt_web/live/sending/sending_accounts_live.ex:553
+#: lib/colt_web/live/sending/sending_accounts_live.ex:594
 #, elixir-autogen, elixir-format
 msgid "disconnected — re-auth in Email accounts first"
 msgstr "atvienots — vispirms autentificējies no jauna sadaļā E-pasta konti"
@@ -1526,28 +1533,28 @@ msgstr "atvienots — vispirms autentificējies no jauna sadaļā E-pasta konti"
 msgid "draft · saved on continue"
 msgstr "melnraksts · saglabājas turpinot"
 
-#: lib/colt_web/components/funnel.ex:759
+#: lib/colt_web/components/funnel.ex:762
 #, elixir-autogen, elixir-format
 msgid "e.g. They manufacture in-house — the site just emphasises their distribution arm."
 msgstr "piem. Viņi ražo paši — vietne tikai izceļ viņu izplatīšanas pusi."
 
-#: lib/colt_web/components/funnel.ex:755
+#: lib/colt_web/components/funnel.ex:758
 #, elixir-autogen, elixir-format
 msgid "e.g. They're a pure reseller — we sell to manufacturers, not distributors."
 msgstr "piem. Viņi ir tikai tālākpārdevēji — mēs pārdodam ražotājiem, nevis izplatītājiem."
 
-#: lib/colt_web/live/sending/pitch_live.ex:211
+#: lib/colt_web/live/sending/pitch_live.ex:212
 #, elixir-autogen, elixir-format
 msgid "edited."
 msgstr "rediģēts."
 
-#: lib/colt_web/components/funnel.ex:126
+#: lib/colt_web/components/funnel.ex:127
 #, elixir-autogen, elixir-format
 msgid "elapsed: %{t}"
 msgstr "pagājis: %{t}"
 
-#: lib/colt_web/components/funnel.ex:582
-#: lib/colt_web/components/funnel.ex:617
+#: lib/colt_web/components/funnel.ex:586
+#: lib/colt_web/components/funnel.ex:620
 #, elixir-autogen, elixir-format
 msgid "email unverified"
 msgstr "e-pasts nepārbaudīts"
@@ -1567,57 +1574,57 @@ msgstr "e-pasti / mēnesī"
 msgid "end of sequence"
 msgstr "secības beigas"
 
-#: lib/colt_web/components/funnel.ex:613
+#: lib/colt_web/components/funnel.ex:616
 #, elixir-autogen, elixir-format
 msgid "enriched"
 msgstr "bagātināts"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:750
+#: lib/colt_web/live/campaigns/funnel_live.ex:805
 #, elixir-autogen, elixir-format
 msgid "enriched contact somewhere."
 msgstr "bagātināts kontakts kaut kur."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:751
+#: lib/colt_web/live/campaigns/funnel_live.ex:806
 #, elixir-autogen, elixir-format
 msgid "enriched contacts somewhere."
 msgstr "bagātināti kontakti kaut kur."
 
-#: lib/colt_web/components/funnel.ex:127
+#: lib/colt_web/components/funnel.ex:128
 #, elixir-autogen, elixir-format
 msgid "eta: %{t}"
 msgstr "paredz.: %{t}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:206
+#: lib/colt_web/live/campaigns/icp_live.ex:211
 #, elixir-autogen, elixir-format
 msgid "exclude"
 msgstr "izslēgt"
 
-#: lib/colt_web/components/funnel.ex:587
-#: lib/colt_web/components/funnel.ex:622
-#: lib/colt_web/live/account/email_account_stats_live.ex:240
-#: lib/colt_web/live/sending/sending_funnel_live.ex:464
+#: lib/colt_web/components/funnel.ex:591
+#: lib/colt_web/components/funnel.ex:625
+#: lib/colt_web/live/account/email_account_stats_live.ex:246
+#: lib/colt_web/live/sending/sending_funnel_live.ex:468
 #, elixir-autogen, elixir-format
 msgid "failed"
 msgstr "neizdevās"
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:474
+#: lib/colt_web/live/account/email_account_stats_live.ex:480
 #, elixir-autogen, elixir-format
 msgid "from %{addr}"
 msgstr "no %{addr}"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:447
+#: lib/colt_web/live/campaigns/filters_live.ex:440
 #, elixir-autogen, elixir-format
 msgid "growth = revenue Δ over 3 fiscal years"
 msgstr "izaugsme = apgrozījuma Δ 3 finanšu gados"
 
-#: lib/colt_web/components/funnel.ex:584
-#: lib/colt_web/components/funnel.ex:619
+#: lib/colt_web/components/funnel.ex:588
+#: lib/colt_web/components/funnel.ex:622
 #, elixir-autogen, elixir-format
 msgid "icp failed"
 msgstr "icp neizdevās"
 
-#: lib/colt_web/components/funnel.ex:579
-#: lib/colt_web/components/funnel.ex:614
+#: lib/colt_web/components/funnel.ex:583
+#: lib/colt_web/components/funnel.ex:617
 #, elixir-autogen, elixir-format
 msgid "icp miss"
 msgstr "icp neatbilst"
@@ -1627,13 +1634,13 @@ msgstr "icp neatbilst"
 msgid "in tz %{tz}"
 msgstr "laika joslā %{tz}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:206
+#: lib/colt_web/live/campaigns/icp_live.ex:211
 #, elixir-autogen, elixir-format
 msgid "include"
 msgstr "iekļaut"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:442
-#: lib/colt_web/live/sending/sending_funnel_live.ex:466
+#: lib/colt_web/live/sending/sending_funnel_live.ex:446
+#: lib/colt_web/live/sending/sending_funnel_live.ex:470
 #, elixir-autogen, elixir-format
 msgid "interested"
 msgstr "ieinteresēts"
@@ -1643,7 +1650,7 @@ msgstr "ieinteresēts"
 msgid "just now"
 msgstr "tikko"
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:794
+#: lib/colt_web/live/campaigns/funnel_live.ex:849
 #, elixir-autogen, elixir-format
 msgid "liid-%{slug}.csv · preview"
 msgstr "liid-%{slug}.csv · priekšskatījums"
@@ -1653,27 +1660,27 @@ msgstr "liid-%{slug}.csv · priekšskatījums"
 msgid "loading…"
 msgstr "ielādē…"
 
-#: lib/colt_web/components/funnel.ex:434
+#: lib/colt_web/components/funnel.ex:438
 #, elixir-autogen, elixir-format
 msgid "matched"
 msgstr "saskanēja"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:475
+#: lib/colt_web/live/campaigns/filters_live.ex:479
 #, elixir-autogen, elixir-format
 msgid "matches"
 msgstr "atbilst"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:654
+#: lib/colt_web/live/campaigns/filters_live.ex:658
 #, elixir-autogen, elixir-format
 msgid "max"
 msgstr "maks"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:643
+#: lib/colt_web/live/campaigns/filters_live.ex:647
 #, elixir-autogen, elixir-format
 msgid "min"
 msgstr "min"
 
-#: lib/colt_web/live/campaigns/market_live.ex:232
+#: lib/colt_web/live/campaigns/market_live.ex:233
 #, elixir-autogen, elixir-format
 msgid "never"
 msgstr "nekad"
@@ -1683,103 +1690,103 @@ msgstr "nekad"
 msgid "next %{days}d"
 msgstr "nāk. %{days}d"
 
-#: lib/colt_web/components/funnel.ex:308
+#: lib/colt_web/components/funnel.ex:310
 #, elixir-autogen, elixir-format
 msgid "no contact"
 msgstr "nav kontakta"
 
-#: lib/colt_web/components/funnel.ex:571
+#: lib/colt_web/components/funnel.ex:575
 #, elixir-autogen, elixir-format
 msgid "no contact extracted"
 msgstr "nav izvilkts kontakts"
 
-#: lib/colt_web/components/funnel.ex:581
-#: lib/colt_web/components/funnel.ex:616
+#: lib/colt_web/components/funnel.ex:585
+#: lib/colt_web/components/funnel.ex:619
 #, elixir-autogen, elixir-format
 msgid "no contacts"
 msgstr "nav kontaktu"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:544
+#: lib/colt_web/live/campaigns/filters_live.ex:548
 #, elixir-autogen, elixir-format
 msgid "no matches"
 msgstr "nav atbilstību"
 
-#: lib/colt_web/components/funnel.ex:495
+#: lib/colt_web/components/funnel.ex:499
 #, elixir-autogen, elixir-format
 msgid "no reason recorded"
 msgstr "nav reģistrēts iemesls"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:446
-#: lib/colt_web/live/sending/sending_funnel_live.ex:462
+#: lib/colt_web/live/sending/sending_funnel_live.ex:450
+#: lib/colt_web/live/sending/sending_funnel_live.ex:466
 #, elixir-autogen, elixir-format
 msgid "no reply"
 msgstr "nav atbildes"
 
-#: lib/colt_web/components/funnel.ex:580
-#: lib/colt_web/components/funnel.ex:615
+#: lib/colt_web/components/funnel.ex:584
+#: lib/colt_web/components/funnel.ex:618
 #, elixir-autogen, elixir-format
 msgid "no website"
 msgstr "nav mājaslapas"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:443
-#: lib/colt_web/live/sending/sending_funnel_live.ex:467
+#: lib/colt_web/live/sending/sending_funnel_live.ex:447
+#: lib/colt_web/live/sending/sending_funnel_live.ex:471
 #, elixir-autogen, elixir-format
 msgid "not interested"
 msgstr "nav ieinteresēts"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:762
+#: lib/colt_web/live/campaigns/filters_live.ex:764
 #, elixir-autogen, elixir-format
 msgid "of %{n}"
 msgstr "no %{n}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:468
+#: lib/colt_web/live/sending/sending_funnel_live.ex:472
 #, elixir-autogen, elixir-format
 msgid "ooo"
 msgstr "prombūtnē"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:469
+#: lib/colt_web/live/sending/sending_funnel_live.ex:473
 #, elixir-autogen, elixir-format
 msgid "other"
 msgstr "cits"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:444
+#: lib/colt_web/live/sending/sending_funnel_live.ex:448
 #, elixir-autogen, elixir-format
 msgid "out of office"
 msgstr "prombūtnē"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:411
-#: lib/colt_web/live/sending/sending_accounts_live.ex:516
+#: lib/colt_web/live/sending/sending_accounts_live.ex:465
+#: lib/colt_web/live/sending/sending_accounts_live.ex:616
 #, elixir-autogen, elixir-format
 msgid "paused"
 msgstr "apturēts"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:457
+#: lib/colt_web/live/sending/sending_funnel_live.ex:461
 #, elixir-autogen, elixir-format
 msgid "pending"
 msgstr "gaida"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:475
+#: lib/colt_web/live/campaigns/filters_live.ex:479
 #, elixir-autogen, elixir-format
 msgid "popular"
 msgstr "populāri"
 
-#: lib/colt_web/live/sending/pitch_live.ex:161
+#: lib/colt_web/live/sending/pitch_live.ex:162
 #, elixir-autogen, elixir-format
 msgid "press tab or click out to fetch. changing the domain re-fetches and overwrites the summary below."
 msgstr "spied tab vai noklikšķini ārā, lai ielādētu. domēna maiņa atkārtoti ielādē un pārraksta kopsavilkumu zemāk."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:864
+#: lib/colt_web/live/campaigns/filters_live.ex:866
 #, elixir-autogen, elixir-format
 msgid "preview"
 msgstr "priekšskatījums"
 
-#: lib/colt_web/components/funnel.ex:125
+#: lib/colt_web/components/funnel.ex:126
 #, elixir-autogen, elixir-format
 msgid "queue: %{n}"
 msgstr "rinda: %{n}"
 
-#: lib/colt_web/components/funnel.ex:611
-#: lib/colt_web/components/funnel.ex:623
+#: lib/colt_web/components/funnel.ex:614
+#: lib/colt_web/components/funnel.ex:626
 #, elixir-autogen, elixir-format
 msgid "queued"
 msgstr "rindā"
@@ -1789,78 +1796,79 @@ msgstr "rindā"
 msgid "quota"
 msgstr "kvota"
 
-#: lib/colt_web/live/sending/pitch_live.ex:183
+#: lib/colt_web/live/sending/pitch_live.ex:184
 #, elixir-autogen, elixir-format
 msgid "reading site…"
 msgstr "lasa vietni…"
 
-#: lib/colt_web/components/funnel.ex:433
+#: lib/colt_web/components/funnel.ex:437
 #, elixir-autogen, elixir-format
 msgid "rejected"
 msgstr "noraidīts"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:391
+#: lib/colt_web/live/sending/sending_accounts_live.ex:403
+#: lib/colt_web/live/sending/sending_accounts_live.ex:444
 #, elixir-autogen, elixir-format
 msgid "remove"
 msgstr "noņemt"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:460
+#: lib/colt_web/live/sending/sending_funnel_live.ex:464
 #, elixir-autogen, elixir-format
 msgid "replied"
 msgstr "atbildēja"
 
 #: lib/colt_web/components/funnel.ex:191
-#: lib/colt_web/components/funnel.ex:217
+#: lib/colt_web/components/funnel.ex:216
 #, elixir-autogen, elixir-format
 msgid "resolving..."
 msgstr "atrisina..."
 
-#: lib/colt_web/components/funnel.ex:120
+#: lib/colt_web/components/funnel.ex:121
 #, elixir-autogen, elixir-format
 msgid "running · %{workers} workers · %{rate}/s"
 msgstr "darbojas · %{workers} darbinieki · %{rate}/s"
 
-#: lib/colt_web/live/sending/pitch_live.ex:229
+#: lib/colt_web/live/sending/pitch_live.ex:230
 #: lib/colt_web/live/sending/settings_live.ex:152
 #: lib/colt_web/live/sending/write_live.ex:1018
 #, elixir-autogen, elixir-format
 msgid "saved %{at}"
 msgstr "saglabāts %{at}"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:264
+#: lib/colt_web/live/campaigns/icp_live.ex:269
 #: lib/colt_web/live/campaigns/market_live.ex:143
 #: lib/colt_web/live/campaigns/name_live.ex:97
-#: lib/colt_web/live/campaigns/target_live.ex:223
+#: lib/colt_web/live/campaigns/target_live.ex:225
 #, elixir-autogen, elixir-format
 msgid "saved."
 msgstr "saglabāts."
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:243
+#: lib/colt_web/live/account/email_account_stats_live.ex:249
 #, elixir-autogen, elixir-format
 msgid "scheduled"
 msgstr "ieplānots"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:481
+#: lib/colt_web/live/campaigns/filters_live.ex:485
 #, elixir-autogen, elixir-format
 msgid "search industries…"
 msgstr "meklēt nozares…"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:485
+#: lib/colt_web/live/campaigns/filters_live.ex:489
 #, elixir-autogen, elixir-format
 msgid "search to exclude…"
 msgstr "meklēt, lai izslēgtu…"
 
-#: lib/colt_web/live/sending/sending_accounts_live.ex:293
+#: lib/colt_web/live/sending/sending_accounts_live.ex:306
 #, elixir-autogen, elixir-format
 msgid "selected · %{total} available"
 msgstr "atlasīti · %{total} pieejami"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:459
+#: lib/colt_web/live/sending/sending_funnel_live.ex:463
 #, elixir-autogen, elixir-format
 msgid "sending"
 msgstr "sūta"
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:237
+#: lib/colt_web/live/account/email_account_stats_live.ex:243
 #, elixir-autogen, elixir-format
 msgid "sent"
 msgstr "nosūtīts"
@@ -1875,23 +1883,24 @@ msgstr "nosūtīts / dienā"
 msgid "set"
 msgstr "iestatīts"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:867
+#: lib/colt_web/live/campaigns/filters_live.ex:869
 #, elixir-autogen, elixir-format
 msgid "showing %{shown} of %{total}"
 msgstr "rāda %{shown} no %{total}"
 
-#: lib/colt_web/live/sending/pitch_live.ex:207
+#: lib/colt_web/live/sending/pitch_live.ex:208
 #, elixir-autogen, elixir-format
 msgid "site last read %{at}."
 msgstr "vietne pēdējoreiz lasīta %{at}."
 
-#: lib/colt_web/live/account/email_accounts_live.ex:283
-#: lib/colt_web/live/sending/sending_accounts_live.ex:382
+#: lib/colt_web/live/account/email_accounts_live.ex:284
+#: lib/colt_web/live/sending/sending_accounts_live.ex:394
+#: lib/colt_web/live/sending/sending_accounts_live.ex:435
 #, elixir-autogen, elixir-format
 msgid "stats"
 msgstr "statistika"
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:477
+#: lib/colt_web/live/account/email_account_stats_live.ex:483
 #, elixir-autogen, elixir-format
 msgid "status: %{status}"
 msgstr "statuss: %{status}"
@@ -1901,17 +1910,17 @@ msgstr "statuss: %{status}"
 msgid "subject line"
 msgstr "temata rinda"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:708
+#: lib/colt_web/live/sending/sending_funnel_live.ex:785
 #, elixir-autogen, elixir-format
 msgid "this bucket"
 msgstr "šī kategorija"
 
-#: lib/colt_web/live/account/email_account_stats_live.ex:475
+#: lib/colt_web/live/account/email_account_stats_live.ex:481
 #, elixir-autogen, elixir-format
 msgid "to %{addr}"
 msgstr "uz %{addr}"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:732
+#: lib/colt_web/live/sending/sending_funnel_live.ex:812
 #, elixir-autogen, elixir-format
 msgid "to feed the funnel."
 msgstr "lai papildinātu piltuvi."
@@ -1921,14 +1930,14 @@ msgstr "lai papildinātu piltuvi."
 msgid "unset"
 msgstr "nav iestatīts"
 
-#: lib/colt_web/components/funnel.ex:530
-#: lib/colt_web/live/home_live.ex:184
+#: lib/colt_web/components/funnel.ex:534
+#: lib/colt_web/live/home_live.ex:194
 #, elixir-autogen, elixir-format
 msgid "verified"
 msgstr "pārbaudīts"
 
-#: lib/colt_web/components/funnel.ex:586
-#: lib/colt_web/components/funnel.ex:621
+#: lib/colt_web/components/funnel.ex:590
+#: lib/colt_web/components/funnel.ex:624
 #, elixir-autogen, elixir-format
 msgid "verify failed"
 msgstr "pārbaude neizdevās"
@@ -1938,23 +1947,23 @@ msgstr "pārbaude neizdevās"
 msgid "wait"
 msgstr "gaidīt"
 
-#: lib/colt_web/components/funnel.ex:583
-#: lib/colt_web/components/funnel.ex:618
+#: lib/colt_web/components/funnel.ex:587
+#: lib/colt_web/components/funnel.ex:621
 #, elixir-autogen, elixir-format
 msgid "website failed"
 msgstr "mājaslapa neizdevās"
 
-#: lib/colt_web/components/funnel.ex:612
+#: lib/colt_web/components/funnel.ex:615
 #, elixir-autogen, elixir-format
 msgid "working"
 msgstr "strādā"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:864
+#: lib/colt_web/live/campaigns/filters_live.ex:866
 #, elixir-autogen, elixir-format
 msgid "· live"
 msgstr "· pieejams"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:864
+#: lib/colt_web/live/campaigns/filters_live.ex:866
 #, elixir-autogen, elixir-format
 msgid "· refreshing"
 msgstr "· atjaunina"
@@ -1969,7 +1978,7 @@ msgstr "· tad"
 msgid "⏎ to continue"
 msgstr "⏎ lai turpinātu"
 
-#: lib/colt_web/live/home_live.ex:132
+#: lib/colt_web/live/home_live.ex:138
 #, elixir-autogen, elixir-format
 msgid "Lead gen for the Baltics and <em>Nordics</em>."
 msgstr "Potenciālo klientu ģenerēšana Baltijai un <em>Ziemeļvalstīm</em>."
@@ -1989,25 +1998,25 @@ msgstr "Pārvaldīt abonementu"
 msgid "Pick a <em class=\"text-accent\">plan</em> to start enriching."
 msgstr "Izvēlies <em class=\"text-accent\">plānu</em>, lai sāktu bagātināt."
 
-#: lib/colt_web/components/liid.ex:515
+#: lib/colt_web/components/liid.ex:595
 #: lib/colt_web/live/account/billing_live.ex:95
 #, elixir-autogen, elixir-format
 msgid "Pick a plan"
 msgstr "Izvēlies plānu"
 
-#: lib/colt_web/live/pricing_live.ex:81
+#: lib/colt_web/live/pricing_live.ex:83
 #, elixir-autogen, elixir-format
 msgid "Prices are in EUR, excl. VAT. Cancel any time from the billing portal."
 msgstr "Cenas norādītas EUR, bez PVN. Atcel jebkurā laikā norēķinu portālā."
 
-#: lib/colt_web/components/liid.ex:250
-#: lib/colt_web/live/home_live.ex:80
-#: lib/colt_web/live/home_live.ex:908
-#: lib/colt_web/live/home_live.ex:1049
+#: lib/colt_web/components/liid.ex:310
+#: lib/colt_web/live/home_live.ex:86
+#: lib/colt_web/live/home_live.ex:1169
+#: lib/colt_web/live/home_live.ex:1349
 #: lib/colt_web/live/pricing_live.ex:9
 #: lib/colt_web/live/pricing_live.ex:22
-#: lib/colt_web/live/pricing_live.ex:133
-#: lib/colt_web/live/pricing_live.ex:256
+#: lib/colt_web/live/pricing_live.ex:144
+#: lib/colt_web/live/pricing_live.ex:285
 #, elixir-autogen, elixir-format
 msgid "Pricing"
 msgstr "Cenas"
@@ -2017,22 +2026,22 @@ msgstr "Cenas"
 msgid "Renews"
 msgstr "Atjaunojas"
 
-#: lib/colt_web/live/home_live.ex:190
+#: lib/colt_web/live/home_live.ex:200
 #, elixir-autogen, elixir-format
 msgid "Send"
 msgstr "Sūti"
 
-#: lib/colt_web/live/home_live.ex:987
-#: lib/colt_web/live/home_live.ex:1092
-#: lib/colt_web/live/pricing_live.ex:150
-#: lib/colt_web/live/pricing_live.ex:205
-#: lib/colt_web/live/pricing_live.ex:214
+#: lib/colt_web/live/home_live.ex:1280
+#: lib/colt_web/live/home_live.ex:1396
+#: lib/colt_web/live/pricing_live.ex:161
+#: lib/colt_web/live/pricing_live.ex:227
+#: lib/colt_web/live/pricing_live.ex:236
 #, elixir-autogen, elixir-format
 msgid "Start a campaign"
 msgstr "Sāc kampaņu"
 
-#: lib/colt_web/components/liid.ex:374
-#: lib/colt_web/live/sending/sending_funnel_live.ex:730
+#: lib/colt_web/components/liid.ex:434
+#: lib/colt_web/live/sending/sending_funnel_live.ex:810
 #, elixir-autogen, elixir-format
 msgid "Write"
 msgstr "Raksti"
@@ -2052,22 +2061,22 @@ msgstr "sazinies ar atbalstu"
 msgid "%{n} replied"
 msgstr "%{n} atbildēja"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:637
+#: lib/colt_web/live/sending/sending_funnel_live.ex:715
 #, elixir-autogen, elixir-format
 msgid "%{rate}% bounce rate"
 msgstr "%{rate}% atlēkšanas līmenis"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:626
+#: lib/colt_web/live/sending/sending_funnel_live.ex:704
 #, elixir-autogen, elixir-format
 msgid "%{rate}% failure rate"
 msgstr "%{rate}% kļūdu līmenis"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:610
+#: lib/colt_web/live/sending/sending_funnel_live.ex:688
 #, elixir-autogen, elixir-format
 msgid "%{rate}% interest"
 msgstr "%{rate}% interese"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:618
+#: lib/colt_web/live/sending/sending_funnel_live.ex:696
 #, elixir-autogen, elixir-format
 msgid "%{rate}% reply rate"
 msgstr "%{rate}% atbilžu līmenis"
@@ -2088,7 +2097,7 @@ msgstr "02 / Tirgus"
 msgid "03 / Filters"
 msgstr "03 / Filtri"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:119
+#: lib/colt_web/live/campaigns/icp_live.ex:122
 #, elixir-autogen, elixir-format
 msgid "04 / ICP"
 msgstr "04 / ICP"
@@ -2128,12 +2137,12 @@ msgstr "Automātiskā apstiprināšana ir IESLĒGTA — jaunie kontakti tiek uzr
 msgid "Auto-approve — locked. Approve a few contacts first; then new contacts get written and sent automatically."
 msgstr "Automātiskā apstiprināšana — slēgta. Vispirms apstiprini dažus kontaktus; pēc tam jaunie kontakti tiek uzrakstīti un nosūtīti automātiski."
 
-#: lib/colt_web/live/campaigns/target_live.ex:218
+#: lib/colt_web/live/campaigns/target_live.ex:220
 #, elixir-autogen, elixir-format
 msgid "Back to exclude"
 msgstr "Atpakaļ uz izslēgšanu"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:560
+#: lib/colt_web/live/sending/sending_funnel_live.ex:637
 #, elixir-autogen, elixir-format
 msgid "Bounce rate %{rate}% · above the 5% threshold. Investigate before resuming."
 msgstr "Atlēkšanas līmenis %{rate}% · virs 5% sliekšņa. Izpēti pirms turpināšanas."
@@ -2143,17 +2152,17 @@ msgstr "Atlēkšanas līmenis %{rate}% · virs 5% sliekšņa. Izpēti pirms turp
 msgid "Campaign-wide sending controls. Per-variant tuning lives under Variants."
 msgstr "Visas kampaņas sūtīšanas vadība. Atsevišķu variantu pielāgošana atrodas sadaļā Varianti."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:876
+#: lib/colt_web/live/campaigns/filters_live.ex:878
 #, elixir-autogen, elixir-format
 msgid "Category"
 msgstr "Kategorija"
 
-#: lib/colt_web/components/liid.ex:675
+#: lib/colt_web/components/liid.ex:759
 #, elixir-autogen, elixir-format
 msgid "Change"
 msgstr "Mainīt"
 
-#: lib/colt_web/components/liid.ex:684
+#: lib/colt_web/components/liid.ex:772
 #, elixir-autogen, elixir-format
 msgid "Choose campaign"
 msgstr "Izvēlies kampaņu"
@@ -2178,17 +2187,17 @@ msgstr "Kontaktu bagātināšana"
 msgid "Contacts"
 msgstr "Kontakti"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:771
+#: lib/colt_web/live/campaigns/filters_live.ex:773
 #, elixir-autogen, elixir-format
 msgid "Continue → ICP"
 msgstr "Turpināt → ICP"
 
-#: lib/colt_web/live/campaigns/icp_live.ex:261
+#: lib/colt_web/live/campaigns/icp_live.ex:266
 #, elixir-autogen, elixir-format
 msgid "Continue → exclude"
 msgstr "Turpināt → izslēgt"
 
-#: lib/colt_web/live/sending/pitch_live.ex:226
+#: lib/colt_web/live/sending/sending_accounts_live.ex:244
 #, elixir-autogen, elixir-format
 msgid "Continue → sequence"
 msgstr "Turpināt → secība"
@@ -2233,13 +2242,13 @@ msgstr "E-pastu sūtīšana"
 msgid "Emergency"
 msgstr "Ārkārtas"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:878
+#: lib/colt_web/live/campaigns/filters_live.ex:880
 #, elixir-autogen, elixir-format
 msgid "Emp"
 msgstr "Darb"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:877
-#: lib/colt_web/live/campaigns/filters_live.ex:920
+#: lib/colt_web/live/campaigns/filters_live.ex:879
+#: lib/colt_web/live/campaigns/filters_live.ex:922
 #, elixir-autogen, elixir-format
 msgid "Employees — most recent annual filing"
 msgstr "Darbinieki — jaunākais gada pārskats"
@@ -2249,15 +2258,15 @@ msgstr "Darbinieki — jaunākais gada pārskats"
 msgid "Every enriched contact has been brought into sending. New ones appear here as enrichment finds them."
 msgstr "Visi bagātinātie kontakti ir nodoti sūtīšanai. Jaunie parādīsies šeit, tiklīdz bagātināšana tos atradīs."
 
-#: lib/colt_web/components/liid.ex:366
+#: lib/colt_web/components/liid.ex:426
 #, elixir-autogen, elixir-format
 msgid "Exclude"
 msgstr "Izslēgt"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:822
-#: lib/colt_web/live/campaigns/filters_live.ex:823
-#: lib/colt_web/live/campaigns/filters_live.ex:911
-#: lib/colt_web/live/campaigns/filters_live.ex:912
+#: lib/colt_web/live/campaigns/filters_live.ex:824
+#: lib/colt_web/live/campaigns/filters_live.ex:825
+#: lib/colt_web/live/campaigns/filters_live.ex:913
+#: lib/colt_web/live/campaigns/filters_live.ex:914
 #, elixir-autogen, elixir-format
 msgid "Exclude this category from the funnel"
 msgstr "Izslēgt šo kategoriju no piltuves"
@@ -2287,7 +2296,7 @@ msgstr "Izvilkt domēnus"
 msgid "File is too large (max 20 MB)."
 msgstr "Fails ir pārāk liels (maks. 20 MB)."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:906
+#: lib/colt_web/live/sending/sending_funnel_live.ex:988
 #, elixir-autogen, elixir-format
 msgid "From:"
 msgstr "No:"
@@ -2317,7 +2326,7 @@ msgstr "Likvidācijā"
 msgid "Inactive"
 msgstr "Neaktīvs"
 
-#: lib/colt_web/components/liid.ex:519
+#: lib/colt_web/components/liid.ex:599
 #, elixir-autogen, elixir-format
 msgid "Left this period"
 msgstr "Atlicis šajā periodā"
@@ -2327,7 +2336,7 @@ msgstr "Atlicis šajā periodā"
 msgid "Marked as ICP miss and removed from sending."
 msgstr "Atzīmēts kā ICP neatbilstība un noņemts no sūtīšanas."
 
-#: lib/colt_web/live/campaigns/target_live.ex:198
+#: lib/colt_web/live/campaigns/target_live.ex:200
 #, elixir-autogen, elixir-format
 msgid "Max · %{n}"
 msgstr "Maks. · %{n}"
@@ -2342,7 +2351,7 @@ msgstr "Sasniegts mēneša limits — uzlabo savu plānu vai gaidi tā atjaunoš
 msgid "New contacts skip the editor: a job picks an active variant (fair rotation), writes it, and schedules it. Turn it on once you're happy with a couple of variants."
 msgstr "Jaunie kontakti apiet redaktoru: process izvēlas aktīvu variantu (godīga rotācija), uzraksta to un ieplāno. Ieslēdz to, kad esi apmierināts ar pāris variantiem."
 
-#: lib/colt_web/live/campaigns/funnel_live.ex:582
+#: lib/colt_web/live/campaigns/funnel_live.ex:618
 #, elixir-autogen, elixir-format
 msgid "No companies have been skipped as already contacted."
 msgstr "Neviens uzņēmums nav izlaists kā jau sazināts."
@@ -2357,7 +2366,7 @@ msgstr "Šajā failā nav atrasti e-pasta domēni."
 msgid "No inboxes found in that CSV."
 msgstr "Šajā CSV nav atrastas pastkastes."
 
-#: lib/colt_web/live/campaigns/filters_live.ex:942
+#: lib/colt_web/live/campaigns/filters_live.ex:944
 #, elixir-autogen, elixir-format
 msgid "No revenue-growth data"
 msgstr "Nav apgrozījuma izaugsmes datu"
@@ -2387,7 +2396,7 @@ msgstr "Apturēt visu šīs kampaņas sūtīšanu tagad?"
 msgid "Pick a monthly contact cap. We screen thousands of companies to find them, then draft, sequence and send from your own inboxes — ICP scoring, AI drafting, multi-domain sending and follow-ups included."
 msgstr "Izvēlies mēneša kontaktu limitu. Mēs pārbaudām tūkstošiem uzņēmumu, lai tos atrastu, pēc tam sagatavojam melnrakstus, veidojam secības un sūtām no tavām pastkastēm — iekļauta ICP vērtēšana, MI rakstīšana, sūtīšana no vairākiem domēniem un atgādinājumi."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:728
+#: lib/colt_web/live/sending/sending_funnel_live.ex:805
 #, elixir-autogen, elixir-format
 msgid "Pick another tile above, or approve more contacts under"
 msgstr "Izvēlies citu plāksni augšā vai apstiprini vairāk kontaktu sadaļā"
@@ -2407,38 +2416,38 @@ msgstr "Noņemt visus šīs kampaņas izslēgtos domēnus?"
 msgid "Remove follow-up"
 msgstr "Noņemt atgādinājumu"
 
-#: lib/colt_web/live/home_live.ex:568
+#: lib/colt_web/live/home_live.ex:673
 #: lib/colt_web/live/sending/write_live.ex:1133
 #, elixir-autogen, elixir-format
 msgid "Revenue"
 msgstr "Apgrozījums"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:937
+#: lib/colt_web/live/campaigns/filters_live.ex:939
 #, elixir-autogen, elixir-format
 msgid "Revenue grew ~10× over 3 fiscal years"
 msgstr "Apgrozījums pieaudzis ~10× 3 finanšu gados"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:938
+#: lib/colt_web/live/campaigns/filters_live.ex:940
 #, elixir-autogen, elixir-format
 msgid "Revenue grew ~2× over 3 fiscal years"
 msgstr "Apgrozījums pieaudzis ~2× 3 finanšu gados"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:939
+#: lib/colt_web/live/campaigns/filters_live.ex:941
 #, elixir-autogen, elixir-format
 msgid "Revenue growing slowly"
 msgstr "Apgrozījums aug lēni"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:940
+#: lib/colt_web/live/campaigns/filters_live.ex:942
 #, elixir-autogen, elixir-format
 msgid "Revenue roughly flat"
 msgstr "Apgrozījums aptuveni nemainīgs"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:941
+#: lib/colt_web/live/campaigns/filters_live.ex:943
 #, elixir-autogen, elixir-format
 msgid "Revenue shrinking"
 msgstr "Apgrozījums sarūk"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:883
+#: lib/colt_web/live/campaigns/filters_live.ex:885
 #, elixir-autogen, elixir-format
 msgid "Revenue trajectory over 3 fiscal years: 10× / 2× / ↗ growing / → flat / ↘ shrinking / — no data"
 msgstr "Apgrozījuma virzība 3 finanšu gados: 10× / 2× / ↗ aug / → nemainīgs / ↘ sarūk / — nav datu"
@@ -2483,7 +2492,7 @@ msgstr "Sūtīšana · Iestatījumi"
 msgid "Sending · Variants"
 msgstr "Sūtīšana · Varianti"
 
-#: lib/colt_web/components/liid.ex:376
+#: lib/colt_web/components/liid.ex:436
 #, elixir-autogen, elixir-format
 msgid "Settings"
 msgstr "Iestatījumi"
@@ -2561,7 +2570,7 @@ msgstr "Variants %{n}"
 msgid "Variant A"
 msgstr "Variants A"
 
-#: lib/colt_web/components/liid.ex:375
+#: lib/colt_web/components/liid.ex:435
 #, elixir-autogen, elixir-format
 msgid "Variants"
 msgstr "Varianti"
@@ -2571,7 +2580,7 @@ msgstr "Varianti"
 msgid "Variants — %{name}"
 msgstr "Varianti — %{name}"
 
-#: lib/colt_web/components/funnel.ex:752
+#: lib/colt_web/components/funnel.ex:755
 #, elixir-autogen, elixir-format
 msgid "What's <em>wrong</em> here?"
 msgstr "Kas šeit <em>nav</em> kārtībā?"
@@ -2586,12 +2595,12 @@ msgstr "Pirmo secību uzraksti pats. MI rakstītājs netraucē, līdz būsi nos�
 msgid "Write — %{name}"
 msgstr "Rakstīšana — %{name}"
 
-#: lib/colt_web/components/funnel.ex:711
+#: lib/colt_web/components/funnel.ex:714
 #, elixir-autogen, elixir-format
 msgid "Wrong company"
 msgstr "Nepareizs uzņēmums"
 
-#: lib/colt_web/components/funnel.ex:721
+#: lib/colt_web/components/funnel.ex:724
 #, elixir-autogen, elixir-format
 msgid "Wrong contact"
 msgstr "Nepareizs kontakts"
@@ -2621,7 +2630,7 @@ msgstr "Tavs plāns ir neaktīvs — izvēlies plānu, lai sūtītu."
 msgid "e.g. Jane Doe"
 msgstr "piem., Jānis Bērziņš"
 
-#: lib/colt_web/components/funnel.ex:763
+#: lib/colt_web/components/funnel.ex:766
 #, elixir-autogen, elixir-format
 msgid "e.g. Wrong person — this is a purchasing manager, not sales. Or: wrong company — they're a pure reseller."
 msgstr "piem., nepareizs cilvēks — šis ir iepirkumu vadītājs, nevis pārdošanas. Vai: nepareizs uzņēmums — viņi ir tikai tālākpārdevēji."
@@ -2641,7 +2650,7 @@ msgstr "nav pieejamas pastkastes — pievieno vienu sadaļā Sūtīšanas konti"
 msgid "remaining"
 msgstr "atlikušie"
 
-#: lib/colt_web/components/liid.ex:530
+#: lib/colt_web/components/liid.ex:610
 #, elixir-autogen, elixir-format
 msgid "screenings"
 msgstr "pārbaudes"
@@ -2656,91 +2665,91 @@ msgstr "sūtītāja vārds"
 msgid "sent to %{n}"
 msgstr "nosūtīts %{n}"
 
-#: lib/colt_web/live/campaigns/filters_live.ex:812
+#: lib/colt_web/live/campaigns/filters_live.ex:814
 #, elixir-autogen, elixir-format
 msgid "top categories"
 msgstr "populārākās kategorijas"
 
-#: lib/colt_web/components/liid.ex:525
+#: lib/colt_web/components/liid.ex:605
 #, elixir-autogen, elixir-format
 msgid "upgrade"
 msgstr "uzlabot"
 
-#: lib/colt_web/live/home_live.ex:864
+#: lib/colt_web/live/home_live.ex:1116
 #, elixir-autogen, elixir-format
 msgid "+ the spreadsheet, the VA, and the copy-paste between them."
 msgstr "+ tabula, asistents un kopēšana starp tiem."
 
-#: lib/colt_web/live/home_live.ex:969
-#: lib/colt_web/live/pricing_live.ex:181
+#: lib/colt_web/live/home_live.ex:1258
+#: lib/colt_web/live/pricing_live.ex:200
 #, elixir-autogen, elixir-format
 msgid "/mo"
 msgstr "/mēn"
 
-#: lib/colt_web/live/home_live.ex:179
+#: lib/colt_web/live/home_live.ex:189
 #, elixir-autogen, elixir-format
 msgid "2,400 with real contacts"
 msgstr "2400 ar reāliem kontaktiem"
 
-#: lib/colt_web/live/home_live.ex:209
+#: lib/colt_web/live/home_live.ex:221
 #, elixir-autogen, elixir-format
 msgid "230 want to talk"
 msgstr "230 grib runāt"
 
-#: lib/colt_web/live/home_live.ex:609
+#: lib/colt_web/live/home_live.ex:745
 #, elixir-autogen, elixir-format
 msgid "3 inboxes"
 msgstr "3 pastkastes"
 
-#: lib/colt_web/live/home_live.ex:164
+#: lib/colt_web/live/home_live.ex:172
 #, elixir-autogen, elixir-format
 msgid "300k → 10k that fit"
 msgstr "300k → 10k, kas atbilst"
 
-#: lib/colt_web/live/home_live.ex:347
+#: lib/colt_web/live/home_live.ex:377
 #, elixir-autogen, elixir-format
 msgid "312 in sequence"
 msgstr "312 secībā"
 
-#: lib/colt_web/live/home_live.ex:931
-#: lib/colt_web/live/pricing_live.ex:72
+#: lib/colt_web/live/home_live.ex:1210
+#: lib/colt_web/live/pricing_live.ex:74
 #, elixir-autogen, elixir-format
 msgid "<b>1,000</b> contacts / month"
 msgstr "<b>1000</b> kontaktu / mēnesī"
 
-#: lib/colt_web/live/home_live.ex:923
-#: lib/colt_web/live/pricing_live.ex:58
+#: lib/colt_web/live/home_live.ex:1197
+#: lib/colt_web/live/pricing_live.ex:60
 #, elixir-autogen, elixir-format
 msgid "<b>200</b> contacts / month"
 msgstr "<b>200</b> kontaktu / mēnesī"
 
-#: lib/colt_web/live/home_live.ex:915
-#: lib/colt_web/live/pricing_live.ex:43
+#: lib/colt_web/live/home_live.ex:1183
+#: lib/colt_web/live/pricing_live.ex:45
 #, elixir-autogen, elixir-format
 msgid "<b>50</b> contacts / month"
 msgstr "<b>50</b> kontaktu / mēnesī"
 
-#: lib/colt_web/live/home_live.ex:616
+#: lib/colt_web/live/home_live.ex:754
 #, elixir-autogen, elixir-format
 msgid "<strong>A real person calls your interested leads</strong> — to book the meeting, refine your offer, and sharpen your ICP from real conversations."
 msgstr "<strong>Īsts cilvēks piezvana taviem ieinteresētajiem potenciālajiem klientiem</strong> — lai rezervētu tikšanos, precizētu tavu piedāvājumu un asinātu tavu ICP no reālām sarunām."
 
-#: lib/colt_web/live/home_live.ex:596
+#: lib/colt_web/live/home_live.ex:728
 #, elixir-autogen, elixir-format
 msgid "<strong>The AI learns from a few of your emails</strong> and drafts the whole sequence. It sends across multiple inboxes on a human schedule — and a reply pauses it."
 msgstr "<strong>MI mācās no dažiem taviem e-pastiem</strong> un sagatavo visu secību. Tā sūta no vairākām pastkastēm cilvēciskā grafikā — un atbilde to aptur."
 
-#: lib/colt_web/live/home_live.ex:803
+#: lib/colt_web/live/home_live.ex:1029
 #, elixir-autogen, elixir-format
 msgid "A separate sequencer (Instantly, Smartlead)"
 msgstr "Atsevišķs sekvencētājs (Instantly, Smartlead)"
 
-#: lib/colt_web/live/home_live.ex:802
+#: lib/colt_web/live/home_live.ex:1024
 #, elixir-autogen, elixir-format
 msgid "AI in your voice; you approve"
 msgstr "MI tavā balsī; tu apstiprini"
 
-#: lib/colt_web/live/home_live.ex:799
+#: lib/colt_web/live/home_live.ex:1006
 #, elixir-autogen, elixir-format
 msgid "AI reads each site, keeps only the fits"
 msgstr "MI izlasa katru mājaslapu un patur tikai atbilstošos"
@@ -2750,62 +2759,62 @@ msgstr "MI izlasa katru mājaslapu un patur tikai atbilstošos"
 msgid "All caught <em>up</em>."
 msgstr "Viss <em>paveikts</em>."
 
-#: lib/colt_web/live/home_live.ex:940
+#: lib/colt_web/live/home_live.ex:1219
 #, elixir-autogen, elixir-format
 msgid "All plans include ICP AI matching, multi-domain sending, reply handling, and sequences with working-hour scheduling."
 msgstr "Visi plāni ietver ICP MI atbilstību, sūtīšanu no vairākiem domēniem, atbilžu apstrādi un secības ar darba laika grafiku."
 
-#: lib/colt_web/live/home_live.ex:584
+#: lib/colt_web/live/home_live.ex:710
 #, elixir-autogen, elixir-format
 msgid "And the AI checks each company <strong>actually fits your ICP</strong>, so you only ever email real prospects."
 msgstr "Un MI pārbauda, vai katrs uzņēmums <strong>tiešām atbilst tavam ICP</strong>, tā tu sūti e-pastus tikai īstiem potenciālajiem klientiem."
 
-#: lib/colt_web/live/home_live.ex:788
+#: lib/colt_web/live/home_live.ex:986
 #, elixir-autogen, elixir-format
 msgid "Apollo + automation tools"
 msgstr "Apollo + automatizācijas rīki"
 
-#: lib/colt_web/live/home_live.ex:349
+#: lib/colt_web/live/home_live.ex:380
 #, elixir-autogen, elixir-format
 msgid "Auto-approve on"
 msgstr "Automātiskā apstiprināšana ieslēgta"
 
-#: lib/colt_web/live/home_live.ex:539
+#: lib/colt_web/live/home_live.ex:631
 #, elixir-autogen, elixir-format
 msgid "B2B SaaS selling to enterprise, 10–50 people, raised a seed round, struggling to scale outbound from a tiny founding team"
 msgstr "B2B SaaS, kas pārdod lielajiem uzņēmumiem, 10–50 cilvēku, piesaistījuši sēklas finansējumu, grūti mērogot izejošo pārdošanu no nelielas dibinātāju komandas"
 
-#: lib/colt_web/live/home_live.ex:801
+#: lib/colt_web/live/home_live.ex:1017
 #, elixir-autogen, elixir-format
 msgid "Bolt on MillionVerifier / NeverBounce"
 msgstr "Pieskrūvē MillionVerifier / NeverBounce"
 
-#: lib/colt_web/live/home_live.ex:785
+#: lib/colt_web/live/home_live.ex:983
 #, elixir-autogen, elixir-format
 msgid "By hand"
 msgstr "Ar rokām"
 
-#: lib/colt_web/live/home_live.ex:369
+#: lib/colt_web/live/home_live.ex:405
 #, elixir-autogen, elixir-format
 msgid "CEO · Fendr"
 msgstr "CEO · Fendr"
 
-#: lib/colt_web/live/home_live.ex:371
+#: lib/colt_web/live/home_live.ex:420
 #, elixir-autogen, elixir-format
 msgid "CTO · Pinta"
 msgstr "CTO · Pinta"
 
-#: lib/colt_web/live/home_live.ex:618
+#: lib/colt_web/live/home_live.ex:760
 #, elixir-autogen, elixir-format
 msgid "Call queue"
 msgstr "Zvanu rinda"
 
-#: lib/colt_web/live/home_live.ex:804
+#: lib/colt_web/live/home_live.ex:1033
 #, elixir-autogen, elixir-format
 msgid "Call the prospects"
 msgstr "Apzvani potenciālos klientus"
 
-#: lib/colt_web/live/home_live.ex:861
+#: lib/colt_web/live/home_live.ex:1113
 #, elixir-autogen, elixir-format
 msgid "Calling"
 msgstr "Zvanīšana"
@@ -2816,166 +2825,166 @@ msgstr "Zvanīšana"
 msgid "Campaign name"
 msgstr "Kampaņas nosaukums"
 
-#: lib/colt_web/live/home_live.ex:583
+#: lib/colt_web/live/home_live.ex:703
 #, elixir-autogen, elixir-format
 msgid "Contacts come <strong>from the company's own site</strong>, with the registry synced nightly — fresh and correct, not a years-old dump."
 msgstr "Kontakti nāk <strong>no paša uzņēmuma mājaslapas</strong>, ar reģistru, kas tiek sinhronizēts katru nakti — svaigi un pareizi, nevis gadiem vecs izmests saraksts."
 
-#: lib/colt_web/live/home_live.ex:1059
-#: lib/colt_web/live/pricing_live.ex:266
+#: lib/colt_web/live/home_live.ex:1360
+#: lib/colt_web/live/pricing_live.ex:296
 #, elixir-autogen, elixir-format
 msgid "Data from national business registries, synced nightly."
 msgstr "Dati no nacionālajiem uzņēmumu reģistriem, sinhronizēti katru nakti."
 
-#: lib/colt_web/live/home_live.ex:808
+#: lib/colt_web/live/home_live.ex:1046
 #, elixir-autogen, elixir-format
 msgid "Days · 4–5 tools"
 msgstr "Dienas · 4–5 rīki"
 
-#: lib/colt_web/live/home_live.ex:530
+#: lib/colt_web/live/home_live.ex:616
 #, elixir-autogen, elixir-format
 msgid "Describe who you sell to."
 msgstr "Apraksti, kam tu pārdod."
 
-#: lib/colt_web/live/home_live.ex:800
+#: lib/colt_web/live/home_live.ex:1010
 #, elixir-autogen, elixir-format
 msgid "Dig through each site"
 msgstr "Rok cauri katrai mājaslapai"
 
-#: lib/colt_web/live/home_live.ex:633
+#: lib/colt_web/live/home_live.ex:786
 #, elixir-autogen, elixir-format
 msgid "Discovery call · refine the offer"
 msgstr "Iepazīšanās zvans · precizē piedāvājumu"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1093
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1180
 #, elixir-autogen, elixir-format
 msgid "Draft"
 msgstr "Melnraksts"
 
-#: lib/colt_web/live/home_live.ex:607
+#: lib/colt_web/live/home_live.ex:743
 #, elixir-autogen, elixir-format
 msgid "Drafted in your voice"
 msgstr "Uzrakstīts tavā balsī"
 
-#: lib/colt_web/live/home_live.ex:600
+#: lib/colt_web/live/home_live.ex:736
 #, elixir-autogen, elixir-format
 msgid "Email 1 — intro"
 msgstr "1. e-pasts — iepazīšanās"
 
-#: lib/colt_web/live/home_live.ex:602
+#: lib/colt_web/live/home_live.ex:738
 #, elixir-autogen, elixir-format
 msgid "Email 2 — follow-up"
 msgstr "2. e-pasts — atgādinājums"
 
-#: lib/colt_web/live/home_live.ex:604
+#: lib/colt_web/live/home_live.ex:740
 #, elixir-autogen, elixir-format
 msgid "Email 3 — last touch"
 msgstr "3. e-pasts — pēdējais pieskāriens"
 
-#: lib/colt_web/live/home_live.ex:859
+#: lib/colt_web/live/home_live.ex:1111
 #, elixir-autogen, elixir-format
 msgid "Email verification"
 msgstr "E-pastu pārbaude"
 
-#: lib/colt_web/live/home_live.ex:175
+#: lib/colt_web/live/home_live.ex:183
 #, elixir-autogen, elixir-format
 msgid "Enrich"
 msgstr "Bagātināt"
 
-#: lib/colt_web/live/home_live.ex:586
+#: lib/colt_web/live/home_live.ex:716
 #, elixir-autogen, elixir-format
 msgid "Enriched contacts"
 msgstr "Bagātinātie kontakti"
 
-#: lib/colt_web/live/home_live.ex:1019
+#: lib/colt_web/live/home_live.ex:1314
 #, elixir-autogen, elixir-format
 msgid "Estonia live today · Finland, Latvia, Lithuania, Sweden & Norway soon."
 msgstr "Igaunija pieejama jau šodien · Somija, Latvija, Lietuva, Zviedrija un Norvēģija drīzumā."
 
-#: lib/colt_web/live/home_live.ex:306
+#: lib/colt_web/live/home_live.ex:328
 #, elixir-autogen, elixir-format
 msgid "Everything you need for cold <em>outreach</em>."
 msgstr "Viss, kas vajadzīgs aukstajai <em>uzrunāšanai</em>."
 
-#: lib/colt_web/live/home_live.ex:160
+#: lib/colt_web/live/home_live.ex:166
 #, elixir-autogen, elixir-format
 msgid "Filter"
 msgstr "Filtrēt"
 
-#: lib/colt_web/live/home_live.ex:798
+#: lib/colt_web/live/home_live.ex:997
 #, elixir-autogen, elixir-format
 msgid "Find companies in your market"
 msgstr "Atrodi uzņēmumus savā tirgū"
 
-#: lib/colt_web/live/home_live.ex:800
+#: lib/colt_web/live/home_live.ex:1009
 #, elixir-autogen, elixir-format
 msgid "Find contacts & emails"
 msgstr "Atrodi kontaktus un e-pastus"
 
-#: lib/colt_web/live/home_live.ex:135
+#: lib/colt_web/live/home_live.ex:141
 #, elixir-autogen, elixir-format
 msgid "Find who fits, reach them in your voice — and we'll even make the calls."
 msgstr "Atrodi tos, kas atbilst, uzrunā viņus savā balsī — un mēs pat piezvanīsim."
 
-#: lib/colt_web/live/home_live.ex:873
+#: lib/colt_web/live/home_live.ex:1129
 #, elixir-autogen, elixir-format
 msgid "Finds, fits, verifies, writes, sequences across inboxes — and makes the calls."
 msgstr "Atrod, atlasa, pārbauda, raksta, sekvencē no vairākām pastkastēm — un piezvana."
 
-#: lib/colt_web/live/home_live.ex:922
-#: lib/colt_web/live/pricing_live.ex:53
+#: lib/colt_web/live/home_live.ex:1193
+#: lib/colt_web/live/pricing_live.ex:55
 #, elixir-autogen, elixir-format
 msgid "For a running outbound motion."
 msgstr "Strādājošam izejošās pārdošanas procesam."
 
-#: lib/colt_web/live/home_live.ex:914
-#: lib/colt_web/live/pricing_live.ex:39
+#: lib/colt_web/live/home_live.ex:1180
+#: lib/colt_web/live/pricing_live.ex:41
 #, elixir-autogen, elixir-format
 msgid "For testing your first list."
 msgstr "Pirmā saraksta izmēģināšanai."
 
-#: lib/colt_web/live/home_live.ex:930
-#: lib/colt_web/live/pricing_live.ex:68
+#: lib/colt_web/live/home_live.ex:1207
+#: lib/colt_web/live/pricing_live.ex:70
 #, elixir-autogen, elixir-format
 msgid "For volume across markets."
 msgstr "Apjomam vairākos tirgos."
 
-#: lib/colt_web/live/home_live.ex:370
+#: lib/colt_web/live/home_live.ex:413
 #, elixir-autogen, elixir-format
 msgid "Founder · Voolt"
 msgstr "Dibinātājs · Voolt"
 
-#: lib/colt_web/live/home_live.ex:520
+#: lib/colt_web/live/home_live.ex:605
 #, elixir-autogen, elixir-format
 msgid "From a sentence about your customer to <em>booked calls</em>."
 msgstr "No viena teikuma par tavu klientu līdz <em>rezervētiem zvaniem</em>."
 
-#: lib/colt_web/live/home_live.ex:800
+#: lib/colt_web/live/home_live.ex:1012
 #, elixir-autogen, elixir-format
 msgid "From the company's own site"
 msgstr "No paša uzņēmuma mājaslapas"
 
-#: lib/colt_web/live/home_live.ex:798
+#: lib/colt_web/live/home_live.ex:998
 #, elixir-autogen, elixir-format
 msgid "Google + lists, copy-paste"
 msgstr "Google + saraksti, kopēšana"
 
-#: lib/colt_web/live/home_live.ex:785
+#: lib/colt_web/live/home_live.ex:983
 #, elixir-autogen, elixir-format
 msgid "Google + spreadsheets"
 msgstr "Google + tabulas"
 
-#: lib/colt_web/live/home_live.ex:372
+#: lib/colt_web/live/home_live.ex:427
 #, elixir-autogen, elixir-format
 msgid "Head of Sales · Roov"
 msgstr "Pārdošanas vadītājs · Roov"
 
-#: lib/colt_web/live/home_live.ex:393
+#: lib/colt_web/live/home_live.ex:458
 #, elixir-autogen, elixir-format
 msgid "Hi Mart — noticed Fendr's been hiring on the ops side this quarter. We help Estonian SaaS teams pull verified buyer contacts straight from the registry instead of guessing."
 msgstr "Sveiks, Mart — pamanīju, ka Fendr šajā ceturksnī pieņem darbā operāciju pusē. Mēs palīdzam Igaunijas SaaS komandām iegūt pārbaudītus pircēju kontaktus tieši no reģistra, nevis minēt."
 
-#: lib/colt_web/live/home_live.ex:809
+#: lib/colt_web/live/home_live.ex:1049
 #, elixir-autogen, elixir-format
 msgid "Hours · one tool"
 msgstr "Stundas · viens rīks"
@@ -2985,37 +2994,37 @@ msgstr "Stundas · viens rīks"
 msgid "How many <em>contacts</em> do you want?"
 msgstr "Cik daudz <em>kontaktu</em> tu vēlies?"
 
-#: lib/colt_web/live/home_live.ex:917
-#: lib/colt_web/live/home_live.ex:925
-#: lib/colt_web/live/home_live.ex:933
-#: lib/colt_web/live/pricing_live.ex:45
-#: lib/colt_web/live/pricing_live.ex:60
-#: lib/colt_web/live/pricing_live.ex:74
+#: lib/colt_web/live/home_live.ex:1185
+#: lib/colt_web/live/home_live.ex:1199
+#: lib/colt_web/live/home_live.ex:1212
+#: lib/colt_web/live/pricing_live.ex:47
+#: lib/colt_web/live/pricing_live.ex:62
+#: lib/colt_web/live/pricing_live.ex:76
 #, elixir-autogen, elixir-format
 msgid "ICP AI matching"
 msgstr "ICP MI atbilstība"
 
-#: lib/colt_web/live/home_live.ex:533
+#: lib/colt_web/live/home_live.ex:625
 #, elixir-autogen, elixir-format
 msgid "Ideal customer"
 msgstr "Ideālais klients"
 
-#: lib/colt_web/live/home_live.ex:804
+#: lib/colt_web/live/home_live.ex:1034
 #, elixir-autogen, elixir-format
 msgid "If you find the time"
 msgstr "Ja atrodi laiku"
 
-#: lib/colt_web/live/home_live.ex:814
+#: lib/colt_web/live/home_live.ex:1055
 #, elixir-autogen, elixir-format
 msgid "Illustrative, for landing ~100 prospects that match your ICP."
 msgstr "Ilustratīvi, lai iegūtu ~100 potenciālos klientus, kas atbilst tavam ICP."
 
-#: lib/colt_web/live/home_live.ex:340
+#: lib/colt_web/live/home_live.ex:367
 #, elixir-autogen, elixir-format
 msgid "Inboxes"
 msgstr "Pastkastes"
 
-#: lib/colt_web/live/home_live.ex:571
+#: lib/colt_web/live/home_live.ex:687
 #, elixir-autogen, elixir-format
 msgid "Industry: SaaS"
 msgstr "Nozare: SaaS"
@@ -3025,96 +3034,96 @@ msgstr "Nozare: SaaS"
 msgid "Language"
 msgstr "Valoda"
 
-#: lib/colt_web/live/home_live.ex:1052
-#: lib/colt_web/live/pricing_live.ex:259
+#: lib/colt_web/live/home_live.ex:1352
+#: lib/colt_web/live/pricing_live.ex:288
 #, elixir-autogen, elixir-format
 msgid "Legal"
 msgstr "Juridiskā informācija"
 
-#: lib/colt_web/live/home_live.ex:851
+#: lib/colt_web/live/home_live.ex:1103
 #, elixir-autogen, elixir-format
 msgid "Liid does the whole job — here's the stack it replaces."
 msgstr "Liid izdara visu darbu — lūk, rīku kopums, ko tas aizstāj."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1075
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1162
 #, elixir-autogen, elixir-format
 msgid "Manual"
 msgstr "Manuāli"
 
-#: lib/colt_web/live/home_live.ex:803
+#: lib/colt_web/live/home_live.ex:1028
 #, elixir-autogen, elixir-format
 msgid "Manual, one inbox"
 msgstr "Manuāli, viena pastkaste"
 
-#: lib/colt_web/live/home_live.ex:378
+#: lib/colt_web/live/home_live.ex:437
 #, elixir-autogen, elixir-format
 msgid "Mart Tamm — Fendr"
 msgstr "Mart Tamm — Fendr"
 
-#: lib/colt_web/live/home_live.ex:799
+#: lib/colt_web/live/home_live.ex:1003
 #, elixir-autogen, elixir-format
 msgid "Match them to your ICP"
 msgstr "Saskaņo tos ar tavu ICP"
 
-#: lib/colt_web/live/home_live.ex:965
-#: lib/colt_web/live/pricing_live.ex:177
+#: lib/colt_web/live/home_live.ex:1254
+#: lib/colt_web/live/pricing_live.ex:196
 #, elixir-autogen, elixir-format
 msgid "Most popular"
 msgstr "Populārākais"
 
-#: lib/colt_web/live/home_live.ex:918
-#: lib/colt_web/live/home_live.ex:926
-#: lib/colt_web/live/home_live.ex:934
-#: lib/colt_web/live/pricing_live.ex:46
-#: lib/colt_web/live/pricing_live.ex:61
-#: lib/colt_web/live/pricing_live.ex:75
+#: lib/colt_web/live/home_live.ex:1186
+#: lib/colt_web/live/home_live.ex:1200
+#: lib/colt_web/live/home_live.ex:1213
+#: lib/colt_web/live/pricing_live.ex:48
+#: lib/colt_web/live/pricing_live.ex:63
+#: lib/colt_web/live/pricing_live.ex:77
 #, elixir-autogen, elixir-format
 msgid "Multi-domain sending"
 msgstr "Sūtīšana no vairākiem domēniem"
 
-#: lib/colt_web/live/home_live.ex:803
+#: lib/colt_web/live/home_live.ex:1030
 #, elixir-autogen, elixir-format
 msgid "Multi-inbox sequences, human schedule"
 msgstr "Secības no vairākām pastkastēm, cilvēcisks grafiks"
 
-#: lib/colt_web/live/home_live.ex:563
+#: lib/colt_web/live/home_live.ex:661
 #, elixir-autogen, elixir-format
 msgid "Narrow by the numbers that matter."
 msgstr "Sašaurini pēc skaitļiem, kas ir svarīgi."
 
-#: lib/colt_web/live/home_live.ex:804
+#: lib/colt_web/live/home_live.ex:1035
 #, elixir-autogen, elixir-format
 msgid "Not their job"
 msgstr "Nav viņu uzdevums"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:722
+#: lib/colt_web/live/sending/sending_funnel_live.ex:799
 #, elixir-autogen, elixir-format
 msgid "Nothing in <em class=\"text-accent italic font-semibold\">%{bucket}</em> yet."
 msgstr "Sadaļā <em class=\"text-accent italic font-semibold\">%{bucket}</em> vēl nekā nav."
 
-#: lib/colt_web/live/home_live.ex:800
+#: lib/colt_web/live/home_live.ex:1011
 #, elixir-autogen, elixir-format
 msgid "Often missing or out of date"
 msgstr "Bieži trūkst vai novecojuši"
 
-#: lib/colt_web/live/home_live.ex:802
+#: lib/colt_web/live/home_live.ex:1022
 #, elixir-autogen, elixir-format
 msgid "One by one"
 msgstr "Vienu pēc otra"
 
-#: lib/colt_web/live/home_live.ex:849
-#: lib/colt_web/live/home_live.ex:876
+#: lib/colt_web/live/home_live.ex:1101
+#: lib/colt_web/live/home_live.ex:1135
 #, elixir-autogen, elixir-format
 msgid "One login"
 msgstr "Viena pieslēgšanās"
 
-#: lib/colt_web/live/home_live.ex:909
+#: lib/colt_web/live/home_live.ex:1170
 #: lib/colt_web/live/pricing_live.ex:25
 #, elixir-autogen, elixir-format
 msgid "One price for the <em>whole</em> funnel."
 msgstr "Viena cena par <em>visu</em> piltuvi."
 
-#: lib/colt_web/live/home_live.ex:850
+#: lib/colt_web/live/home_live.ex:1102
 #, elixir-autogen, elixir-format
 msgid "One tool, not <em>five</em>."
 msgstr "Viens rīks, nevis <em>pieci</em>."
@@ -3124,79 +3133,79 @@ msgstr "Viens rīks, nevis <em>pieci</em>."
 msgid "Payment <em class=\"text-amber\">past due</em>."
 msgstr "Maksājums <em class=\"text-amber\">nokavēts</em>."
 
-#: lib/colt_web/live/home_live.ex:548
+#: lib/colt_web/live/home_live.ex:640
 #, elixir-autogen, elixir-format
 msgid "Pick your market."
 msgstr "Izvēlies savu tirgu."
 
-#: lib/colt_web/live/home_live.ex:935
-#: lib/colt_web/live/pricing_live.ex:76
+#: lib/colt_web/live/home_live.ex:1214
+#: lib/colt_web/live/pricing_live.ex:78
 #, elixir-autogen, elixir-format
 msgid "Priority reply funneling"
 msgstr "Prioritāra atbilžu plūsma"
 
-#: lib/colt_web/live/home_live.ex:1053
-#: lib/colt_web/live/pricing_live.ex:260
+#: lib/colt_web/live/home_live.ex:1353
+#: lib/colt_web/live/pricing_live.ex:289
 #, elixir-autogen, elixir-format
 msgid "Privacy"
 msgstr "Privātums"
 
-#: lib/colt_web/live/home_live.ex:74
-#: lib/colt_web/live/home_live.ex:1042
-#: lib/colt_web/live/pricing_live.ex:127
-#: lib/colt_web/live/pricing_live.ex:249
+#: lib/colt_web/live/home_live.ex:77
+#: lib/colt_web/live/home_live.ex:1342
+#: lib/colt_web/live/pricing_live.ex:135
+#: lib/colt_web/live/pricing_live.ex:278
 #, elixir-autogen, elixir-format
 msgid "Product"
 msgstr "Produkts"
 
-#: lib/colt_web/live/home_live.ex:857
+#: lib/colt_web/live/home_live.ex:1109
 #, elixir-autogen, elixir-format
 msgid "Prospecting & data"
 msgstr "Klientu meklēšana un dati"
 
-#: lib/colt_web/live/home_live.ex:390
+#: lib/colt_web/live/home_live.ex:455
 #, elixir-autogen, elixir-format
 msgid "Quick question about Fendr's onboarding"
 msgstr "Īss jautājums par Fendr ievadprocesu"
 
-#: lib/colt_web/live/home_live.ex:799
+#: lib/colt_web/live/home_live.ex:1004
 #, elixir-autogen, elixir-format
 msgid "Read every website yourself"
 msgstr "Pats izlasi katru mājaslapu"
 
-#: lib/colt_web/live/home_live.ex:582
+#: lib/colt_web/live/home_live.ex:700
 #, elixir-autogen, elixir-format
 msgid "Real contacts, checked twice."
 msgstr "Īsti kontakti, divreiz pārbaudīti."
 
-#: lib/colt_web/live/home_live.ex:551
+#: lib/colt_web/live/home_live.ex:649
 #, elixir-autogen, elixir-format
 msgid "Registry"
 msgstr "Reģistrs"
 
-#: lib/colt_web/live/home_live.ex:366
+#: lib/colt_web/live/home_live.ex:397
 #, elixir-autogen, elixir-format
 msgid "Replied · Interested"
 msgstr "Atbildēja · Ieinteresēts"
 
-#: lib/colt_web/live/home_live.ex:339
+#: lib/colt_web/live/home_live.ex:366
 #, elixir-autogen, elixir-format
 msgid "Replies"
 msgstr "Atbildes"
 
-#: lib/colt_web/live/home_live.ex:1046
-#: lib/colt_web/live/pricing_live.ex:253
+#: lib/colt_web/live/home_live.ex:1346
+#: lib/colt_web/live/pricing_live.ex:282
 #, elixir-autogen, elixir-format
 msgid "Reply handling"
 msgstr "Atbilžu apstrāde"
 
-#: lib/colt_web/live/home_live.ex:919
-#: lib/colt_web/live/pricing_live.ex:47
+#: lib/colt_web/live/home_live.ex:1187
+#: lib/colt_web/live/pricing_live.ex:49
 #, elixir-autogen, elixir-format
 msgid "Reply handling & sequences"
 msgstr "Atbilžu apstrāde un secības"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1013
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1100
 #, elixir-autogen, elixir-format
 msgid "Reply · You"
 msgstr "Atbilde · Tu"
@@ -3206,64 +3215,64 @@ msgstr "Atbilde · Tu"
 msgid "Required for opens/clicks. One CNAME at your DNS provider, reused across all sending accounts. Configure under <span class=\"text-inkSoft font-medium\">/admin/tracking-domain</span>."
 msgstr "Nepieciešams atvēršanu/klikšķu izsekošanai. Viens CNAME tava DNS pakalpojumu sniedzēja pusē, izmantojams visos sūtīšanas kontos. Konfigurē sadaļā <span class=\"text-inkSoft font-medium\">/admin/tracking-domain</span>."
 
-#: lib/colt_web/live/home_live.ex:564
+#: lib/colt_web/live/home_live.ex:664
 #, elixir-autogen, elixir-format
 msgid "Revenue, employees, industry, growth — the <strong>count updates as you drag</strong>. You're in control of exactly who's left."
 msgstr "Apgrozījums, darbinieki, nozare, izaugsme — <strong>skaits atjaunojas, kamēr velc</strong>. Tu pilnībā kontrolē, kurš paliek."
 
-#: lib/colt_web/live/home_live.ex:659
+#: lib/colt_web/live/home_live.ex:822
 #, elixir-autogen, elixir-format
 msgid "STEP"
 msgstr "SOLIS"
 
-#: lib/colt_web/live/home_live.ex:930
-#: lib/colt_web/live/pricing_live.ex:66
+#: lib/colt_web/live/home_live.ex:1205
+#: lib/colt_web/live/pricing_live.ex:68
 #, elixir-autogen, elixir-format
 msgid "Scale"
 msgstr "Scale"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1099
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1186
 #, elixir-autogen, elixir-format
 msgid "Scheduled"
 msgstr "Ieplānots"
 
-#: lib/colt_web/live/home_live.ex:145
+#: lib/colt_web/live/home_live.ex:151
 #, elixir-autogen, elixir-format
 msgid "See how it works"
 msgstr "Skaties, kā tas darbojas"
 
-#: lib/colt_web/live/home_live.ex:803
+#: lib/colt_web/live/home_live.ex:1027
 #, elixir-autogen, elixir-format
 msgid "Send & follow up"
 msgstr "Sūti un atgādini"
 
-#: lib/colt_web/live/home_live.ex:346
+#: lib/colt_web/live/home_live.ex:374
 #, elixir-autogen, elixir-format
 msgid "Sending — Fendr ICP"
 msgstr "Sūtīšana — Fendr ICP"
 
-#: lib/colt_web/live/home_live.ex:385
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1081
+#: lib/colt_web/live/home_live.ex:448
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1168
 #, elixir-autogen, elixir-format
 msgid "Sent"
 msgstr "Nosūtīts"
 
-#: lib/colt_web/live/home_live.ex:414
+#: lib/colt_web/live/home_live.ex:487
 #, elixir-autogen, elixir-format
 msgid "Sequence paused · sorted into Interested"
 msgstr "Secība apturēta · ievietots sadaļā Ieinteresēts"
 
-#: lib/colt_web/live/home_live.ex:595
+#: lib/colt_web/live/home_live.ex:725
 #, elixir-autogen, elixir-format
 msgid "Sequenced in your voice."
 msgstr "Sekvencēts tavā balsī."
 
-#: lib/colt_web/live/home_live.ex:860
+#: lib/colt_web/live/home_live.ex:1112
 #, elixir-autogen, elixir-format
 msgid "Sequencer + inboxes"
 msgstr "Sekvencētājs + pastkastes"
 
-#: lib/colt_web/live/home_live.ex:338
+#: lib/colt_web/live/home_live.ex:365
 #, elixir-autogen, elixir-format
 msgid "Sequences"
 msgstr "Secības"
@@ -3273,43 +3282,43 @@ msgstr "Secības"
 msgid "Skip the <em>already contacted</em>."
 msgstr "Izlaid <em>jau sazinātos</em>."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1117
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1204
 #, elixir-autogen, elixir-format
 msgid "Skipped"
 msgstr "Izlaists"
 
-#: lib/colt_web/live/home_live.ex:914
-#: lib/colt_web/live/pricing_live.ex:37
+#: lib/colt_web/live/home_live.ex:1178
+#: lib/colt_web/live/pricing_live.ex:39
 #, elixir-autogen, elixir-format
 msgid "Starter"
 msgstr "Starter"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1014
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1101
 #, elixir-autogen, elixir-format
 msgid "Step %{n}"
 msgstr "%{n}. solis"
 
-#: lib/colt_web/live/home_live.ex:384
+#: lib/colt_web/live/home_live.ex:446
 #, elixir-autogen, elixir-format
 msgid "Step 1 · You"
 msgstr "1. solis · Tu"
 
-#: lib/colt_web/live/home_live.ex:521
+#: lib/colt_web/live/home_live.ex:607
 #, elixir-autogen, elixir-format
 msgid "Step by step. Clean data in. The right people on the phone."
 msgstr "Soli pa solim. Tīri dati iekšā. Īstie cilvēki pie telefona."
 
-#: lib/colt_web/live/home_live.ex:799
+#: lib/colt_web/live/home_live.ex:1005
 #, elixir-autogen, elixir-format
 msgid "Still manual — Apollo gives contacts, not fit"
 msgstr "Joprojām manuāli — Apollo dod kontaktus, ne atbilstību"
 
-#: lib/colt_web/live/home_live.ex:549
+#: lib/colt_web/live/home_live.ex:643
 #, elixir-autogen, elixir-format
 msgid "Straight from <strong>national business registries</strong> across the Baltics &amp; Nordics — fresh, official company data, not a resold list."
 msgstr "Tieši no <strong>nacionālajiem uzņēmumu reģistriem</strong> Baltijā un Ziemeļvalstīs — svaigi, oficiāli uzņēmumu dati, nevis pārpārdots saraksts."
 
-#: lib/colt_web/live/home_live.ex:798
+#: lib/colt_web/live/home_live.ex:1000
 #, elixir-autogen, elixir-format
 msgid "Straight from the national registry"
 msgstr "Tieši no nacionālā reģistra"
@@ -3319,96 +3328,96 @@ msgstr "Tieši no nacionālā reģistra"
 msgid "Subscription <em class=\"text-inkFaint\">canceled</em>."
 msgstr "Abonements <em class=\"text-inkFaint\">atcelts</em>."
 
-#: lib/colt_web/live/home_live.ex:544
+#: lib/colt_web/live/home_live.ex:636
 #, elixir-autogen, elixir-format
 msgid "Target title: CTO"
 msgstr "Mērķa amats: CTO"
 
-#: lib/colt_web/live/home_live.ex:330
+#: lib/colt_web/live/home_live.ex:357
 #, elixir-autogen, elixir-format
 msgid "Targeting"
 msgstr "Mērķēšana"
 
-#: lib/colt_web/live/home_live.ex:910
+#: lib/colt_web/live/home_live.ex:1171
 #, elixir-autogen, elixir-format
 msgid "Targeting, enrichment, sending and reply handling included on every plan. EUR, excl. VAT. Cancel anytime."
 msgstr "Mērķēšana, bagātināšana, sūtīšana un atbilžu apstrāde iekļauta katrā plānā. EUR, bez PVN. Atcel jebkurā brīdī."
 
-#: lib/colt_web/live/home_live.ex:783
+#: lib/colt_web/live/home_live.ex:980
 #, elixir-autogen, elixir-format
 msgid "Task"
 msgstr "Uzdevums"
 
-#: lib/colt_web/live/home_live.ex:802
+#: lib/colt_web/live/home_live.ex:1023
 #, elixir-autogen, elixir-format
 msgid "Templated — quality tanks"
 msgstr "Pēc veidnes — kvalitāte krītas"
 
-#: lib/colt_web/live/home_live.ex:1054
-#: lib/colt_web/live/pricing_live.ex:261
+#: lib/colt_web/live/home_live.ex:1354
+#: lib/colt_web/live/pricing_live.ex:290
 #, elixir-autogen, elixir-format
 msgid "Terms"
 msgstr "Noteikumi"
 
-#: lib/colt_web/live/home_live.ex:305
+#: lib/colt_web/live/home_live.ex:327
 #, elixir-autogen, elixir-format
 msgid "The full picture"
 msgstr "Pilnā aina"
 
-#: lib/colt_web/live/home_live.ex:774
+#: lib/colt_web/live/home_live.ex:965
 #, elixir-autogen, elixir-format
 msgid "The old way"
 msgstr "Vecais veids"
 
-#: lib/colt_web/live/home_live.ex:776
+#: lib/colt_web/live/home_live.ex:969
 #, elixir-autogen, elixir-format
 msgid "The same campaign, three ways."
 msgstr "Tā pati kampaņa trīs veidos."
 
-#: lib/colt_web/live/home_live.ex:307
+#: lib/colt_web/live/home_live.ex:329
 #, elixir-autogen, elixir-format
 msgid "The whole funnel — targeting, enrichment, sending and replies — lives in a single view. No spreadsheet, no five-tool stack."
 msgstr "Visa piltuve — mērķēšana, bagātināšana, sūtīšana un atbildes — vienā skatā. Bez tabulām, bez piecu rīku kopuma."
 
-#: lib/colt_web/live/home_live.ex:798
+#: lib/colt_web/live/home_live.ex:999
 #, elixir-autogen, elixir-format
 msgid "Thin, stale Baltic & Nordic data"
 msgstr "Skopi, novecojuši Baltijas un Ziemeļvalstu dati"
 
-#: lib/colt_web/live/home_live.ex:408
+#: lib/colt_web/live/home_live.ex:479
 #, elixir-autogen, elixir-format
 msgid "Timing's good, actually — we're rebuilding outbound right now. Send over a slot for next week and I'll bring our growth lead."
 msgstr "Laiks patiesībā ir labs — tieši tagad pārbūvējam izejošo pārdošanu. Atsūti laiku nākamajai nedēļai, un es paņemšu līdzi mūsu izaugsmes vadītāju."
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1185
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1277
 #, elixir-autogen, elixir-format
 msgid "To:"
 msgstr "Kam:"
 
-#: lib/colt_web/live/home_live.ex:806
+#: lib/colt_web/live/home_live.ex:1040
 #, elixir-autogen, elixir-format
 msgid "Total"
 msgstr "Kopā"
 
-#: lib/colt_web/live/home_live.ex:634
+#: lib/colt_web/live/home_live.ex:789
 #, elixir-autogen, elixir-format
 msgid "Tue · 14:00"
 msgstr "Otrd · 14:00"
 
-#: lib/colt_web/live/home_live.ex:916
-#: lib/colt_web/live/pricing_live.ex:44
+#: lib/colt_web/live/home_live.ex:1184
+#: lib/colt_web/live/pricing_live.ex:46
 #, elixir-autogen, elixir-format
 msgid "Up to <b>1,000</b> screened / month"
 msgstr "Līdz <b>1000</b> pārbaudīto / mēnesī"
 
-#: lib/colt_web/live/home_live.ex:932
-#: lib/colt_web/live/pricing_live.ex:73
+#: lib/colt_web/live/home_live.ex:1211
+#: lib/colt_web/live/pricing_live.ex:75
 #, elixir-autogen, elixir-format
 msgid "Up to <b>20,000</b> screened / month"
 msgstr "Līdz <b>20 000</b> pārbaudīto / mēnesī"
 
-#: lib/colt_web/live/home_live.ex:924
-#: lib/colt_web/live/pricing_live.ex:59
+#: lib/colt_web/live/home_live.ex:1198
+#: lib/colt_web/live/pricing_live.ex:61
 #, elixir-autogen, elixir-format
 msgid "Up to <b>4,000</b> screened / month"
 msgstr "Līdz <b>4000</b> pārbaudīto / mēnesī"
@@ -3418,186 +3427,231 @@ msgstr "Līdz <b>4000</b> pārbaudīto / mēnesī"
 msgid "Variant"
 msgstr "Variants"
 
-#: lib/colt_web/live/home_live.ex:738
+#: lib/colt_web/live/home_live.ex:922
 #, elixir-autogen, elixir-format
 msgid "Verified"
 msgstr "Pārbaudīts"
 
-#: lib/colt_web/live/home_live.ex:1039
-#: lib/colt_web/live/pricing_live.ex:246
+#: lib/colt_web/live/home_live.ex:1337
+#: lib/colt_web/live/pricing_live.ex:273
 #, elixir-autogen, elixir-format
 msgid "Verified B2B contact lists and personalized email sequences from your own inbox. Lead gen for the Baltics and Nordics."
 msgstr "Pārbaudīti B2B kontaktu saraksti un personalizētas e-pastu secības no tavas pastkastes. Potenciālo klientu ģenerēšana Baltijai un Ziemeļvalstīm."
 
-#: lib/colt_web/live/home_live.ex:801
+#: lib/colt_web/live/home_live.ex:1018
 #, elixir-autogen, elixir-format
 msgid "Verified before you send — built in"
 msgstr "Pārbaudīts pirms sūtīšanas — iebūvēts"
 
-#: lib/colt_web/live/home_live.ex:1009
+#: lib/colt_web/live/home_live.ex:1302
 #, elixir-autogen, elixir-format
 msgid "Verified contacts from fresh registry data, screened by AI, sent in your voice — and we make the calls."
 msgstr "Pārbaudīti kontakti no svaigiem reģistra datiem, atlasīti ar MI, nosūtīti tavā balsī — un mēs piezvanām."
 
-#: lib/colt_web/live/home_live.ex:801
+#: lib/colt_web/live/home_live.ex:1015
 #, elixir-autogen, elixir-format
 msgid "Verify deliverability"
 msgstr "Pārbaudi piegādājamību"
 
-#: lib/colt_web/live/home_live.ex:804
+#: lib/colt_web/live/home_live.ex:1036
 #, elixir-autogen, elixir-format
 msgid "We make the calls for you"
 msgstr "Mēs piezvanām tavā vietā"
 
-#: lib/colt_web/live/home_live.ex:615
+#: lib/colt_web/live/home_live.ex:751
 #, elixir-autogen, elixir-format
 msgid "We'll even make the calls."
 msgstr "Mēs pat piezvanīsim."
 
-#: lib/colt_web/live/home_live.ex:807
+#: lib/colt_web/live/home_live.ex:1043
 #, elixir-autogen, elixir-format
 msgid "Weeks"
 msgstr "Nedēļas"
 
-#: lib/colt_web/live/home_live.ex:775
+#: lib/colt_web/live/home_live.ex:967
 #, elixir-autogen, elixir-format
 msgid "What it takes to land 100 prospects that <em>actually fit</em>."
 msgstr "Kas vajadzīgs, lai iegūtu 100 potenciālos klientus, kas <em>tiešām atbilst</em>."
 
-#: lib/colt_web/live/home_live.ex:536
+#: lib/colt_web/live/home_live.ex:628
 #, elixir-autogen, elixir-format
 msgid "Who you sell to"
 msgstr "Kam tu pārdod"
 
-#: lib/colt_web/live/home_live.ex:927
-#: lib/colt_web/live/pricing_live.ex:62
+#: lib/colt_web/live/home_live.ex:1201
+#: lib/colt_web/live/pricing_live.ex:64
 #, elixir-autogen, elixir-format
 msgid "Working-hour scheduling"
 msgstr "Grafiks pēc darba laika"
 
-#: lib/colt_web/live/home_live.ex:396
+#: lib/colt_web/live/home_live.ex:463
 #, elixir-autogen, elixir-format
 msgid "Worth a 15-minute look at how your onboarding funnel maps to it?"
 msgstr "Vai vērts 15 minūtēs apskatīt, kā tavs ievadprocesa piltuve tam atbilst?"
 
-#: lib/colt_web/live/home_live.ex:531
+#: lib/colt_web/live/home_live.ex:619
 #, elixir-autogen, elixir-format
 msgid "Write it in <strong>plain English</strong> and name a job title. That's what the AI judges fit against — no keyword juggling."
 msgstr "Uzraksti to <strong>vienkāršā valodā</strong> un nosauc amatu. Tieši pret to MI vērtē atbilstību — bez atslēgvārdu žonglēšanas."
 
-#: lib/colt_web/live/home_live.ex:802
+#: lib/colt_web/live/home_live.ex:1021
 #, elixir-autogen, elixir-format
 msgid "Write personalized emails"
 msgstr "Raksti personalizētus e-pastus"
 
-#: lib/colt_web/live/home_live.ex:801
+#: lib/colt_web/live/home_live.ex:1016
 #, elixir-autogen, elixir-format
 msgid "Yet another export"
 msgstr "Vēl viens eksports"
 
-#: lib/colt_web/live/sending/sending_funnel_live.ex:1030
+#: lib/colt_web/live/sending/sending_funnel_live.ex:1117
 #, elixir-autogen, elixir-format
 msgid "You"
 msgstr "Tu"
 
-#: lib/colt_web/live/home_live.ex:788
+#: lib/colt_web/live/home_live.ex:986
 #, elixir-autogen, elixir-format
 msgid "a stitched stack"
 msgstr "sašūts rīku kopums"
 
-#: lib/colt_web/live/home_live.ex:192
+#: lib/colt_web/live/home_live.ex:202
 #, elixir-autogen, elixir-format
 msgid "all 2,400 get"
 msgstr "visi 2400 saņem"
 
-#: lib/colt_web/live/home_live.ex:861
+#: lib/colt_web/live/home_live.ex:1113
 #, elixir-autogen, elixir-format
 msgid "an SDR or agency"
 msgstr "SDR vai aģentūra"
 
-#: lib/colt_web/live/home_live.ex:696
+#: lib/colt_web/live/home_live.ex:868
 #, elixir-autogen, elixir-format
 msgid "available"
 msgstr "pieejams"
 
-#: lib/colt_web/live/home_live.ex:213
+#: lib/colt_web/live/home_live.ex:225
 #, elixir-autogen, elixir-format
 msgid "call-ready"
 msgstr "gatavs zvanam"
 
-#: lib/colt_web/live/home_live.ex:576
+#: lib/colt_web/live/home_live.ex:694
 #, elixir-autogen, elixir-format
 msgid "companies match"
 msgstr "uzņēmumi atbilst"
 
-#: lib/colt_web/live/home_live.ex:194
+#: lib/colt_web/live/home_live.ex:204
 #, elixir-autogen, elixir-format
 msgid "emails in your voice"
 msgstr "e-pasti tavā balsī"
 
-#: lib/colt_web/live/home_live.ex:169
+#: lib/colt_web/live/home_live.ex:177
 #, elixir-autogen, elixir-format
 msgid "employees"
 msgstr "darbinieki"
 
-#: lib/colt_web/live/home_live.ex:162
+#: lib/colt_web/live/home_live.ex:169
 #, elixir-autogen, elixir-format
 msgid "every active company in the registry"
 msgstr "katrs aktīvais uzņēmums reģistrā"
 
-#: lib/colt_web/live/home_live.ex:600
+#: lib/colt_web/live/home_live.ex:736
 #, elixir-autogen, elixir-format
 msgid "in your voice"
 msgstr "tavā balsī"
 
-#: lib/colt_web/live/home_live.ex:199
+#: lib/colt_web/live/home_live.ex:209
 #, elixir-autogen, elixir-format
 msgid "multi-inbox"
 msgstr "vairākas pastkastes"
 
-#: lib/colt_web/live/home_live.ex:177
+#: lib/colt_web/live/home_live.ex:186
 #, elixir-autogen, elixir-format
 msgid "of those, the ones we can reach"
 msgstr "no tiem tie, kurus varam sasniegt"
 
-#: lib/colt_web/live/home_live.ex:379
+#: lib/colt_web/live/home_live.ex:439
 #, elixir-autogen, elixir-format
 msgid "paused on reply"
 msgstr "apturēts pēc atbildes"
 
-#: lib/colt_web/live/home_live.ex:369
-#: lib/colt_web/live/home_live.ex:370
-#: lib/colt_web/live/home_live.ex:371
+#: lib/colt_web/live/home_live.ex:407
+#: lib/colt_web/live/home_live.ex:415
+#: lib/colt_web/live/home_live.ex:422
 #, elixir-autogen, elixir-format
 msgid "replied · interested"
 msgstr "atbildēja · ieinteresēts"
 
-#: lib/colt_web/live/home_live.ex:168
+#: lib/colt_web/live/home_live.ex:176
 #, elixir-autogen, elixir-format
 msgid "revenue"
 msgstr "apgrozījums"
 
-#: lib/colt_web/live/home_live.ex:207
+#: lib/colt_web/live/home_live.ex:218
 #, elixir-autogen, elixir-format
 msgid "the ones who reply"
 msgstr "tie, kuri atbild"
 
-#: lib/colt_web/live/pricing_live.ex:221
+#: lib/colt_web/live/pricing_live.ex:244
 #, elixir-autogen, elixir-format
 msgid "unavailable"
 msgstr "nav pieejams"
 
-#: lib/colt_web/live/home_live.ex:601
+#: lib/colt_web/live/home_live.ex:737
 #, elixir-autogen, elixir-format
 msgid "wait 3 days"
 msgstr "gaidi 3 dienas"
 
-#: lib/colt_web/live/home_live.ex:603
+#: lib/colt_web/live/home_live.ex:739
 #, elixir-autogen, elixir-format
 msgid "wait 4 days"
 msgstr "gaidi 4 dienas"
 
-#: lib/colt_web/live/home_live.ex:198
+#: lib/colt_web/live/home_live.ex:208
 #, elixir-autogen, elixir-format
 msgid "your voice"
 msgstr "tava balss"
+
+#: lib/colt_web/live/sending/sending_funnel_live.ex:542
+#, elixir-autogen, elixir-format
+msgid "All categories"
+msgstr ""
+
+#: lib/colt_web/live/campaigns/funnel_live.ex:640
+#, elixir-autogen, elixir-format, fuzzy
+msgid "All statuses"
+msgstr "statistika"
+
+#: lib/colt_web/live/sending/sending_funnel_live.ex:541
+#, elixir-autogen, elixir-format
+msgid "Back to %{bucket}"
+msgstr ""
+
+#: lib/colt_web/components/liid.ex:465
+#, elixir-autogen, elixir-format
+msgid "Close menu"
+msgstr ""
+
+#: lib/colt_web/live/sending/pitch_live.ex:227
+#, elixir-autogen, elixir-format
+msgid "Continue → sending accounts"
+msgstr ""
+
+#: lib/colt_web/components/liid.ex:270
+#, elixir-autogen, elixir-format
+msgid "Open menu"
+msgstr ""
+
+#: lib/colt_web/live/sending/sending_funnel_live.ex:615
+#, elixir-autogen, elixir-format
+msgid "Pick a category above to dive into its contacts."
+msgstr ""
+
+#: lib/colt_web/live/sending/sending_funnel_live.ex:604
+#, elixir-autogen, elixir-format
+msgid "Select a contact to read the conversation."
+msgstr ""
+
+#: lib/colt_web/live/sending/sending_funnel_live.ex:624
+#, elixir-autogen, elixir-format
+msgid "this category"
+msgstr ""

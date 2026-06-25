@@ -32,7 +32,6 @@ defmodule Colt.Services.Enrichment.PickContactPaths do
     properties: %{
       paths: %{
         type: "array",
-        maxItems: 3,
         items: %{type: "string"}
       }
     }

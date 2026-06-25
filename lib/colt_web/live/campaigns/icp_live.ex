@@ -7,7 +7,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
 
   def mount(%{"id" => id}, _session, socket) do
-    case Campaign.get(id, actor: socket.assigns.current_user) do
+    case Campaign.get(id, actor: socket.assigns.current_user, load: [:suppressed_count]) do
       {:ok, campaign} ->
         socket =
           socket
@@ -18,7 +18,7 @@ defmodule ColtWeb.Campaigns.IcpLive do
             target_job_title: campaign.target_job_title || "",
             business_model: campaign.business_model || :both,
             learnings: load_learnings(campaign.id),
-            next_done?: campaign.market != nil,
+            next_done?: suppression_present?(campaign),
             saved?: false,
             error: nil
           )
@@ -85,6 +85,9 @@ defmodule ColtWeb.Campaigns.IcpLive do
         {:noreply, socket}
     end
   end
+
+  defp suppression_present?(%{suppressed_count: n}) when is_integer(n), do: n > 0
+  defp suppression_present?(_), do: false
 
   defp parse_business_model("b2b", _), do: :b2b
   defp parse_business_model("b2c", _), do: :b2c

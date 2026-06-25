@@ -28,7 +28,6 @@ defmodule Colt.Services.Sending.PitchSummary do
     properties: %{
       paths: %{
         type: "array",
-        maxItems: 3,
         items: %{type: "string"}
       }
     }
@@ -64,8 +63,7 @@ defmodule Colt.Services.Sending.PitchSummary do
          :ok <- ensure_fresh(pitch, fetch_ref),
          {:ok, base_url} <- normalise_url(pitch.domain),
          {:ok, landing} <- fetch_landing(base_url),
-         {:ok, paths} <- pick_paths(landing.html, base_url, opts),
-         {:ok, extra} <- fetch_extras(paths, base_url),
+         {:ok, extra} <- gather_extras(landing, base_url, opts),
          {:ok, summary} <- summarize(landing.markdown, extra, opts) do
       persist(pitch, summary, fetch_ref, actor)
     else
@@ -96,6 +94,28 @@ defmodule Colt.Services.Sending.PitchSummary do
     with {:ok, %{html: html, final_url: final}} <- Fetch.run(url),
          {:ok, markdown} <- FromHtml.run(html) do
       {:ok, %{html: html, markdown: markdown, final_url: final}}
+    end
+  end
+
+  # When the user entered a deep link to a specific page (a path beyond "/"),
+  # summarize just that page — that exact URL is what they're selling. Crawling
+  # the page's nav would pull in the parent brand's generic home/pricing/about
+  # pages and drown out the actual offer. A bare domain still gets the nav crawl,
+  # where it's the only way to find the product/about pages.
+  defp gather_extras(landing, base_url, opts) do
+    if specific_path?(base_url) do
+      {:ok, []}
+    else
+      with {:ok, paths} <- pick_paths(landing.html, landing.final_url, opts) do
+        fetch_extras(paths, landing.final_url)
+      end
+    end
+  end
+
+  defp specific_path?(url) do
+    case URI.parse(url) do
+      %URI{path: p} when is_binary(p) -> String.trim_trailing(p, "/") != ""
+      _ -> false
     end
   end
 
