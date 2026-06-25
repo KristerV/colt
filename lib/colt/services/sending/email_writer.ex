@@ -511,11 +511,24 @@ defmodule Colt.Services.Sending.EmailWriter do
 
       %{
         position: step.position,
-        subject: Map.get(raw, "subject", ""),
-        body: Map.get(raw, "body", "")
+        subject: String.trim(Map.get(raw, "subject", "")),
+        body: clean_body(Map.get(raw, "body", ""))
       }
     end)
   end
+
+  # The prompt indents example bodies for readability, which the model copies
+  # back as leading whitespace. Strip per-line indentation so the stored body
+  # (and the actual sent email) reads flush-left.
+  defp clean_body(body) when is_binary(body) do
+    body
+    |> String.split("\n")
+    |> Enum.map(&String.trim_leading/1)
+    |> Enum.join("\n")
+    |> String.trim()
+  end
+
+  defp clean_body(_), do: ""
 
   defp persist(ctx, prompt, ai_steps, actor) do
     existing =
