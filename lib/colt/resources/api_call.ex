@@ -26,6 +26,7 @@ defmodule Colt.Resources.ApiCall do
     define :list_for_subject, args: [:subject_type, :subject_id]
     define :client_spending, args: [:months_back]
     define :client_totals
+    define :model_breakdown
   end
 
   actions do
@@ -93,6 +94,15 @@ defmodule Colt.Resources.ApiCall do
     action :client_totals, {:array, :map} do
       run fn _input, _ctx ->
         client_total_rows()
+      end
+    end
+
+    # Per-model spend for OpenRouter (LLM) calls, all time. The model id already
+    # encodes which era a call belongs to (a model swap shows up as a new row),
+    # so this doubles as a before/after of model changes — no cutoff needed.
+    action :model_breakdown, {:array, :map} do
+      run fn _input, _ctx ->
+        model_breakdown_rows()
       end
     end
   end
@@ -191,6 +201,37 @@ defmodule Colt.Resources.ApiCall do
           cost_usd: coalesce(sum(c.cost_usd), 0),
           calls: count(c.id),
           last_call_at: max(c.inserted_at)
+        }
+      )
+      |> Colt.Repo.all()
+
+    {:ok, rows}
+  end
+
+  @doc false
+  # Per-model aggregates for OpenRouter calls: call count, total + average cost,
+  # average tokens/latency, and the first/last time the model was seen (which
+  # bounds the era a model swap created). Ordered by most recent activity.
+  # Returns {:ok, [%{model, calls, errors, total_cost, avg_cost, avg_out,
+  # avg_latency, first_seen, last_seen}]}.
+  def model_breakdown_rows do
+    import Ecto.Query
+
+    rows =
+      from(c in "api_calls",
+        where: c.provider == "openrouter",
+        group_by: c.model,
+        order_by: [desc: max(c.inserted_at)],
+        select: %{
+          model: c.model,
+          calls: count(c.id),
+          errors: fragment("count(*) filter (where ? = 'error')", c.status),
+          total_cost: coalesce(sum(c.cost_usd), 0),
+          avg_cost: avg(c.cost_usd),
+          avg_out: avg(c.output_tokens),
+          avg_latency: avg(c.latency_ms),
+          first_seen: min(c.inserted_at),
+          last_seen: max(c.inserted_at)
         }
       )
       |> Colt.Repo.all()

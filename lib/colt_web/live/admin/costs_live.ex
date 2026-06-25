@@ -24,6 +24,7 @@ defmodule ColtWeb.Admin.CostsLive do
     openrouter = ApiCall.recent_by_provider!(:openrouter, 50)
     google = ApiCall.recent_by_provider!(:google_cse, 50)
     by_task = task_breakdown(current_month)
+    by_model = ApiCall.model_breakdown!()
 
     {:ok,
      socket
@@ -32,6 +33,7 @@ defmodule ColtWeb.Admin.CostsLive do
      |> assign(:openrouter, openrouter)
      |> assign(:google, google)
      |> assign(:by_task, by_task)
+     |> assign(:by_model, by_model)
      |> assign(:open_call, nil)}
   end
 
@@ -116,6 +118,59 @@ defmodule ColtWeb.Admin.CostsLive do
                 <span class="tabular-nums text-ink">${format_money(m.total)}</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
+            openrouter · cost per model · all time
+          </div>
+          <div
+            class="border border-border rounded-[11px] bg-card overflow-x-auto"
+            style="box-shadow:var(--shadow-card)"
+          >
+            <table class="text-[12px] w-full min-w-[620px]">
+              <thead>
+                <tr class="border-b border-border bg-paperAlt text-[10px] font-semibold uppercase tracking-[0.06em] text-ink55">
+                  <th class="text-left px-3 py-2">model</th>
+                  <th class="text-right px-3 py-2">calls</th>
+                  <th class="text-right px-3 py-2">avg $/call</th>
+                  <th class="text-right px-3 py-2">total $</th>
+                  <th class="text-right px-3 py-2">avg out</th>
+                  <th class="text-right px-3 py-2">avg ms</th>
+                  <th class="text-left px-3 py-2">active</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  :for={m <- @by_model}
+                  class="border-b border-border last:border-b-0 hover:bg-paperAlt"
+                >
+                  <td class="px-3 py-1.5 text-ink">{m.model || "—"}</td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
+                    {m.calls}<span :if={m.errors > 0} class="text-red"> ({m.errors}✕)</span>
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink font-medium">
+                    ${format_money(m.avg_cost)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
+                    ${format_money(m.total_cost)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
+                    {format_int(m.avg_out)}
+                  </td>
+                  <td class="px-3 py-1.5 text-right tabular-nums text-ink70">
+                    {format_int(m.avg_latency)}
+                  </td>
+                  <td class="px-3 py-1.5 text-ink55 tabular-nums">
+                    {format_day(m.first_seen)} – {format_day(m.last_seen)}
+                  </td>
+                </tr>
+                <tr :if={@by_model == []}>
+                  <td colspan="7" class="px-3 py-2 text-ink40">no openrouter calls yet</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -319,4 +374,13 @@ defmodule ColtWeb.Admin.CostsLive do
 
   defp format_time(%DateTime{} = dt), do: Calendar.strftime(dt, "%m-%d %H:%M:%S")
   defp format_time(_), do: ""
+
+  defp format_day(%DateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d")
+  defp format_day(%NaiveDateTime{} = dt), do: Calendar.strftime(dt, "%Y-%m-%d")
+  defp format_day(_), do: "—"
+
+  defp format_int(nil), do: "—"
+  defp format_int(%Decimal{} = d), do: d |> Decimal.round(0) |> Decimal.to_string(:normal)
+  defp format_int(n) when is_number(n), do: n |> round() |> Integer.to_string()
+  defp format_int(_), do: "—"
 end
