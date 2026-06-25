@@ -29,6 +29,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
     define :list_halt_eligible_for_thread, args: [:thread_id]
+    define :next_scheduled_for_thread, args: [:thread_id]
     define :list_user_edited_for_sequence, args: [:sequence_id, :limit]
 
     define :create_draft,
@@ -174,6 +175,20 @@ defmodule Colt.Resources.OutboundEmail do
       argument :thread_id, :uuid, allow_nil?: false
 
       filter expr(thread_id == ^arg(:thread_id) and status in [:drafted, :approved, :scheduled])
+    end
+
+    read :next_scheduled_for_thread do
+      description """
+      The thread's next pending send (status :scheduled), soonest first. Used
+      to defer a sequence on an OOO auto-reply: only this one row needs its
+      scheduled_at pushed out — later steps schedule lazily after each send.
+      """
+
+      argument :thread_id, :uuid, allow_nil?: false
+
+      filter expr(thread_id == ^arg(:thread_id) and status == :scheduled)
+      prepare build(sort: [scheduled_at: :asc], limit: 1)
+      get? true
     end
 
     create :create_manual_reply do

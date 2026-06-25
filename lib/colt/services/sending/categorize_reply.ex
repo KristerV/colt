@@ -1,8 +1,15 @@
 defmodule Colt.Services.Sending.CategorizeReply do
   @moduledoc """
   Classify one InboundEmail into `:ooo | :interested | :not_interested |
-  :other` via Claude 4.5 Sonnet, write the category back, and halt the
-  contact's sequence.
+  :other` via Claude 4.5 Sonnet and write the category back.
+
+  A real reply (`:interested | :not_interested | :other`) marks the contact
+  replied and halts the sequence — a human takes over. An out-of-office
+  auto-reply (`:ooo`) is NOT a real reply: the prospect hasn't read the email,
+  so instead of halting we defer the next follow-up. The AI extracts the
+  return date and the next send is pushed to 3 days after it (or +7 days when
+  no date is stated). If the inbox keeps auto-replying, each OOO defers again
+  until the sequence exhausts itself.
 
   Confidence floor: model outputs with `confidence < 0.7` are forced to
   `:other` regardless of label (per §12).
@@ -12,23 +19,70 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   alias Colt.Resources.{CampaignContact, InboundEmail}
   alias Colt.Services.Ai.Complete
-  alias Colt.Services.Sending.{Broadcast, HaltSequence}
+  alias Colt.Services.Sending.{Broadcast, DeferFollowup, ExtractOooReturn, HaltSequence}
 
   @confidence_floor 0.7
   @valid_categories ~w(ooo interested not_interested other)
+
+  # No usable return date in the OOO reply → defer the next send by this many days.
+  @no_date_defer_days 7
+  # Send the next follow-up this many days after the stated return date.
+  @after_return_days 3
 
   def run(inbound_id) when is_binary(inbound_id) do
     with {:ok, inbound} <- load(inbound_id),
          {:ok, category} <- classify(inbound),
          {:ok, _} <- InboundEmail.set_reply_category(inbound, category, authorize?: false),
-         {:ok, contact} <- contact_for(inbound),
-         {:ok, _} <- CampaignContact.mark_replied(contact, category, authorize?: false),
+         {:ok, contact} <- contact_for(inbound) do
+      handle(category, inbound, contact)
+    end
+  end
+
+  # OOO: keep the contact active, just push the next follow-up out. The
+  # reschedule is persisted; the sending funnel reflects the new send time on
+  # its next load (no live broadcast — the contact never leaves :sending).
+  defp handle(:ooo, inbound, _contact) do
+    not_before = ooo_not_before(inbound)
+
+    with {:ok, result} <- DeferFollowup.run(inbound.thread_id, not_before) do
+      {:ok, %{category: :ooo, deferred: result}}
+    end
+  end
+
+  # Real reply: mark replied + stop the sequence so a human takes over.
+  defp handle(category, inbound, contact) do
+    with {:ok, _} <- CampaignContact.mark_replied(contact, category, authorize?: false),
          {:ok, halted} <- HaltSequence.run(inbound.thread_id) do
       campaign_id = contact.campaign_id
       Broadcast.reply_categorized(campaign_id, contact.id, category)
       Broadcast.sequence_halted(campaign_id, contact.id, :reply)
       {:ok, %{category: category, halted_count: halted}}
     end
+  end
+
+  defp ooo_not_before(inbound) do
+    case ExtractOooReturn.run(inbound) do
+      {:ok, %Date{} = return_date} -> defer_not_before(return_date)
+      _ -> defer_not_before(nil)
+    end
+  end
+
+  @doc """
+  Lower bound for the next follow-up after an OOO: `#{@after_return_days}` days
+  after a known return date, else `#{@no_date_defer_days}` days from now.
+  Public so the scheduling rule is unit-testable without the AI step.
+  """
+  def defer_not_before(%Date{} = return_date) do
+    return_date |> Date.add(@after_return_days) |> start_of_day_utc()
+  end
+
+  def defer_not_before(nil) do
+    DateTime.add(DateTime.utc_now(), @no_date_defer_days * 86_400, :second)
+  end
+
+  defp start_of_day_utc(%Date{} = date) do
+    {:ok, naive} = NaiveDateTime.new(date, ~T[00:00:00])
+    DateTime.from_naive!(naive, "Etc/UTC")
   end
 
   defp load(inbound_id) do
