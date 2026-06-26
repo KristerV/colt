@@ -1088,9 +1088,10 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             {Calendar.strftime(@item.at, "%b %d · %H:%M")}
           </span>
         </div>
-        <div class="px-[15px] py-3 text-[13px] leading-[1.55] font-medium text-[#6e5417] whitespace-pre-wrap">
-          {@item.note.body}
-        </div>
+        <div
+          phx-no-format
+          class="px-[15px] py-3 text-[13px] leading-[1.55] font-medium text-[#6e5417] whitespace-pre-wrap"
+        >{@item.note.body}</div>
       </div>
     </div>
     """
@@ -1223,9 +1224,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
           <div :if={@subject} class="text-[13.5px] font-bold tracking-[-0.005em] text-ink mb-1.5">
             {@subject}
           </div>
-          <div class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">
-            {body_text(@body)}
-          </div>
+          <div phx-no-format class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">{body_text(@body)}</div>
         </div>
       </div>
     </div>
