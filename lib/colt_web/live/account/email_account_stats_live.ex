@@ -139,16 +139,22 @@ defmodule ColtWeb.Account.EmailAccountStatsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:email_accounts}>
       <div class="max-w-[900px] w-full pb-16">
-        <div class="flex items-end justify-between gap-6 mb-10">
+        <div class="mb-10">
           <Liid.headline kicker={gettext("Account · %{address}", address: @account.address)}>
             {raw(gettext("Sending <em>pattern</em>."))}
           </Liid.headline>
-
-          <.link navigate={~p"/email-accounts"} class="no-underline">
-            <Liid.btn size={:small} mono>
-              <Liid.icon name="arrow" size={11} /> {gettext("All accounts")}
-            </Liid.btn>
-          </.link>
+          <div class="flex items-center gap-2 mt-5">
+            <.link navigate={~p"/email-accounts/#{@account.id}/settings"} class="no-underline">
+              <Liid.btn size={:small} mono>
+                <Liid.icon name="chev-l" size={11} /> {gettext("Inbox settings")}
+              </Liid.btn>
+            </.link>
+            <.link navigate={~p"/email-accounts"} class="no-underline">
+              <Liid.btn size={:small} mono>
+                <Liid.icon name="chev-l2" size={11} /> {gettext("All accounts")}
+              </Liid.btn>
+            </.link>
+          </div>
         </div>
 
         <div class="mb-4 grid grid-cols-3 gap-4">

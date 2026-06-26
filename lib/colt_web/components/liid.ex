@@ -39,6 +39,7 @@ defmodule ColtWeb.Components.Liid do
     "chev" => "M5 6l3 3 3-3",
     "chev-r" => "M6 4l4 4-4 4",
     "chev-l" => "M10 4L6 8l4 4",
+    "chev-l2" => "M8 4L4 8l4 4M12 4L8 8l4 4",
     "plus" => "M8 3v10M3 8h10",
     "x" => "M4 4l8 8M12 4l-8 8",
     "check" => "M3 8.5l3 3 7-7",

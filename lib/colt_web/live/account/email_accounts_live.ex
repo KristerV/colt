@@ -2,8 +2,7 @@ defmodule ColtWeb.Account.EmailAccountsLive do
   use ColtWeb, :live_view
 
   alias Colt.Jobs.ImportMailbox
-  alias Colt.Nylas
-  alias Colt.Resources.EmailAccount
+  alias Colt.Resources.{EmailAccount, OutboundEmail}
   alias Colt.Services.EmailAccount.ImportMailboxes
   alias ColtWeb.Components.Liid
 
@@ -26,60 +25,6 @@ defmodule ColtWeb.Account.EmailAccountsLive do
   end
 
   def handle_event("validate_import", _params, socket), do: {:noreply, socket}
-
-  def handle_event("disconnect", %{"id" => id}, socket) do
-    user = socket.assigns.current_user
-
-    with {:ok, account} <- EmailAccount.get(id, actor: user),
-         :ok <- revoke_at_nylas(account),
-         {:ok, _} <- EmailAccount.disconnect(account, actor: user) do
-      {:noreply,
-       socket
-       |> put_flash(:info, gettext("Inbox disconnected. Billing stopped at Nylas."))
-       |> load_accounts()}
-    else
-      {:error, reason} ->
-        {:noreply,
-         put_flash(
-           socket,
-           :error,
-           gettext(
-             "Could not disconnect — Nylas is still billing for this inbox. Retry in a moment. (%{reason})",
-             reason: inspect(reason)
-           )
-         )}
-    end
-  end
-
-  def handle_event("set_name", %{"_id" => id, "value" => raw}, socket) do
-    name = raw |> to_string() |> String.trim()
-    name = if name == "", do: nil, else: name
-    user = socket.assigns.current_user
-
-    with {:ok, account} <- EmailAccount.get(id, actor: user),
-         {:ok, _} <- EmailAccount.update_details(account, name, actor: user) do
-      {:noreply, load_accounts(socket)}
-    else
-      _ -> {:noreply, socket}
-    end
-  end
-
-  def handle_event("set_quota", %{"_id" => id, "value" => raw}, socket) do
-    quota =
-      case Integer.parse(to_string(raw)) do
-        {n, _} when n >= 0 -> n
-        _ -> 0
-      end
-
-    user = socket.assigns.current_user
-
-    with {:ok, account} <- EmailAccount.get(id, actor: user),
-         {:ok, _} <- EmailAccount.set_quota(account, quota, actor: user) do
-      {:noreply, load_accounts(socket)}
-    else
-      _ -> {:noreply, socket}
-    end
-  end
 
   # Auto-import fires once the upload finishes; nothing to do until then.
   defp handle_import_progress(:mailboxes, %{done?: false}, socket), do: {:noreply, socket}
@@ -122,19 +67,27 @@ defmodule ColtWeb.Account.EmailAccountsLive do
   defp flash_import_result(socket, _user, _other),
     do: put_flash(socket, :error, gettext("Could not read that CSV."))
 
-  defp load_accounts(socket) do
-    accounts =
-      EmailAccount.list_for_user!(socket.assigns.current_user.id,
-        actor: socket.assigns.current_user
-      )
+  @avg_window_days 7
 
-    assign(socket, accounts: accounts)
+  defp load_accounts(socket) do
+    user = socket.assigns.current_user
+    accounts = EmailAccount.list_for_user!(user.id, actor: user)
+
+    assign(socket, accounts: accounts, daily_avg: daily_avg(user))
   end
 
-  # Revoke MUST succeed before we mark the row :disconnected — Nylas bills per
-  # active grant, so a silent local-only state change would leak money.
-  defp revoke_at_nylas(%{nylas_grant_id: nil}), do: :ok
-  defp revoke_at_nylas(account), do: Nylas.revoke(account)
+  # One read of the user's sent mail over the trailing window, grouped per
+  # inbox into a sent/day average shown on each row.
+  defp daily_avg(user) do
+    since = DateTime.add(DateTime.utc_now(), -@avg_window_days * 86_400, :second)
+
+    OutboundEmail.list_sent_for_user_since!(user.id, since, actor: user)
+    |> Enum.frequencies_by(& &1.email_account_id)
+    |> Map.new(fn {id, n} -> {id, n / @avg_window_days} end)
+  end
+
+  defp daily_avg_label(avg) when is_float(avg), do: :erlang.float_to_binary(avg, decimals: 1)
+  defp daily_avg_label(_), do: "0"
 
   defp status_chip_class(:healthy), do: "bg-greenSoft text-green"
   defp status_chip_class(:paused_bounces), do: "bg-amberSoft text-amber"
@@ -204,102 +157,48 @@ defmodule ColtWeb.Account.EmailAccountsLive do
           </div>
         </div>
 
-        <ul :if={@accounts != []} class="space-y-3">
-          <li
+        <div :if={@accounts != []} class="space-y-3">
+          <div
             :for={a <- @accounts}
             id={"acct-#{a.id}"}
-            class="border border-border rounded-[11px] bg-card"
+            class="flex items-stretch border border-border rounded-[11px] bg-card overflow-hidden"
             style="box-shadow:var(--shadow)"
           >
-            <div class="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 py-4 px-5">
-              <div class="flex-1 min-w-0">
-                <div class="text-[17px] font-bold tracking-[-0.01em] truncate text-ink">
-                  {a.address}
-                </div>
-                <div class="mt-1.5 flex items-center gap-2 flex-wrap">
-                  <span class="inline-flex items-center text-[10.5px] font-semibold tracking-[0.04em] uppercase text-inkSoft bg-paperAlt rounded-[8px] px-2 py-0.5">
-                    {a.provider}
-                  </span>
-                  <span class={[
-                    "inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.04em] uppercase rounded-[8px] px-2 py-0.5",
-                    status_chip_class(a.status)
-                  ]}>
-                    <span class="w-1.5 h-1.5 rounded-full" style={status_dot_style(a.status)}></span>
-                    {a.status}
-                  </span>
-                  <span
-                    :if={a.tz}
-                    class="text-[11px] text-inkFaint tracking-[0.04em]"
-                  >
-                    {a.tz}
-                  </span>
-                </div>
-                <form
-                  :if={a.status != :disconnected}
-                  id={"name-form-#{a.id}"}
-                  phx-change="set_name"
-                  phx-update="ignore"
-                  class="mt-3 flex items-center gap-2"
-                >
-                  <input type="hidden" name="_id" value={a.id} />
-                  <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold shrink-0">
-                    {gettext("sender name")}
-                  </label>
-                  <input
-                    type="text"
-                    id={"name-input-#{a.id}"}
-                    name="value"
-                    value={a.display_name}
-                    placeholder={gettext("e.g. Jane Doe")}
-                    phx-debounce="500"
-                    class="w-full md:w-[220px] px-2.5 py-1.5 border border-border rounded-[8px] text-[12px] bg-card text-ink outline-none focus:border-accent"
-                  />
-                </form>
+            <.link
+              navigate={~p"/email-accounts/#{a.id}/settings"}
+              class="flex-1 min-w-0 no-underline py-4 pl-5 pr-4 hover:bg-paperAlt"
+            >
+              <div class="text-[17px] font-bold tracking-[-0.01em] truncate text-ink">
+                {a.address}
               </div>
-              <form
-                :if={a.status != :disconnected}
-                id={"quota-form-#{a.id}"}
-                phx-change="set_quota"
-                phx-update="ignore"
-                class="flex items-center gap-2 shrink-0"
-              >
-                <input type="hidden" name="_id" value={a.id} />
-                <label class="text-[10.5px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
-                  {gettext("quota")}
-                </label>
-                <input
-                  type="number"
-                  id={"quota-input-#{a.id}"}
-                  name="value"
-                  value={a.daily_quota}
-                  min="0"
-                  phx-debounce="400"
-                  class="w-[64px] px-2.5 py-1.5 border border-border rounded-[8px] text-[12px] text-center bg-card text-ink tabular-nums outline-none focus:border-accent"
-                />
-                <span class="text-[10.5px] text-inkFaint">{gettext("/day")}</span>
-              </form>
-              <div class="flex items-center gap-2 shrink-0">
-                <.link
-                  navigate={~p"/email-accounts/#{a.id}/stats"}
-                  class="no-underline px-3 py-1.5 border border-borderStrong text-[10.5px] tracking-[0.08em] uppercase font-semibold text-inkSoft rounded-[8px] hover:text-ink hover:border-ink"
-                >
-                  {gettext("stats")}
-                </.link>
-                <Liid.btn
-                  :if={a.status != :disconnected}
-                  size={:small}
-                  mono
-                  phx-click="disconnect"
-                  phx-value-id={a.id}
-                  phx-disable-with={gettext("Disconnecting…")}
-                  data-confirm={gettext("Disconnect %{address}?", address: a.address)}
-                >
-                  {gettext("Disconnect")}
-                </Liid.btn>
+              <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center text-[10.5px] font-semibold tracking-[0.04em] uppercase text-inkSoft bg-paperAlt rounded-[8px] px-2 py-0.5">
+                  {a.provider}
+                </span>
+                <span class={[
+                  "inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.04em] uppercase rounded-[8px] px-2 py-0.5",
+                  status_chip_class(a.status)
+                ]}>
+                  <span class="w-1.5 h-1.5 rounded-full" style={status_dot_style(a.status)}></span>
+                  {a.status}
+                </span>
               </div>
-            </div>
-          </li>
-        </ul>
+            </.link>
+
+            <.link
+              navigate={~p"/email-accounts/#{a.id}/stats"}
+              title={gettext("Sending stats")}
+              class="group no-underline shrink-0 text-right py-4 px-5 border-l border-border hover:bg-paperAlt"
+            >
+              <div class="text-[22px] leading-none font-bold tabular-nums tracking-[-0.02em] text-ink group-hover:text-accent">
+                {daily_avg_label(@daily_avg[a.id])}
+              </div>
+              <div class="mt-1.5 text-[10.5px] tracking-[0.06em] uppercase text-inkFaint font-semibold">
+                {gettext("avg/day · 7d")}
+              </div>
+            </.link>
+          </div>
+        </div>
       </div>
     </Layouts.app>
     """

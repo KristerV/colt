@@ -26,6 +26,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :list_due, args: [:now, :limit]
     define :list_today_for_account, args: [:email_account_id, :day_start, :day_end]
     define :list_for_account_window, args: [:email_account_id, :from, :to]
+    define :list_sent_for_user_since, args: [:user_id, :since]
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
     define :list_halt_eligible_for_thread, args: [:thread_id]
@@ -109,6 +110,24 @@ defmodule Colt.Resources.OutboundEmail do
              )
 
       prepare build(sort: [scheduled_at: :asc])
+    end
+
+    read :list_sent_for_user_since do
+      description """
+      Sent outbound rows across all of a user's inboxes since a cutoff. The
+      email-accounts index aggregates these in memory into a per-inbox daily
+      average.
+      """
+
+      argument :user_id, :uuid, allow_nil?: false
+      argument :since, :utc_datetime_usec, allow_nil?: false
+
+      filter expr(
+               status == :sent and
+                 not is_nil(sent_at) and
+                 sent_at >= ^arg(:since) and
+                 email_account.user_id == ^arg(:user_id)
+             )
     end
 
     read :recent_to_recipient do

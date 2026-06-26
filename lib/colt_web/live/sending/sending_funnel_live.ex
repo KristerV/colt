@@ -393,8 +393,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   defp from_display(_), do: nil
 
-  defp display_name(%{display_name: name}) when is_binary(name) do
-    if String.trim(name) == "", do: nil, else: name
+  defp display_name(%{display_name: sig}) when is_binary(sig) do
+    sig |> String.split("\n") |> Enum.map(&String.trim/1) |> Enum.find(&(&1 != ""))
   end
 
   defp display_name(_), do: nil

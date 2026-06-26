@@ -30,7 +30,27 @@ defmodule Colt.Services.Sending.EmailWriterTest do
     assert prompt.system =~ "never a name"
   end
 
-  test "falls back to a humanized email local-part when display name is blank" do
+  test "includes the full multi-line signature so its details survive" do
+    sig = "Robert Kuusk\nHead of Sales, Liidid\n+372 5555 1234"
+    sender = %{display_name: sig, address: "robert@liidid.ee"}
+
+    {:ok, prompt} = EmailWriter.prompt_for(base_ctx(sender))
+
+    # The phone/title must reach the model, not just the name.
+    assert prompt.user =~ "+372 5555 1234"
+    assert prompt.user =~ "Head of Sales, Liidid"
+    # Name for the intro is the first line of the signature.
+    assert prompt.user =~ "Name: Robert Kuusk"
+  end
+
+  test "starter_body seeds the signature with blank lines above it" do
+    sig = "Robert Kuusk\n+372 5555 1234"
+    assert EmailWriter.starter_body(%{display_name: sig}) == "\n\n" <> sig
+    assert EmailWriter.starter_body(%{display_name: nil}) == nil
+    assert EmailWriter.starter_body(%{display_name: "   "}) == nil
+  end
+
+  test "falls back to a humanized email local-part when signature is blank" do
     sender = %{display_name: nil, address: "siim.kask@liids.ee"}
 
     {:ok, prompt} = EmailWriter.prompt_for(base_ctx(sender))

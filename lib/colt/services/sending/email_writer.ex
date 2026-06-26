@@ -223,7 +223,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     system = """
     You are a cold-outreach writer composing a multi-step email sequence
     in #{language_name(ctx.language)}. Output plain text only; no
-    Markdown, no HTML, no signatures (the inbox appends those).
+    Markdown, no HTML.
 
     What to learn from where:
     - The example sequences under "Examples" are the primary source. Take
@@ -235,13 +235,21 @@ defmodule Colt.Services.Sending.EmailWriter do
       barely mention the product, neither should you. Never let the pitch
       override the voice and approach the examples demonstrate.
 
-    Sender identity:
-    - You are writing AS the sender named under "Sender" below. When you
-      introduce yourself or sign off, use THAT name — never a name that
-      appears in the examples (those were written by other senders).
-    - Keep whatever name format the examples use: if they sign with a
-      first name only, use only the sender's first name; if they use the
-      full name, use the sender's full name.
+    Sender identity and sign-off:
+    - You are writing AS the sender described under "Sender" below. When
+      you introduce yourself or sign off, use THAT sender — never a name
+      that appears in the examples (those were written by other senders).
+    - The sender's "Signature" below holds their real sign-off details:
+      name, and possibly a phone number, title, or company. Mirror the
+      sign-off PATTERN the example emails use, then fill it with the
+      signature's details: if the examples sign with a full name, use the
+      full name from the signature; if first name only, use only the first
+      name; if they include a phone number or title, include the matching
+      detail from the signature; if they sign off minimally, keep it
+      minimal.
+    - The signature is the ONLY source of the sender's own sign-off
+      details. Never lift a name, phone, or title out of the examples —
+      those belong to other senders.
 
     Sequence rules:
     - Step 1 opens cold; introduce yourself briefly (using the sender's
@@ -415,16 +423,43 @@ defmodule Colt.Services.Sending.EmailWriter do
     do: "- (no sender assigned yet — introduce yourself generically, no invented name)"
 
   defp sender_block(%{address: address} = sender) do
-    "- Name: #{sender_name_or_local(sender)}\n- Email: #{address}"
+    "- Name: #{sender_name_or_local(sender)}\n- Email: #{address}\n- Signature:\n#{signature_block(sender)}"
   end
 
-  # Prefer the configured display name; otherwise humanize the email local-part
-  # so the writer still has a plausible name instead of inventing one.
-  defp sender_name(%{display_name: name}) when is_binary(name) do
-    if String.trim(name) == "", do: nil, else: name
+  # The signature (stored in display_name) is the canonical sign-off block —
+  # name plus whatever the user added (phone, title…). Rendered verbatim so the
+  # writer can mirror the examples' pattern while swapping in these details.
+  defp signature_block(sender) do
+    case signature(sender) do
+      nil -> "    (no signature set — sign off with just the sender's name)"
+      sig -> indent(sig)
+    end
   end
 
-  defp sender_name(_), do: nil
+  defp signature(%{display_name: sig}) when is_binary(sig) do
+    case String.trim(sig) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  defp signature(_), do: nil
+
+  # The sender's name for introductions — the first non-empty line of the
+  # signature; otherwise humanize the email local-part so the writer still has
+  # a plausible name instead of inventing one.
+  defp sender_name(sender) do
+    case signature(sender) do
+      nil ->
+        nil
+
+      sig ->
+        sig
+        |> String.split("\n")
+        |> Enum.map(&String.trim/1)
+        |> Enum.find(&(&1 != ""))
+    end
+  end
 
   defp sender_name_or_local(%{address: address} = sender) do
     sender_name(sender) || humanize_local_part(address)
@@ -572,13 +607,31 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.map(& &1.step_position)
       |> MapSet.new()
 
+    seed = starter_body(ctx.sender)
+
     ctx.email_steps
     |> Enum.reject(&MapSet.member?(existing, &1.position))
     |> Enum.map(fn step ->
-      OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, nil,
+      OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, seed,
         actor: actor,
         authorize?: actor != nil
       )
     end)
+  end
+
+  @doc """
+  Starter body for a hand-written first email: the sender's signature with a
+  couple of blank lines above it, so the user types in the gap and the
+  signature is plainly part of the body. `nil` when no signature is set.
+
+  Used to seed the blank drafts when a template has no example pool yet (the
+  user writes the first sequence by hand), so it's obvious from the start that
+  the signature lives in the body rather than being appended for them.
+  """
+  def starter_body(sender) do
+    case signature(sender) do
+      nil -> nil
+      sig -> "\n\n" <> sig
+    end
   end
 end

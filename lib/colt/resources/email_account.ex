@@ -110,7 +110,11 @@ defmodule Colt.Resources.EmailAccount do
     end
 
     update :update_details do
-      description "Edit the sender display name shown on outgoing mail."
+      # `display_name` holds the sender's signature block (name + optional
+      # phone/title/company) the AI writer mirrors and hand-written first
+      # emails are seeded with. Kept as `display_name` to avoid a column
+      # rename migration; treat it as the signature.
+      description "Edit the sender signature (stored in display_name)."
       accept [:display_name]
       require_atomic? false
     end
@@ -147,6 +151,11 @@ defmodule Colt.Resources.EmailAccount do
       public?: true
 
     attribute :address, :string, allow_nil?: false, public?: true
+    # The sender's signature block — name plus optional phone/title/company.
+    # The AI writer mirrors it (swapping its details into the examples' sign-off
+    # pattern) and hand-written first emails are seeded with it. Named
+    # `display_name` for historical reasons; it does NOT set the From header
+    # (Nylas uses the grant's own identity).
     attribute :display_name, :string, public?: true
 
     attribute :nylas_grant_id, :string, public?: true

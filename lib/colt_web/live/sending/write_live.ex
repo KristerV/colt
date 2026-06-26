@@ -573,9 +573,10 @@ defmodule ColtWeb.Sending.WriteLive do
     actor = socket.assigns.current_user
     contact = socket.assigns.contact
     thread = ensure_thread(contact, actor)
+    seed = EmailWriter.starter_body(socket.assigns.sender)
 
     Enum.each(missing_positions, fn pos ->
-      OutboundEmail.create_draft!(thread.id, pos, nil, nil,
+      OutboundEmail.create_draft!(thread.id, pos, nil, seed,
         actor: actor,
         authorize?: actor != nil
       )
@@ -619,8 +620,12 @@ defmodule ColtWeb.Sending.WriteLive do
       contact =
         if missing == [], do: contact, else: %{contact | thread: ensure_thread(contact, actor)}
 
+      # In first-email (hand-written) mode, seed new steps with the signature
+      # too, matching seed_blank_drafts/2.
+      seed = if socket.assigns[:first_email], do: EmailWriter.starter_body(socket.assigns.sender)
+
       Enum.each(missing, fn pos ->
-        OutboundEmail.create_draft!(contact.thread.id, pos, nil, nil,
+        OutboundEmail.create_draft!(contact.thread.id, pos, nil, seed,
           actor: actor,
           authorize?: actor != nil
         )
@@ -1033,10 +1038,10 @@ defmodule ColtWeb.Sending.WriteLive do
     """
   end
 
-  # Human label for the sending inbox — display name if set, else the email's
-  # local-part humanized (matches the writer's own fallback).
-  defp sender_display(%{display_name: name}) when is_binary(name) do
-    if String.trim(name) == "", do: nil, else: name
+  # Human label for the sending inbox — the first line of the signature if set,
+  # else the email's local-part humanized (matches the writer's own fallback).
+  defp sender_display(%{display_name: sig}) when is_binary(sig) do
+    sig |> String.split("\n") |> Enum.map(&String.trim/1) |> Enum.find(&(&1 != ""))
   end
 
   defp sender_display(_), do: nil
