@@ -70,17 +70,23 @@ defmodule Colt.Jobs.AutoApproveCampaign do
   defp fill_inbox(account, campaign_id, guard) do
     now = DateTime.utc_now()
 
-    case NextSlot.run(account, now, step_position: 0) do
-      {:ok, slot} ->
-        if slot_today?(slot, account.tz, now) do
-          start_one(account, campaign_id, guard)
-        else
-          # NextSlot rolled to tomorrow → today's quota is spent for this inbox.
-          :ok
-        end
+    # Re-read the flag every iteration so flipping auto-approve off (or hitting
+    # the panic switch) stops the loop after the in-flight draft, instead of
+    # draining the whole pool. `perform`'s check only gates the first send.
+    with true <- still_active?(campaign_id),
+         {:ok, slot} <- NextSlot.run(account, now, step_position: 0),
+         true <- slot_today?(slot, account.tz, now) do
+      start_one(account, campaign_id, guard)
+    else
+      # Not active, NextSlot error, or rolled to tomorrow (today's quota spent).
+      _ -> :ok
+    end
+  end
 
-      {:error, _} ->
-        :ok
+  defp still_active?(campaign_id) do
+    case Campaign.get(campaign_id, authorize?: false) do
+      {:ok, campaign} -> active?(campaign)
+      _ -> false
     end
   end
 

@@ -221,8 +221,20 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
   # ── PubSub ───────────────────────────────────────────────────────────
 
-  def handle_info({event, _payload}, socket)
-      when event in [:email_sent, :next_scheduled, :reply_received, :reply_categorized] do
+  # Broadcasts carry varying arity ({:email_sent, email_id, contact_id, step}
+  # is a 4-tuple, {:reply_categorized, contact_id, category} a 3-tuple), so
+  # match on the leading event atom rather than a fixed tuple shape.
+  def handle_info(msg, socket)
+      when is_tuple(msg) and
+             elem(msg, 0) in [
+               :email_sent,
+               :email_failed,
+               :email_skipped,
+               :next_scheduled,
+               :inbound_received,
+               :reply_categorized,
+               :sequence_halted
+             ] do
     {:noreply, reload_contacts_and_keep_selected(socket)}
   end
 
