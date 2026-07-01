@@ -425,7 +425,8 @@ Internal `with` steps:
 ### 7.3 CategorizeReply
 - Claude 4.5 Sonnet, JSON output `{category: "ooo|interested|not_interested|other", confidence: 0..1}`.
 - Sets `Email.reply_category` and `CampaignContact.reply_category`.
-- Halts the sequence: every `Email{status: :scheduled} ∪ {status: :drafted}` for this contact's thread → `:skipped`. Contact `status -> :replied`.
+- **`:interested | :not_interested | :other`** → halts the sequence: every `Email{status: :scheduled} ∪ {status: :drafted}` for this contact's thread → `:skipped`. Contact `status -> :replied`.
+- **`:ooo`** → an out-of-office auto-reply is **not** a real reply (the prospect hasn't read the email), so we do **not** halt. Instead we defer the next follow-up: `Colt.Services.Sending.ExtractOooReturn` pulls the return date from the reply, and `Colt.Services.Sending.DeferFollowup` moves the next scheduled send to **3 days after the return date** (`@after_return_days`), or **7 days out** if no date is stated (`@no_date_defer_days`). The contact stays active; repeated OOOs just defer again (extended vacation). Wired in `Colt.Services.Sending.CategorizeReply`.
 - Broadcasts on PubSub topic `campaign:{id}` → funnel and thread view refresh.
 
 ### 7.4 Bounce handling
