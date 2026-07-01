@@ -578,6 +578,22 @@ defmodule ColtWeb.Components.Liid do
     """
   end
 
+  @doc """
+  Golden chip marking an admin-only feature — the house convention for
+  features that are gated to admins now but slated to ship to everyone later.
+  Gate the surrounding markup on `@current_user.is_admin`; this only renders
+  the badge.
+  """
+  attr :label, :string, default: "Admin"
+
+  def admin_badge(assigns) do
+    ~H"""
+    <span class="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-goldSoft text-gold">
+      {@label}
+    </span>
+    """
+  end
+
   @doc false
   attr :user, :map, required: true
 

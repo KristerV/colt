@@ -203,6 +203,12 @@ defmodule Colt.Services.Sending.SendOne do
 
   # ── Next step scheduling ────────────────────────────────────────────
 
+  # Just sent an OOO welcome-back (position -1, see SequenceStep.ooo_position/0).
+  # It's a one-off insertion, not part of the linear 0..N flow — the follow-up
+  # that resumes was already rescheduled to after this send when the OOO reply
+  # was categorized, so there's nothing to schedule here.
+  defp schedule_next_step(%{email: %{step_position: -1}}, _sent_at), do: {:ok, :ooo_sent}
+
   defp schedule_next_step(ctx, sent_at) do
     snapshot = ctx.contact.sequence_snapshot || %{}
     steps = Map.get(snapshot, "steps") || []

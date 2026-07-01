@@ -88,6 +88,8 @@
   --color-amberSoft: #fbf1dd;
   --color-red: #d05a4f;
   --color-redSoft: #fbeae8;
+  --color-gold: #c9a227;        /* admin-only "golden" features, pre-GA */
+  --color-goldSoft: #faf4dc;
   --color-warn: #c98a1e;        /* legacy alias → amber */
   --color-fail: #d05a4f;        /* legacy alias → red */
   --color-ok: #2f9e6b;          /* legacy alias → green */
@@ -144,6 +146,8 @@
   --amberSoft: #fbf1dd;
   --red: #d05a4f;
   --redSoft: #fbeae8;
+  --gold: #c9a227;         /* admin-only "golden" features, pre-GA */
+  --goldSoft: #faf4dc;
   --warn: #c98a1e;
   --fail: #d05a4f;
   --ok: #2f9e6b;

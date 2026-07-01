@@ -49,7 +49,13 @@ accent-ring #bcd2f5     /* accent border/ring on active elements */
 green       #2f9e6b   green-soft #e7f5ee   /* interested / sent / verified / good */
 amber       #c98a1e   amber-soft #fbf1dd   /* bounced / warning / notes */
 red         #d05a4f   red-soft   #fbeae8   /* failed / hard errors */
+gold        #c9a227   gold-soft  #faf4dc   /* admin-only "golden" features, pre-GA */
 ```
+
+**Golden = admin-only, GA-bound.** Features gated to admins now but slated to ship to
+everyone later are marked with the gold token and a `<Liid.admin_badge />` chip, so it's
+obvious at a glance which surfaces are pre-release. Not a functional status colour — a
+convention marker.
 
 Existing semantic class names from the old system are **remapped, not removed** — `bg-paper` now resolves to white (`card`), `border-rule`/`border-ink20` to `border`, `text-ink55` to a faint ink, `text-accent` to the blue. So legacy markup keeps working; new markup should prefer the names above.
 

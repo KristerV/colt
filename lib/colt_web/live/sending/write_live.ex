@@ -54,6 +54,8 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp languages, do: Markets.languages()
 
+  defp admin?(user), do: Map.get(user, :is_admin) == true
+
   def mount(%{"id" => id} = params, _session, socket) do
     actor = socket.assigns.current_user
 
@@ -85,6 +87,9 @@ defmodule ColtWeb.Sending.WriteLive do
             email_steps: [],
             subject: "",
             bodies: %{},
+            is_admin: admin?(actor),
+            ooo_draft: nil,
+            ooo_subject: "",
             first_email: false,
             saved_at: nil,
             learning_open?: false,
@@ -160,6 +165,20 @@ defmodule ColtWeb.Sending.WriteLive do
     bodies = Map.put(socket.assigns.bodies, pos, v)
     socket = persist_body(socket, pos, v)
     {:noreply, assign(socket, bodies: bodies) |> mark_saved()}
+  end
+
+  # The admin-only OOO welcome-back keeps its own subject (independent of the
+  # sequence-wide subject), so it has a dedicated event.
+  def handle_event("set_ooo_subject", %{"value" => v}, socket) do
+    actor = socket.assigns.current_user
+
+    socket =
+      case socket.assigns[:ooo_draft] do
+        nil -> socket
+        d -> assign(socket, ooo_draft: save_user_fields(d, v, d.user_body, actor))
+      end
+
+    {:noreply, socket |> assign(ooo_subject: v) |> mark_saved()}
   end
 
   # ── Variant picker (the quiet dropdown) ────────────────────────────────
@@ -290,6 +309,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
     edits = %{
       "subject" => socket.assigns.subject,
+      "ooo_subject" => socket.assigns.ooo_subject,
       "bodies" => socket.assigns.bodies
     }
 
@@ -526,12 +546,13 @@ defmodule ColtWeb.Sending.WriteLive do
     # hand-writes the first email — so the chosen account is visible in the
     # editor and the writer composes in its name. ApproveContact reuses it.
     socket = ensure_sender_assigned(socket)
+    socket = ensure_ooo_step(socket)
     socket = assign(socket, drafts_sequence_id: socket.assigns.sequence.id)
     actor = socket.assigns.current_user
     contact = socket.assigns.contact
 
     email_steps = email_steps(socket)
-    wanted = Enum.map(email_steps, & &1.position)
+    wanted = Enum.map(email_steps, & &1.position) ++ ooo_wanted(socket)
     drafts = reconcile_drafts(contact, wanted, actor)
     missing = wanted -- Enum.map(drafts, & &1.step_position)
     socket = assign(socket, email_steps: email_steps)
@@ -539,8 +560,8 @@ defmodule ColtWeb.Sending.WriteLive do
     cond do
       missing == [] ->
         socket
-        |> assign(drafts: drafts, state: :default, first_email: empty_pool?(socket))
-        |> seed_inputs_from_drafts(drafts)
+        |> assign(state: :default, first_email: empty_pool?(socket))
+        |> put_drafts(drafts)
 
       # Empty template pool: the user writes the first sequence under this
       # template by hand. Seed blank drafts and skip the AI writer so their
@@ -552,9 +573,47 @@ defmodule ColtWeb.Sending.WriteLive do
         kick_off_writer(socket)
 
         socket
-        |> assign(drafts: drafts, state: :drafting, first_email: false)
-        |> seed_inputs_from_drafts(drafts)
+        |> assign(state: :drafting, first_email: false)
+        |> put_drafts(drafts)
     end
+  end
+
+  # Admin-only: ensure this variant carries an OOO welcome-back step (position
+  # -1). Created blank; the admin authors it in the golden card. Sequences
+  # without it (all non-admin) are completely unaffected.
+  defp ensure_ooo_step(socket) do
+    if socket.assigns[:is_admin] and not Enum.any?(socket.assigns.steps, &(&1.kind == :ooo)) do
+      actor = socket.assigns.current_user
+
+      SequenceStep.create!(socket.assigns.sequence.id, SequenceStep.ooo_position(), :ooo, 0,
+        actor: actor
+      )
+
+      sequence = Sequence.get!(socket.assigns.sequence.id, load: [:sequence_steps], actor: actor)
+      assign(socket, sequence: sequence, steps: sequence.sequence_steps)
+    else
+      socket
+    end
+  end
+
+  # The OOO draft position to reconcile/seed — only for admins on a variant
+  # that actually has the step. Empty list ⇒ the -1 row is never seeded/kept.
+  defp ooo_wanted(socket) do
+    if socket.assigns[:is_admin] and Enum.any?(socket.assigns.steps, &(&1.kind == :ooo)),
+      do: [SequenceStep.ooo_position()],
+      else: []
+  end
+
+  # Split the thread's rows into the linear email drafts (rendered + required
+  # for approval) and the optional admin OOO welcome-back draft (position -1),
+  # then seed the editor inputs from both.
+  defp put_drafts(socket, all_drafts) do
+    {ooo, emails} =
+      Enum.split_with(all_drafts, &(&1.step_position == SequenceStep.ooo_position()))
+
+    socket
+    |> assign(drafts: emails, ooo_draft: List.first(ooo))
+    |> seed_inputs_from_drafts(emails, List.first(ooo))
   end
 
   # No user-edited emails written under this template yet ⇒ write by hand.
@@ -586,8 +645,8 @@ defmodule ColtWeb.Sending.WriteLive do
     drafts = list_outbound_drafts(contact, actor)
 
     socket
-    |> assign(contact: contact, drafts: drafts, state: :default, first_email: true)
-    |> seed_inputs_from_drafts(drafts)
+    |> assign(contact: contact, state: :default, first_email: true)
+    |> put_drafts(drafts)
   end
 
   defp ensure_thread(%{thread: %Thread{} = thread}, _actor), do: thread
@@ -613,7 +672,7 @@ defmodule ColtWeb.Sending.WriteLive do
     contact = socket.assigns.contact
 
     if contact do
-      wanted = Enum.map(email_steps, & &1.position)
+      wanted = Enum.map(email_steps, & &1.position) ++ ooo_wanted(socket)
       drafts = reconcile_drafts(contact, wanted, actor)
       missing = wanted -- Enum.map(drafts, & &1.step_position)
 
@@ -632,7 +691,7 @@ defmodule ColtWeb.Sending.WriteLive do
       end)
 
       drafts = list_outbound_drafts(contact, actor)
-      socket |> assign(contact: contact, drafts: drafts) |> seed_inputs_from_drafts(drafts)
+      socket |> assign(contact: contact) |> put_drafts(drafts)
     else
       socket
     end
@@ -681,7 +740,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp load_drafts(socket) do
     drafts = list_outbound_drafts(socket.assigns.contact, socket.assigns.current_user)
-    socket |> assign(drafts: drafts, state: :default) |> seed_inputs_from_drafts(drafts)
+    socket |> assign(state: :default) |> put_drafts(drafts)
   end
 
   defp list_outbound_drafts(%{thread: %{id: tid}}, actor) do
@@ -691,16 +750,20 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp list_outbound_drafts(_, _), do: []
 
-  defp seed_inputs_from_drafts(socket, drafts) do
+  defp seed_inputs_from_drafts(socket, drafts, ooo_draft) do
     first = List.first(drafts)
     subject = (first && (first.user_subject || first.ai_subject)) || ""
 
+    rows = drafts ++ List.wrap(ooo_draft)
+
     bodies =
-      Enum.into(drafts, %{}, fn e ->
+      Enum.into(rows, %{}, fn e ->
         {e.step_position, e.user_body || e.ai_body || ""}
       end)
 
-    assign(socket, subject: subject, bodies: bodies)
+    ooo_subject = (ooo_draft && (ooo_draft.user_subject || ooo_draft.ai_subject)) || ""
+
+    assign(socket, subject: subject, bodies: bodies, ooo_subject: ooo_subject)
   end
 
   defp kick_off_writer(socket) do
@@ -768,16 +831,23 @@ defmodule ColtWeb.Sending.WriteLive do
   defp persist_body(socket, pos, v) do
     actor = socket.assigns.current_user
 
-    drafts =
-      Enum.map(socket.assigns.drafts, fn email ->
-        if email.step_position == pos do
-          save_user_fields(email, email.user_subject, v, actor)
-        else
-          email
-        end
-      end)
+    if pos == SequenceStep.ooo_position() do
+      case socket.assigns[:ooo_draft] do
+        nil -> socket
+        d -> assign(socket, ooo_draft: save_user_fields(d, d.user_subject, v, actor))
+      end
+    else
+      drafts =
+        Enum.map(socket.assigns.drafts, fn email ->
+          if email.step_position == pos do
+            save_user_fields(email, email.user_subject, v, actor)
+          else
+            email
+          end
+        end)
 
-    assign(socket, drafts: drafts)
+      assign(socket, drafts: drafts)
+    end
   end
 
   defp save_user_fields(email, user_subject, user_body, actor) do
@@ -827,6 +897,9 @@ defmodule ColtWeb.Sending.WriteLive do
               seeded={@seeded?}
               first_email={@first_email}
               saved_at={@saved_at}
+              is_admin={@is_admin}
+              ooo_draft={@ooo_draft}
+              ooo_subject={@ooo_subject}
             />
             <.action_bar
               drafting={s == :drafting}
@@ -916,6 +989,9 @@ defmodule ColtWeb.Sending.WriteLive do
   attr :seeded, :boolean, default: false
   attr :first_email, :boolean, default: false
   attr :saved_at, :any, default: nil
+  attr :is_admin, :boolean, default: false
+  attr :ooo_draft, :map, default: nil
+  attr :ooo_subject, :string, default: ""
 
   defp editor(assigns) do
     step_by_position = Map.new(assigns.email_steps, fn s -> {s.position, s} end)
@@ -1017,6 +1093,14 @@ defmodule ColtWeb.Sending.WriteLive do
           />
           <.terminal_block step={@terminal} editable={not @seeded} />
         <% end %>
+
+        <div :if={@is_admin && @ooo_draft}>
+          <.ooo_card
+            ooo_draft={@ooo_draft}
+            subject={@ooo_subject}
+            body={Map.get(@bodies, -1, "")}
+          />
+        </div>
       </div>
 
       <div :if={@saved_at} class="mt-6 text-[11px] text-inkFaint tabular-nums">
@@ -1357,6 +1441,55 @@ defmodule ColtWeb.Sending.WriteLive do
           style="field-sizing: content;"
         >{@body}</textarea>
       </form>
+    </div>
+    """
+  end
+
+  attr :ooo_draft, :map, required: true
+  attr :subject, :string, default: ""
+  attr :body, :string, default: ""
+
+  # Golden, admin-only card for the OOO welcome-back. Rendered after the
+  # follow-ups; its blank body is optional (empty ⇒ the feature no-ops for the
+  # contact). Kept out of @drafts so it never blocks approval.
+  defp ooo_card(assigns) do
+    ~H"""
+    <div class="rounded-[11px] border border-gold/40 bg-goldSoft overflow-hidden [box-shadow:var(--shadow)]">
+      <div class="flex items-center gap-3 px-5 py-3 border-b border-gold/30">
+        <Liid.admin_badge label={gettext("Admin · Welcome-back")} />
+        <span class="flex-1" />
+        <span class="text-[10px] tracking-[0.06em] uppercase text-gold font-semibold">
+          {gettext("out-of-office only")}
+        </span>
+      </div>
+      <div class="px-5 py-4 flex flex-col gap-3 bg-card">
+        <p class="text-[12px] leading-[1.5] text-inkSoft m-0">
+          {gettext(
+            "Sent only when a prospect auto-replies out-of-office: it welcomes them back ~3 days after they return, then the follow-ups resume. Leave blank to skip."
+          )}
+        </p>
+        <form phx-change="set_ooo_subject" class="block">
+          <input
+            type="text"
+            name="value"
+            value={@subject}
+            phx-debounce="400"
+            placeholder={gettext("welcome-back subject")}
+            class="w-full px-4 py-2.5 border border-border bg-bgSoft rounded-[8px] text-[13.5px] text-ink outline-none placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
+          />
+        </form>
+        <form id="ooo-body-form" phx-change="set_body" class="block">
+          <input type="hidden" name="position" value={SequenceStep.ooo_position()} />
+          <textarea
+            id="ooo-body-input"
+            name="value"
+            rows="7"
+            phx-debounce="600"
+            placeholder={gettext("welcome them back, ask one light question…")}
+            class="w-full px-4 py-3 border border-border bg-bgSoft rounded-[8px] text-[13.5px] leading-[1.6] text-ink outline-none resize-y placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
+          >{@body}</textarea>
+        </form>
+      </div>
     </div>
     """
   end

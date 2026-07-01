@@ -83,12 +83,13 @@ defmodule Colt.Services.Sending.ApproveContact do
   #           "bodies" => %{step_position => body_string}}
   defp apply_edits(drafts, edits, actor) do
     subject = Map.get(edits, "subject")
+    ooo_subject = Map.get(edits, "ooo_subject")
     bodies = Map.get(edits, "bodies", %{})
 
     updated =
       Enum.map(drafts, fn email ->
         body = Map.get(bodies, email.step_position) || Map.get(bodies, "#{email.step_position}")
-        new_subject = if subject in [nil, ""], do: email.user_subject, else: subject
+        new_subject = subject_for(email, subject, ooo_subject)
         new_body = if body in [nil, ""], do: email.user_body, else: body
 
         if subject_changed?(email, new_subject) or body_changed?(email, new_body) do
@@ -106,6 +107,16 @@ defmodule Colt.Services.Sending.ApproveContact do
 
     {:ok, updated}
   end
+
+  # The subject is shared across the linear sequence, but the OOO welcome-back
+  # (position -1) keeps its own subject, taken from the approval payload's
+  # `ooo_subject` (falling back to whatever was already saved on the draft).
+  defp subject_for(%{step_position: -1} = email, _shared, ooo) when ooo in [nil, ""],
+    do: email.user_subject
+
+  defp subject_for(%{step_position: -1}, _shared, ooo), do: ooo
+  defp subject_for(%{user_subject: s}, shared, _ooo) when shared in [nil, ""], do: s
+  defp subject_for(_email, shared, _ooo), do: shared
 
   defp subject_changed?(%{user_subject: s}, new), do: s != new
   defp body_changed?(%{user_body: b}, new), do: b != new

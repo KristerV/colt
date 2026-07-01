@@ -3,12 +3,21 @@ defmodule Colt.Resources.SequenceStep do
   One row per step in a Sequence. The list always ends with exactly one
   `:terminal` step; the editor enforces that. Delays are relative to the
   prior step (or, for the terminal step, days after the final email).
+
+  Admin-only exception: a `:ooo` "welcome-back" step lives at the reserved
+  position `-1` (see `ooo_position/0`). It is authored like any step but sits
+  outside the linear 0..N follow-up flow, so the lazy scheduler's
+  `position == current + 1` lookup can never select it. It is injected only
+  when an out-of-office auto-reply is detected.
   """
   use Ash.Resource,
     otp_app: :colt,
     domain: Colt.Domain,
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
+
+  @doc "Reserved position of the admin-only OOO welcome-back step."
+  def ooo_position, do: -1
 
   postgres do
     table "sequence_steps"
@@ -91,7 +100,7 @@ defmodule Colt.Resources.SequenceStep do
     attribute :position, :integer, allow_nil?: false, public?: true
 
     attribute :kind, :atom,
-      constraints: [one_of: [:email, :terminal]],
+      constraints: [one_of: [:email, :terminal, :ooo]],
       allow_nil?: false,
       default: :email,
       public?: true

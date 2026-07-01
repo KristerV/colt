@@ -128,11 +128,25 @@ defmodule Colt.Services.Sending.EmailWriter do
        company: contact.person && contact.person.company,
        sequence: sequence,
        email_steps: Enum.filter(sequence.sequence_steps, &(&1.kind == :email)),
+       ooo_step: Enum.find(sequence.sequence_steps, &(&1.kind == :ooo)),
        all_steps: sequence.sequence_steps,
        thread: thread,
        language: sequence.language,
        pitch: pitch
      }}
+  end
+
+  # Steps the writer produces a subject+body for: the linear email steps plus,
+  # when the template has an admin-authored OOO welcome-back (position -1), that
+  # step too — so the welcome-back is personalized per contact just like the
+  # rest of the sequence. Sequences without an OOO step are unaffected.
+  defp writable_steps(ctx), do: ctx.email_steps ++ List.wrap(ctx.ooo_step)
+
+  # Steps shown to the model in the skeleton: linear emails, terminal, then the
+  # OOO welcome-back last (when it's in play — see maybe_drop_ooo_step/2).
+  defp prompt_steps(ctx) do
+    terminal = Enum.filter(ctx.all_steps, &(&1.kind == :terminal))
+    ctx.email_steps ++ terminal ++ List.wrap(ctx.ooo_step)
   end
 
   # Load the specific template the contact is being written under. Falls back
@@ -180,7 +194,23 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.sort_by(& &1.recency, {:desc, DateTime})
       |> Enum.take(@max_examples)
 
-    {:ok, Map.put(ctx, :examples, examples)}
+    ctx = Map.put(ctx, :examples, examples)
+    {:ok, maybe_drop_ooo_step(ctx, examples)}
+  end
+
+  # The writer produces the welcome-back only when the admin actually authored
+  # one — i.e. a prior -1 example exists in the pool. When the pool has real
+  # examples but none for -1, drop the OOO step so we neither prompt for nor
+  # persist a welcome-back; the feature stays off until the admin fills the
+  # golden card. An empty pool is the hand-written seed path: keep the step so
+  # the blank -1 draft is seeded for the admin to author.
+  defp maybe_drop_ooo_step(%{ooo_step: nil} = ctx, _examples), do: ctx
+  defp maybe_drop_ooo_step(ctx, []), do: ctx
+
+  defp maybe_drop_ooo_step(ctx, examples) do
+    if Enum.any?(examples, fn ex -> Enum.any?(ex.steps, &(&1.position == -1)) end),
+      do: ctx,
+      else: %{ctx | ooo_step: nil}
   end
 
   # A thread's user-edited rows, grouped upstream by thread.
@@ -260,10 +290,16 @@ defmodule Colt.Services.Sending.EmailWriter do
       the previous one (see "Sequence" below for exact delays).
     - The final email adds a gentle close — no aggression, no
       pressure-selling.
+    - If the skeleton lists a "Welcome-back (out-of-office)" step at
+      position -1, write it too: a short, warm note sent only when the
+      prospect auto-replied that they were away. Welcome them back,
+      acknowledge they were out, and ask one light question. No hard
+      pitch, no pressure — the goal is to re-open the conversation.
     - Subject lines: short (under 60 chars), lowercase preferred,
       no clickbait, no emojis.
 
-    Return JSON matching the schema. One object per email step.
+    Return JSON matching the schema. One object per step listed in the
+    skeleton (including the welcome-back step when present).
     """
 
     examples = Map.get(ctx, :examples, [])
@@ -285,7 +321,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     #{company_block(ctx.company)}
 
     Sequence skeleton (write one subject+body per email step):
-    #{skeleton_lines(ctx.all_steps)}
+    #{skeleton_lines(prompt_steps(ctx))}
 
     #{examples_block(examples)}
 
@@ -412,6 +448,7 @@ defmodule Colt.Services.Sending.EmailWriter do
   end
 
   defp step_label(nil), do: "manual reply"
+  defp step_label(-1), do: "welcome-back (out-of-office)"
   defp step_label(0), do: "opener"
   defp step_label(n) when is_integer(n), do: "followup #{n}"
 
@@ -492,8 +529,12 @@ defmodule Colt.Services.Sending.EmailWriter do
     end
   end
 
+  # Render the linear steps in position order, then the OOO welcome-back last
+  # (it lives at position -1 but is conceptually the tail of the sequence).
   defp skeleton_lines(steps) do
-    steps
+    {ooos, linear} = Enum.split_with(steps, &(&1.kind == :ooo))
+
+    (linear ++ ooos)
     |> Enum.map(fn s ->
       case s.kind do
         :email ->
@@ -504,6 +545,9 @@ defmodule Colt.Services.Sending.EmailWriter do
             end
 
           "  - position #{s.position}: #{label} (ships #{s.delay_days} days after previous step)"
+
+        :ooo ->
+          "  - position #{s.position}: Welcome-back (out-of-office) — written but sent ONLY if the prospect auto-replies out-of-office; a short, warm note welcoming them back and asking one light question"
 
         :terminal ->
           "  - terminal: mark contact as #{s.terminal_action}, #{s.delay_days} days after final email (no email written)"
@@ -528,7 +572,7 @@ defmodule Colt.Services.Sending.EmailWriter do
            subject: {:campaign_contact, ctx.contact.id}
          ) do
       {:ok, %{content: %{"steps" => steps}}} when is_list(steps) ->
-        {:ok, normalize_steps(steps, ctx.email_steps)}
+        {:ok, normalize_steps(steps, writable_steps(ctx))}
 
       {:ok, _other} ->
         {:error, :writer_invalid_response}
@@ -609,7 +653,7 @@ defmodule Colt.Services.Sending.EmailWriter do
 
     seed = starter_body(ctx.sender)
 
-    ctx.email_steps
+    writable_steps(ctx)
     |> Enum.reject(&MapSet.member?(existing, &1.position))
     |> Enum.map(fn step ->
       OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, seed,

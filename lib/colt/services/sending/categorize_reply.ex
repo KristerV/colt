@@ -19,7 +19,14 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   alias Colt.Resources.{CampaignContact, InboundEmail}
   alias Colt.Services.Ai.Complete
-  alias Colt.Services.Sending.{Broadcast, DeferFollowup, ExtractOooReturn, HaltSequence}
+
+  alias Colt.Services.Sending.{
+    Broadcast,
+    DeferFollowup,
+    ExtractOooReturn,
+    HaltSequence,
+    InjectOooWelcomeBack
+  }
 
   @confidence_floor 0.7
   @valid_categories ~w(ooo interested not_interested other)
@@ -38,14 +45,22 @@ defmodule Colt.Services.Sending.CategorizeReply do
     end
   end
 
-  # OOO: keep the contact active, just push the next follow-up out. The
+  # OOO: keep the contact active. If the template carries an admin-authored
+  # welcome-back email (golden, position -1), send it at return+3d and resume
+  # the follow-ups behind it. Otherwise just push the next follow-up out. The
   # reschedule is persisted; the sending funnel reflects the new send time on
   # its next load (no live broadcast — the contact never leaves :sending).
-  defp handle(:ooo, inbound, _contact) do
+  defp handle(:ooo, inbound, contact) do
     not_before = ooo_not_before(inbound)
 
-    with {:ok, result} <- DeferFollowup.run(inbound.thread_id, not_before) do
-      {:ok, %{category: :ooo, deferred: result}}
+    case InjectOooWelcomeBack.run(inbound.thread_id, contact, not_before) do
+      {:ok, :no_welcome_back} ->
+        with {:ok, result} <- DeferFollowup.run(inbound.thread_id, not_before) do
+          {:ok, %{category: :ooo, deferred: result}}
+        end
+
+      {:ok, injected} ->
+        {:ok, %{category: :ooo, ooo_injected: injected}}
     end
   end
 
