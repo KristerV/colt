@@ -28,6 +28,7 @@ config :colt, Oban,
   queues: [default: 10, registry: 1, scrape: 4, ai: 5, export: 1, sending: 4, ai_writer: 4],
   repo: Colt.Repo,
   plugins: [
+    {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 3},
     {Oban.Plugins.Cron,
      crontab: [
        {"0 3 1 * *", Colt.Jobs.Ingest.Ee},
