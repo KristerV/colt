@@ -163,67 +163,32 @@ defmodule ColtWeb.HomeLive do
     <section class="pt-[42px] pb-14">
       <div class="max-w-[1180px] mx-auto px-8">
         <div class="flex items-stretch justify-center gap-0 flex-col md:flex-row">
-          <.pstep no="1" tone={:accent} label={gettext("Filter")}>
-            <:flow>
-              <span class="text-[12px] text-inkFaint tabular-nums">
-                {gettext("every active company in the registry")}
-              </span>
-              <span class="text-[18px] font-bold tracking-[-0.02em] text-accent tabular-nums leading-[1.2]">
-                {gettext("300k → 10k that fit")}
-              </span>
-            </:flow>
-            <:tags>
-              <.ptag>{gettext("revenue")}</.ptag>
-              <.ptag>{gettext("employees")}</.ptag>
-            </:tags>
+          <.pstep no="1" tone={:accent} label={gettext("Filter")} value="300k">
+            {gettext("government companies")}
           </.pstep>
 
           <.pchevron />
 
-          <.pstep no="2" label={gettext("Enrich")}>
-            <:flow>
-              <span class="text-[12px] text-inkFaint tabular-nums">
-                {gettext("of those, the ones we can reach")}
-              </span>
-              <span class="text-[18px] font-bold tracking-[-0.02em] text-accent tabular-nums leading-[1.2]">
-                {gettext("2,400 with real contacts")}
-              </span>
-            </:flow>
-            <:tags>
-              <.ptag tone={:accent}>{gettext("ICP fit")}</.ptag>
-              <.ptag tone={:green}>{gettext("verified")}</.ptag>
-            </:tags>
+          <.pstep no="2" label={gettext("Enrich")} value="10k">
+            {gettext("enriched contacts")}
           </.pstep>
 
           <.pchevron />
 
-          <.pstep no="3" label={gettext("Send")}>
-            <:flow>
-              <span class="text-[12px] text-inkFaint tabular-nums">{gettext("all 2,400 get")}</span>
-              <span class="text-[18px] font-bold tracking-[-0.02em] text-ink leading-[1.2]">
-                {gettext("emails in your voice")}
-              </span>
-            </:flow>
-            <:tags>
-              <.ptag tone={:accent}>{gettext("your voice")}</.ptag>
-              <.ptag>{gettext("multi-inbox")}</.ptag>
-            </:tags>
+          <.pstep no="3" label={gettext("AI checks")} value="2,400">
+            {raw(gettext("match <em>your</em> ICP"))}
           </.pstep>
 
           <.pchevron />
 
-          <.pstep no="4" tone={:green} label={gettext("Interested")}>
-            <:flow>
-              <span class="text-[12px] text-inkFaint tabular-nums">
-                {gettext("the ones who reply")}
-              </span>
-              <span class="text-[18px] font-bold tracking-[-0.02em] text-green tabular-nums leading-[1.2]">
-                {gettext("230 want to talk")}
-              </span>
-            </:flow>
-            <:tags>
-              <.ptag tone={:green}>{gettext("call-ready")}</.ptag>
-            </:tags>
+          <.pstep no="4" tone={:accent} label={gettext("Send")} value="2,400">
+            {raw(gettext("emails in <em>your</em> voice"))}
+          </.pstep>
+
+          <.pchevron />
+
+          <.pstep no="5" tone={:green} label={gettext("Reply")} value="160">
+            {gettext("interested leads")}
           </.pstep>
         </div>
       </div>
@@ -233,15 +198,15 @@ defmodule ColtWeb.HomeLive do
 
   attr :no, :string, required: true
   attr :label, :string, required: true
+  attr :value, :string, required: true
   attr :tone, :atom, default: :plain
-  slot :flow, required: true
-  slot :tags, required: true
+  slot :inner_block, required: true
 
   defp pstep(assigns) do
     ~H"""
     <div
       class={[
-        "flex-1 min-w-0 bg-card border rounded-[11px] px-[18px] pt-5 pb-[22px] text-left flex flex-col gap-3.5",
+        "flex-1 min-w-0 bg-card border rounded-[11px] px-[18px] pt-4 pb-[18px] text-center flex flex-col items-center gap-2.5",
         @tone == :accent && "border-accentRing",
         @tone == :green && "border-[#bfe6d2]",
         @tone == :plain && "border-border"
@@ -258,25 +223,18 @@ defmodule ColtWeb.HomeLive do
         </span>
         {@label}
       </div>
-      <div class="flex flex-col gap-1">{render_slot(@flow)}</div>
-      <div class="flex flex-wrap gap-1.5 mt-auto">{render_slot(@tags)}</div>
+      <div class={[
+        "text-[40px] font-bold tracking-[-0.03em] tabular-nums leading-none mt-0.5",
+        @tone == :accent && "text-accent",
+        @tone == :green && "text-green",
+        @tone == :plain && "text-ink"
+      ]}>
+        {@value}
+      </div>
+      <div class="text-[14px] text-inkSoft font-[450] leading-[1.3]">
+        {render_slot(@inner_block)}
+      </div>
     </div>
-    """
-  end
-
-  attr :tone, :atom, default: :plain
-  slot :inner_block, required: true
-
-  defp ptag(assigns) do
-    ~H"""
-    <span class={[
-      "text-[11px] font-medium px-2 py-[3px] rounded-[6px] border",
-      @tone == :accent && "bg-accentSoft border-accentRing text-accent",
-      @tone == :green && "bg-greenSoft border-[#bfe6d2] text-green",
-      @tone == :plain && "bg-bgSoft border-border text-inkSoft"
-    ]}>
-      {render_slot(@inner_block)}
-    </span>
     """
   end
 
