@@ -978,6 +978,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
                 <div class="font-semibold text-ink">{@company.name}</div>
                 <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                   <a
+                    :if={@contact.person && @contact.person.phone}
+                    href={"tel:#{@contact.person.phone}"}
+                    class="text-accent font-medium hover:underline"
+                  >
+                    ☎ {@contact.person.phone}
+                  </a>
+                  <a
                     :if={@registry_link}
                     href={@registry_link.url}
                     target="_blank"
