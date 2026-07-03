@@ -374,16 +374,19 @@ defmodule ColtWeb.Sending.WriteLive do
 
   # ── Async draft generation ─────────────────────────────────────────────
 
-  def handle_info({:drafts_ready, contact_id}, socket) do
-    if socket.assigns.contact && socket.assigns.contact.id == contact_id do
+  # Guard on both the contact and the variant the writer ran under: a stale
+  # writer from a variant we've since switched away from must not paint the
+  # editor under the current variant.
+  def handle_info({:drafts_ready, contact_id, sequence_id}, socket) do
+    if for_current_draft?(socket, contact_id, sequence_id) do
       {:noreply, load_drafts(socket)}
     else
       {:noreply, socket}
     end
   end
 
-  def handle_info({:drafts_failed, contact_id, reason}, socket) do
-    if socket.assigns.contact && socket.assigns.contact.id == contact_id do
+  def handle_info({:drafts_failed, contact_id, sequence_id, reason}, socket) do
+    if for_current_draft?(socket, contact_id, sequence_id) do
       {:noreply,
        socket
        |> put_flash(:error, gettext("AI writer failed: %{reason}", reason: inspect(reason)))
@@ -394,6 +397,11 @@ defmodule ColtWeb.Sending.WriteLive do
   end
 
   def handle_info(_msg, socket), do: {:noreply, socket}
+
+  defp for_current_draft?(socket, contact_id, sequence_id) do
+    socket.assigns.contact && socket.assigns.contact.id == contact_id &&
+      socket.assigns.drafts_sequence_id == sequence_id
+  end
 
   # ── Internals ──────────────────────────────────────────────────────────
 
@@ -421,6 +429,7 @@ defmodule ColtWeb.Sending.WriteLive do
           subject: "",
           bodies: %{}
         )
+        |> adopt_draft_variant(contact, actor)
         |> load_drafts_or_start_writer()
 
       :none ->
@@ -455,21 +464,47 @@ defmodule ColtWeb.Sending.WriteLive do
       socket
     else
       actor = socket.assigns.current_user
-      campaign = socket.assigns.campaign
-      sequence = Sequence.get!(vid, load: [:sequence_steps], actor: actor)
-
-      socket =
-        assign(socket,
-          sequence: sequence,
-          selected_id: vid,
-          steps: sequence.sequence_steps,
-          seeded?: seeded?(vid, campaign.id, actor)
-        )
+      socket = assign_variant(socket, vid, actor)
 
       case socket.assigns.contact do
         nil -> assign(socket, email_steps: email_steps(socket))
         contact -> socket |> tap_clear_drafts(contact, actor) |> load_drafts_or_start_writer()
       end
+    end
+  end
+
+  # Point the working variant at `vid` (sequence, picker selection, steps,
+  # seeded flag). Shared by an explicit switch and the landing draft-adopt.
+  defp assign_variant(socket, vid, actor) do
+    sequence = Sequence.get!(vid, load: [:sequence_steps], actor: actor)
+
+    assign(socket,
+      sequence: sequence,
+      selected_id: vid,
+      steps: sequence.sequence_steps,
+      seeded?: seeded?(vid, socket.assigns.campaign.id, actor)
+    )
+  end
+
+  # Landing: make the picker reflect the draft on the contact's thread. If the
+  # thread already holds a draft written under a live variant, switch the
+  # working variant to it (drafts are kept) instead of the least-sent pick —
+  # so you see the last draft you were working on under its own variant.
+  # Nil-tagged (pre-A/B) drafts don't match a variant, so they self-heal.
+  defp adopt_draft_variant(socket, contact, actor) do
+    variant_ids = MapSet.new(socket.assigns.variants, & &1.id)
+
+    draft_sequence_id =
+      contact
+      |> list_outbound_drafts(actor)
+      |> Enum.find_value(fn e ->
+        if e.sequence_id && MapSet.member?(variant_ids, e.sequence_id), do: e.sequence_id
+      end)
+
+    cond do
+      is_nil(draft_sequence_id) -> socket
+      draft_sequence_id == socket.assigns.selected_id -> socket
+      true -> assign_variant(socket, draft_sequence_id, actor)
     end
   end
 
@@ -490,6 +525,17 @@ defmodule ColtWeb.Sending.WriteLive do
     {:ok, created} = Sequence.create_bare(campaign.id, name, source.language, actor: actor)
     copy_steps(source.sequence_steps, created.id, actor)
     sequence = Sequence.get!(created.id, load: [:sequence_steps], actor: actor)
+
+    # Carry the draft we're looking at into the new variant: re-tag its rows so
+    # the reconcile keeps them (the writing stays) rather than dropping them as
+    # another variant's leftovers.
+    if contact = socket.assigns.contact do
+      contact
+      |> list_outbound_drafts(actor)
+      |> Enum.each(
+        &OutboundEmail.set_sequence!(&1, created.id, actor: actor, authorize?: actor != nil)
+      )
+    end
 
     email_steps =
       sequence.sequence_steps |> Enum.filter(&(&1.kind == :email)) |> Enum.sort_by(& &1.position)
@@ -553,7 +599,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
     email_steps = email_steps(socket)
     wanted = Enum.map(email_steps, & &1.position) ++ ooo_wanted(socket)
-    drafts = reconcile_drafts(contact, wanted, actor)
+    drafts = reconcile_drafts(contact, wanted, socket.assigns.sequence.id, actor)
     missing = wanted -- Enum.map(drafts, & &1.step_position)
     socket = assign(socket, email_steps: email_steps)
 
@@ -635,7 +681,7 @@ defmodule ColtWeb.Sending.WriteLive do
     seed = EmailWriter.starter_body(socket.assigns.sender)
 
     Enum.each(missing_positions, fn pos ->
-      OutboundEmail.create_draft!(thread.id, pos, nil, seed,
+      OutboundEmail.create_draft!(thread.id, pos, nil, seed, socket.assigns.sequence.id,
         actor: actor,
         authorize?: actor != nil
       )
@@ -673,7 +719,7 @@ defmodule ColtWeb.Sending.WriteLive do
 
     if contact do
       wanted = Enum.map(email_steps, & &1.position) ++ ooo_wanted(socket)
-      drafts = reconcile_drafts(contact, wanted, actor)
+      drafts = reconcile_drafts(contact, wanted, socket.assigns.sequence.id, actor)
       missing = wanted -- Enum.map(drafts, & &1.step_position)
 
       contact =
@@ -684,7 +730,7 @@ defmodule ColtWeb.Sending.WriteLive do
       seed = if socket.assigns[:first_email], do: EmailWriter.starter_body(socket.assigns.sender)
 
       Enum.each(missing, fn pos ->
-        OutboundEmail.create_draft!(contact.thread.id, pos, nil, seed,
+        OutboundEmail.create_draft!(contact.thread.id, pos, nil, seed, socket.assigns.sequence.id,
           actor: actor,
           authorize?: actor != nil
         )
@@ -722,12 +768,18 @@ defmodule ColtWeb.Sending.WriteLive do
   # :approved, but they're still the contact's emails and we must not
   # re-run the writer for them. We only delete *unused* :drafted rows at
   # positions that no longer exist in the sequence.
-  defp reconcile_drafts(contact, wanted_positions, actor) do
+  # Keep a draft only when its position is still wanted AND it was written
+  # under the variant we're working in. Drafts from another variant (or nil-
+  # tagged pre-A/B rows) are dropped so the writer regenerates them for this
+  # variant — that's the self-heal.
+  defp reconcile_drafts(contact, wanted_positions, sequence_id, actor) do
     drafts = list_outbound_drafts(contact, actor)
     wanted = MapSet.new(wanted_positions)
 
     {keep, drop} =
-      Enum.split_with(drafts, fn e -> MapSet.member?(wanted, e.step_position) end)
+      Enum.split_with(drafts, fn e ->
+        MapSet.member?(wanted, e.step_position) and e.sequence_id == sequence_id
+      end)
 
     Enum.each(drop, fn e ->
       if e.status == :drafted do
@@ -774,8 +826,8 @@ defmodule ColtWeb.Sending.WriteLive do
 
     Task.start(fn ->
       case EmailWriter.run(contact_id, sequence_id: sequence_id, actor: actor) do
-        {:ok, _} -> send(parent, {:drafts_ready, contact_id})
-        {:error, reason} -> send(parent, {:drafts_failed, contact_id, reason})
+        {:ok, _} -> send(parent, {:drafts_ready, contact_id, sequence_id})
+        {:error, reason} -> send(parent, {:drafts_failed, contact_id, sequence_id, reason})
       end
     end)
   end

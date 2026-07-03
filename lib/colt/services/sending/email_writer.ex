@@ -631,6 +631,7 @@ defmodule Colt.Services.Sending.EmailWriter do
             step_position: s.position,
             ai_subject: s.subject,
             ai_body: s.body,
+            sequence_id: ctx.sequence.id,
             writer_meta: meta
           },
           action: :create_draft,
@@ -656,7 +657,7 @@ defmodule Colt.Services.Sending.EmailWriter do
     writable_steps(ctx)
     |> Enum.reject(&MapSet.member?(existing, &1.position))
     |> Enum.map(fn step ->
-      OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, seed,
+      OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, seed, ctx.sequence.id,
         actor: actor,
         authorize?: actor != nil
       )

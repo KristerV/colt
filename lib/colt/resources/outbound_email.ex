@@ -34,7 +34,9 @@ defmodule Colt.Resources.OutboundEmail do
     define :list_user_edited_for_sequence, args: [:sequence_id, :limit]
 
     define :create_draft,
-      args: [:thread_id, :step_position, :ai_subject, :ai_body]
+      args: [:thread_id, :step_position, :ai_subject, :ai_body, :sequence_id]
+
+    define :set_sequence, args: [:sequence_id]
 
     define :create_manual_reply
 
@@ -242,11 +244,17 @@ defmodule Colt.Resources.OutboundEmail do
         :step_position,
         :ai_subject,
         :ai_body,
+        :sequence_id,
         :writer_meta
       ]
 
       change set_attribute(:status, :drafted)
       change set_attribute(:is_manual_reply, false)
+    end
+
+    update :set_sequence do
+      description "Re-tag a draft with the variant it now belongs to (new-variant carry-over)."
+      accept [:sequence_id]
     end
 
     update :update_user_fields do
@@ -380,6 +388,12 @@ defmodule Colt.Resources.OutboundEmail do
 
   relationships do
     belongs_to :thread, Colt.Resources.Thread, allow_nil?: false, public?: true
+
+    # The variant this draft was written under. Nil for pre-A/B rows (they
+    # fail the reconcile match and self-heal on next view). Lets the writing
+    # view keep vs. regenerate drafts per variant, and reflect the shown
+    # draft's variant in the picker.
+    belongs_to :sequence, Colt.Resources.Sequence, allow_nil?: true, public?: true
 
     belongs_to :email_account, Colt.Resources.EmailAccount,
       allow_nil?: true,
