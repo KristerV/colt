@@ -148,7 +148,7 @@ commits, no Claude attribution.
   ("classified as interested") in the sending funnel thread, with time and reason; a manual
   "Mark as…" shows as an actor-attributed line.
 
-### Phase S2 — SalesStage + setup view
+### Phase S2 — SalesStage + setup view ✅ done
 - `SalesStage` resource + migration; `seed_defaults`; `CampaignContact.sales_stage_id` + migration.
 - Setup LiveView (`/sales/setup`): list, add, rename, reorder, delete, set kind. Admin-gated.
 - Third nav section "Sales" (admin, golden), routes.

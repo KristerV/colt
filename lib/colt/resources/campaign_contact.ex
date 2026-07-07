@@ -19,6 +19,7 @@ defmodule Colt.Resources.CampaignContact do
       reference :person, on_delete: :delete
       reference :assigned_email_account, on_delete: :nilify
       reference :sequence, on_delete: :nilify
+      reference :sales_stage, on_delete: :nilify
     end
   end
 
@@ -40,6 +41,10 @@ defmodule Colt.Resources.CampaignContact do
     define :set_status, args: [:status]
     define :manual_override, args: [:override]
     define :stop_sequence
+    define :move_to_stage, args: [:sales_stage_id]
+    define :enter_sales_funnel, args: [:sales_stage_id]
+    define :list_in_stage, args: [:sales_stage_id]
+    define :list_entered_for_campaign, args: [:campaign_id]
     define :count_assigned_today, args: [:email_account_id]
     define :find_active_in_inbox_by_domain, args: [:email_account_id, :domain_suffix]
   end
@@ -216,6 +221,48 @@ defmodule Colt.Resources.CampaignContact do
       end
     end
 
+    update :move_to_stage do
+      description """
+      Move the contact to a sales stage. Sets sales_stage_id; the caller
+      (`Colt.Services.Sales.MoveToStage`) writes the StatusEvent with the
+      old→new stage labels, actor, and optional reason.
+      """
+
+      accept [:sales_stage_id]
+      require_atomic? false
+    end
+
+    update :enter_sales_funnel do
+      description """
+      Idempotent auto-entry: only sets sales_stage_id when it's currently
+      nil, so re-firing (e.g. a second reply) never re-enters or reshuffles
+      a contact a human has since moved.
+      """
+
+      accept [:sales_stage_id]
+      require_atomic? false
+
+      change fn changeset, _ ->
+        case Ash.Changeset.get_data(changeset, :sales_stage_id) do
+          nil -> changeset
+          existing -> Ash.Changeset.force_change_attribute(changeset, :sales_stage_id, existing)
+        end
+      end
+    end
+
+    read :list_in_stage do
+      description "Contacts currently sitting in a given sales stage."
+      argument :sales_stage_id, :uuid, allow_nil?: false
+      filter expr(sales_stage_id == ^arg(:sales_stage_id))
+      prepare build(sort: [updated_at: :desc])
+    end
+
+    read :list_entered_for_campaign do
+      description "Every contact that has entered the sales funnel (sales_stage_id set) — the conversion-rate denominator."
+      argument :campaign_id, :uuid, allow_nil?: false
+      filter expr(campaign_id == ^arg(:campaign_id) and not is_nil(sales_stage_id))
+    end
+
     read :find_active_in_inbox_by_domain do
       description """
       Cross-domain reply fallback (§1.9/§7.2.4). Latest in-flight contact
@@ -321,6 +368,7 @@ defmodule Colt.Resources.CampaignContact do
       public?: true
 
     belongs_to :sequence, Colt.Resources.Sequence, allow_nil?: true, public?: true
+    belongs_to :sales_stage, Colt.Resources.SalesStage, allow_nil?: true, public?: true
 
     has_one :thread, Colt.Resources.Thread
   end

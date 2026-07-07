@@ -24,6 +24,7 @@ defmodule Colt.Domain do
     resource Colt.Resources.InboundEmail
     resource Colt.Resources.Note
     resource Colt.Resources.StatusEvent
+    resource Colt.Resources.SalesStage
     resource Colt.Resources.Pitch
     resource Colt.Resources.AppSetting
   end

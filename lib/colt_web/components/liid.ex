@@ -417,6 +417,11 @@ defmodule ColtWeb.Components.Liid do
     %{id: :settings, icon: "file"}
   ]
 
+  @sales_items [
+    %{id: :sales_setup, icon: "filter"},
+    %{id: :sales_funnel, icon: "grid"}
+  ]
+
   defp nav_label(:campaigns), do: gettext("Campaigns")
   defp nav_label(:email_accounts), do: gettext("Email accounts")
   defp nav_label(:billing), do: gettext("Billing")
@@ -435,6 +440,8 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:write), do: gettext("Write")
   defp nav_label(:variants), do: gettext("Variants")
   defp nav_label(:settings), do: gettext("Settings")
+  defp nav_label(:sales_setup), do: gettext("Setup")
+  defp nav_label(:sales_funnel), do: gettext("Sales funnel")
 
   attr :active, :atom, default: nil
   attr :current_user, :map, default: nil
@@ -495,6 +502,17 @@ defmodule ColtWeb.Components.Liid do
               campaign={@campaign}
               current_user={@current_user}
             />
+          </:header_extra>
+        </.sidebar_section>
+
+        <.sidebar_section
+          :if={@campaign && @current_user && @current_user.is_admin}
+          label={gettext("Sales")}
+          items={sales_items_with_hrefs(@campaign_id)}
+          active={@active}
+        >
+          <:header_extra>
+            <.admin_badge label={gettext("Admin")} />
           </:header_extra>
         </.sidebar_section>
       </div>
@@ -686,6 +704,12 @@ defmodule ColtWeb.Components.Liid do
     Enum.map(@sending_items, fn item -> Map.put(item, :href, sending_href(item.id, id)) end)
   end
 
+  defp sales_items_with_hrefs(nil), do: @sales_items
+
+  defp sales_items_with_hrefs(id) do
+    Enum.map(@sales_items, fn item -> Map.put(item, :href, sales_href(item.id, id)) end)
+  end
+
   defp enrichment_href(:name, id), do: "/campaigns/#{id}/name"
   defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
   defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
@@ -700,6 +724,9 @@ defmodule ColtWeb.Components.Liid do
   defp sending_href(:settings, id), do: "/campaigns/#{id}/settings"
   defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
   defp sending_href(:sending_funnel, id), do: "/campaigns/#{id}/sending-funnel"
+
+  defp sales_href(:sales_setup, id), do: "/campaigns/#{id}/sales/setup"
+  defp sales_href(:sales_funnel, id), do: "/campaigns/#{id}/sales"
 
   attr :label, :string, default: nil
   attr :items, :list, required: true
