@@ -19,13 +19,15 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   alias Colt.Resources.{CampaignContact, InboundEmail}
   alias Colt.Services.Ai.Complete
+  alias Colt.Services.Sales.{AutoEnter, RecordStatusEvent}
 
   alias Colt.Services.Sending.{
     Broadcast,
     DeferFollowup,
     ExtractOooReturn,
     HaltSequence,
-    InjectOooWelcomeBack
+    InjectOooWelcomeBack,
+    StatusLabel
   }
 
   @confidence_floor 0.7
@@ -38,10 +40,10 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   def run(inbound_id) when is_binary(inbound_id) do
     with {:ok, inbound} <- load(inbound_id),
-         {:ok, category} <- classify(inbound),
+         {:ok, {category, confidence}} <- classify(inbound),
          {:ok, _} <- InboundEmail.set_reply_category(inbound, category, authorize?: false),
          {:ok, contact} <- contact_for(inbound) do
-      handle(category, inbound, contact)
+      handle(category, confidence, inbound, contact)
     end
   end
 
@@ -50,7 +52,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
   # the follow-ups behind it. Otherwise just push the next follow-up out. The
   # reschedule is persisted; the sending funnel reflects the new send time on
   # its next load (no live broadcast — the contact never leaves :sending).
-  defp handle(:ooo, inbound, contact) do
+  defp handle(:ooo, _confidence, inbound, contact) do
     not_before = ooo_not_before(inbound)
 
     case InjectOooWelcomeBack.run(inbound.thread_id, contact, not_before) do
@@ -65,15 +67,50 @@ defmodule Colt.Services.Sending.CategorizeReply do
   end
 
   # Real reply: mark replied + stop the sequence so a human takes over.
-  defp handle(category, inbound, contact) do
+  defp handle(category, confidence, inbound, contact) do
     with {:ok, _} <- CampaignContact.mark_replied(contact, category, authorize?: false),
          {:ok, halted} <- HaltSequence.run(inbound.thread_id) do
       campaign_id = contact.campaign_id
+
+      RecordStatusEvent.run(inbound.thread_id, :reply_category, nil, StatusLabel.label(category),
+        reason: classified_reason(category, confidence)
+      )
+
+      maybe_auto_enter(category, contact.id, campaign_id)
+
       Broadcast.reply_categorized(campaign_id, contact.id, category)
       Broadcast.sequence_halted(campaign_id, contact.id, :reply)
       {:ok, %{category: category, halted_count: halted}}
     end
   end
+
+  # Interested / call-ready pulls the contact into the sales funnel. This runs
+  # in the Oban categorize job (no user session), so a failed entry — e.g. the
+  # campaign has no active stage — is logged rather than surfaced; the reply is
+  # still categorized regardless.
+  defp maybe_auto_enter(category, contact_id, campaign_id) do
+    if AutoEnter.trigger?(category) do
+      case AutoEnter.run(contact_id, campaign_id) do
+        {:ok, _} ->
+          :ok
+
+        {:error, reason} ->
+          Logger.warning(
+            "categorize_reply: sales auto-enter failed for contact #{contact_id}: #{inspect(reason)}"
+          )
+
+          :ok
+      end
+    else
+      :ok
+    end
+  end
+
+  defp classified_reason(category, confidence) when is_number(confidence) do
+    "classified as #{StatusLabel.label(category)} (#{:erlang.float_to_binary(confidence * 1.0, decimals: 2)})"
+  end
+
+  defp classified_reason(category, _), do: "classified as #{StatusLabel.label(category)}"
 
   defp ooo_not_before(inbound) do
     case ExtractOooReturn.run(inbound) do
@@ -126,7 +163,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
       - not_interested: explicit decline / unsubscribe / hostile
       - other: unclear, off-topic, requires human review
 
-    Reply JSON only: {"category": "...", "confidence": 0.0-1.0, "reason": "..."}.
+    Reply JSON only: {"category": "...", "confidence": 0.0-1.0}.
 
     From: #{from}
     Subject: #{subject}
@@ -147,11 +184,11 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
       {:ok, other} ->
         Logger.warning("categorize_reply: unexpected complete response #{inspect(other)}")
-        {:ok, :other}
+        {:ok, {:other, nil}}
 
       {:error, reason} ->
         Logger.warning("categorize_reply: ai error #{inspect(reason)} — defaulting :other")
-        {:ok, :other}
+        {:ok, {:other, nil}}
     end
   end
 
@@ -159,14 +196,13 @@ defmodule Colt.Services.Sending.CategorizeReply do
     %{
       type: "object",
       additionalProperties: false,
-      required: ["category", "confidence", "reason"],
+      required: ["category", "confidence"],
       properties: %{
         category: %{
           type: "string",
           enum: ["ooo", "interested", "not_interested", "other"]
         },
-        confidence: %{type: "number"},
-        reason: %{type: "string"}
+        confidence: %{type: "number"}
       }
     }
   end
@@ -174,9 +210,9 @@ defmodule Colt.Services.Sending.CategorizeReply do
   defp classifier_system do
     """
     You are a precise classifier for cold-outreach replies. Output strict
-    JSON with exactly these keys: category, confidence, reason. Categories
-    are: ooo, interested, not_interested, other. Be conservative — if the
-    intent is ambiguous, return "other".
+    JSON with exactly these keys: category, confidence. Categories are: ooo,
+    interested, not_interested, other. Be conservative — if the intent is
+    ambiguous, return "other".
     """
   end
 
@@ -185,9 +221,9 @@ defmodule Colt.Services.Sending.CategorizeReply do
     confidence = json |> Map.get("confidence", 0) |> to_float()
 
     cond do
-      label not in @valid_categories -> :other
-      confidence < @confidence_floor -> :other
-      true -> String.to_existing_atom(label)
+      label not in @valid_categories -> {:other, confidence}
+      confidence < @confidence_floor -> {:other, confidence}
+      true -> {String.to_existing_atom(label), confidence}
     end
   end
 

@@ -1,5 +1,10 @@
 # Closing funnel (sales pipeline) — design intent, not yet built
 
+> **Superseded 2026-07-07 by `docs/sales-funnel.md`** — the built spec (customizable stages, a
+> setup view, and a unified StatusEvent feed). Kept for history.
+
+
+
 > **Status: designed 2026-06-22, not built.** Captured here so it can be built fast when
 > needed. No `PipelineLive`, no `pipeline_stage` attribute, no `:in_convo`/`:won`/`:lost`
 > exist in the codebase yet.

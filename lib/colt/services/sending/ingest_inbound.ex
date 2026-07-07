@@ -165,9 +165,14 @@ defmodule Colt.Services.Sending.IngestInbound do
   end
 
   defp maybe_mark_contact_bounced(%OutboundEmail{
-         thread: %Thread{campaign_contact: %CampaignContact{} = contact}
+         thread: %Thread{id: thread_id, campaign_contact: %CampaignContact{} = contact}
        }) do
-    CampaignContact.mark_bounced(contact, authorize?: false)
+    from = contact.status |> to_string() |> String.replace("_", " ")
+
+    with {:ok, updated} <- CampaignContact.mark_bounced(contact, authorize?: false) do
+      Colt.Services.Sales.RecordStatusEvent.run(thread_id, :send_status, from, "bounced")
+      {:ok, updated}
+    end
   end
 
   defp maybe_mark_contact_bounced(_), do: {:ok, :no_contact}

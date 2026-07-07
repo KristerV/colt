@@ -33,6 +33,11 @@ defmodule ColtWeb.Components.Liid do
     |> JS.add_class("hidden", to: "#liid-nav-backdrop")
   end
 
+  @doc "Dot background-color class for a sales-stage kind (nil/active → accent)."
+  def stage_dot(:won), do: "bg-green"
+  def stage_dot(:lost), do: "bg-inkFaint"
+  def stage_dot(_), do: "bg-accent"
+
   @icon_paths %{
     "arrow" => "M3 8h10M9 4l4 4-4 4",
     "logout" => "M10 3H4v10h6M8 8h6M11 5l3 3-3 3",
@@ -417,6 +422,11 @@ defmodule ColtWeb.Components.Liid do
     %{id: :settings, icon: "file"}
   ]
 
+  @sales_items [
+    %{id: :sales_setup, icon: "filter"},
+    %{id: :sales_funnel, icon: "grid"}
+  ]
+
   defp nav_label(:campaigns), do: gettext("Campaigns")
   defp nav_label(:email_accounts), do: gettext("Email accounts")
   defp nav_label(:billing), do: gettext("Billing")
@@ -435,6 +445,8 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:write), do: gettext("Write")
   defp nav_label(:variants), do: gettext("Variants")
   defp nav_label(:settings), do: gettext("Settings")
+  defp nav_label(:sales_setup), do: gettext("Setup")
+  defp nav_label(:sales_funnel), do: gettext("Sales funnel")
 
   attr :active, :atom, default: nil
   attr :current_user, :map, default: nil
@@ -495,6 +507,17 @@ defmodule ColtWeb.Components.Liid do
               campaign={@campaign}
               current_user={@current_user}
             />
+          </:header_extra>
+        </.sidebar_section>
+
+        <.sidebar_section
+          :if={@campaign && @current_user && @current_user.is_admin}
+          label={gettext("Sales")}
+          items={sales_items_with_hrefs(@campaign_id)}
+          active={@active}
+        >
+          <:header_extra>
+            <.admin_badge label={gettext("Admin")} />
           </:header_extra>
         </.sidebar_section>
       </div>
@@ -594,6 +617,72 @@ defmodule ColtWeb.Components.Liid do
     """
   end
 
+  @doc """
+  Centered modal dialog — Calm-Pro card over a dimmed backdrop. Render it
+  conditionally from the host (`<Liid.modal :if={@open} …>`); it closes on
+  backdrop click, the ✕, and Escape, each pushing the `on_cancel` event, which
+  the host handles. Body goes in the default slot; actions in `:footer`.
+  """
+  attr :id, :string, default: nil
+  attr :on_cancel, :string, required: true, doc: "event pushed on backdrop / ✕ / Escape"
+  attr :eyebrow, :string, default: nil
+  attr :title, :string, default: nil
+  attr :max_width, :string, default: "max-w-[460px]"
+  slot :inner_block, required: true
+  slot :footer
+
+  def modal(assigns) do
+    ~H"""
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
+      style="background: rgba(20,18,14,0.45); backdrop-filter: blur(2px);"
+    >
+      <div
+        id={@id}
+        class={[
+          "bg-card border border-border rounded-[11px] w-full my-auto px-6 py-6 md:px-7 md:py-7",
+          @max_width
+        ]}
+        style="box-shadow: 0 24px 80px rgba(0,0,0,0.18);"
+        phx-click-away={@on_cancel}
+        phx-window-keydown={@on_cancel}
+        phx-key="escape"
+      >
+        <div :if={@eyebrow || @title} class="flex justify-between items-start gap-3 mb-4">
+          <div class="min-w-0">
+            <div
+              :if={@eyebrow}
+              class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-1.5 truncate"
+            >
+              {@eyebrow}
+            </div>
+            <h2
+              :if={@title}
+              class="font-semibold text-[18px] md:text-[20px] leading-[1.2] tracking-[-0.01em] m-0 text-ink"
+            >
+              {@title}
+            </h2>
+          </div>
+          <button
+            type="button"
+            phx-click={@on_cancel}
+            aria-label={gettext("Close")}
+            class="shrink-0 w-6 h-6 flex items-center justify-center cursor-pointer text-inkFaint hover:text-ink bg-transparent border-0"
+          >
+            <.icon name="x" size={14} />
+          </button>
+        </div>
+
+        {render_slot(@inner_block)}
+
+        <div :if={@footer != []} class="mt-5 flex items-center gap-3 justify-end">
+          {render_slot(@footer)}
+        </div>
+      </div>
+    </div>
+    """
+  end
+
   @doc false
   attr :user, :map, required: true
 
@@ -686,6 +775,12 @@ defmodule ColtWeb.Components.Liid do
     Enum.map(@sending_items, fn item -> Map.put(item, :href, sending_href(item.id, id)) end)
   end
 
+  defp sales_items_with_hrefs(nil), do: @sales_items
+
+  defp sales_items_with_hrefs(id) do
+    Enum.map(@sales_items, fn item -> Map.put(item, :href, sales_href(item.id, id)) end)
+  end
+
   defp enrichment_href(:name, id), do: "/campaigns/#{id}/name"
   defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
   defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
@@ -700,6 +795,9 @@ defmodule ColtWeb.Components.Liid do
   defp sending_href(:settings, id), do: "/campaigns/#{id}/settings"
   defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
   defp sending_href(:sending_funnel, id), do: "/campaigns/#{id}/sending-funnel"
+
+  defp sales_href(:sales_setup, id), do: "/campaigns/#{id}/sales/setup"
+  defp sales_href(:sales_funnel, id), do: "/campaigns/#{id}/sales"
 
   attr :label, :string, default: nil
   attr :items, :list, required: true
