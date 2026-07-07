@@ -16,7 +16,8 @@ defmodule Colt.Services.Sending.ApproveContact do
   was working in. Stamping it on the contact scopes future learning.
   """
 
-  alias Colt.Resources.{CampaignContact, EmailAccount, OutboundEmail, Sequence}
+  alias Colt.Resources.{CampaignContact, EmailAccount, OutboundEmail, Sequence, Thread}
+  alias Colt.Services.Sales.RecordStatusEvent
   alias Colt.Services.Sending.{AssignInbox, NextSlot}
 
   def run(contact_id, edits, opts \\ []) when is_binary(contact_id) and is_map(edits) do
@@ -24,6 +25,8 @@ defmodule Colt.Services.Sending.ApproveContact do
     sequence_id = Keyword.get(opts, :sequence_id)
 
     with {:ok, contact} <- load_contact(contact_id, actor),
+         thread = contact.thread,
+         from = contact.status |> to_string() |> String.replace("_", " "),
          {:ok, sequence} <- load_sequence(sequence_id, contact.campaign_id, actor),
          {:ok, drafts} <- load_drafts(contact, actor),
          :ok <- ensure_drafts_present(drafts),
@@ -33,9 +36,15 @@ defmodule Colt.Services.Sending.ApproveContact do
          {:ok, contact} <- approve_contact(contact, inbox, sequence, snapshot, actor),
          {:ok, _} <- schedule_step_one(drafts, inbox, actor),
          {:ok, _} <- approve_other_steps(drafts, actor) do
+      record_event(thread, from, actor)
       {:ok, %{contact_id: contact.id, inbox_id: inbox.id}}
     end
   end
+
+  defp record_event(%Thread{id: thread_id}, from, actor),
+    do: RecordStatusEvent.run(thread_id, :send_status, from, "approved", actor: actor)
+
+  defp record_event(_, _from, _actor), do: :ok
 
   # Reuse the inbox the writer composed for (assigned at write time). Only fall
   # back to a fresh pick if the contact somehow reached approval unassigned.

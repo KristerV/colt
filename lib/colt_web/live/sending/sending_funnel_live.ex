@@ -16,7 +16,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     InboundEmail,
     Note,
     OutboundEmail,
-    Sequence
+    Sequence,
+    StatusEvent
   }
 
   alias Colt.Services.Sending.{ManualOverride, SendManualReply, Stats, StopSequence}
@@ -348,7 +349,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       inbound = InboundEmail.list_for_thread!(thread.id, actor: actor, authorize?: true)
       notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true)
 
-      timeline = build_timeline(outbound, inbound, notes)
+      # Thread ownership is already established by the authorized contact
+      # selection; read the feed (and its actor) unauthorized so an
+      # admin-attributed event on a client's campaign still renders.
+      events = StatusEvent.list_for_thread!(thread.id, load: [:actor], authorize?: false)
+
+      timeline = build_timeline(outbound, inbound, notes, events)
       assign(socket, timeline: timeline, thread: thread)
     else
       assign(socket, timeline: [], thread: nil)
@@ -361,7 +367,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   # ahead). Pin those to the very end, in step order, with no display date.
   @unscheduled_sentinel ~U[9999-01-01 00:00:00.000000Z]
 
-  defp build_timeline(outbound, inbound, notes) do
+  defp build_timeline(outbound, inbound, notes, events \\ []) do
     out_items =
       outbound
       |> Enum.reject(&(&1.status == :skipped))
@@ -387,7 +393,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         %{kind: :note, at: n.inserted_at, sort_at: n.inserted_at, sort_pos: 0, note: n}
       end)
 
-    (out_items ++ in_items ++ note_items)
+    event_items =
+      Enum.map(events, fn e ->
+        %{kind: :status, at: e.occurred_at, sort_at: e.occurred_at, sort_pos: 0, event: e}
+      end)
+
+    (out_items ++ in_items ++ note_items ++ event_items)
     |> Enum.sort_by(&{DateTime.to_unix(&1.sort_at, :microsecond), &1.sort_pos})
   end
 
@@ -499,6 +510,17 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp status_dot_class("warn"), do: "bg-amber"
   defp status_dot_class("fail"), do: "bg-red"
   defp status_dot_class(_), do: "bg-inkFaint"
+
+  # Feed-line label for a StatusEvent: "from → to", "→ to", or just "to".
+  defp event_transition(%{from: from, to: to}) when is_binary(from) and is_binary(to),
+    do: "#{from} → #{to}"
+
+  defp event_transition(%{to: to}) when is_binary(to), do: "→ #{to}"
+  defp event_transition(%{from: from}) when is_binary(from), do: from
+  defp event_transition(_), do: gettext("status changed")
+
+  defp event_actor(%{actor: %{email: email}}) when not is_nil(email), do: to_string(email)
+  defp event_actor(_), do: gettext("System")
 
   # ── Render ───────────────────────────────────────────────────────────
 
@@ -1079,6 +1101,38 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   end
 
   attr :item, :map, required: true
+
+  defp timeline_item(%{item: %{kind: :status}} = assigns) do
+    event = assigns.item.event
+
+    assigns =
+      assign(assigns,
+        transition: event_transition(event),
+        actor_label: event_actor(event),
+        reason: event.reason
+      )
+
+    ~H"""
+    <div class="flex-none flex justify-center">
+      <div
+        class="w-full md:w-[72%] max-w-[520px] bg-paperAlt border border-border rounded-[8px] px-3.5 py-2"
+        style="box-shadow:var(--shadow)"
+      >
+        <div class="flex items-center gap-2">
+          <span class="w-[5px] h-[5px] rounded-full bg-inkFaint shrink-0" />
+          <span class="text-[12px] font-medium text-inkSoft tabular-nums">{@transition}</span>
+          <span class="text-[11px] text-inkFaint truncate">· {@actor_label}</span>
+          <span :if={@item.at} class="ml-auto shrink-0 text-[11px] text-inkFaint tabular-nums">
+            {Calendar.strftime(@item.at, "%b %d · %H:%M")}
+          </span>
+        </div>
+        <div :if={@reason} class="mt-1 pl-[13px] text-[11.5px] text-inkFaint leading-[1.45]">
+          {@reason}
+        </div>
+      </div>
+    </div>
+    """
+  end
 
   defp timeline_item(%{item: %{kind: :note}} = assigns) do
     ~H"""

@@ -7,6 +7,7 @@ defmodule Colt.Services.Sending.StopSequence do
   """
 
   alias Colt.Resources.{CampaignContact, Thread}
+  alias Colt.Services.Sales.RecordStatusEvent
   alias Colt.Services.Sending.HaltSequence
 
   def run(contact_id, opts \\ []) when is_binary(contact_id) do
@@ -18,13 +19,29 @@ defmodule Colt.Services.Sending.StopSequence do
              actor: actor,
              authorize?: actor != nil
            ),
+         from = status_label(contact.status),
          {:ok, halted} <- maybe_halt(contact.thread),
-         {:ok, contact} <-
+         {:ok, updated} <-
            CampaignContact.stop_sequence(contact, actor: actor, authorize?: actor != nil) do
-      {:ok, %{contact: contact, halted: halted}}
+      record_event(contact.thread, from, actor)
+      {:ok, %{contact: updated, halted: halted}}
     end
   end
 
   defp maybe_halt(nil), do: {:ok, 0}
   defp maybe_halt(%Thread{id: id}), do: HaltSequence.run(id)
+
+  defp record_event(nil, _from, _actor), do: :ok
+
+  defp record_event(%Thread{id: thread_id}, from, actor) do
+    RecordStatusEvent.run(thread_id, :send_status, from, "no reply",
+      actor: actor,
+      reason: "sequence stopped"
+    )
+  end
+
+  defp status_label(status) when is_atom(status),
+    do: status |> to_string() |> String.replace("_", " ")
+
+  defp status_label(_), do: nil
 end

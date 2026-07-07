@@ -138,7 +138,7 @@ Build top-to-bottom; each phase ships independently with acceptance bullets. Mar
 `✅ done` in this doc when its acceptance passes. Work on a `sales-funnel` branch; single-line
 commits, no Claude attribution.
 
-### Phase S1 — StatusEvent + feed wiring
+### Phase S1 — StatusEvent + feed wiring ✅ done
 - `StatusEvent` resource + migration (`mix ash_postgres.generate_migrations status_events`).
 - Write events from the **existing** sending transitions (mark_replied, manual_override,
   mark_bounced, mark_failed, skip, stop_sequence, approve) with readable from/to + reason.

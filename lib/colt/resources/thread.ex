@@ -108,6 +108,7 @@ defmodule Colt.Resources.Thread do
     has_many :outbound_emails, Colt.Resources.OutboundEmail
     has_many :inbound_emails, Colt.Resources.InboundEmail
     has_many :notes, Colt.Resources.Note
+    has_many :status_events, Colt.Resources.StatusEvent
   end
 
   identities do

@@ -19,6 +19,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   alias Colt.Resources.{CampaignContact, InboundEmail}
   alias Colt.Services.Ai.Complete
+  alias Colt.Services.Sales.RecordStatusEvent
 
   alias Colt.Services.Sending.{
     Broadcast,
@@ -38,10 +39,10 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   def run(inbound_id) when is_binary(inbound_id) do
     with {:ok, inbound} <- load(inbound_id),
-         {:ok, category} <- classify(inbound),
+         {:ok, {category, confidence}} <- classify(inbound),
          {:ok, _} <- InboundEmail.set_reply_category(inbound, category, authorize?: false),
          {:ok, contact} <- contact_for(inbound) do
-      handle(category, inbound, contact)
+      handle(category, confidence, inbound, contact)
     end
   end
 
@@ -50,7 +51,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
   # the follow-ups behind it. Otherwise just push the next follow-up out. The
   # reschedule is persisted; the sending funnel reflects the new send time on
   # its next load (no live broadcast — the contact never leaves :sending).
-  defp handle(:ooo, inbound, contact) do
+  defp handle(:ooo, _confidence, inbound, contact) do
     not_before = ooo_not_before(inbound)
 
     case InjectOooWelcomeBack.run(inbound.thread_id, contact, not_before) do
@@ -65,15 +66,32 @@ defmodule Colt.Services.Sending.CategorizeReply do
   end
 
   # Real reply: mark replied + stop the sequence so a human takes over.
-  defp handle(category, inbound, contact) do
+  defp handle(category, confidence, inbound, contact) do
     with {:ok, _} <- CampaignContact.mark_replied(contact, category, authorize?: false),
          {:ok, halted} <- HaltSequence.run(inbound.thread_id) do
       campaign_id = contact.campaign_id
+
+      RecordStatusEvent.run(inbound.thread_id, :reply_category, nil, category_label(category),
+        reason: classified_reason(category, confidence)
+      )
+
       Broadcast.reply_categorized(campaign_id, contact.id, category)
       Broadcast.sequence_halted(campaign_id, contact.id, :reply)
       {:ok, %{category: category, halted_count: halted}}
     end
   end
+
+  defp category_label(:interested), do: "interested"
+  defp category_label(:not_interested), do: "not interested"
+  defp category_label(:other), do: "other"
+  defp category_label(:ooo), do: "out of office"
+  defp category_label(other), do: to_string(other)
+
+  defp classified_reason(category, confidence) when is_number(confidence) do
+    "classified as #{category_label(category)} (#{:erlang.float_to_binary(confidence * 1.0, decimals: 2)})"
+  end
+
+  defp classified_reason(category, _), do: "classified as #{category_label(category)}"
 
   defp ooo_not_before(inbound) do
     case ExtractOooReturn.run(inbound) do
@@ -147,11 +165,11 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
       {:ok, other} ->
         Logger.warning("categorize_reply: unexpected complete response #{inspect(other)}")
-        {:ok, :other}
+        {:ok, {:other, nil}}
 
       {:error, reason} ->
         Logger.warning("categorize_reply: ai error #{inspect(reason)} — defaulting :other")
-        {:ok, :other}
+        {:ok, {:other, nil}}
     end
   end
 
@@ -185,9 +203,9 @@ defmodule Colt.Services.Sending.CategorizeReply do
     confidence = json |> Map.get("confidence", 0) |> to_float()
 
     cond do
-      label not in @valid_categories -> :other
-      confidence < @confidence_floor -> :other
-      true -> String.to_existing_atom(label)
+      label not in @valid_categories -> {:other, confidence}
+      confidence < @confidence_floor -> {:other, confidence}
+      true -> {String.to_existing_atom(label), confidence}
     end
   end
 
