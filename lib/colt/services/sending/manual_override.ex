@@ -6,7 +6,7 @@ defmodule Colt.Services.Sending.ManualOverride do
   """
 
   alias Colt.Resources.{CampaignContact, Thread}
-  alias Colt.Services.Sales.RecordStatusEvent
+  alias Colt.Services.Sales.{AutoEnter, RecordStatusEvent}
   alias Colt.Services.Sending.HaltSequence
 
   @overrides [:interested, :not_interested, :ooo, :call_ready, :no_reply]
@@ -31,6 +31,10 @@ defmodule Colt.Services.Sending.ManualOverride do
              authorize?: actor != nil
            ) do
       record_event(contact.thread, override, from, actor)
+
+      if AutoEnter.trigger?(override),
+        do: AutoEnter.run(contact.id, contact.campaign_id, actor: actor)
+
       {:ok, %{contact: updated, halted: halted}}
     end
   end

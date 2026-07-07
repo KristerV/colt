@@ -163,7 +163,7 @@ commits, no Claude attribution.
 - **Acceptance**: a contact appears under its stage; move it Interested → Demo → the move shows in
   the feed with actor + time; move to Lost, enter a reason, see it recorded; counts update live.
 
-### Phase S4 — Auto-entry + polish
+### Phase S4 — Auto-entry + polish ✅ done
 - On `mark_replied(:interested)` and `:call_ready`, call `enter_sales_funnel(first_active_stage)`
   (idempotent) + system StatusEvent. Wire into `CategorizeReply` / `ManualOverride`.
 - Empty states, conversion-rate tile (won ÷ entered), stale-in-stage styling, design pass vs

@@ -19,7 +19,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   alias Colt.Resources.{CampaignContact, InboundEmail}
   alias Colt.Services.Ai.Complete
-  alias Colt.Services.Sales.RecordStatusEvent
+  alias Colt.Services.Sales.{AutoEnter, RecordStatusEvent}
 
   alias Colt.Services.Sending.{
     Broadcast,
@@ -74,6 +74,8 @@ defmodule Colt.Services.Sending.CategorizeReply do
       RecordStatusEvent.run(inbound.thread_id, :reply_category, nil, category_label(category),
         reason: classified_reason(category, confidence)
       )
+
+      if AutoEnter.trigger?(category), do: AutoEnter.run(contact.id, campaign_id)
 
       Broadcast.reply_categorized(campaign_id, contact.id, category)
       Broadcast.sequence_halted(campaign_id, contact.id, :reply)

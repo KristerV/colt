@@ -410,7 +410,18 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
     visible = visible_contacts(assigns.contacts, assigns.selected_stage)
 
-    assigns = assign(assigns, level: level, visible: visible)
+    entered = length(assigns.contacts)
+    won = Enum.count(assigns.contacts, &(&1.sales_stage && &1.sales_stage.kind == :won))
+    conversion = if entered > 0, do: round(won / entered * 100), else: nil
+
+    assigns =
+      assign(assigns,
+        level: level,
+        visible: visible,
+        entered: entered,
+        won: won,
+        conversion: conversion
+      )
 
     ~H"""
     <Layouts.app
@@ -459,6 +470,18 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
               selected_stage={@selected_stage}
               campaign_id={@campaign.id}
             />
+          </div>
+
+          <div
+            :if={@conversion != nil}
+            class="mt-3 inline-flex items-center gap-4 bg-card border border-border rounded-[8px] px-3.5 py-2.5"
+            style="box-shadow:var(--shadow)"
+          >
+            <div class="flex items-center gap-2 text-[12px] text-inkSoft">
+              <span class="font-semibold text-inkSoft">{gettext("Conversion")}</span>
+              <b class="text-ink font-bold tabular-nums">{@conversion}%</b>
+              <span class="text-inkFaint tabular-nums">({@won}/{@entered} {gettext("won")})</span>
+            </div>
           </div>
         </div>
 
