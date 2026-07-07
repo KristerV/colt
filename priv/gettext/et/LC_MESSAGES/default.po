@@ -2040,6 +2040,11 @@ msgstr "Saada"
 msgid "Start a campaign"
 msgstr "Alusta kampaaniat"
 
+#: lib/colt_web/live/home_live.ex:1355
+#, elixir-autogen, elixir-format
+msgid "My campaigns"
+msgstr "Minu kampaaniad"
+
 #: lib/colt_web/components/liid.ex:434
 #: lib/colt_web/live/sending/sending_funnel_live.ex:810
 #, elixir-autogen, elixir-format

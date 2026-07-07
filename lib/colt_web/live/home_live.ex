@@ -1136,7 +1136,7 @@ defmodule ColtWeb.HomeLive do
             name={gettext("Starter")}
             price="€49"
             desc={gettext("For testing your first list.")}
-            navigate={primary_path(@current_user)}
+            navigate={start_campaign_path(@current_user)}
           >
             <:feature>{raw(gettext("<b>50</b> contacts / month"))}</:feature>
             <:feature>{raw(gettext("Up to <b>1,000</b> screened / month"))}</:feature>
@@ -1150,7 +1150,7 @@ defmodule ColtWeb.HomeLive do
             price="€159"
             desc={gettext("For a running outbound motion.")}
             popular
-            navigate={primary_path(@current_user)}
+            navigate={start_campaign_path(@current_user)}
           >
             <:feature>{raw(gettext("<b>200</b> contacts / month"))}</:feature>
             <:feature>{raw(gettext("Up to <b>4,000</b> screened / month"))}</:feature>
@@ -1163,7 +1163,7 @@ defmodule ColtWeb.HomeLive do
             name={gettext("Scale")}
             price="€699"
             desc={gettext("For volume across markets.")}
-            navigate={primary_path(@current_user)}
+            navigate={start_campaign_path(@current_user)}
           >
             <:feature>{raw(gettext("<b>1,000</b> contacts / month"))}</:feature>
             <:feature>{raw(gettext("Up to <b>20,000</b> screened / month"))}</:feature>
@@ -1349,7 +1349,11 @@ defmodule ColtWeb.HomeLive do
   ## ---------- routing helpers ----------
 
   defp primary_path(nil), do: ~p"/sign-in"
-  defp primary_path(_user), do: ~p"/campaigns/new"
+  defp primary_path(_user), do: ~p"/campaigns"
 
-  defp primary_label(_user), do: gettext("Start a campaign")
+  defp primary_label(nil), do: gettext("Start a campaign")
+  defp primary_label(_user), do: gettext("My campaigns")
+
+  defp start_campaign_path(nil), do: ~p"/sign-in"
+  defp start_campaign_path(_user), do: ~p"/campaigns/new"
 end
