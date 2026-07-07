@@ -10,6 +10,8 @@ defmodule Colt.Resources.CampaignContact do
     data_layer: AshPostgres.DataLayer,
     authorizers: [Ash.Policy.Authorizer]
 
+  require Ash.Query
+
   postgres do
     table "campaign_contacts"
     repo Colt.Repo
@@ -51,6 +53,7 @@ defmodule Colt.Resources.CampaignContact do
     define :list_entered_for_campaign, args: [:campaign_id]
     define :count_assigned_today, args: [:email_account_id]
     define :find_active_in_inbox_by_domain, args: [:email_account_id, :domain_suffix]
+    define :search, args: [:query]
   end
 
   actions do
@@ -292,6 +295,41 @@ defmodule Colt.Resources.CampaignContact do
                assigned_email_account_id == ^arg(:email_account_id) and
                  fragment("(?)::date = (now() at time zone 'utc')::date", approved_at)
              )
+    end
+
+    read :search do
+      description """
+      Global contact lookup within the owner's campaigns. Matches the joined
+      person's phone (digits-only contains-match), name, email, and company
+      name. Owner-scoped via the resource read policy. Capped at 50, newest
+      first.
+      """
+
+      argument :query, :string, allow_nil?: false
+
+      prepare build(load: [:campaign, person: :company], limit: 50, sort: [updated_at: :desc])
+
+      prepare fn query, _context ->
+        raw = Ash.Query.get_argument(query, :query) || ""
+        trimmed = String.trim(raw)
+        digits = String.replace(raw, ~r/[^0-9]/, "")
+
+        Ash.Query.filter(
+          query,
+          expr(
+            (^trimmed != "" and
+               (fragment("? ilike '%' || ? || '%'", person.name, ^trimmed) or
+                  fragment("? ilike '%' || ? || '%'", person.email, ^trimmed) or
+                  fragment("? ilike '%' || ? || '%'", person.company.name, ^trimmed))) or
+              (^digits != "" and
+                 fragment(
+                   "regexp_replace(?, '[^0-9]', '', 'g') like '%' || ? || '%'",
+                   person.phone,
+                   ^digits
+                 ))
+          )
+        )
+      end
     end
   end
 

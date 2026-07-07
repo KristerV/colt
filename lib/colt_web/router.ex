@@ -38,6 +38,7 @@ defmodule ColtWeb.Router do
     ash_authentication_live_session :authenticated_routes,
       on_mount: [ColtWeb.LiveLocale, ColtWeb.UsageAssign] do
       live "/", HomeLive
+      live "/search", SearchLive
       live "/campaigns", Campaigns.IndexLive
       live "/campaigns/new", Campaigns.NewLive
       live "/campaigns/:id/name", Campaigns.NameLive

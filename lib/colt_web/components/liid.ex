@@ -464,19 +464,24 @@ defmodule ColtWeb.Components.Liid do
       <div class="px-[22px] pt-[18px] pb-3.5 flex items-center gap-2.5">
         <.link
           navigate="/"
-          class="flex items-center gap-2.5 no-underline text-ink"
+          class="flex items-center no-underline text-ink"
           phx-click={close_nav()}
         >
-          <span class="w-[26px] h-[26px] rounded-[7px] bg-accent text-white flex items-center justify-center font-bold text-[15px]">
-            L
-          </span>
           <span class="text-[18px] font-bold tracking-[-0.01em]">Liid</span>
+        </.link>
+        <.link
+          navigate="/search"
+          phx-click={close_nav()}
+          aria-label={gettext("Search")}
+          class="ml-auto inline-flex items-center gap-1.5 px-2.5 h-[30px] rounded-[8px] no-underline text-[12px] font-semibold text-inkSoft hover:text-ink hover:bg-paperAlt border border-transparent hover:border-border transition-colors"
+        >
+          {gettext("Search")} <.icon name="search" size={14} />
         </.link>
         <button
           type="button"
           phx-click={close_nav()}
           aria-label={gettext("Close menu")}
-          class="md:hidden ml-auto -mr-1 p-1 text-inkSoft hover:text-ink cursor-pointer bg-transparent border-0"
+          class="md:hidden -mr-1 p-1 text-inkSoft hover:text-ink cursor-pointer bg-transparent border-0"
         >
           <.icon name="x" size={18} />
         </button>
