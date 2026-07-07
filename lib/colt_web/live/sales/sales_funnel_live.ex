@@ -13,7 +13,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   alias Colt.Resources.{Campaign, CampaignContact, InboundEmail, Note, OutboundEmail, StatusEvent}
   alias Colt.Services.Sales.{MoveToStage, SeedStages}
   alias Colt.Services.Sending.SendManualReply
-  alias ColtWeb.Components.Liid
+  alias ColtWeb.Components.{FunnelThread, Liid}
   alias Phoenix.LiveView.JS
   alias Phoenix.PubSub
 
@@ -291,74 +291,12 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true)
       events = StatusEvent.list_for_thread!(thread.id, load: [:actor], authorize?: false)
 
-      assign(socket, timeline: build_timeline(outbound, inbound, notes, events), thread: thread)
+      assign(socket,
+        timeline: FunnelThread.build_timeline(outbound, inbound, notes, events),
+        thread: thread
+      )
     else
       assign(socket, timeline: [], thread: nil)
-    end
-  end
-
-  @unscheduled_sentinel ~U[9999-01-01 00:00:00.000000Z]
-
-  defp build_timeline(outbound, inbound, notes, events) do
-    out_items =
-      outbound
-      |> Enum.reject(&(&1.status == :skipped))
-      |> Enum.map(fn e ->
-        at = outbound_at(e)
-
-        %{
-          kind: if(e.is_manual_reply, do: :manual_outbound, else: :outbound),
-          at: at,
-          sort_at: at || @unscheduled_sentinel,
-          sort_pos: e.step_position || 0,
-          email: e
-        }
-      end)
-
-    in_items =
-      Enum.map(inbound, fn e ->
-        %{kind: :inbound, at: e.received_at, sort_at: e.received_at, sort_pos: 0, email: e}
-      end)
-
-    note_items =
-      Enum.map(notes, fn n ->
-        %{kind: :note, at: n.inserted_at, sort_at: n.inserted_at, sort_pos: 0, note: n}
-      end)
-
-    event_items =
-      Enum.map(events, fn e ->
-        %{kind: :status, at: e.occurred_at, sort_at: e.occurred_at, sort_pos: 0, event: e}
-      end)
-
-    (out_items ++ in_items ++ note_items ++ event_items)
-    |> Enum.sort_by(&{DateTime.to_unix(&1.sort_at, :microsecond), &1.sort_pos})
-  end
-
-  defp outbound_at(%{sent_at: at}) when not is_nil(at), do: at
-  defp outbound_at(%{scheduled_at: at}) when not is_nil(at), do: at
-  defp outbound_at(_), do: nil
-
-  defp initials(name) when is_binary(name) do
-    name
-    |> String.split(~r/\s+/, trim: true)
-    |> Enum.take(2)
-    |> Enum.map_join("", &String.first/1)
-    |> String.upcase()
-    |> case do
-      "" -> "?"
-      s -> s
-    end
-  end
-
-  defp initials(_), do: "?"
-
-  defp website_href("http" <> _ = url), do: url
-  defp website_href(url), do: "https://" <> url
-
-  defp website_host(url) do
-    case URI.parse(website_href(url)) do
-      %URI{host: h} when is_binary(h) -> String.replace_prefix(h, "www.", "")
-      _ -> url
     end
   end
 
@@ -370,27 +308,6 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   end
 
   defp strip_html(_), do: ""
-
-  defp body_text(text) when is_binary(text) do
-    text
-    |> String.replace(~r/<br\s*\/?>/i, "\n")
-    |> String.replace(~r/<[^>]+>/, "")
-    |> String.replace(~r/[ \t]+\n/, "\n")
-    |> String.replace(~r/\n[ \t]+/, "\n")
-    |> String.trim()
-  end
-
-  defp body_text(_), do: ""
-
-  defp event_transition(%{from: from, to: to}) when is_binary(from) and is_binary(to),
-    do: "#{from} → #{to}"
-
-  defp event_transition(%{to: to}) when is_binary(to), do: "→ #{to}"
-  defp event_transition(%{from: from}) when is_binary(from), do: from
-  defp event_transition(_), do: gettext("status changed")
-
-  defp event_actor(%{actor: %{email: email}}) when not is_nil(email), do: to_string(email)
-  defp event_actor(_), do: gettext("System")
 
   defp kind_dot(:won), do: "bg-green"
   defp kind_dot(:lost), do: "bg-inkFaint"
@@ -649,7 +566,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
               "w-[34px] h-[34px] rounded-[9px] shrink-0 flex items-center justify-center text-[13px] font-semibold",
               if(active?, do: "bg-[#dbe7fa] text-accent", else: "bg-[#ece9e2] text-[#7a6f5f]")
             ]}>
-              {initials(c.person && c.person.name)}
+              {FunnelThread.initials(c.person && c.person.name)}
             </span>
             <div class="flex-1 min-w-0">
               <div class="text-[13.5px] font-semibold text-ink truncate">
@@ -714,100 +631,62 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   defp thread_pane(assigns) do
     recipient = (assigns.contact.person && assigns.contact.person.email) || ""
-    company = assigns.contact.person && assigns.contact.person.company
 
     assigns =
       assign(assigns,
         recipient: recipient,
-        company: company,
         current_stage: assigns.contact.sales_stage
       )
 
     ~H"""
-    <div class="h-full flex flex-col gap-3 md:gap-3.5 min-h-0 overflow-y-auto md:p-4 md:bg-bgSoft md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)]">
-      <div
-        class="flex-none bg-card border border-border rounded-[11px] px-4 md:px-5 py-[15px]"
-        style="box-shadow:var(--shadow)"
-      >
-        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
-          <div class="flex items-center gap-3 md:gap-3.5 min-w-0">
-            <span class="w-[42px] h-[42px] rounded-[11px] shrink-0 flex items-center justify-center text-[16px] font-bold bg-[#dbe7fa] text-accent">
-              {initials(@contact.person && @contact.person.name)}
-            </span>
-            <div class="min-w-0">
-              <div class="text-[17px] font-bold tracking-[-0.01em] text-ink truncate">
-                {(@contact.person && @contact.person.name) || "—"}
-              </div>
-              <div
-                :if={@contact.person && @contact.person.title}
-                class="text-[12.5px] text-inkSoft mt-0.5"
-              >
-                {@contact.person.title}
-              </div>
-              <div class="text-[12px] text-accent font-medium mt-0.5 break-all">{@recipient}</div>
-              <div :if={@company} class="mt-2 text-[12px] text-inkSoft">
-                <div class="font-semibold text-ink">{@company.name}</div>
-                <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                  <a
-                    :if={@contact.person && @contact.person.phone}
-                    href={"tel:#{@contact.person.phone}"}
-                    class="text-accent font-medium hover:underline"
-                  >
-                    ☎ {@contact.person.phone}
-                  </a>
-                  <a
-                    :if={@company.website_url}
-                    href={website_href(@company.website_url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-accent font-medium hover:underline"
-                  >
-                    ↗ {website_host(@company.website_url)}
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex items-center gap-2.5 flex-wrap shrink-0 relative">
+    <FunnelThread.thread_pane
+      contact={@contact}
+      timeline={@timeline}
+      recipient={@recipient}
+      active_tab={@active_tab}
+      reply_html={@reply_html}
+      reply_nonce={@reply_nonce}
+      note_body={@note_body}
+      error={@error}
+    >
+      <:actions>
+        <button
+          type="button"
+          phx-click={JS.toggle(to: "#stage-menu-#{@contact.id}")}
+          class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-accentSoft border-accentRing text-accent"
+        >
+          <span class={["w-[7px] h-[7px] rounded-full", kind_dot(@current_stage && @current_stage.kind)]} />
+          {(@current_stage && @current_stage.name) || gettext("Move to…")}
+          <span class="opacity-70 text-[10px]">▾</span>
+        </button>
+        <div
+          id={"stage-menu-#{@contact.id}"}
+          class="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-[8px] z-20 min-w-[200px] py-1"
+          style="box-shadow:var(--shadow-card)"
+          phx-click-away={JS.hide(to: "#stage-menu-#{@contact.id}")}
+        >
+          <%= for s <- @stages do %>
             <button
-              type="button"
-              phx-click={JS.toggle(to: "#stage-menu-#{@contact.id}")}
-              class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-accentSoft border-accentRing text-accent"
+              phx-click={
+                JS.push("move_to_stage", value: %{stage: s.id})
+                |> JS.hide(to: "#stage-menu-#{@contact.id}")
+              }
+              class={[
+                "flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] hover:bg-paperAlt",
+                if(@current_stage && @current_stage.id == s.id,
+                  do: "text-accent font-semibold",
+                  else: "text-inkSoft"
+                )
+              ]}
             >
-              <span class={["w-[7px] h-[7px] rounded-full", kind_dot(@current_stage && @current_stage.kind)]} />
-              {(@current_stage && @current_stage.name) || gettext("Move to…")}
-              <span class="opacity-70 text-[10px]">▾</span>
+              <span class={["w-[6px] h-[6px] rounded-full shrink-0", kind_dot(s.kind)]} />
+              {s.name}
             </button>
-            <div
-              id={"stage-menu-#{@contact.id}"}
-              class="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-[8px] z-20 min-w-[200px] py-1"
-              style="box-shadow:var(--shadow-card)"
-              phx-click-away={JS.hide(to: "#stage-menu-#{@contact.id}")}
-            >
-              <%= for s <- @stages do %>
-                <button
-                  phx-click={
-                    JS.push("move_to_stage", value: %{stage: s.id})
-                    |> JS.hide(to: "#stage-menu-#{@contact.id}")
-                  }
-                  class={[
-                    "flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] hover:bg-paperAlt",
-                    if(@current_stage && @current_stage.id == s.id,
-                      do: "text-accent font-semibold",
-                      else: "text-inkSoft"
-                    )
-                  ]}
-                >
-                  <span class={["w-[6px] h-[6px] rounded-full shrink-0", kind_dot(s.kind)]} />
-                  {s.name}
-                </button>
-              <% end %>
-            </div>
-          </div>
+          <% end %>
         </div>
+      </:actions>
 
-        <%!-- Lost-reason prompt --%>
+      <:header_panel>
         <div
           :if={@pending_lost}
           class="mt-3 bg-redSoft border border-red/30 rounded-[8px] px-3.5 py-3"
@@ -835,265 +714,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             </button>
           </div>
         </div>
-      </div>
-
-      <%= if @timeline == [] do %>
-        <div
-          class="flex-none bg-card border border-border rounded-[11px] px-5 py-4 text-[12.5px] text-inkFaint"
-          style="box-shadow:var(--shadow)"
-        >
-          {gettext("No messages yet.")}
-        </div>
-      <% else %>
-        <%= for item <- @timeline do %>
-          <.timeline_item item={item} />
-        <% end %>
-      <% end %>
-
-      <.composer
-        active_tab={@active_tab}
-        reply_html={@reply_html}
-        reply_nonce={@reply_nonce}
-        note_body={@note_body}
-        recipient={@recipient}
-        error={@error}
-      />
-    </div>
-    """
-  end
-
-  attr :item, :map, required: true
-
-  defp timeline_item(%{item: %{kind: :status}} = assigns) do
-    event = assigns.item.event
-
-    assigns =
-      assign(assigns,
-        transition: event_transition(event),
-        actor_label: event_actor(event),
-        reason: event.reason
-      )
-
-    ~H"""
-    <div class="flex-none flex justify-center">
-      <div
-        class="w-full md:w-[72%] max-w-[520px] bg-paperAlt border border-border rounded-[8px] px-3.5 py-2"
-        style="box-shadow:var(--shadow)"
-      >
-        <div class="flex items-center gap-2">
-          <span class="w-[5px] h-[5px] rounded-full bg-inkFaint shrink-0" />
-          <span class="text-[12px] font-medium text-inkSoft tabular-nums">{@transition}</span>
-          <span class="text-[11px] text-inkFaint truncate">· {@actor_label}</span>
-          <span :if={@item.at} class="ml-auto shrink-0 text-[11px] text-inkFaint tabular-nums">
-            {Calendar.strftime(@item.at, "%b %d · %H:%M")}
-          </span>
-        </div>
-        <div :if={@reason} class="mt-1 pl-[13px] text-[11.5px] text-inkFaint leading-[1.45]">
-          {@reason}
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp timeline_item(%{item: %{kind: :note}} = assigns) do
-    ~H"""
-    <div class="flex-none flex justify-center">
-      <div
-        class="w-full md:w-[72%] max-w-[520px] bg-amberSoft border border-[#f0dcb0] rounded-[11px] overflow-hidden"
-        style="box-shadow:var(--shadow)"
-      >
-        <div class="flex items-center gap-2 px-3.5 py-[9px] bg-[#f7ecd2] border-b border-[#f0dcb0]">
-          <span class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-[#efd9a8] text-[#9a6f17]">
-            {gettext("Note")}
-          </span>
-          <span class="ml-auto text-[11px] font-medium text-[#9a6f17] tabular-nums">
-            {Calendar.strftime(@item.at, "%b %d · %H:%M")}
-          </span>
-        </div>
-        <div
-          phx-no-format
-          class="px-[15px] py-3 text-[13px] leading-[1.55] font-medium text-[#6e5417] whitespace-pre-wrap"
-        >{@item.note.body}</div>
-      </div>
-    </div>
-    """
-  end
-
-  defp timeline_item(%{item: %{kind: kind}} = assigns)
-       when kind in [:outbound, :manual_outbound, :inbound] do
-    outbound? = kind in [:outbound, :manual_outbound]
-    inbound? = kind == :inbound
-    manual? = kind == :manual_outbound
-    status = if outbound?, do: assigns.item.email.status, else: nil
-    sent? = outbound? and status == :sent
-
-    step_chip =
-      cond do
-        manual? -> gettext("Reply · You")
-        outbound? -> gettext("Step %{n}", n: (assigns.item.email.step_position || 0) + 1)
-        true -> gettext("Reply")
-      end
-
-    body =
-      if inbound?,
-        do: assigns.item.email.body,
-        else: assigns.item.email.user_body || assigns.item.email.ai_body || ""
-
-    subject =
-      if inbound?,
-        do: assigns.item.email.subject,
-        else: assigns.item.email.user_subject || assigns.item.email.ai_subject
-
-    sender = if inbound?, do: assigns.item.email.from_address, else: gettext("You")
-
-    assigns =
-      assign(assigns,
-        outbound?: outbound?,
-        inbound?: inbound?,
-        manual?: manual?,
-        sent?: sent?,
-        step_chip: step_chip,
-        body: body,
-        subject: subject,
-        sender: sender
-      )
-
-    ~H"""
-    <div class={["flex-none flex", if(@outbound?, do: "md:justify-start", else: "md:justify-end")]}>
-      <div
-        class={[
-          "w-full md:w-[90%] max-w-[680px] bg-card rounded-[11px] overflow-hidden border",
-          if(@inbound?, do: "border-[#cdddf3]", else: "border-border")
-        ]}
-        style="box-shadow:var(--shadow)"
-      >
-        <div class={[
-          "flex items-center gap-2 flex-wrap px-3.5 py-[9px] border-b",
-          if(@inbound?, do: "bg-accentSoft border-[#dbe7fa]", else: "bg-bgSoft border-border")
-        ]}>
-          <span class={[
-            "inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px]",
-            if(@inbound?, do: "bg-[#dbe7fa] text-accent", else: "bg-[#efece6] text-inkSoft")
-          ]}>
-            {@step_chip}
-          </span>
-          <span class={[
-            "inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px]",
-            if(@inbound?, do: "bg-[#dbe7fa] text-accent", else: "bg-accentSoft text-accent")
-          ]}>
-            {@sender}
-          </span>
-          <span
-            :if={@sent?}
-            class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-greenSoft text-green"
-          >
-            {gettext("Sent")}
-          </span>
-          <span :if={@item.at} class="ml-auto text-[11px] font-medium text-inkFaint tabular-nums">
-            {Calendar.strftime(@item.at, "%b %d · %H:%M")}
-          </span>
-        </div>
-        <div class="px-[15px] py-3.5">
-          <div :if={@subject} class="text-[13.5px] font-bold tracking-[-0.005em] text-ink mb-1.5">
-            {@subject}
-          </div>
-          <div phx-no-format class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">{body_text(@body)}</div>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  attr :active_tab, :atom, required: true
-  attr :reply_html, :string, required: true
-  attr :reply_nonce, :integer, required: true
-  attr :note_body, :string, required: true
-  attr :recipient, :string, required: true
-  attr :error, :any, default: nil
-
-  defp composer(assigns) do
-    ~H"""
-    <div
-      class="flex-none bg-card border border-border rounded-[11px] overflow-hidden"
-      style="box-shadow:var(--shadow)"
-    >
-      <div class="flex items-center gap-1 px-2.5 py-2 border-b border-border bg-bgSoft">
-        <button
-          phx-click="switch_tab"
-          phx-value-tab="reply"
-          style={@active_tab == :reply && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
-          class={[
-            "text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer",
-            if(@active_tab == :reply, do: "bg-accentSoft text-accent", else: "text-inkFaint")
-          ]}
-        >
-          {gettext("Reply")}
-        </button>
-        <button
-          phx-click="switch_tab"
-          phx-value-tab="note"
-          style={@active_tab == :note && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
-          class={[
-            "text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer",
-            if(@active_tab == :note, do: "bg-accentSoft text-accent", else: "text-inkFaint")
-          ]}
-        >
-          {gettext("Note")}
-        </button>
-        <span
-          :if={@active_tab == :reply}
-          class="ml-auto text-[12px] text-inkFaint font-medium truncate"
-        >
-          {gettext("To:")} <b class="text-inkSoft font-semibold">{@recipient}</b>
-        </span>
-      </div>
-
-      <div :if={@error} class="px-3.5 pt-3 text-[12px] text-red">{@error}</div>
-
-      <div
-        :if={@active_tab == :reply}
-        class="px-3.5 py-3"
-        id={"trix-wrap-#{@reply_nonce}"}
-        phx-hook="TrixEditor"
-        phx-update="ignore"
-      >
-        <input id={"trix-content-#{@reply_nonce}"} type="hidden" value={@reply_html} />
-        <trix-editor input={"trix-content-#{@reply_nonce}"} class="trix-content" style="min-height:120px;">
-        </trix-editor>
-        <div class="mt-3 flex justify-end">
-          <button
-            phx-click="send_reply"
-            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer"
-            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
-          >
-            <Liid.icon name="arrow" size={11} /> {gettext("Send reply")}
-          </button>
-        </div>
-      </div>
-
-      <div :if={@active_tab == :note} class="px-3.5 py-3">
-        <form id={"note-form-#{@reply_nonce}"} phx-change="set_note">
-          <textarea
-            id={"note-input-#{@reply_nonce}"}
-            name="value"
-            rows="4"
-            phx-debounce="300"
-            placeholder={gettext("Internal note — not sent to recipient.")}
-            class="w-full px-3 py-2 border border-border rounded-[8px] text-[13px] outline-none resize-none focus:border-accentRing"
-          >{@note_body}</textarea>
-        </form>
-        <div class="mt-3 flex justify-end">
-          <button
-            phx-click="save_note"
-            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer"
-            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
-          >
-            {gettext("Save note")}
-          </button>
-        </div>
-      </div>
-    </div>
+      </:header_panel>
+    </FunnelThread.thread_pane>
     """
   end
 end
