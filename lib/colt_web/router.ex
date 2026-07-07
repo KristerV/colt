@@ -57,6 +57,9 @@ defmodule ColtWeb.Router do
       live "/campaigns/:id/sending-funnel/:bucket", Sending.SendingFunnelLive
       live "/campaigns/:id/sending-funnel/:bucket/:contact_id", Sending.SendingFunnelLive
       live "/campaigns/:id/sales/setup", Sales.SalesSetupLive
+      live "/campaigns/:id/sales", Sales.SalesFunnelLive
+      live "/campaigns/:id/sales/:stage", Sales.SalesFunnelLive
+      live "/campaigns/:id/sales/:stage/:contact_id", Sales.SalesFunnelLive
       live "/campaigns/:id/write", Sending.WriteLive
       live "/campaigns/:id/write/:variant_id", Sending.WriteLive
       live "/campaigns/:id/variants", Sending.VariantsLive

@@ -155,7 +155,7 @@ commits, no Claude attribution.
 - **Acceptance**: open `/sales/setup` on a campaign → starter stages seeded; rename/reorder/add a
   stage and mark one Won and one Lost; refresh persists. Section hidden for non-admin users.
 
-### Phase S3 — Sales funnel view
+### Phase S3 — Sales funnel view ✅ done
 - Clone `SendingFunnelLive` → `SalesFunnelLive`. Stage strip = `SalesStage`s with live counts.
   Left pane rows with days-in-stage. Right pane = reused thread view + composer + StatusEvents.
 - **"Move to…"** control → `CampaignContact.move_to_stage` (writes a StatusEvent). Moving to a

@@ -24,6 +24,7 @@ defmodule Colt.Resources.StatusEvent do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :list_for_thread, args: [:thread_id]
+    define :last_stage_change_for_thread, args: [:thread_id]
     define :record, args: [:thread_id, :kind, :from, :to, :reason]
   end
 
@@ -35,6 +36,14 @@ defmodule Colt.Resources.StatusEvent do
       argument :thread_id, :uuid, allow_nil?: false
       filter expr(thread_id == ^arg(:thread_id))
       prepare build(sort: [occurred_at: :asc])
+    end
+
+    read :last_stage_change_for_thread do
+      description "Most recent sales-stage move (or entry) on a thread — drives days-in-stage."
+      argument :thread_id, :uuid, allow_nil?: false
+      filter expr(thread_id == ^arg(:thread_id) and kind in [:sales_stage, :entry])
+      prepare build(sort: [occurred_at: :desc], limit: 1)
+      get? true
     end
 
     create :record do
