@@ -51,10 +51,13 @@ defmodule ColtWeb.Sales.SalesSetupLive do
     end
   end
 
+  # Persist the rename but patch the stage in-memory rather than reloading the
+  # whole list — reloading would re-render the input the user is typing in.
   def handle_event("rename", %{"id" => id, "name" => name}, socket) do
     with %SalesStage{} = stage <- find_stage(socket, id),
-         {:ok, _} <- SalesStage.rename(stage, name, actor: socket.assigns.current_user) do
-      {:noreply, load_stages(socket)}
+         {:ok, updated} <- SalesStage.rename(stage, name, actor: socket.assigns.current_user) do
+      stages = Enum.map(socket.assigns.stages, &if(&1.id == id, do: updated, else: &1))
+      {:noreply, assign(socket, stages: stages)}
     else
       _ -> {:noreply, socket}
     end
