@@ -21,6 +21,7 @@ defmodule Colt.Resources.Person do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :create_validated
+    define :create_manual
     define :for_company, args: [:company_id]
     define :set_verification, args: [:email_verification_status]
     define :set_email, args: [:email]
@@ -40,6 +41,11 @@ defmodule Colt.Resources.Person do
         :phone,
         :validated_in_markdown
       ]
+    end
+
+    create :create_manual do
+      description "Hand-entered contact (not from enrichment). Company is the manual placeholder company."
+      accept [:company_id, :name, :title, :email, :phone]
     end
 
     read :for_company do

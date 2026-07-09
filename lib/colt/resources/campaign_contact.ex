@@ -61,8 +61,14 @@ defmodule Colt.Resources.CampaignContact do
     default_accept []
 
     read :list_for_campaign do
+      description """
+      Contacts in the sending funnel (`in_funnel_sending?`). This is the
+      send-machine's list — writer, approve, stats, bounce monitor — so
+      sales-only manual contacts are excluded.
+      """
+
       argument :campaign_id, :uuid, allow_nil?: false
-      filter expr(campaign_id == ^arg(:campaign_id))
+      filter expr(campaign_id == ^arg(:campaign_id) and in_funnel_sending? == true)
       prepare build(sort: [inserted_at: :asc])
     end
 
@@ -83,11 +89,16 @@ defmodule Colt.Resources.CampaignContact do
 
     create :promote do
       description """
-      Insert a CampaignContact in :pending_approval for the given
-      (campaign, person). Idempotent via the unique identity.
+      Insert a CampaignContact for the given (campaign, person). The single
+      creation path: enrichment ingest calls it with just the ids (origin
+      defaults to :enrichment, sending funnel on); the manual-contact form
+      passes `origin: :manual` and, for a sales-only lead,
+      `in_funnel_sending?: false`. Sales-funnel entry is a separate step
+      (`AutoEnter`/`enter_sales_funnel`), same for both. Idempotent via the
+      unique identity.
       """
 
-      accept [:campaign_id, :person_id]
+      accept [:campaign_id, :person_id, :origin, :in_funnel_sending?]
       upsert? true
       upsert_identity :unique_per_campaign
     end
@@ -237,6 +248,7 @@ defmodule Colt.Resources.CampaignContact do
 
       accept [:sales_stage_id]
       require_atomic? false
+      change set_attribute(:in_funnel_sales?, true)
     end
 
     update :enter_sales_funnel do
@@ -248,6 +260,7 @@ defmodule Colt.Resources.CampaignContact do
 
       accept [:sales_stage_id]
       require_atomic? false
+      change set_attribute(:in_funnel_sales?, true)
     end
 
     read :list_in_stage do
@@ -258,9 +271,9 @@ defmodule Colt.Resources.CampaignContact do
     end
 
     read :list_entered_for_campaign do
-      description "Every contact that has entered the sales funnel (sales_stage_id set) — the conversion-rate denominator."
+      description "Every contact in the sales funnel (`in_funnel_sales?`) — the conversion-rate denominator."
       argument :campaign_id, :uuid, allow_nil?: false
-      filter expr(campaign_id == ^arg(:campaign_id) and not is_nil(sales_stage_id))
+      filter expr(campaign_id == ^arg(:campaign_id) and in_funnel_sales? == true)
     end
 
     read :find_active_in_inbox_by_domain do
@@ -389,6 +402,21 @@ defmodule Colt.Resources.CampaignContact do
 
     attribute :approved_at, :utc_datetime_usec, public?: true
     attribute :completed_at, :utc_datetime_usec, public?: true
+
+    # Which funnel(s) this contact participates in. Each funnel filters on its
+    # own flag rather than inferring membership from status/sales_stage — a
+    # hand-entered contact can live purely in sales without ever entering the
+    # send machine.
+    attribute :in_funnel_sending?, :boolean, allow_nil?: false, default: true, public?: true
+    attribute :in_funnel_sales?, :boolean, allow_nil?: false, default: false, public?: true
+
+    # Provenance: enrichment (promoted from a CampaignCompany) vs manual (hand
+    # entered / found on the street).
+    attribute :origin, :atom,
+      constraints: [one_of: [:enrichment, :manual]],
+      allow_nil?: false,
+      default: :enrichment,
+      public?: true
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

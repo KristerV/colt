@@ -11,9 +11,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   use ColtWeb, :live_view
 
   alias Colt.Resources.{Campaign, CampaignContact, InboundEmail, Note, OutboundEmail, StatusEvent}
-  alias Colt.Services.Sales.{MoveToStage, SeedStages}
+  alias Colt.Services.Sales.{CreateManualContact, MoveToStage, SeedStages}
   alias Colt.Services.Sending.SendManualReply
-  alias ColtWeb.Components.{FunnelThread, Liid}
+  alias ColtWeb.Components.{ContactForm, FunnelThread, Liid}
   alias Phoenix.LiveView.JS
   alias Phoenix.PubSub
 
@@ -47,6 +47,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             note_body: "",
             pending_lost: nil,
             lost_reason: "",
+            creating: false,
+            create_error: nil,
+            contact_form: default_form_values(),
             error: nil,
             timeline: [],
             thread: nil
@@ -197,6 +200,83 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     {:noreply, assign(socket, pending_lost: nil, lost_reason: "")}
   end
 
+  # ── New contact ──────────────────────────────────────────────────────
+
+  def handle_event("open_create", _params, socket) do
+    {:noreply,
+     assign(socket, creating: true, create_error: nil, contact_form: default_form_values())}
+  end
+
+  def handle_event("cancel_create", _params, socket) do
+    {:noreply, assign(socket, creating: false, create_error: nil)}
+  end
+
+  # Keeps the form values in assigns so a failed submit re-renders with the
+  # user's input intact.
+  def handle_event("validate_contact", params, socket) do
+    {:noreply, assign(socket, contact_form: Map.merge(default_form_values(), params))}
+  end
+
+  def handle_event("create_contact", params, socket) do
+    values = Map.merge(default_form_values(), params)
+
+    name = String.trim(values["name"] || "")
+    company_name = String.trim(values["company_name"] || "")
+    registry_code = String.trim(values["registry_code"] || "")
+    market = market_atom(values["market"])
+    in_sending? = values["in_funnel_sending"] == "on"
+    in_sales? = values["in_funnel_sales"] == "on"
+
+    socket = assign(socket, contact_form: values)
+
+    cond do
+      name == "" ->
+        {:noreply, assign(socket, create_error: gettext("Contact name is required."))}
+
+      company_name == "" or registry_code == "" or is_nil(market) ->
+        {:noreply,
+         assign(socket,
+           create_error: gettext("Company name, reg. code and market are required.")
+         )}
+
+      not in_sending? and not in_sales? ->
+        {:noreply,
+         assign(socket, create_error: gettext("Pick at least one funnel to add them to."))}
+
+      true ->
+        attrs = %{
+          name: name,
+          title: blank_to_nil(values["title"]),
+          email: blank_to_nil(values["email"]),
+          phone: blank_to_nil(values["phone"]),
+          company_name: company_name,
+          registry_code: registry_code,
+          market: market,
+          region: blank_to_nil(values["region"]),
+          in_funnel_sending?: in_sending?,
+          in_funnel_sales?: in_sales?
+        }
+
+        case CreateManualContact.run(socket.assigns.campaign.id, attrs,
+               actor: socket.assigns.current_user
+             ) do
+          {:ok, contact} ->
+            {:noreply,
+             socket
+             |> assign(creating: false, create_error: nil)
+             |> load_contacts()
+             |> put_flash(:info, gettext("Contact added."))
+             |> maybe_open_new_contact(contact)}
+
+          {:error, reason} ->
+            {:noreply,
+             assign(socket,
+               create_error: gettext("Couldn't add contact: %{reason}", reason: inspect(reason))
+             )}
+        end
+    end
+  end
+
   # ── PubSub ───────────────────────────────────────────────────────────
 
   def handle_info(msg, socket)
@@ -332,6 +412,51 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   defp strip_html(_), do: ""
 
+  defp blank_to_nil(nil), do: nil
+
+  defp blank_to_nil(value) when is_binary(value) do
+    case String.trim(value) do
+      "" -> nil
+      trimmed -> trimmed
+    end
+  end
+
+  # Sales checked by default — this is the sales funnel, so a new lead usually
+  # belongs here.
+  defp default_form_values do
+    %{
+      "name" => "",
+      "title" => "",
+      "email" => "",
+      "phone" => "",
+      "company_name" => "",
+      "registry_code" => "",
+      "market" => "ee",
+      "region" => "",
+      "in_funnel_sales" => "on",
+      "in_funnel_sending" => ""
+    }
+  end
+
+  # Whitelisted string→atom (never String.to_atom on user input); nil if unknown.
+  defp market_atom(value) do
+    Enum.find(ContactForm.markets(), &(to_string(&1) == value))
+  end
+
+  # A sales contact is navigated to so the user lands on the card they just
+  # created; a sending-only contact has no sales stage to show, so we stay put.
+  defp maybe_open_new_contact(
+         socket,
+         %{in_funnel_sales?: true, sales_stage_id: stage_id} = contact
+       )
+       when is_binary(stage_id) do
+    push_patch(socket,
+      to: ~p"/campaigns/#{socket.assigns.campaign.id}/sales/#{stage_id}/#{contact.id}"
+    )
+  end
+
+  defp maybe_open_new_contact(socket, _contact), do: socket
+
   defp stale?(days), do: days >= @stale_days
 
   # ── Render ───────────────────────────────────────────────────────────
@@ -396,7 +521,18 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             <Liid.headline kicker={gettext("Sales · Funnel")}>
               {raw(gettext("Move the ones who <em class=\"text-accent\">answered</em> forward."))}
             </Liid.headline>
-            <Liid.admin_badge label={gettext("Admin")} />
+            <div class="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                phx-click="open_create"
+                class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[14px] py-[8px] text-[12.5px] font-semibold cursor-pointer"
+                style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
+              >
+                <span class="text-[15px] leading-none -mt-px">+</span>
+                {gettext("New contact")}
+              </button>
+              <Liid.admin_badge label={gettext("Admin")} />
+            </div>
           </div>
 
           <div class="mt-4">
@@ -497,6 +633,28 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             style="box-shadow:0 1px 2px rgba(208,90,79,.3)"
           >
             {gettext("Mark lost")}
+          </button>
+        </:footer>
+      </Liid.modal>
+
+      <Liid.modal
+        :if={@creating}
+        id="new-contact-modal"
+        on_cancel="cancel_create"
+        eyebrow={gettext("Sales · Funnel")}
+        title={gettext("Add a contact")}
+        max_width="max-w-[520px]"
+      >
+        <ContactForm.form id="new-contact-form" values={@contact_form} error={@create_error} />
+        <:footer>
+          <Liid.btn size={:small} phx-click="cancel_create">{gettext("Cancel")}</Liid.btn>
+          <button
+            type="submit"
+            form="new-contact-form"
+            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[16px] py-[8px] text-[12.5px] font-semibold cursor-pointer"
+            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
+          >
+            {gettext("Add contact")}
           </button>
         </:footer>
       </Liid.modal>
