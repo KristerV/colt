@@ -253,6 +253,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
           registry_code: registry_code,
           market: market,
           region: blank_to_nil(values["region"]),
+          website: blank_to_nil(values["website"]),
           in_funnel_sending?: in_sending?,
           in_funnel_sales?: in_sales?
         }
@@ -433,6 +434,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       "registry_code" => "",
       "market" => "ee",
       "region" => "",
+      "website" => "",
       "in_funnel_sales" => "on",
       "in_funnel_sending" => ""
     }

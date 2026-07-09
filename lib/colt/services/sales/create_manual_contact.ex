@@ -27,6 +27,7 @@ defmodule Colt.Services.Sales.CreateManualContact do
     auth? = actor != nil
 
     with {:ok, company} <- create_company(attrs, actor, auth?),
+         {:ok, company} <- maybe_set_website(company, attrs, actor, auth?),
          {:ok, person} <- create_person(company.id, attrs, actor, auth?),
          {:ok, contact} <- create_contact(campaign_id, person.id, attrs, actor, auth?),
          {:ok, _thread} <-
@@ -48,6 +49,15 @@ defmodule Colt.Services.Sales.CreateManualContact do
       authorize?: auth?
     )
   end
+
+  # Registry-side `upsert_basic` deliberately doesn't carry a website (ingest
+  # would overwrite it), so a hand-entered URL is persisted separately with
+  # source `:manual`. Left as-is when the field was blank.
+  defp maybe_set_website(company, %{website: url}, actor, auth?) when is_binary(url) do
+    Company.set_website(company, url, :manual, actor: actor, authorize?: auth?)
+  end
+
+  defp maybe_set_website(company, _attrs, _actor, _auth?), do: {:ok, company}
 
   defp create_person(company_id, attrs, actor, auth?) do
     Person.create_manual(

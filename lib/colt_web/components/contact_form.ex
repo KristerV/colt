@@ -76,9 +76,14 @@ defmodule ColtWeb.Components.ContactForm do
           </.field>
         </div>
 
-        <.field label={gettext("Region")}>
-          <.text_input name="region" value={@values["region"]} placeholder={gettext("optional")} />
-        </.field>
+        <div class="grid grid-cols-2 gap-3">
+          <.field label={gettext("Region")}>
+            <.text_input name="region" value={@values["region"]} placeholder={gettext("optional")} />
+          </.field>
+          <.field label={gettext("Website")}>
+            <.text_input name="website" value={@values["website"]} placeholder="example.com" />
+          </.field>
+        </div>
       </div>
 
       <div class="mt-1 flex flex-col gap-2 bg-bgSoft border border-border rounded-[8px] p-3">
