@@ -389,25 +389,28 @@ defmodule ColtWeb.Components.FunnelThread do
       class="flex-none bg-card border border-border rounded-[11px] overflow-hidden"
       style="box-shadow:var(--shadow)"
     >
-      <div class="flex items-center gap-1 px-2.5 py-2 border-b border-border bg-bgSoft">
+      <div class={[
+        "flex items-center gap-1.5 px-2.5 py-2 bg-bgSoft",
+        @active_tab && "border-b border-border"
+      ]}>
         <button
           phx-click="switch_tab"
           phx-value-tab="reply"
           style={@active_tab == :reply && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
           class={[
-            "text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer",
-            if(@active_tab == :reply, do: "bg-accentSoft text-accent", else: "text-inkFaint")
+            "inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer bg-accentSoft text-accent",
+            @active_tab != :reply && "opacity-70 hover:opacity-100"
           ]}
         >
-          {gettext("Reply")}
+          <Liid.icon name="arrow" size={11} /> {gettext("Reply")}
         </button>
         <button
           phx-click="switch_tab"
           phx-value-tab="note"
-          style={@active_tab == :note && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
+          style={@active_tab == :note && "box-shadow: inset 0 0 0 1px #e6c877"}
           class={[
-            "text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer",
-            if(@active_tab == :note, do: "bg-accentSoft text-accent", else: "text-inkFaint")
+            "inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer bg-amberSoft text-[#9a6f17]",
+            @active_tab != :note && "opacity-70 hover:opacity-100"
           ]}
         >
           {gettext("Note")}
@@ -448,7 +451,7 @@ defmodule ColtWeb.Components.FunnelThread do
         </div>
       </div>
 
-      <div :if={@active_tab == :note} class="px-3.5 py-3">
+      <div :if={@active_tab == :note} class="px-3.5 py-3 bg-amberSoft">
         <form id={"note-form-#{@reply_nonce}"} phx-change="set_note">
           <textarea
             id={"note-input-#{@reply_nonce}"}
@@ -456,14 +459,14 @@ defmodule ColtWeb.Components.FunnelThread do
             rows="4"
             phx-debounce="300"
             placeholder={gettext("Internal note — not sent to recipient.")}
-            class="w-full px-3 py-2 border border-border rounded-[8px] text-[13px] outline-none resize-none focus:border-accentRing"
+            class="w-full px-3 py-2 bg-card border border-[#f0dcb0] rounded-[8px] text-[13px] text-[#6e5417] outline-none resize-none focus:border-[#e6c877]"
           >{@note_body}</textarea>
         </form>
         <div class="mt-3 flex justify-end">
           <button
             phx-click="save_note"
-            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer"
-            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
+            class="inline-flex items-center gap-1.5 bg-[#9a6f17] text-white rounded-[8px] px-[18px] py-[9px] text-[13px] font-semibold cursor-pointer"
+            style="box-shadow:0 1px 2px rgba(154,111,23,.3)"
           >
             {gettext("Save note")}
           </button>

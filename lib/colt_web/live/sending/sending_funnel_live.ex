@@ -54,7 +54,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             stats: stats,
             sent_steps: sent_steps,
             total_steps: total_steps,
-            active_tab: :reply,
+            active_tab: nil,
             reply_html: "",
             reply_nonce: 0,
             note_body: "",
@@ -89,7 +89,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       |> assign(
         selected_bucket: bucket,
         selected: selected,
-        active_tab: :reply,
+        active_tab: nil,
         reply_html: "",
         note_body: "",
         error: nil

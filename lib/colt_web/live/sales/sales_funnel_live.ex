@@ -41,7 +41,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             stages: stages,
             selected_stage: nil,
             selected: nil,
-            active_tab: :reply,
+            active_tab: nil,
             reply_html: "",
             reply_nonce: 0,
             note_body: "",
@@ -78,7 +78,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       |> assign(
         selected_stage: stage,
         selected: selected,
-        active_tab: :reply,
+        active_tab: nil,
         reply_html: "",
         note_body: "",
         pending_lost: nil,
