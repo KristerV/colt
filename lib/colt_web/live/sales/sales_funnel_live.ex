@@ -152,8 +152,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             {:noreply,
              socket
              |> assign(note_body: "", error: nil)
-             |> load_thread_data()
-             |> put_flash(:info, gettext("Note saved."))}
+             |> load_thread_data()}
 
           {:error, reason} ->
             {:noreply,

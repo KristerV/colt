@@ -171,7 +171,6 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               socket
               |> assign(note_body: "", error: nil)
               |> load_thread_data()
-              |> put_flash(:info, gettext("Note saved."))
 
             {:noreply, socket}
 
