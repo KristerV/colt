@@ -369,7 +369,9 @@ defmodule Colt.Services.Ingest.Fi.Prh.AnnualReports do
     WHERE c.id = g.company_id
     """
 
-    {:ok, %{num_rows: n}} = Ecto.Adapters.SQL.query(Colt.Repo, sql, [])
+    {:ok, %{num_rows: n}} =
+      Ecto.Adapters.SQL.query(Colt.Repo, sql, [], timeout: :timer.minutes(30))
+
     Progress.done("growth recomputed", n)
     {:ok, n}
   end

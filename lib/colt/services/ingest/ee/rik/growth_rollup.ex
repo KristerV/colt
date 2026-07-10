@@ -64,7 +64,9 @@ defmodule Colt.Services.Ingest.Ee.Rik.GrowthRollup do
     WHERE c.id = g.company_id
     """
 
-    {:ok, %{num_rows: n}} = Ecto.Adapters.SQL.query(Colt.Repo, sql, [])
+    {:ok, %{num_rows: n}} =
+      Ecto.Adapters.SQL.query(Colt.Repo, sql, [], timeout: :timer.minutes(30))
+
     Progress.done("growth recomputed", n)
     {:ok, n}
   end
