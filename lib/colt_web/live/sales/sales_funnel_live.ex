@@ -11,7 +11,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   use ColtWeb, :live_view
 
   alias Colt.Resources.{Campaign, CampaignContact, InboundEmail, Note, OutboundEmail, StatusEvent}
-  alias Colt.Services.Sales.{CreateManualContact, MoveToStage, SeedStages}
+  alias Colt.Services.Sales.{CreateManualContact, MoveToStage, SeedStages, UpdateContact}
   alias Colt.Services.Sending.SendManualReply
   alias ColtWeb.Components.{ContactForm, FunnelThread, Liid}
   alias Phoenix.LiveView.JS
@@ -50,6 +50,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             creating: false,
             create_error: nil,
             contact_form: default_form_values(),
+            editing: false,
+            edit_error: nil,
+            edit_form: default_form_values(),
             error: nil,
             timeline: [],
             thread: nil
@@ -278,6 +281,99 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     end
   end
 
+  # ── Edit contact ─────────────────────────────────────────────────────
+
+  def handle_event("open_edit", _params, socket) do
+    case socket.assigns.selected do
+      nil ->
+        {:noreply, socket}
+
+      contact ->
+        {:noreply,
+         assign(socket,
+           editing: true,
+           edit_error: nil,
+           edit_form: form_values_from_contact(contact)
+         )}
+    end
+  end
+
+  def handle_event("cancel_edit", _params, socket) do
+    {:noreply, assign(socket, editing: false, edit_error: nil)}
+  end
+
+  def handle_event("validate_edit", params, socket) do
+    {:noreply, assign(socket, edit_form: merge_edit_params(socket.assigns.edit_form, params))}
+  end
+
+  def handle_event("update_contact", params, socket) do
+    contact = socket.assigns.selected
+    values = merge_edit_params(socket.assigns.edit_form, params)
+
+    name = String.trim(values["name"] || "")
+    company_name = String.trim(values["company_name"] || "")
+    registry_code = String.trim(values["registry_code"] || "")
+    market = market_atom(values["market"])
+    in_sending? = values["in_funnel_sending"] == "on"
+    in_sales? = values["in_funnel_sales"] == "on"
+
+    # Company fields are only editable (and only validated) for manual contacts;
+    # an enrichment contact's company block is locked, so it's never rewritten.
+    company_editable? = contact != nil and contact.origin == :manual
+
+    socket = assign(socket, edit_form: values)
+
+    cond do
+      is_nil(contact) ->
+        {:noreply, assign(socket, editing: false)}
+
+      name == "" ->
+        {:noreply, assign(socket, edit_error: gettext("Contact name is required."))}
+
+      company_editable? and (company_name == "" or registry_code == "" or is_nil(market)) ->
+        {:noreply,
+         assign(socket,
+           edit_error: gettext("Company name, reg. code and market are required.")
+         )}
+
+      not in_sending? and not in_sales? ->
+        {:noreply,
+         assign(socket, edit_error: gettext("Pick at least one funnel to keep them in."))}
+
+      true ->
+        attrs = %{
+          name: name,
+          title: blank_to_nil(values["title"]),
+          email: blank_to_nil(values["email"]),
+          phone: blank_to_nil(values["phone"]),
+          company_name: company_name,
+          registry_code: registry_code,
+          market: market,
+          region: blank_to_nil(values["region"]),
+          website: blank_to_nil(values["website"]),
+          in_funnel_sending?: in_sending?,
+          in_funnel_sales?: in_sales?
+        }
+
+        case UpdateContact.run(contact, attrs, actor: socket.assigns.current_user) do
+          {:ok, _contact} ->
+            {:noreply,
+             socket
+             |> assign(editing: false, edit_error: nil)
+             |> load_contacts()
+             |> keep_selected()
+             |> load_thread_data()
+             |> put_flash(:info, gettext("Contact updated."))}
+
+          {:error, reason} ->
+            {:noreply,
+             assign(socket,
+               edit_error: gettext("Couldn't update contact: %{reason}", reason: inspect(reason))
+             )}
+        end
+    end
+  end
+
   # ── PubSub ───────────────────────────────────────────────────────────
 
   def handle_info(msg, socket)
@@ -438,6 +534,37 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       "in_funnel_sales" => "on",
       "in_funnel_sending" => ""
     }
+  end
+
+  # Prefill the shared contact form from an existing contact for editing.
+  defp form_values_from_contact(contact) do
+    person = contact.person
+    company = person && person.company
+
+    %{
+      "name" => (person && person.name) || "",
+      "title" => (person && person.title) || "",
+      "email" => (person && person.email) || "",
+      "phone" => (person && person.phone) || "",
+      "company_name" => (company && company.name) || "",
+      "registry_code" => (company && company.registry_code) || "",
+      "market" => (company && to_string(company.market)) || "ee",
+      "region" => (company && company.region) || "",
+      "website" => (company && company.website_url) || "",
+      "in_funnel_sales" => if(contact.in_funnel_sales?, do: "on", else: ""),
+      "in_funnel_sending" => if(contact.in_funnel_sending?, do: "on", else: "")
+    }
+  end
+
+  # Merge a change/submit payload over the current edit form. Starts from the
+  # existing values (so a locked, non-submitting company block keeps its
+  # display), but resets the checkboxes first — unchecked boxes are absent from
+  # params, so without the reset they could never be turned off.
+  defp merge_edit_params(current, params) do
+    current
+    |> Map.put("in_funnel_sending", "")
+    |> Map.put("in_funnel_sales", "")
+    |> Map.merge(params)
   end
 
   # Whitelisted string→atom (never String.to_atom on user input); nil if unknown.
@@ -660,6 +787,35 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
           </button>
         </:footer>
       </Liid.modal>
+
+      <Liid.modal
+        :if={@editing}
+        id="edit-contact-modal"
+        on_cancel="cancel_edit"
+        eyebrow={gettext("Sales · Funnel")}
+        title={gettext("Edit contact")}
+        max_width="max-w-[520px]"
+      >
+        <ContactForm.form
+          id="edit-contact-form"
+          values={@edit_form}
+          error={@edit_error}
+          change_event="validate_edit"
+          submit_event="update_contact"
+          company_editable={@selected != nil and @selected.origin == :manual}
+        />
+        <:footer>
+          <Liid.btn size={:small} phx-click="cancel_edit">{gettext("Cancel")}</Liid.btn>
+          <button
+            type="submit"
+            form="edit-contact-form"
+            class="inline-flex items-center gap-1.5 bg-accent text-white rounded-[8px] px-[16px] py-[8px] text-[12.5px] font-semibold cursor-pointer"
+            style="box-shadow:0 1px 2px rgba(59,122,224,.3)"
+          >
+            {gettext("Save changes")}
+          </button>
+        </:footer>
+      </Liid.modal>
     </Layouts.app>
     """
   end
@@ -862,6 +1018,13 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       error={@error}
     >
       <:actions>
+        <button
+          type="button"
+          phx-click="open_edit"
+          class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-card border-border text-inkSoft hover:bg-bgSoft"
+        >
+          {gettext("Edit")}
+        </button>
         <button
           type="button"
           phx-click={JS.toggle(to: "#stage-menu-#{@contact.id}")}

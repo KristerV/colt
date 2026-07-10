@@ -49,6 +49,7 @@ defmodule Colt.Resources.CampaignContact do
     define :stop_sequence
     define :move_to_stage, args: [:sales_stage_id]
     define :enter_sales_funnel, args: [:sales_stage_id]
+    define :set_funnels
     define :list_in_stage, args: [:sales_stage_id]
     define :list_entered_for_campaign, args: [:campaign_id]
     define :count_assigned_today, args: [:email_account_id]
@@ -261,6 +262,25 @@ defmodule Colt.Resources.CampaignContact do
       accept [:sales_stage_id]
       require_atomic? false
       change set_attribute(:in_funnel_sales?, true)
+    end
+
+    update :set_funnels do
+      description """
+      Edit funnel membership from the sales contact edit form. Turning off
+      sales membership also drops the sales stage; re-entry (turning it back
+      on) is handled by the caller via `AutoEnter`, which seeds a stage.
+      """
+
+      accept [:in_funnel_sending?, :in_funnel_sales?]
+      require_atomic? false
+
+      change fn changeset, _ ->
+        if Ash.Changeset.get_attribute(changeset, :in_funnel_sales?) == false do
+          Ash.Changeset.force_change_attribute(changeset, :sales_stage_id, nil)
+        else
+          changeset
+        end
+      end
     end
 
     read :list_in_stage do

@@ -12,6 +12,7 @@ defmodule Colt.Resources.Company do
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :upsert_basic
+    define :update_basic
     define :upsert_full
     define :patch_details
     define :list_by_market, args: [:market]
@@ -108,6 +109,12 @@ defmodule Colt.Resources.Company do
       upsert? true
       upsert_identity :registry_code_market
       upsert_fields [:industry_code, :website_url, :website_source, :generic_email]
+    end
+
+    update :update_basic do
+      description "Edit the manually-entered company basics (name, region, reg. code, market, website) from the sales contact edit form."
+      accept [:name, :region, :registry_code, :market, :website_url, :website_source]
+      require_atomic? false
     end
 
     update :patch_details do

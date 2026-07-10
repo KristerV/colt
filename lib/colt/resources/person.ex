@@ -22,6 +22,7 @@ defmodule Colt.Resources.Person do
     define :get, action: :read, get_by: [:id]
     define :create_validated
     define :create_manual
+    define :update_manual
     define :for_company, args: [:company_id]
     define :set_verification, args: [:email_verification_status]
     define :set_email, args: [:email]
@@ -46,6 +47,12 @@ defmodule Colt.Resources.Person do
     create :create_manual do
       description "Hand-entered contact (not from enrichment). Company is the manual placeholder company."
       accept [:company_id, :name, :title, :email, :phone]
+    end
+
+    update :update_manual do
+      description "Edit a hand-entered contact's person fields from the sales contact edit form."
+      accept [:name, :title, :email, :phone]
+      require_atomic? false
     end
 
     read :for_company do

@@ -22,6 +22,10 @@ defmodule ColtWeb.Components.ContactForm do
   attr :change_event, :string, default: "validate_contact"
   attr :submit_event, :string, default: "create_contact"
 
+  attr :company_editable, :boolean,
+    default: true,
+    doc: "when false the company block is shown read-only (enrichment contacts)"
+
   def form(assigns) do
     ~H"""
     <form id={@id} phx-change={@change_event} phx-submit={@submit_event} class="flex flex-col gap-3">
@@ -50,24 +54,36 @@ defmodule ColtWeb.Components.ContactForm do
       </.field>
 
       <div class="mt-1 flex flex-col gap-3 bg-bgSoft border border-border rounded-[8px] p-3">
-        <div class="text-[11.5px] font-semibold text-inkSoft">{gettext("Company")}</div>
+        <div class="flex items-center justify-between">
+          <div class="text-[11.5px] font-semibold text-inkSoft">{gettext("Company")}</div>
+          <span :if={not @company_editable} class="text-[10.5px] font-medium text-inkFaint">
+            {gettext("From enrichment · read-only")}
+          </span>
+        </div>
 
         <.field label={gettext("Name") <> " *"}>
           <.text_input
             name="company_name"
             value={@values["company_name"]}
             placeholder={gettext("Kohvik OÜ")}
+            disabled={not @company_editable}
           />
         </.field>
 
         <div class="grid grid-cols-2 gap-3">
           <.field label={gettext("Reg. code") <> " *"}>
-            <.text_input name="registry_code" value={@values["registry_code"]} placeholder="12345678" />
+            <.text_input
+              name="registry_code"
+              value={@values["registry_code"]}
+              placeholder="12345678"
+              disabled={not @company_editable}
+            />
           </.field>
           <.field label={gettext("Market") <> " *"}>
             <select
               name="market"
-              class="w-full px-3 py-2.5 border border-border rounded-[8px] text-[14px] outline-none focus:border-accentRing bg-card"
+              disabled={not @company_editable}
+              class="w-full px-3 py-2.5 border border-border rounded-[8px] text-[14px] outline-none focus:border-accentRing bg-card disabled:opacity-60 disabled:bg-bgSoft disabled:cursor-not-allowed"
             >
               <option :for={m <- markets()} value={m} selected={to_string(m) == @values["market"]}>
                 {String.upcase(to_string(m))}
@@ -78,10 +94,20 @@ defmodule ColtWeb.Components.ContactForm do
 
         <div class="grid grid-cols-2 gap-3">
           <.field label={gettext("Region")}>
-            <.text_input name="region" value={@values["region"]} placeholder={gettext("optional")} />
+            <.text_input
+              name="region"
+              value={@values["region"]}
+              placeholder={gettext("optional")}
+              disabled={not @company_editable}
+            />
           </.field>
           <.field label={gettext("Website")}>
-            <.text_input name="website" value={@values["website"]} placeholder="example.com" />
+            <.text_input
+              name="website"
+              value={@values["website"]}
+              placeholder="example.com"
+              disabled={not @company_editable}
+            />
           </.field>
         </div>
       </div>
@@ -115,7 +141,7 @@ defmodule ColtWeb.Components.ContactForm do
   attr :value, :any, default: nil
   attr :type, :string, default: "text"
   attr :placeholder, :string, default: nil
-  attr :rest, :global
+  attr :rest, :global, include: ~w(disabled)
 
   defp text_input(assigns) do
     ~H"""
@@ -124,7 +150,7 @@ defmodule ColtWeb.Components.ContactForm do
       name={@name}
       value={@value}
       placeholder={@placeholder}
-      class="w-full px-3 py-2.5 border border-border rounded-[8px] text-[14px] outline-none focus:border-accentRing bg-card"
+      class="w-full px-3 py-2.5 border border-border rounded-[8px] text-[14px] outline-none focus:border-accentRing bg-card disabled:opacity-60 disabled:bg-bgSoft disabled:cursor-not-allowed"
       {@rest}
     />
     """
