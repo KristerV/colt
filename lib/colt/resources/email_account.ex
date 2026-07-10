@@ -23,6 +23,7 @@ defmodule Colt.Resources.EmailAccount do
     define :get_by_grant, args: [:nylas_grant_id]
     define :get_active_for_address, args: [:user_id, :address]
     define :list_for_user, args: [:user_id]
+    define :list_healthy_for_user, args: [:user_id]
     define :list_all
     define :list_healthy
 
@@ -73,6 +74,15 @@ defmodule Colt.Resources.EmailAccount do
       description "Connected, sendable inboxes — used by the inbound poller."
       filter expr(status == :healthy and not is_nil(nylas_grant_id))
       prepare build(sort: [inserted_at: :asc])
+    end
+
+    read :list_healthy_for_user do
+      description "Connected, sendable inboxes for one user — the 'send from' picker."
+      argument :user_id, :uuid, allow_nil?: false
+
+      filter expr(user_id == ^arg(:user_id) and status == :healthy and not is_nil(nylas_grant_id))
+
+      prepare build(sort: [address: :asc])
     end
 
     create :create_from_nylas do

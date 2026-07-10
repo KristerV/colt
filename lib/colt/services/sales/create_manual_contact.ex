@@ -18,9 +18,10 @@ defmodule Colt.Services.Sales.CreateManualContact do
 
   @doc """
   `attrs` carries the person fields (`:name`, `:title`, `:email`, `:phone`),
-  the company fields (`:company_name`, `:registry_code`, `:market`, `:region`)
-  and the funnel choices (`:in_funnel_sending?`, `:in_funnel_sales?`). Returns
-  `{:ok, contact}`.
+  the company fields (`:company_name`, `:registry_code`, `:market`, `:region`),
+  the funnel choices (`:in_funnel_sending?`, `:in_funnel_sales?`) and an
+  optional `:assigned_email_account_id` — the inbox replies to this contact
+  send from. Returns `{:ok, contact}`.
   """
   def run(campaign_id, attrs, opts \\ []) when is_binary(campaign_id) do
     actor = Keyword.get(opts, :actor)
@@ -77,7 +78,11 @@ defmodule Colt.Services.Sales.CreateManualContact do
     CampaignContact.promote(
       campaign_id,
       person_id,
-      %{origin: :manual, in_funnel_sending?: attrs[:in_funnel_sending?] == true},
+      %{
+        origin: :manual,
+        in_funnel_sending?: attrs[:in_funnel_sending?] == true,
+        assigned_email_account_id: attrs[:assigned_email_account_id]
+      },
       actor: actor,
       authorize?: auth?
     )

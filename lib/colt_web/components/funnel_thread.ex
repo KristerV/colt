@@ -384,6 +384,8 @@ defmodule ColtWeb.Components.FunnelThread do
   attr :error, :any, default: nil
 
   def composer(assigns) do
+    assigns = assign(assigns, has_recipient?: assigns.recipient not in [nil, ""])
+
     ~H"""
     <div
       class="flex-none bg-card border border-border rounded-[11px] overflow-hidden"
@@ -416,7 +418,7 @@ defmodule ColtWeb.Components.FunnelThread do
           {gettext("Note")}
         </button>
         <span
-          :if={@active_tab == :reply}
+          :if={@active_tab == :reply and @has_recipient?}
           class="ml-auto text-[12px] text-inkFaint font-medium truncate"
         >
           {gettext("To:")} <b class="text-inkSoft font-semibold">{@recipient}</b>
@@ -425,8 +427,19 @@ defmodule ColtWeb.Components.FunnelThread do
 
       <div :if={@error} class="px-3.5 pt-3 text-[12px] text-red">{@error}</div>
 
+      <%!-- No email on file → can't reply. Nudge to add one; don't let them
+           write a message that could never send. --%>
+      <div :if={@active_tab == :reply and not @has_recipient?} class="px-3.5 py-4">
+        <div class="text-[12.5px] text-inkSoft leading-[1.5]">
+          {gettext("This contact has no email address yet.")}
+          <span class="text-inkFaint">
+            {gettext("Add one with Edit before you can reply.")}
+          </span>
+        </div>
+      </div>
+
       <div
-        :if={@active_tab == :reply}
+        :if={@active_tab == :reply and @has_recipient?}
         class="px-3.5 py-3"
         id={"trix-wrap-#{@reply_nonce}"}
         phx-hook="TrixEditor"

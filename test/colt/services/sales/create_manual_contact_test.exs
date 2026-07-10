@@ -2,13 +2,28 @@ defmodule Colt.Services.Sales.CreateManualContactTest do
   use Colt.DataCase, async: false
 
   alias Colt.Accounts.User
-  alias Colt.Resources.{Campaign, CampaignContact, Company, Person}
+  alias Colt.Resources.{Campaign, CampaignContact, Company, EmailAccount, Person}
   alias Colt.Services.Sales.CreateManualContact
 
   defp seed_user do
     User
     |> Ash.Changeset.for_create(:seed, %{email: "owner@example.com"}, authorize?: false)
     |> Ash.create!(authorize?: false)
+  end
+
+  defp seed_email_account(user, address \\ "sender@liid.test") do
+    {:ok, account} =
+      EmailAccount.create_from_nylas(
+        :google,
+        address,
+        "Sender",
+        "grant-#{System.unique_integer([:positive])}",
+        "Europe/Tallinn",
+        actor: user,
+        authorize?: false
+      )
+
+    account
   end
 
   defp seed_campaign(user) do
@@ -160,6 +175,33 @@ defmodule Colt.Services.Sales.CreateManualContactTest do
       assert loaded.person.company.name == "AS Näide"
       assert loaded.person.company.registry_code == "30000003"
       assert loaded.person.company.market == :fi
+    end
+  end
+
+  describe "send-from inbox" do
+    test "stores the picked inbox as the sticky sender the reply path uses" do
+      user = seed_user()
+      campaign = seed_campaign(user)
+      inbox = seed_email_account(user)
+
+      {:ok, contact} =
+        CreateManualContact.run(
+          campaign.id,
+          base_attrs(%{in_funnel_sales?: true, assigned_email_account_id: inbox.id}),
+          actor: user
+        )
+
+      assert contact.assigned_email_account_id == inbox.id
+    end
+
+    test "defaults to no sender when none is picked (not every contact is emailed)" do
+      user = seed_user()
+      campaign = seed_campaign(user)
+
+      {:ok, contact} =
+        CreateManualContact.run(campaign.id, base_attrs(%{in_funnel_sales?: true}), actor: user)
+
+      assert contact.assigned_email_account_id == nil
     end
   end
 end

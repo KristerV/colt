@@ -26,6 +26,18 @@ defmodule ColtWeb.Components.ContactForm do
     default: true,
     doc: "when false the company block is shown read-only (enrichment contacts)"
 
+  attr :email_accounts, :list,
+    default: [],
+    doc: "sending-inbox options for the 'Send from' picker — [%{id:, label:}]"
+
+  attr :sender_locked, :boolean,
+    default: false,
+    doc: "when true a sender is already assigned (convo under way) — shown read-only"
+
+  attr :sender_label, :any,
+    default: nil,
+    doc: "the assigned inbox's address, shown when sender_locked"
+
   def form(assigns) do
     ~H"""
     <form id={@id} phx-change={@change_event} phx-submit={@submit_event} class="flex flex-col gap-3">
@@ -51,6 +63,38 @@ defmodule ColtWeb.Components.ContactForm do
           value={@values["email"]}
           placeholder={gettext("optional")}
         />
+      </.field>
+
+      <.field label={gettext("Send from")}>
+        <div
+          :if={@sender_locked}
+          class="w-full px-3 py-2.5 border border-border rounded-[8px] text-[14px] bg-bgSoft text-inkSoft flex items-center gap-2"
+        >
+          <span class="truncate">{@sender_label || gettext("Assigned inbox")}</span>
+          <span class="text-[10.5px] font-medium text-inkFaint shrink-0">
+            {gettext("· in use")}
+          </span>
+        </div>
+        <select
+          :if={not @sender_locked}
+          name="assigned_email_account_id"
+          class="w-full px-3 py-2.5 border border-border rounded-[8px] text-[14px] outline-none focus:border-accentRing bg-card"
+        >
+          <option value="">{gettext("— No sending inbox —")}</option>
+          <option
+            :for={a <- @email_accounts}
+            value={a.id}
+            selected={a.id == @values["assigned_email_account_id"]}
+          >
+            {a.label}
+          </option>
+        </select>
+        <div
+          :if={not @sender_locked and @email_accounts == []}
+          class="text-[10.5px] text-inkFaint mt-0.5"
+        >
+          {gettext("No connected inboxes — replies won't send until one is connected.")}
+        </div>
       </.field>
 
       <div class="mt-1 flex flex-col gap-3 bg-bgSoft border border-border rounded-[8px] p-3">

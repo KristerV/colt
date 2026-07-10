@@ -11,6 +11,8 @@ defmodule Colt.Services.Sales.UpdateContact do
     * company → `Company.update_basic` (manual origin only)
     * funnels → `CampaignContact.set_funnels`, then `AutoEnter.run` when sales
       membership is turned on and no stage is set yet
+    * sender  → `CampaignContact.set_sender`, but only to seed a still-blank
+      inbox; an already-assigned (in-use) sender is left untouched
   """
 
   alias Colt.Resources.{CampaignContact, Company, Person}
@@ -29,10 +31,31 @@ defmodule Colt.Services.Sales.UpdateContact do
 
     with {:ok, _person} <- update_person(contact.person, attrs, actor, auth?),
          {:ok, _company} <- maybe_update_company(contact, attrs, actor, auth?),
-         {:ok, contact} <- update_funnels(contact, attrs, opts, actor, auth?) do
+         {:ok, contact} <- update_funnels(contact, attrs, opts, actor, auth?),
+         {:ok, contact} <- maybe_set_sender(contact, attrs, actor, auth?) do
       {:ok, contact}
     end
   end
+
+  # Seed the sending inbox only while none is assigned yet. Once a conversation
+  # is under way the assignment sticks — we never reassign an in-use sender, and
+  # the edit form shows it read-only in that case, so nothing to overwrite.
+  defp maybe_set_sender(
+         %CampaignContact{assigned_email_account_id: nil} = contact,
+         attrs,
+         actor,
+         auth?
+       ) do
+    case attrs[:assigned_email_account_id] do
+      id when is_binary(id) ->
+        CampaignContact.set_sender(contact, id, actor: actor, authorize?: auth?)
+
+      _ ->
+        {:ok, contact}
+    end
+  end
+
+  defp maybe_set_sender(contact, _attrs, _actor, _auth?), do: {:ok, contact}
 
   defp update_person(person, attrs, actor, auth?) do
     Person.update_manual(

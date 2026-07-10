@@ -56,4 +56,28 @@ defmodule Colt.Resources.EmailAccountTest do
 
     assert {:error, _} = EmailAccount.update_details(account, "Hacked", actor: other)
   end
+
+  describe "list_healthy_for_user (the 'send from' picker source)" do
+    test "returns the user's healthy inboxes, excluding paused and other users'" do
+      user = seed_user("owner@example.com")
+      other = seed_user("someone@example.com")
+
+      {:ok, healthy} = seed_account(user)
+      {:ok, paused} = seed_account(user)
+      {:ok, other_inbox} = seed_account(other)
+
+      {:ok, _} =
+        EmailAccount.mark_status(paused, :paused_bounces, "bounces",
+          actor: user,
+          authorize?: false
+        )
+
+      {:ok, rows} = EmailAccount.list_healthy_for_user(user.id, actor: user)
+      ids = Enum.map(rows, & &1.id)
+
+      assert healthy.id in ids
+      refute paused.id in ids
+      refute other_inbox.id in ids
+    end
+  end
 end

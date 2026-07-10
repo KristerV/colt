@@ -36,6 +36,7 @@ defmodule Colt.Resources.CampaignContact do
     define :next_pending, args: [:campaign_id]
     define :promote, args: [:campaign_id, :person_id]
     define :assign_inbox, args: [:assigned_email_account_id]
+    define :set_sender, args: [:assigned_email_account_id]
 
     define :approve,
       args: [:assigned_email_account_id, :sequence_id, :sequence_snapshot, :sequence_version]
@@ -99,9 +100,29 @@ defmodule Colt.Resources.CampaignContact do
       unique identity.
       """
 
-      accept [:campaign_id, :person_id, :origin, :in_funnel_sending?]
+      accept [
+        :campaign_id,
+        :person_id,
+        :origin,
+        :in_funnel_sending?,
+        :assigned_email_account_id
+      ]
+
       upsert? true
       upsert_identity :unique_per_campaign
+    end
+
+    update :set_sender do
+      description """
+      Set (or clear) the contact's sending inbox from the sales/edit UI. Seeds
+      the very same sticky `assigned_email_account_id` the sending pipeline
+      uses — one field, one send path, no manual-specific logic. Callers only
+      seed it while it's still blank; once a conversation is under way the
+      assignment sticks.
+      """
+
+      accept [:assigned_email_account_id]
+      require_atomic? false
     end
 
     update :assign_inbox do

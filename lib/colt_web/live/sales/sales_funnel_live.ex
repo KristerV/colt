@@ -10,7 +10,16 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   use ColtWeb, :live_view
 
-  alias Colt.Resources.{Campaign, CampaignContact, InboundEmail, Note, OutboundEmail, StatusEvent}
+  alias Colt.Resources.{
+    Campaign,
+    CampaignContact,
+    EmailAccount,
+    InboundEmail,
+    Note,
+    OutboundEmail,
+    StatusEvent
+  }
+
   alias Colt.Services.Sales.{CreateManualContact, MoveToStage, SeedStages, UpdateContact}
   alias Colt.Services.Sending.SendManualReply
   alias ColtWeb.Components.{ContactForm, FunnelThread, Liid}
@@ -53,6 +62,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             editing: false,
             edit_error: nil,
             edit_form: default_form_values(),
+            email_accounts: load_email_account_options(actor),
             error: nil,
             timeline: [],
             thread: nil
@@ -257,6 +267,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
           market: market,
           region: blank_to_nil(values["region"]),
           website: blank_to_nil(values["website"]),
+          assigned_email_account_id: blank_to_nil(values["assigned_email_account_id"]),
           in_funnel_sending?: in_sending?,
           in_funnel_sales?: in_sales?
         }
@@ -351,6 +362,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
           market: market,
           region: blank_to_nil(values["region"]),
           website: blank_to_nil(values["website"]),
+          assigned_email_account_id: blank_to_nil(values["assigned_email_account_id"]),
           in_funnel_sending?: in_sending?,
           in_funnel_sales?: in_sales?
         }
@@ -413,7 +425,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
     contacts =
       case CampaignContact.list_entered_for_campaign(socket.assigns.campaign.id,
-             load: [:thread, :sales_stage, person: :company],
+             load: [:thread, :sales_stage, :assigned_email_account, person: :company],
              actor: actor
            ) do
         {:ok, rows} -> rows
@@ -509,6 +521,19 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   defp strip_html(_), do: ""
 
+  # "Send from" options — the current user's connected, sendable inboxes. The
+  # picker seeds the same sticky `assigned_email_account_id` the sending
+  # pipeline uses; there is no manual-only send path.
+  defp load_email_account_options(actor) do
+    case EmailAccount.list_healthy_for_user(actor.id, actor: actor) do
+      {:ok, rows} -> Enum.map(rows, &%{id: &1.id, label: &1.address})
+      _ -> []
+    end
+  end
+
+  defp sender_label(%{assigned_email_account: %{address: address}}), do: address
+  defp sender_label(_), do: nil
+
   defp blank_to_nil(nil), do: nil
 
   defp blank_to_nil(value) when is_binary(value) do
@@ -531,6 +556,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       "market" => "ee",
       "region" => "",
       "website" => "",
+      "assigned_email_account_id" => "",
       "in_funnel_sales" => "on",
       "in_funnel_sending" => ""
     }
@@ -551,6 +577,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       "market" => (company && to_string(company.market)) || "ee",
       "region" => (company && company.region) || "",
       "website" => (company && company.website_url) || "",
+      "assigned_email_account_id" => contact.assigned_email_account_id || "",
       "in_funnel_sales" => if(contact.in_funnel_sales?, do: "on", else: ""),
       "in_funnel_sending" => if(contact.in_funnel_sending?, do: "on", else: "")
     }
@@ -774,7 +801,12 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
         title={gettext("Add a contact")}
         max_width="max-w-[520px]"
       >
-        <ContactForm.form id="new-contact-form" values={@contact_form} error={@create_error} />
+        <ContactForm.form
+          id="new-contact-form"
+          values={@contact_form}
+          error={@create_error}
+          email_accounts={@email_accounts}
+        />
         <:footer>
           <Liid.btn size={:small} phx-click="cancel_create">{gettext("Cancel")}</Liid.btn>
           <button
@@ -803,6 +835,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
           change_event="validate_edit"
           submit_event="update_contact"
           company_editable={@selected != nil and @selected.origin == :manual}
+          email_accounts={@email_accounts}
+          sender_locked={@selected != nil and @selected.assigned_email_account_id != nil}
+          sender_label={sender_label(@selected)}
         />
         <:footer>
           <Liid.btn size={:small} phx-click="cancel_edit">{gettext("Cancel")}</Liid.btn>
