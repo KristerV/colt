@@ -7,6 +7,33 @@ defmodule Colt.Resources.Company do
   postgres do
     table "companies"
     repo Colt.Repo
+
+    # View 3 (FiltersLive) runs market-scoped aggregates over the full registry.
+    # All of them restrict to status = :registered, so these are partial indexes
+    # on that predicate to keep them small and turn full scans into index scans.
+    # Built concurrently so the index build doesn't take an ACCESS EXCLUSIVE lock
+    # on the (large) registry table and block traffic during the migration.
+    custom_indexes do
+      index [:market, :industry_code],
+        where: "status = 'registered'",
+        concurrently: true,
+        name: "companies_market_industry_registered_index"
+
+      index [:market, :revenue_growth_bucket],
+        where: "status = 'registered'",
+        concurrently: true,
+        name: "companies_market_growth_registered_index"
+
+      index [:market, :employees_latest],
+        where: "status = 'registered'",
+        concurrently: true,
+        name: "companies_market_employees_registered_index"
+
+      index [:market, :revenue_latest],
+        where: "status = 'registered'",
+        concurrently: true,
+        name: "companies_market_revenue_registered_index"
+    end
   end
 
   code_interface do

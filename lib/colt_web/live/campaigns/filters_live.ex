@@ -33,7 +33,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             error: nil,
             confirming?: false,
             reload_ref: nil,
-            pending?: false,
+            pending?: true,
             industry_query: "",
             industry_results: [],
             industry_open: false,
@@ -41,7 +41,12 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             exclude_results: [],
             exclude_open: false
           )
-          |> reload_filters()
+          |> assign(empty_summary())
+
+        # The summary is ~10 aggregate scans over the full registry; never run it
+        # on the dead render (it would hold a pooled connection through the static
+        # HTTP mount). Defer to the connected mount and run it off the mount path.
+        if connected?(socket), do: send(self(), :reload)
 
         {:ok, socket}
 
@@ -212,6 +217,20 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       {:error, err} ->
         assign(socket, error: inspect(err), pending?: false, reload_ref: nil)
     end
+  end
+
+  # Safe defaults so a failed (or not-yet-run) reload never leaves a summary
+  # assign unset — render/1 reads all of these unconditionally.
+  defp empty_summary do
+    %{
+      count: 0,
+      total: 0,
+      preview: [],
+      bucket_totals: %{},
+      top_industries: [],
+      filtered_categories: [],
+      last_sync: nil
+    }
   end
 
   defp default_form(campaign) do

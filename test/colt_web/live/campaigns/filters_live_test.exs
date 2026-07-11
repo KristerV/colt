@@ -53,8 +53,11 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
     c = setup_campaign(user)
     conn = log_in(conn, user)
 
-    {:ok, _view, html} = live(conn, ~p"/campaigns/#{c.id}/filters")
+    {:ok, view, _html} = live(conn, ~p"/campaigns/#{c.id}/filters")
 
+    # The summary is loaded off the mount path (connected mount only), so read
+    # it from the live view after the :reload has been processed.
+    html = render(view)
     assert html =~ "Companies match"
     assert html =~ "of 6"
   end
