@@ -1883,7 +1883,9 @@ defmodule Colt.Filters.IndustryLabels do
 
   def sections do
     @sections
-    |> Enum.filter(fn {_l, _t, lo, hi} -> Enum.any?(Map.keys(@divisions), &in_range?(&1, lo, hi)) end)
+    |> Enum.filter(fn {_l, _t, lo, hi} ->
+      Enum.any?(Map.keys(@divisions), &in_range?(&1, lo, hi))
+    end)
     |> Enum.map(fn {l, t, _lo, _hi} -> {l, t} end)
   end
 
@@ -1926,7 +1928,8 @@ defmodule Colt.Filters.IndustryLabels do
     end
   end
 
-  def expand_codes(ids) when is_list(ids), do: ids |> Enum.flat_map(&leaf_classes/1) |> Enum.uniq()
+  def expand_codes(ids) when is_list(ids),
+    do: ids |> Enum.flat_map(&leaf_classes/1) |> Enum.uniq()
 
   def node_label(id), do: if(section?(id), do: section_title(id), else: label(id) || id)
 

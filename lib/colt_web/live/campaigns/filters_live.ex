@@ -367,8 +367,11 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   # ── menu / summaries ──────────────────────────────────────────────────────
 
   defp menu_items do
-    [{:markets, gettext("Markets")}, {:size_growth, gettext("Size & growth")},
-     {:industries, gettext("Industries")}]
+    [
+      {:markets, gettext("Markets")},
+      {:size_growth, gettext("Size & growth")},
+      {:industries, gettext("Industries")}
+    ]
   end
 
   # Each summary is a list of lines (or nil) — the menu stacks them vertically.
@@ -743,12 +746,22 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       <div class="flex flex-col gap-7">
         <div>
           <.sub_label>{gettext("Employees")}</.sub_label>
-          <.range_fset field="employees" min={@form.employees_min} max={@form.employees_max} format={:int} />
+          <.range_fset
+            field="employees"
+            min={@form.employees_min}
+            max={@form.employees_max}
+            format={:int}
+          />
         </div>
 
         <div>
           <.sub_label>{gettext("Revenue (€)")}</.sub_label>
-          <.range_fset field="revenue" min={@form.revenue_min} max={@form.revenue_max} format={:money} />
+          <.range_fset
+            field="revenue"
+            min={@form.revenue_min}
+            max={@form.revenue_max}
+            format={:money}
+          />
         </div>
 
         <div>

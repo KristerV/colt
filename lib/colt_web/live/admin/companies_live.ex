@@ -38,6 +38,7 @@ defmodule ColtWeb.Admin.CompaniesLive do
                 <th class="px-3 py-2 text-right">Active</th>
                 <th class="px-3 py-2 text-right">With ≥1 report</th>
                 <th class="px-3 py-2 text-right">With employees</th>
+                <th class="px-3 py-2 text-right">With NACE code</th>
                 <th class="px-3 py-2 text-right w-px"></th>
               </tr>
             </thead>
@@ -115,7 +116,8 @@ defmodule ColtWeb.Admin.CompaniesLive do
         stats: [
           %{label: "Active", value: count(:active, market)},
           %{label: "With ≥1 annual report", value: count(:with_annual_report, market)},
-          %{label: "With employee count", value: count(:with_employees, market)}
+          %{label: "With employee count", value: count(:with_employees, market)},
+          %{label: "With NACE code", value: count(:with_nace_code, market)}
         ]
       }
     end)

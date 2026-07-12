@@ -146,6 +146,7 @@ defmodule ColtWeb.Sending.WriteLive do
     case Sequence.list_for_campaign!(campaign.id, actor: actor) do
       [] ->
         {:ok, seq} = Sequence.create_named(campaign.id, gettext("Variant A"), actor: actor)
+
         Sequence.set_language(seq, Markets.drafting_language(Campaign.selected_markets(campaign)),
           actor: actor
         )

@@ -86,6 +86,10 @@ defmodule Colt.Resources.Company do
       filter expr(not is_nil(employees_latest))
     end
 
+    read :with_nace_code do
+      filter expr(not is_nil(industry_code))
+    end
+
     read :by_market do
       argument :market, :atom, allow_nil?: false
       filter expr(market == ^arg(:market))

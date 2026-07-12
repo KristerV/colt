@@ -64,6 +64,7 @@ defmodule ColtWeb.Sending.VariantsLive do
     name = variant_name(length(socket.assigns.variants))
 
     {:ok, seq} = Sequence.create_named(campaign.id, name, actor: actor)
+
     Sequence.set_language(seq, Markets.drafting_language(Campaign.selected_markets(campaign)),
       actor: actor
     )
