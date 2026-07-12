@@ -117,4 +117,8 @@ defmodule Colt.Markets do
       nil -> "en"
     end
   end
+
+  @doc "Drafting language for a set of markets: single market → its language, multiple/empty → English."
+  def drafting_language([single]), do: language_for(single)
+  def drafting_language(markets) when is_list(markets), do: "en"
 end

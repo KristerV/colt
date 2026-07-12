@@ -18,7 +18,6 @@ defmodule Colt.Resources.Campaign do
     define :create_draft, args: [:name]
     define :get, action: :read, get_by: [:id]
     define :set_icp, args: [:icp_description, :target_job_title, :business_model]
-    define :set_market, args: [:market]
     define :list_recent_for_user, args: [:user_id]
     define :list_for_user, args: [:user_id]
     define :list_all_recent
@@ -79,16 +78,10 @@ defmodule Colt.Resources.Campaign do
       require_atomic? false
     end
 
-    update :set_market do
-      description "View 2 — set market and advance to :collecting (never downgrades)."
-      accept [:market]
-      change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :collecting}
-      require_atomic? false
-    end
-
     update :update_filters do
-      description "Persist filter selection without changing status. Used both before start and for mid-run edits."
+      description "Persist filter selection and advance a draft to :collecting (never downgrades)."
       accept [:filters]
+      change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :collecting}
       require_atomic? false
     end
 
@@ -177,10 +170,6 @@ defmodule Colt.Resources.Campaign do
       allow_nil?: false,
       public?: true
 
-    attribute :market, :atom,
-      constraints: [one_of: [:ee, :fi, :lv, :lt, :se, :no]],
-      public?: true
-
     attribute :filters, :map, public?: true, default: %{}
 
     attribute :target_contact_count, :integer,
@@ -250,5 +239,29 @@ defmodule Colt.Resources.Campaign do
 
     count :failed_count, :campaign_companies,
       filter: expr(status in [:no_website, :no_contacts, :verify_failed, :failed])
+  end
+
+  @doc """
+  The markets a campaign targets, as enabled atoms, read from the
+  `filters["markets"]` list.
+  """
+  def selected_markets(campaign) do
+    enabled = Colt.Markets.enabled_atoms()
+
+    case is_map(campaign.filters) && Map.get(campaign.filters, "markets") do
+      list when is_list(list) ->
+        list |> Enum.map(&to_market_atom/1) |> Enum.filter(&(&1 in enabled))
+
+      _ ->
+        []
+    end
+  end
+
+  defp to_market_atom(a) when is_atom(a), do: a
+
+  defp to_market_atom(s) when is_binary(s) do
+    String.to_existing_atom(s)
+  rescue
+    ArgumentError -> nil
   end
 end

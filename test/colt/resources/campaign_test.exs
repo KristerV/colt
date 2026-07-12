@@ -31,15 +31,16 @@ defmodule Colt.Resources.CampaignTest do
     assert c2.status == :draft
   end
 
-  test "set_market advances to :collecting and stores :ee" do
+  test "update_filters advances to :collecting and stores markets" do
     user = seed_user()
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
     {:ok, c} = Campaign.set_icp(c, "B2B SaaS", "CTO", :b2b, actor: user)
 
-    {:ok, c2} = Campaign.set_market(c, :ee, actor: user)
+    {:ok, c2} = Campaign.update_filters(c, %{markets: ["ee"]}, actor: user)
 
-    assert c2.market == :ee
+    assert c2.filters["markets"] == ["ee"]
     assert c2.status == :collecting
+    assert Campaign.selected_markets(c2) == [:ee]
   end
 
   test "list_recent_for_user only returns own campaigns, newest first, capped at 4" do

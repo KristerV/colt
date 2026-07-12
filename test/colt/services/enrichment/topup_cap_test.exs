@@ -34,7 +34,7 @@ defmodule Colt.Services.Enrichment.TopupCapTest do
   defp enriched_campaign(user, target) do
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
     {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", :b2b, actor: user)
-    {:ok, c} = Campaign.set_market(c, :ee, actor: user)
+    {:ok, c} = Campaign.update_filters(c, %{markets: ["ee"]}, actor: user)
     {:ok, c} = Campaign.update_filters(c, %{market: :ee}, actor: user)
     {:ok, c} = Campaign.finalize(c, target, actor: user)
 

@@ -91,7 +91,7 @@ defmodule Colt.Services.Enrichment.Topup do
   end
 
   defp sample_and_enqueue(campaign, need) do
-    filters = atomize_filters(campaign.filters, campaign.market)
+    filters = atomize_filters(campaign.filters)
 
     case Filters.sample(filters, need, exclude_campaign_id: campaign.id) do
       {:ok, []} ->
@@ -159,11 +159,12 @@ defmodule Colt.Services.Enrichment.Topup do
     :ok
   end
 
-  defp atomize_filters(filters, market) do
+  defp atomize_filters(filters) do
     %{
-      market: market,
-      industries: Map.get(filters, "industries", []),
-      industries_exclude: Map.get(filters, "industries_exclude", []),
+      markets: markets_from(filters),
+      industries: Colt.Filters.IndustryLabels.expand_codes(Map.get(filters, "industries", [])),
+      industries_exclude:
+        Colt.Filters.IndustryLabels.expand_codes(Map.get(filters, "industries_exclude", [])),
       growth_buckets:
         filters
         |> Map.get("growth_buckets", [])
@@ -173,6 +174,13 @@ defmodule Colt.Services.Enrichment.Topup do
       revenue_min: Map.get(filters, "revenue_min"),
       revenue_max: Map.get(filters, "revenue_max")
     }
+  end
+
+  defp markets_from(filters) do
+    case Map.get(filters, "markets") do
+      list when is_list(list) -> Enum.map(list, &maybe_atom/1)
+      _ -> []
+    end
   end
 
   defp maybe_atom(b) when is_binary(b), do: String.to_existing_atom(b)

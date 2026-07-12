@@ -1,24 +1,28 @@
 defmodule ColtWeb.Campaigns.FiltersLive do
   @moduledoc """
-  View 3 — filter panel + live counter + 100-row preview + confirm.
+  View 3 — filters. A centered, max-width two-pane layout: a left menu
+  (Markets · Size & growth · Industries) whose rows preview the actual selected
+  values, and a right detail pane. Markets is a multi-select; Industries is a
+  NACE tree (sections → divisions → groups → 4-digit classes) with tri-state
+  checkboxes. A live counter shows how many companies match across the chosen
+  markets.
+
+  The industries form holds *node ids* (section letters / 2/3/4-digit codes);
+  they are expanded to 4-digit classes only at query time (`for_query/1`), so
+  the `:filtered` action is unchanged and old 4-digit saved filters still work.
   """
   use ColtWeb, :live_view
 
   alias Colt.Filters
-  alias Colt.Resources.Campaign
+  alias Colt.Filters.IndustryLabels
+  alias Colt.Markets
+  alias Colt.Resources.{Campaign, Company}
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_user_required}
 
-  # TODO i18n: module attr label — rendered via growth_label/1 at render time
-  @growth_buckets [
-    :declining,
-    :stagnant,
-    :slow,
-    :growing_2x,
-    :growing_10x
-  ]
-
+  @growth_buckets [:declining, :stagnant, :slow, :growing_2x, :growing_10x]
+  @panes [:markets, :size_growth, :industries]
   @debounce_ms 2_000
 
   def mount(%{"id" => id}, _session, socket) do
@@ -30,6 +34,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             page_title: gettext("Filters — %{name}", name: campaign.name),
             campaign: campaign,
             form: default_form(campaign),
+            active_pane: :markets,
+            market_counts: %{},
             error: nil,
             confirming?: false,
             reload_ref: nil,
@@ -37,9 +43,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
             industry_query: "",
             industry_results: [],
             industry_open: false,
-            exclude_query: "",
-            exclude_results: [],
-            exclude_open: false
+            expanded: MapSet.new()
           )
           |> assign(empty_summary())
 
@@ -53,6 +57,10 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       {:error, _} ->
         {:ok, push_navigate(socket, to: ~p"/")}
     end
+  end
+
+  def handle_event("select_pane", %{"pane" => pane}, socket) do
+    {:noreply, assign(socket, active_pane: safe_pane(pane))}
   end
 
   def handle_event("toggle", %{"field" => field, "v" => value}, socket) do
@@ -105,7 +113,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     {:noreply,
      assign(socket,
        industry_query: q,
-       industry_results: Colt.Filters.IndustryLabels.search(q),
+       industry_results: IndustryLabels.search(q),
        industry_open: true
      )}
   end
@@ -117,7 +125,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     do: {:noreply, assign(socket, industry_open: false, industry_query: "", industry_results: [])}
 
   def handle_event("industry_pick", %{"code" => code}, socket) do
-    form = Map.update!(socket.assigns.form, :industries, &add_unique(&1, code))
+    form = Map.update!(socket.assigns.form, :industries, &select_node(&1, code))
 
     {:noreply,
      socket
@@ -125,42 +133,29 @@ defmodule ColtWeb.Campaigns.FiltersLive do
      |> reload_filters_async()}
   end
 
-  def handle_event("exclude_search", %{"q" => q}, socket) do
-    {:noreply,
-     assign(socket,
-       exclude_query: q,
-       exclude_results: Colt.Filters.IndustryLabels.search(q),
-       exclude_open: true
-     )}
-  end
+  def handle_event("industry_toggle", %{"id" => id}, socket) do
+    sel = socket.assigns.form.industries
 
-  def handle_event("exclude_open", _, socket),
-    do: {:noreply, assign(socket, exclude_open: true)}
+    new =
+      cond do
+        # Covered by a selected ancestor → the checkbox is inherited, a no-op.
+        Enum.any?(sel, &(&1 != id and IndustryLabels.contains?(&1, id))) -> sel
+        id in sel -> List.delete(sel, id)
+        true -> select_node(sel, id)
+      end
 
-  def handle_event("exclude_close", _, socket),
-    do: {:noreply, assign(socket, exclude_open: false, exclude_query: "", exclude_results: [])}
-
-  def handle_event("exclude_pick", %{"code" => code}, socket) do
-    form = Map.update!(socket.assigns.form, :industries_exclude, &add_unique(&1, code))
-
-    {:noreply,
-     socket
-     |> assign(form: form, exclude_query: "", exclude_results: [], exclude_open: false)
-     |> reload_filters_async()}
-  end
-
-  def handle_event("exclude_category", %{"code" => code}, socket) do
-    # The preview row carries the full 5-digit EMTAK code, but the filter
-    # (and every other exclude path) matches on the 4-digit NACE class.
-    prefix = String.slice(code, 0, 4)
-    form = Map.update!(socket.assigns.form, :industries_exclude, &add_unique(&1, prefix))
+    form = Map.put(socket.assigns.form, :industries, new)
     {:noreply, socket |> assign(form: form) |> reload_filters_async()}
+  end
+
+  def handle_event("industry_expand", %{"node" => node}, socket) do
+    {:noreply, assign(socket, expanded: toggle_set(socket.assigns.expanded, node))}
   end
 
   def handle_event("confirm", _params, socket) do
     socket = assign(socket, confirming?: true)
     campaign = socket.assigns.campaign
-    filters = filter_args(socket.assigns.form, campaign.market)
+    filters = filter_args(socket.assigns.form)
 
     case Campaign.update_filters(campaign, filters, actor: socket.assigns.current_user) do
       {:ok, campaign} ->
@@ -198,18 +193,17 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   end
 
   defp reload_filters(socket) do
-    args = filter_args(socket.assigns.form, socket.assigns.campaign.market)
+    socket = ensure_market_counts(socket)
+    args = for_query(filter_args(socket.assigns.form))
 
     case Filters.run(args) do
-      {:ok, summary} ->
+      {:ok, s} ->
         assign(socket,
-          count: summary.count,
-          total: summary.total,
-          preview: summary.preview,
-          bucket_totals: summary.bucket_totals,
-          top_industries: summary.top_industries,
-          filtered_categories: summary.filtered_categories,
-          last_sync: summary.last_sync,
+          count: s.count,
+          total: s.total,
+          bucket_totals: s.bucket_totals,
+          top_industries: s.top_industries,
+          last_sync: s.last_sync,
           pending?: false,
           reload_ref: nil
         )
@@ -219,27 +213,34 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     end
   end
 
+  defp ensure_market_counts(socket) do
+    if map_size(socket.assigns.market_counts) == 0 do
+      counts =
+        case Company.market_totals() do
+          {:ok, m} -> m
+          _ -> %{}
+        end
+
+      assign(socket, market_counts: counts)
+    else
+      socket
+    end
+  end
+
   # Safe defaults so a failed (or not-yet-run) reload never leaves a summary
   # assign unset — render/1 reads all of these unconditionally.
   defp empty_summary do
-    %{
-      count: 0,
-      total: 0,
-      preview: [],
-      bucket_totals: %{},
-      top_industries: [],
-      filtered_categories: [],
-      last_sync: nil
-    }
+    %{count: 0, total: 0, bucket_totals: %{}, top_industries: [], last_sync: nil}
   end
 
   defp default_form(campaign) do
     saved = campaign.filters || %{}
 
     %{
+      markets: seed_markets(saved),
       industries: Map.get(saved, "industries", []),
       industries_exclude: Map.get(saved, "industries_exclude", []),
-      growth_buckets: Map.get(saved, "growth_buckets", []),
+      growth_buckets: Map.get(saved, "growth_buckets", []) |> Enum.map(&safe_atom/1),
       employees_min: Map.get(saved, "employees_min"),
       employees_max: Map.get(saved, "employees_max"),
       revenue_min: Map.get(saved, "revenue_min"),
@@ -247,9 +248,30 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     }
   end
 
-  defp filter_args(form, market) do
+  defp seed_markets(saved) do
+    enabled = Markets.enabled_atoms()
+
+    case Map.get(saved, "markets") do
+      list when is_list(list) ->
+        list |> Enum.map(&safe_atom/1) |> Enum.filter(&(&1 in enabled))
+
+      _ ->
+        []
+    end
+  end
+
+  defp safe_atom(a) when is_atom(a), do: a
+
+  defp safe_atom(s) when is_binary(s) do
+    String.to_existing_atom(s)
+  rescue
+    ArgumentError -> nil
+  end
+
+  # Node ids (NOT expanded) — what's persisted and shown in the menu.
+  defp filter_args(form) do
     %{
-      market: market,
+      markets: form.markets,
       industries: form.industries,
       industries_exclude: form.industries_exclude,
       growth_buckets: form.growth_buckets,
@@ -258,6 +280,43 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       revenue_min: form.revenue_min,
       revenue_max: form.revenue_max
     }
+  end
+
+  # Expand industry node ids to 4-digit classes for the `:filtered` action.
+  defp for_query(args) do
+    %{
+      args
+      | industries: IndustryLabels.expand_codes(args.industries),
+        industries_exclude: IndustryLabels.expand_codes(args.industries_exclude)
+    }
+  end
+
+  # Add `id`, dropping any already-selected descendants it now covers.
+  defp select_node(selected, id),
+    do: [id | Enum.reject(selected, &IndustryLabels.contains?(id, &1))]
+
+  defp safe_pane(p) do
+    atom = String.to_existing_atom(p)
+    if atom in @panes, do: atom, else: :markets
+  rescue
+    ArgumentError -> :markets
+  end
+
+  defp toggle_set(set, value) do
+    if MapSet.member?(set, value), do: MapSet.delete(set, value), else: MapSet.put(set, value)
+  end
+
+  defp toggle_in_form(form, "markets", v),
+    do: Map.update!(form, :markets, &toggle(&1, String.to_existing_atom(v)))
+
+  defp toggle_in_form(form, "growth_buckets", v),
+    do: Map.update!(form, :growth_buckets, &toggle(&1, String.to_existing_atom(v)))
+
+  defp remove_from_form(form, "industries", v),
+    do: Map.update!(form, :industries, &List.delete(&1, v))
+
+  defp toggle(list, value) do
+    if value in list, do: List.delete(list, value), else: [value | list]
   end
 
   # field -> {min_key, max_key, threshold_list}.
@@ -295,33 +354,6 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   defp nilify_ceiling(n, cap) when n >= cap, do: nil
   defp nilify_ceiling(n, _), do: n
 
-  defp toggle_in_form(form, "industries", v), do: Map.update!(form, :industries, &toggle(&1, v))
-
-  defp toggle_in_form(form, "industries_exclude", v),
-    do: Map.update!(form, :industries_exclude, &toggle(&1, v))
-
-  defp toggle_in_form(form, "growth_buckets", v) do
-    Map.update!(form, :growth_buckets, &toggle(&1, String.to_existing_atom(v)))
-  end
-
-  defp remove_from_form(form, "industries", v),
-    do: Map.update!(form, :industries, &List.delete(&1, v))
-
-  defp remove_from_form(form, "industries_exclude", v),
-    do: Map.update!(form, :industries_exclude, &List.delete(&1, v))
-
-  defp remove_from_form(form, "growth_buckets", v) do
-    Map.update!(form, :growth_buckets, &List.delete(&1, String.to_existing_atom(v)))
-  end
-
-  defp toggle(list, value) do
-    if value in list, do: List.delete(list, value), else: [value | list]
-  end
-
-  defp add_unique(list, value) do
-    if value in list, do: list, else: [value | list]
-  end
-
   defp parse_int(nil), do: nil
   defp parse_int(n) when is_integer(n), do: n
 
@@ -331,6 +363,175 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       digits -> String.to_integer(digits)
     end
   end
+
+  # ── menu / summaries ──────────────────────────────────────────────────────
+
+  defp menu_items do
+    [{:markets, gettext("Markets")}, {:size_growth, gettext("Size & growth")},
+     {:industries, gettext("Industries")}]
+  end
+
+  # Each summary is a list of lines (or nil) — the menu stacks them vertically.
+  defp pane_summary(:markets, form) do
+    case form.markets do
+      [] -> nil
+      ms -> Enum.map(ms, &market_name/1)
+    end
+  end
+
+  defp pane_summary(:size_growth, form) do
+    [
+      range_phrase(form.employees_min, form.employees_max, :int, gettext("emp")),
+      range_phrase(form.revenue_min, form.revenue_max, :money, nil)
+      | growth_lines(form.growth_buckets)
+    ]
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [] -> nil
+      parts -> parts
+    end
+  end
+
+  defp pane_summary(:industries, form) do
+    case form.industries do
+      [] -> nil
+      ids -> Enum.map(ids, &IndustryLabels.node_label/1)
+    end
+  end
+
+  defp range_phrase(nil, nil, _, _), do: nil
+
+  defp range_phrase(min, max, fmt, unit) do
+    base = range_hint(min, max, nil, fmt)
+    if unit, do: "#{base} #{unit}", else: base
+  end
+
+  defp growth_lines(buckets), do: Enum.map(buckets, &growth_label/1)
+
+  defp market_name(m) do
+    case Enum.find(Markets.all(), &(&1.market == m)) do
+      %{name: n} -> n
+      _ -> m |> Atom.to_string() |> String.upcase()
+    end
+  end
+
+  defp market_count_label(counts, market) do
+    case Map.get(counts, market) do
+      nil -> "—"
+      n -> format_int(n)
+    end
+  end
+
+  # ── industry tree ─────────────────────────────────────────────────────────
+
+  defp visible_industry_rows(expanded) do
+    Enum.flat_map(IndustryLabels.sections(), fn {letter, title} ->
+      [
+        %{level: 0, id: letter, code: letter, label: title, leaf?: false}
+        | rows_if_open(expanded, letter, fn ->
+            Enum.flat_map(IndustryLabels.divisions_for_section(letter), fn {d, dl} ->
+              [
+                %{level: 1, id: d, code: d, label: dl, leaf?: false}
+                | rows_if_open(expanded, d, fn ->
+                    Enum.flat_map(IndustryLabels.groups_for_division(d), fn {g, gl} ->
+                      [
+                        %{level: 2, id: g, code: g, label: gl, leaf?: false}
+                        | rows_if_open(expanded, g, fn ->
+                            Enum.map(IndustryLabels.classes_for_group(g), fn {c, cl} ->
+                              %{level: 3, id: c, code: c, label: cl, leaf?: true}
+                            end)
+                          end)
+                      ]
+                    end)
+                  end)
+              ]
+            end)
+          end)
+      ]
+    end)
+  end
+
+  defp rows_if_open(expanded, node, fun),
+    do: if(MapSet.member?(expanded, node), do: fun.(), else: [])
+
+  defp industry_node_state(id, selected) do
+    cond do
+      id in selected -> :checked
+      Enum.any?(selected, &(&1 != id and IndustryLabels.contains?(&1, id))) -> :inherited
+      Enum.any?(selected, &IndustryLabels.contains?(id, &1)) -> :partial
+      true -> :none
+    end
+  end
+
+  defp node_text_size(0), do: "text-[13px] font-semibold"
+  defp node_text_size(1), do: "text-[12.5px] font-medium"
+  defp node_text_size(_), do: "text-[12px]"
+
+  # ── formatting ────────────────────────────────────────────────────────────
+
+  defp range_hint(nil, nil, _, _), do: nil
+  defp range_hint(min, nil, _, fmt), do: "#{fmt_n(min, fmt)}+"
+  defp range_hint(nil, max, _, fmt), do: "≤ #{fmt_n(max, fmt)}"
+  defp range_hint(min, max, _, fmt), do: "#{fmt_n(min, fmt)} – #{fmt_n(max, fmt)}"
+
+  defp nearest_index(value, thresholds) do
+    thresholds
+    |> Enum.with_index()
+    |> Enum.min_by(fn {t, _i} -> abs(t - value) end)
+    |> elem(1)
+  end
+
+  defp fmt_n(n, :int), do: format_int(n)
+  defp fmt_n(n, :money), do: format_money(n)
+
+  defp format_money(n) when is_integer(n) and n >= 1_000_000,
+    do: "€#{format_decimal(n / 1_000_000, 1)}M"
+
+  defp format_money(n) when is_integer(n) and n >= 1_000,
+    do: "€#{div(n, 1_000)}k"
+
+  defp format_money(n) when is_integer(n), do: "€#{n}"
+  defp format_money(_), do: "—"
+
+  defp format_decimal(f, places) do
+    :io_lib.format("~.#{places}f", [f]) |> IO.iodata_to_binary() |> trim_zero()
+  end
+
+  defp trim_zero(s) do
+    if String.contains?(s, ".") do
+      s |> String.trim_trailing("0") |> String.trim_trailing(".")
+    else
+      s
+    end
+  end
+
+  defp format_int(n) when is_integer(n) do
+    n
+    |> Integer.to_string()
+    |> String.reverse()
+    |> String.codepoints()
+    |> Enum.chunk_every(3)
+    |> Enum.map(&Enum.join/1)
+    |> Enum.join(",")
+    |> String.reverse()
+  end
+
+  defp format_int(_), do: "—"
+
+  defp format_grouped(nil), do: ""
+  defp format_grouped(n) when is_integer(n), do: format_int(n)
+
+  defp confirm_label(:enriching), do: gettext("Save filters")
+  defp confirm_label(_), do: gettext("Continue → ICP")
+
+  defp growth_label(:growing_10x), do: gettext("Growing · 10×")
+  defp growth_label(:growing_2x), do: gettext("Growing · 2×")
+  defp growth_label(:slow), do: gettext("Growing · slow")
+  defp growth_label(:stagnant), do: gettext("Stagnant")
+  defp growth_label(:declining), do: gettext("Shrinking")
+  defp growth_label(_), do: "—"
+
+  # ── render ────────────────────────────────────────────────────────────────
 
   def render(assigns) do
     ~H"""
@@ -342,94 +543,224 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       campaign_name={@campaign.name}
       campaign_id={@campaign.id}
     >
-      <div class="flex flex-col lg:flex-row gap-5 lg:gap-6 flex-1 min-h-0">
-        <.filter_panel
-          form={@form}
-          top_industries={@top_industries}
-          bucket_totals={@bucket_totals}
-          industry_query={@industry_query}
-          industry_results={@industry_results}
-          industry_open={@industry_open}
-          exclude_query={@exclude_query}
-          exclude_results={@exclude_results}
-          exclude_open={@exclude_open}
+      <div class="w-full max-w-[900px] mx-auto flex flex-col gap-5 flex-1 min-h-0">
+        <.counter_bar
+          count={@count}
+          total={@total}
+          pending?={@pending?}
+          has_markets?={@form.markets != []}
+          status={@campaign.status}
+          confirming?={@confirming?}
+          error={@error}
         />
 
-        <div class="flex-1 flex flex-col min-h-0 gap-5">
-          <.counter_card count={@count} total={@total} pending?={@pending?} />
+        <div class="flex flex-col lg:flex-row gap-5 flex-1 min-h-0">
+          <.filter_menu form={@form} active_pane={@active_pane} />
 
-          <div class="flex flex-wrap items-center gap-3">
-            <.link
-              navigate={~p"/campaigns/#{@campaign.id}/market"}
-              class="inline-flex items-center gap-2 px-3.5 py-[7px] text-[12px] font-semibold border border-borderStrong bg-card rounded-[8px] no-underline text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"
-            >
-              <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
-            </.link>
-            <Liid.btn
-              variant={:primary}
-              phx-click="confirm"
-              disabled={@confirming? or @count == 0}
-            >
-              {confirm_label(@campaign.status)}
-            </Liid.btn>
-            <span :if={@error} class="text-[11px] text-red">{@error}</span>
+          <div class="flex-1 min-h-0 overflow-auto">
+            <.markets_pane
+              :if={@active_pane == :markets}
+              form={@form}
+              market_counts={@market_counts}
+            />
+            <.size_growth_pane
+              :if={@active_pane == :size_growth}
+              form={@form}
+              bucket_totals={@bucket_totals}
+            />
+            <.industries_pane
+              :if={@active_pane == :industries}
+              form={@form}
+              expanded={@expanded}
+              industry_query={@industry_query}
+              industry_results={@industry_results}
+              industry_open={@industry_open}
+            />
           </div>
-
-          <.active_chips form={@form} />
-
-          <.top_categories categories={@filtered_categories} />
-
-          <.preview_list preview={@preview} count={@count} pending?={@pending?} />
         </div>
       </div>
     </Layouts.app>
     """
   end
 
-  attr :form, :map, required: true
-  attr :top_industries, :list, required: true
-  attr :bucket_totals, :map, required: true
-  attr :industry_query, :string, required: true
-  attr :industry_results, :list, required: true
-  attr :industry_open, :boolean, required: true
-  attr :exclude_query, :string, required: true
-  attr :exclude_results, :list, required: true
-  attr :exclude_open, :boolean, required: true
+  attr :count, :integer, required: true
+  attr :total, :integer, required: true
+  attr :pending?, :boolean, required: true
+  attr :has_markets?, :boolean, required: true
+  attr :status, :atom, required: true
+  attr :confirming?, :boolean, required: true
+  attr :error, :string, default: nil
 
-  defp filter_panel(assigns) do
+  defp counter_bar(assigns) do
+    ~H"""
+    <div class="bg-accentSoft border border-accentRing rounded-[11px] [box-shadow:0_0_0_1px_var(--accentRing),var(--shadow-card)] p-5 md:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div class="flex-1 min-w-0">
+        <div class="text-[10px] tracking-[0.12em] uppercase text-accent font-semibold mb-2 flex items-center gap-2">
+          {gettext("Companies match")}
+          <span
+            :if={@pending?}
+            class="relative w-1.5 h-1.5 rounded-full"
+            style="background: var(--accent);"
+          >
+            <span
+              class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
+              style="background: var(--accent);"
+            />
+          </span>
+        </div>
+        <div :if={@has_markets?} class="flex items-baseline gap-3">
+          <div class={[
+            "text-[44px] md:text-[56px] font-bold leading-[0.9] tnum tracking-[-0.02em] transition-opacity text-accent",
+            @pending? && "opacity-40"
+          ]}>
+            {format_int(@count)}
+          </div>
+          <div class="text-[12px] text-inkSoft tnum pb-1">
+            {gettext("of %{n}", n: format_int(@total))}
+          </div>
+        </div>
+        <div :if={not @has_markets?} class="text-[13px] text-inkSoft">
+          {gettext("Pick at least one market to see matching companies.")}
+        </div>
+        <div :if={@error} class="mt-2 text-[11px] text-red">{@error}</div>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <.link
+          navigate={~p"/campaigns"}
+          class="inline-flex items-center gap-2 px-3.5 py-[7px] text-[12px] font-semibold border border-borderStrong bg-card rounded-[8px] no-underline text-inkSoft hover:bg-paperAlt hover:text-ink [box-shadow:var(--shadow)]"
+        >
+          <Liid.icon name="chev-l" size={11} /> {gettext("Back")}
+        </.link>
+        <Liid.btn variant={:primary} phx-click="confirm" disabled={@confirming? or @count == 0}>
+          {confirm_label(@status)}
+        </Liid.btn>
+      </div>
+    </div>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :active_pane, :atom, required: true
+
+  defp filter_menu(assigns) do
+    ~H"""
+    <div class="lg:basis-[280px] lg:shrink-0 self-start bg-card border border-border rounded-[11px] [box-shadow:var(--shadow-card)] flex flex-col gap-1 p-2">
+      <%= for {pane, label} <- menu_items() do %>
+        <% active = @active_pane == pane %>
+        <% summary = pane_summary(pane, @form) %>
+        <button
+          type="button"
+          phx-click="select_pane"
+          phx-value-pane={pane}
+          class={[
+            "w-full text-left flex flex-col gap-1 px-3 py-2.5 rounded-[8px] border cursor-pointer transition-all",
+            active && "bg-accentSoft border-accentRing",
+            not active && "border-transparent hover:bg-paperAlt"
+          ]}
+        >
+          <span class={[
+            "text-[10px] tracking-[0.1em] uppercase font-semibold",
+            active && "text-accent",
+            not active && "text-inkFaint"
+          ]}>
+            {label}
+          </span>
+          <div :if={summary} class="flex flex-col gap-0.5">
+            <span :for={line <- summary} class="text-[12px] leading-snug text-ink">{line}</span>
+          </div>
+          <span :if={is_nil(summary)} class="text-[12px] leading-snug text-inkFaint italic">
+            {gettext("Any")}
+          </span>
+        </button>
+      <% end %>
+    </div>
+    """
+  end
+
+  attr :title, :string, required: true
+  attr :hint, :string, default: nil
+  slot :inner_block, required: true
+
+  defp pane(assigns) do
+    ~H"""
+    <div class="bg-card border border-border rounded-[11px] [box-shadow:var(--shadow-card)] p-5 md:p-6">
+      <div class="flex items-baseline gap-2 mb-4">
+        <h2 class="text-[15px] font-semibold text-ink">{@title}</h2>
+        <span :if={@hint} class="text-[11px] text-inkFaint">{@hint}</span>
+      </div>
+      {render_slot(@inner_block)}
+    </div>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :market_counts, :map, required: true
+
+  defp markets_pane(assigns) do
+    ~H"""
+    <.pane title={gettext("Markets")} hint={gettext("registries to pull companies from")}>
+      <div class="flex flex-col gap-1">
+        <%= for m <- Markets.enabled() do %>
+          <% on = m.market in @form.markets %>
+          <button
+            type="button"
+            phx-click="toggle"
+            phx-value-field="markets"
+            phx-value-v={m.market}
+            class={[
+              "flex items-center gap-3 px-3 py-2.5 cursor-pointer text-left rounded-[8px] border",
+              on && "bg-accentSoft border-accentRing",
+              not on && "border-transparent hover:bg-paperAlt"
+            ]}
+          >
+            <.checkbox checked={on} />
+            <span class="text-[11px] text-inkFaint tnum w-6 shrink-0 font-semibold">{m.code}</span>
+            <span class={[
+              "text-[13px] flex-1",
+              on && "text-accent font-medium",
+              not on && "text-ink"
+            ]}>
+              {m.name}
+            </span>
+            <span class="text-[11px] text-inkFaint tnum">
+              {market_count_label(@market_counts, m.market)}
+            </span>
+          </button>
+        <% end %>
+      </div>
+    </.pane>
+    """
+  end
+
+  attr :form, :map, required: true
+  attr :bucket_totals, :map, required: true
+
+  defp size_growth_pane(assigns) do
     assigns = assign(assigns, growth_buckets: @growth_buckets)
 
     ~H"""
-    <div class="lg:basis-[360px] lg:shrink-0 flex flex-col min-h-0 gap-6">
-      <Liid.headline kicker={gettext("03 / Filters")}>
-        {raw(gettext("Narrow the <em>funnel</em>."))}
-      </Liid.headline>
+    <.pane title={gettext("Size & growth")} hint={gettext("most recent annual filing")}>
+      <div class="flex flex-col gap-7">
+        <div>
+          <.sub_label>{gettext("Employees")}</.sub_label>
+          <.range_fset field="employees" min={@form.employees_min} max={@form.employees_max} format={:int} />
+        </div>
 
-      <div class="flex flex-col gap-4 overflow-auto pr-1">
-        <.range_fset
-          label={gettext("Employees")}
-          field="employees"
-          min={@form.employees_min}
-          max={@form.employees_max}
-          format={:int}
-        />
+        <div>
+          <.sub_label>{gettext("Revenue (€)")}</.sub_label>
+          <.range_fset field="revenue" min={@form.revenue_min} max={@form.revenue_max} format={:money} />
+        </div>
 
-        <.range_fset
-          label={gettext("Revenue (€)")}
-          field="revenue"
-          min={@form.revenue_min}
-          max={@form.revenue_max}
-          format={:money}
-        />
-
-        <.fset
-          label={gettext("Trajectory")}
-          hint={gettext("%{n} selected", n: length(@form.growth_buckets))}
-        >
+        <div>
+          <.sub_label>
+            {gettext("Growth")}
+            <span class="text-inkFaint normal-case tracking-normal font-normal ml-1">
+              {gettext("· revenue Δ over 3 fiscal years")}
+            </span>
+          </.sub_label>
           <div class="flex flex-col gap-1">
             <%= for bucket <- @growth_buckets do %>
               <% on = bucket in @form.growth_buckets %>
-              <% label = growth_label(bucket) %>
               <button
                 type="button"
                 phx-click="toggle"
@@ -447,7 +778,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
                   on && "text-accent font-medium",
                   not on && "text-ink"
                 ]}>
-                  {label}
+                  {growth_label(bucket)}
                 </span>
                 <span class="text-[11px] text-inkFaint tnum">
                   {Map.get(@bucket_totals, bucket, 0)}
@@ -455,147 +786,48 @@ defmodule ColtWeb.Campaigns.FiltersLive do
               </button>
             <% end %>
           </div>
-          <div class="text-[11px] text-inkFaint mt-2">
-            {gettext("growth = revenue Δ over 3 fiscal years")}
-          </div>
-        </.fset>
-
-        <.fset label={gettext("Industry")} hint={industry_hint(@form.industries)}>
-          <.industry_box
-            mode={:include}
-            selected={@form.industries}
-            top_industries={@top_industries}
-            query={@industry_query}
-            results={@industry_results}
-            open={@industry_open}
-          />
-        </.fset>
-
-        <.fset label={gettext("Exclude industries")} hint={industry_hint(@form.industries_exclude)}>
-          <.industry_box
-            mode={:exclude}
-            selected={@form.industries_exclude}
-            top_industries={@top_industries}
-            query={@exclude_query}
-            results={@exclude_results}
-            open={@exclude_open}
-          />
-        </.fset>
+        </div>
       </div>
-    </div>
+    </.pane>
     """
   end
 
-  attr :mode, :atom, default: :include, values: [:include, :exclude]
-  attr :selected, :list, required: true
-  attr :top_industries, :list, required: true
-  attr :query, :string, required: true
-  attr :results, :list, required: true
-  attr :open, :boolean, required: true
+  slot :inner_block, required: true
 
-  defp industry_box(assigns) do
-    items = if assigns.query == "", do: assigns.top_industries, else: assigns.results
-    label = if assigns.query == "", do: gettext("popular"), else: gettext("matches")
-
-    {field, search_evt, pick_evt, open_evt, close_evt, placeholder} =
-      case assigns.mode do
-        :include ->
-          {"industries", "industry_search", "industry_pick", "industry_open", "industry_close",
-           gettext("search industries…")}
-
-        :exclude ->
-          {"industries_exclude", "exclude_search", "exclude_pick", "exclude_open",
-           "exclude_close", gettext("search to exclude…")}
-      end
-
-    assigns =
-      assign(assigns,
-        items: items,
-        items_label: label,
-        field: field,
-        search_evt: search_evt,
-        pick_evt: pick_evt,
-        open_evt: open_evt,
-        close_evt: close_evt,
-        placeholder: placeholder
-      )
-
+  defp sub_label(assigns) do
     ~H"""
-    <div class="relative" phx-click-away={@close_evt}>
-      <div class="flex flex-wrap items-center gap-1.5 min-h-[38px] px-2 py-1.5 border border-border bg-card rounded-[8px] [box-shadow:var(--shadow)] focus-within:border-accentRing focus-within:[box-shadow:inset_0_0_0_1px_var(--accentRing)]">
-        <%= for code <- @selected do %>
-          <span class="inline-flex items-center gap-1.5 pl-2 pr-1 py-0.5 text-[11px] bg-accentSoft text-accent border border-accentRing rounded-[8px]">
-            {industry_label(code)}
-            <button
-              type="button"
-              phx-click="clear_chip"
-              phx-value-field={@field}
-              phx-value-v={code}
-              class="text-accent/70 hover:text-accent cursor-pointer"
-            >
-              <Liid.icon name="x" size={9} />
-            </button>
-          </span>
-        <% end %>
-        <form
-          id={"ms-form-#{@field}"}
-          phx-change={@search_evt}
-          autocomplete="off"
-          class="flex-1 min-w-[80px]"
-        >
-          <input
-            type="text"
-            id={"ms-input-#{@field}"}
-            name="q"
-            value={@query}
-            placeholder={if @selected == [], do: @placeholder, else: gettext("+ add")}
-            phx-focus={@open_evt}
-            phx-debounce="150"
-            class="w-full bg-transparent text-[12px] text-ink outline-none placeholder:text-inkFaint"
-          />
-        </form>
-      </div>
-
-      <div
-        :if={@open}
-        class="absolute z-10 left-0 right-0 top-full mt-1.5 bg-card border border-border rounded-[8px] [box-shadow:var(--shadow-card)] max-h-[280px] overflow-auto"
-      >
-        <div class="px-3 py-2 text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold border-b border-border">
-          {@items_label}
-        </div>
-        <div :if={@items == []} class="px-3 py-2.5 text-[11px] text-inkFaint">
-          {gettext("no matches")}
-        </div>
-        <%= for item <- @items do %>
-          <% {code, right} = item %>
-          <% disabled = code in @selected %>
-          <button
-            type="button"
-            phx-click={not disabled && @pick_evt}
-            phx-value-code={code}
-            disabled={disabled}
-            class={[
-              "w-full text-left px-3 py-2 flex items-baseline gap-2 border-b border-border last:border-b-0",
-              disabled && "opacity-40 cursor-not-allowed",
-              not disabled && "hover:bg-accentSoft cursor-pointer"
-            ]}
-          >
-            <span class="text-[10px] text-inkFaint tnum w-9 shrink-0">{code}</span>
-            <span class="text-[12px] text-ink truncate flex-1">{industry_label(code)}</span>
-            <span :if={is_integer(right)} class="text-[10px] text-inkFaint tnum">
-              {right}
-            </span>
-          </button>
-        <% end %>
-      </div>
+    <div class="text-[11px] tracking-[0.08em] uppercase text-inkSoft font-semibold mb-3">
+      {render_slot(@inner_block)}
     </div>
     """
   end
 
-  defp industry_hint([]), do: nil
-  defp industry_hint(list), do: gettext("%{n} selected", n: length(list))
+  attr :form, :map, required: true
+  attr :expanded, :any, required: true
+  attr :industry_query, :string, required: true
+  attr :industry_results, :list, required: true
+  attr :industry_open, :boolean, required: true
 
-  attr :label, :string, required: true
+  defp industries_pane(assigns) do
+    ~H"""
+    <.pane title={gettext("Industries")} hint={gettext("pick a category or drill in")}>
+      <div class="flex flex-col gap-3">
+        <.industry_search
+          query={@industry_query}
+          results={@industry_results}
+          open={@industry_open}
+        />
+        <.selected_industries selected={@form.industries} />
+        <.industry_tree
+          rows={visible_industry_rows(@expanded)}
+          selected={@form.industries}
+          expanded={@expanded}
+        />
+      </div>
+    </.pane>
+    """
+  end
+
   attr :field, :string, required: true
   attr :min, :any, default: nil
   attr :max, :any, default: nil
@@ -620,7 +852,13 @@ defmodule ColtWeb.Campaigns.FiltersLive do
       )
 
     ~H"""
-    <.fset label={@label} hint={range_hint(@min, @max, @cap, @format)}>
+    <div>
+      <div class="flex justify-end mb-2">
+        <span class="text-[11px] text-inkSoft tnum">
+          {range_hint(@min, @max, @cap, @format) || gettext("any")}
+        </span>
+      </div>
+
       <form id={"slider-form-#{@field}"} phx-change="update_slider" class="space-y-3">
         <input type="hidden" name="field" value={@field} />
 
@@ -679,44 +917,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
           class="flex-1 min-w-0 px-2.5 py-1.5 border border-border bg-card text-[12px] tnum rounded-[8px] outline-none focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
         />
       </form>
-    </.fset>
+    </div>
     """
-  end
-
-  defp range_hint(nil, nil, _, _), do: nil
-  defp range_hint(min, nil, _, fmt), do: "#{fmt_n(min, fmt)}+"
-  defp range_hint(nil, max, _, fmt), do: "≤ #{fmt_n(max, fmt)}"
-  defp range_hint(min, max, _, fmt), do: "#{fmt_n(min, fmt)} – #{fmt_n(max, fmt)}"
-
-  defp nearest_index(value, thresholds) do
-    thresholds
-    |> Enum.with_index()
-    |> Enum.min_by(fn {t, _i} -> abs(t - value) end)
-    |> elem(1)
-  end
-
-  defp fmt_n(n, :int), do: format_int(n)
-  defp fmt_n(n, :money), do: format_money(n)
-
-  defp format_money(n) when is_integer(n) and n >= 1_000_000,
-    do: "€#{format_decimal(n / 1_000_000, 1)}M"
-
-  defp format_money(n) when is_integer(n) and n >= 1_000,
-    do: "€#{div(n, 1_000)}k"
-
-  defp format_money(n) when is_integer(n), do: "€#{n}"
-  defp format_money(_), do: "—"
-
-  defp format_decimal(f, places) do
-    :io_lib.format("~.#{places}f", [f]) |> IO.iodata_to_binary() |> trim_zero()
-  end
-
-  defp trim_zero(s) do
-    if String.contains?(s, ".") do
-      s |> String.trim_trailing("0") |> String.trim_trailing(".")
-    else
-      s
-    end
   end
 
   attr :checked, :boolean, required: true
@@ -724,7 +926,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   defp checkbox(assigns) do
     ~H"""
     <span class={[
-      "w-3.5 h-3.5 border flex items-center justify-center rounded-[4px]",
+      "w-3.5 h-3.5 border flex items-center justify-center rounded-[4px] shrink-0",
       @checked && "border-accent bg-accent",
       not @checked && "border-borderStrong bg-card"
     ]}>
@@ -733,116 +935,83 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     """
   end
 
-  attr :label, :string, required: true
-  attr :hint, :string, default: nil
-  slot :inner_block, required: true
+  attr :state, :atom, required: true
 
-  defp fset(assigns) do
+  defp tri_checkbox(assigns) do
     ~H"""
-    <div class="bg-card border border-border rounded-[11px] [box-shadow:var(--shadow)] p-4">
-      <div class="flex justify-between items-baseline mb-3">
-        <span class="text-[11px] tracking-[0.08em] uppercase text-inkSoft font-semibold">
-          {@label}
-        </span>
-        <span :if={@hint} class="text-[10px] text-inkFaint tnum">{@hint}</span>
-      </div>
-      {render_slot(@inner_block)}
-    </div>
+    <span class={[
+      "w-3.5 h-3.5 border flex items-center justify-center rounded-[4px] shrink-0",
+      @state in [:checked, :inherited] && "border-accent bg-accent",
+      @state == :partial && "border-accentRing bg-accentSoft",
+      @state == :none && "border-borderStrong bg-card"
+    ]}>
+      <Liid.icon :if={@state in [:checked, :inherited]} name="check" size={9} class="text-white" />
+      <span
+        :if={@state == :partial}
+        class="w-1.5 h-[2px] rounded-full"
+        style="background: var(--accent);"
+      />
+    </span>
     """
   end
 
-  attr :count, :integer, required: true
-  attr :total, :integer, required: true
-  attr :pending?, :boolean, default: false
+  attr :query, :string, required: true
+  attr :results, :list, required: true
+  attr :open, :boolean, required: true
 
-  defp counter_card(assigns) do
+  defp industry_search(assigns) do
     ~H"""
-    <div class="bg-accentSoft border border-accentRing rounded-[11px] [box-shadow:0_0_0_1px_var(--accentRing),var(--shadow-card)] p-5 md:p-7 relative">
-      <div>
-        <div class="text-[10px] tracking-[0.12em] uppercase text-accent font-semibold mb-2 flex items-center gap-2">
-          {gettext("Companies match")}
-          <span
-            :if={@pending?}
-            class="relative w-1.5 h-1.5 rounded-full"
-            style="background: var(--accent);"
-          >
-            <span
-              class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
-              style="background: var(--accent);"
-            />
-          </span>
+    <div class="relative" phx-click-away="industry_close">
+      <form id="industry-search-form" phx-change="industry_search" autocomplete="off">
+        <input
+          type="text"
+          id="industry-search-input"
+          name="q"
+          value={@query}
+          placeholder={gettext("search industries…")}
+          phx-focus="industry_open"
+          phx-debounce="150"
+          class="w-full px-3 py-2 border border-border bg-card text-[12px] text-ink rounded-[8px] outline-none placeholder:text-inkFaint [box-shadow:var(--shadow)] focus:border-accentRing focus:[box-shadow:inset_0_0_0_1px_var(--accentRing)]"
+        />
+      </form>
+
+      <div
+        :if={@open and @query != ""}
+        class="absolute z-10 left-0 right-0 top-full mt-1.5 bg-card border border-border rounded-[8px] [box-shadow:var(--shadow-card)] max-h-[280px] overflow-auto"
+      >
+        <div :if={@results == []} class="px-3 py-2.5 text-[11px] text-inkFaint">
+          {gettext("no matches")}
         </div>
-        <div class="flex items-baseline gap-3">
-          <div class={[
-            "text-[56px] md:text-[76px] font-bold leading-[0.9] tnum tracking-[-0.02em] transition-opacity text-accent",
-            @pending? && "opacity-40"
-          ]}>
-            {format_int(@count)}
-          </div>
-          <div class="text-[12px] text-inkSoft tnum pb-2">
-            {gettext("of %{n}", n: format_int(@total))}
-          </div>
-        </div>
-      </div>
-    </div>
-    """
-  end
-
-  defp confirm_label(:enriching), do: gettext("Save filters")
-  defp confirm_label(_), do: gettext("Continue → ICP")
-
-  attr :form, :map, required: true
-
-  defp active_chips(assigns) do
-    chips = active_chip_list(assigns.form)
-    assigns = assign(assigns, chips: chips)
-
-    ~H"""
-    <div :if={@chips != []} class="flex flex-wrap gap-1.5 items-center">
-      <span class="text-[10px] text-inkFaint tracking-[0.12em] uppercase font-semibold mr-1">
-        {gettext("active")}
-      </span>
-      <%= for {field, value, label} <- @chips do %>
-        <button
-          type="button"
-          phx-click="clear_chip"
-          phx-value-field={field}
-          phx-value-v={value}
-          class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] bg-accentSoft text-accent border border-accentRing rounded-[8px] cursor-pointer"
-        >
-          {label}
-          <Liid.icon name="x" size={9} class="text-accent/70" />
-        </button>
-      <% end %>
-    </div>
-    """
-  end
-
-  defp active_chip_list(form) do
-    Enum.map(form.growth_buckets, fn b ->
-      {"growth_buckets", to_string(b), gettext("Trajectory · %{label}", label: growth_label(b))}
-    end)
-  end
-
-  attr :categories, :list, required: true
-
-  defp top_categories(assigns) do
-    ~H"""
-    <div :if={@categories != []} class="flex flex-wrap gap-1.5 items-center">
-      <span class="text-[10px] text-inkFaint tracking-[0.12em] uppercase font-semibold mr-1">
-        {gettext("top categories")}
-      </span>
-      <%= for cat <- @categories do %>
-        <span class="inline-flex items-center gap-1.5 px-2 py-1 text-[11px] text-ink bg-card border border-border rounded-[8px] [box-shadow:var(--shadow)]">
-          <span class="truncate max-w-[180px]">{industry_label(cat.code)}</span>
-          <span class="text-[10px] text-inkFaint tnum">{cat.count}</span>
+        <%= for {code, en} <- @results do %>
           <button
             type="button"
-            phx-click="exclude_category"
-            phx-value-code={cat.code}
-            title={gettext("Exclude this category from the funnel")}
-            aria-label={gettext("Exclude this category from the funnel")}
-            class="shrink-0 text-inkFaint hover:text-red cursor-pointer"
+            phx-click="industry_pick"
+            phx-value-code={code}
+            class="w-full text-left px-3 py-2 flex items-baseline gap-2 border-b border-border last:border-b-0 hover:bg-accentSoft cursor-pointer"
+          >
+            <span class="text-[10px] text-inkFaint tnum w-9 shrink-0">{code}</span>
+            <span class="text-[12px] text-ink truncate flex-1">{en}</span>
+          </button>
+        <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  attr :selected, :list, required: true
+
+  defp selected_industries(assigns) do
+    ~H"""
+    <div :if={@selected != []} class="flex flex-wrap gap-1.5">
+      <%= for id <- @selected do %>
+        <span class="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 text-[11px] bg-accentSoft text-accent border border-accentRing rounded-[8px]">
+          {IndustryLabels.node_label(id)}
+          <button
+            type="button"
+            phx-click="clear_chip"
+            phx-value-field="industries"
+            phx-value-v={id}
+            class="text-accent/70 hover:text-accent cursor-pointer"
           >
             <Liid.icon name="x" size={9} />
           </button>
@@ -852,149 +1021,63 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     """
   end
 
-  attr :preview, :list, required: true
-  attr :count, :integer, required: true
-  attr :pending?, :boolean, default: false
+  attr :rows, :list, required: true
+  attr :selected, :list, required: true
+  attr :expanded, :any, required: true
 
-  defp preview_list(assigns) do
-    assigns =
-      assign(
-        assigns,
-        :grid,
-        "grid grid-cols-[1fr_52px_56px] sm:grid-cols-[1fr_2fr_56px_64px] items-center gap-3 sm:gap-4 px-4"
-      )
-
+  defp industry_tree(assigns) do
     ~H"""
-    <div class="flex-1 min-h-0 flex flex-col bg-card border border-border rounded-[11px] [box-shadow:var(--shadow-card)] relative overflow-hidden">
-      <div class="px-4 py-3 border-b border-border flex items-center justify-between text-[11px] text-inkSoft">
-        <span class="flex items-center gap-2">
-          <span
-            :if={@pending?}
-            class="relative w-1.5 h-1.5 rounded-full"
-            style="background: var(--green);"
-          >
-            <span
-              class="absolute inset-0 rounded-full animate-[pulse-halo_1.4s_ease-out_infinite]"
-              style="background: var(--green);"
-            />
-          </span>
-          <span
-            :if={not @pending?}
-            class="w-1.5 h-1.5 rounded-full"
-            style="background: var(--green);"
-          /> {gettext("preview")} {if @pending?, do: gettext("· refreshing"), else: gettext("· live")}
-        </span>
-        <span class="tnum">
-          {gettext("showing %{shown} of %{total}", shown: length(@preview), total: format_int(@count))}
-        </span>
-      </div>
-
-      <div class={[
-        @grid,
-        "py-2 border-b border-border text-[10px] tracking-[0.1em] uppercase text-inkFaint font-semibold bg-bgSoft"
-      ]}>
-        <span>{gettext("Company")}</span>
-        <span class="hidden sm:block">{gettext("Category")}</span>
-        <span class="text-right" title={gettext("Employees — most recent annual filing")}>
-          {gettext("Emp")}
-        </span>
-        <span
-          class="text-right"
-          title={
-            gettext(
-              "Revenue trajectory over 3 fiscal years: 10× / 2× / ↗ growing / → flat / ↘ shrinking / — no data"
-            )
-          }
+    <div class="border border-border rounded-[8px] max-h-[440px] overflow-auto bg-bgSoft">
+      <%= for row <- @rows do %>
+        <% state = industry_node_state(row.id, @selected) %>
+        <% open = MapSet.member?(@expanded, row.id) %>
+        <div
+          class="flex items-center gap-1.5 py-1 pr-2 border-b border-border/60 last:border-b-0 hover:bg-paperAlt"
+          style={"padding-left: #{8 + row.level * 18}px;"}
         >
-          {gettext("Growth")}
-        </span>
-      </div>
+          <button
+            :if={not row.leaf?}
+            type="button"
+            phx-click="industry_expand"
+            phx-value-node={row.id}
+            class="w-4 h-4 flex items-center justify-center text-inkFaint hover:text-ink cursor-pointer shrink-0"
+          >
+            <Liid.icon name={if open, do: "chev", else: "chev-r"} size={11} />
+          </button>
+          <span :if={row.leaf?} class="w-4 shrink-0" />
 
-      <div class="flex-1 overflow-auto">
-        <%= for c <- @preview do %>
-          <div class={[
-            "group border-b border-border last:border-b-0 py-2.5 text-[13px] hover:bg-bgSoft",
-            @grid
-          ]}>
-            <div class="min-w-0">
-              <div class="text-ink font-medium truncate">{c.name}</div>
-              <div class="text-inkSoft text-[11px] truncate sm:hidden">
-                {industry_label(c.industry_code)}
-              </div>
-            </div>
-            <span class="hidden sm:flex items-center gap-1.5 min-w-0 text-inkSoft text-[12px]">
-              <span class="truncate">{industry_label(c.industry_code)}</span>
-              <button
-                :if={c.industry_code}
-                type="button"
-                phx-click="exclude_category"
-                phx-value-code={c.industry_code}
-                title={gettext("Exclude this category from the funnel")}
-                aria-label={gettext("Exclude this category from the funnel")}
-                class="shrink-0 text-inkFaint hover:text-red cursor-pointer opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-              >
-                <Liid.icon name="x" size={10} />
-              </button>
+          <button
+            type="button"
+            phx-click="industry_toggle"
+            phx-value-id={row.id}
+            disabled={state == :inherited}
+            class="shrink-0 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <.tri_checkbox state={state} />
+          </button>
+
+          <button
+            type="button"
+            phx-click={if row.leaf?, do: "industry_toggle", else: "industry_expand"}
+            phx-value-id={row.id}
+            phx-value-node={row.id}
+            class="flex items-baseline gap-2 text-left flex-1 min-w-0 cursor-pointer py-0.5"
+          >
+            <span :if={row.level > 0} class="text-[10px] text-inkFaint tnum shrink-0">
+              {row.code}
             </span>
-            <span
-              class="text-[11px] text-inkSoft text-right tnum"
-              title={gettext("Employees — most recent annual filing")}
-            >
-              {c.employees_latest || "—"}
+            <span class={[
+              node_text_size(row.level),
+              "truncate",
+              state in [:checked, :inherited] && "text-accent",
+              state not in [:checked, :inherited] && "text-ink"
+            ]}>
+              {row.label}
             </span>
-            <span
-              class="text-[11px] text-right tnum"
-              title={growth_title(c.revenue_growth_bucket)}
-            >
-              {growth_glyph(c.revenue_growth_bucket)}
-            </span>
-          </div>
-        <% end %>
-      </div>
+          </button>
+        </div>
+      <% end %>
     </div>
     """
   end
-
-  defp growth_title(:growing_10x), do: gettext("Revenue grew ~10× over 3 fiscal years")
-  defp growth_title(:growing_2x), do: gettext("Revenue grew ~2× over 3 fiscal years")
-  defp growth_title(:slow), do: gettext("Revenue growing slowly")
-  defp growth_title(:stagnant), do: gettext("Revenue roughly flat")
-  defp growth_title(:declining), do: gettext("Revenue shrinking")
-  defp growth_title(_), do: gettext("No revenue-growth data")
-
-  defp growth_glyph(:growing_10x), do: "10×"
-  defp growth_glyph(:growing_2x), do: "2×"
-  defp growth_glyph(:slow), do: "↗"
-  defp growth_glyph(:stagnant), do: "→"
-  defp growth_glyph(:declining), do: "↘"
-  defp growth_glyph(_), do: "—"
-
-  defp growth_label(:growing_10x), do: gettext("Growing · 10×")
-  defp growth_label(:growing_2x), do: gettext("Growing · 2×")
-  defp growth_label(:slow), do: gettext("Growing · slow")
-  defp growth_label(:stagnant), do: gettext("Stagnant")
-  defp growth_label(:declining), do: gettext("Shrinking")
-  defp growth_label(_), do: "—"
-
-  defp industry_label(nil), do: "—"
-
-  defp industry_label(code) do
-    Colt.Filters.IndustryLabels.label(code) || code
-  end
-
-  defp format_int(n) when is_integer(n) do
-    n
-    |> Integer.to_string()
-    |> String.reverse()
-    |> String.codepoints()
-    |> Enum.chunk_every(3)
-    |> Enum.map(&Enum.join/1)
-    |> Enum.join(",")
-    |> String.reverse()
-  end
-
-  defp format_int(_), do: "—"
-
-  defp format_grouped(nil), do: ""
-  defp format_grouped(n) when is_integer(n), do: format_int(n)
 end

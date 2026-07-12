@@ -16,7 +16,7 @@ defmodule Colt.Jobs.Enrichment.CheckWebsiteTest do
     user = seed_user()
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
     {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", :b2b, actor: user)
-    {:ok, c} = Campaign.set_market(c, :ee, actor: user)
+    {:ok, c} = Campaign.update_filters(c, %{markets: ["ee"]}, actor: user)
 
     company =
       Company.upsert_basic!(%{

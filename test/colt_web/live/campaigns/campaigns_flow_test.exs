@@ -20,7 +20,7 @@ defmodule ColtWeb.Campaigns.FlowTest do
     |> Plug.Conn.put_session("user_token", token)
   end
 
-  test "view 0 — create campaign and advance to market", %{conn: conn} do
+  test "view 0 — create campaign and advance to filters", %{conn: conn} do
     user = seed_user()
     conn = log_in(conn, user)
 
@@ -33,7 +33,7 @@ defmodule ColtWeb.Campaigns.FlowTest do
       |> form("#campaign-new-form", %{"name" => "Test EE SaaS"})
       |> render_submit()
 
-    assert to =~ ~r"^/campaigns/[^/]+/market$"
+    assert to =~ ~r"^/campaigns/[^/]+/filters$"
   end
 
   test "view 0 — empty name shows error, no campaign created", %{conn: conn} do
@@ -74,27 +74,30 @@ defmodule ColtWeb.Campaigns.FlowTest do
     assert fresh.status == :draft
   end
 
-  test "view 2 — EE preselected, SE disabled, continue moves to :collecting", %{conn: conn} do
+  test "filters — multi-market select, confirm advances to :collecting and ICP", %{conn: conn} do
     user = seed_user()
     conn = log_in(conn, user)
     {:ok, c} = Campaign.create_draft("Hunt", actor: user)
     {:ok, c} = Campaign.set_icp(c, "B2B SaaS", "CTO", :b2b, actor: user)
 
-    {:ok, view, html} = live(conn, ~p"/campaigns/#{c.id}/market")
+    {:ok, view, html} = live(conn, ~p"/campaigns/#{c.id}/filters")
 
+    # Enabled markets are offered; disabled ones (SE) are not.
     assert html =~ "Estonia"
-    assert html =~ "Sweden"
-    assert html =~ "soon"
-    assert has_element?(view, "button[phx-value-market='se'][disabled]")
+    assert html =~ "Latvia"
+    refute html =~ "Sweden"
 
-    # Clicking a disabled market is a no-op (still selected = :ee).
-    render_click(view, "select", %{"market" => "se"})
+    render_click(view, "toggle", %{"field" => "markets", "v" => "ee"})
+    render_click(view, "toggle", %{"field" => "markets", "v" => "lv"})
 
-    {:error, {:live_redirect, %{to: to}}} = render_click(view, "continue", %{})
+    {:error, {:live_redirect, %{to: to}}} = render_click(view, "confirm", %{})
 
-    assert to == "/campaigns/#{c.id}/filters"
+    # Seeded user is auto-admin/paid, so confirm goes on to ICP, not pricing.
+    assert to == "/campaigns/#{c.id}/icp"
+
     {:ok, fresh} = Campaign.get(c.id, actor: user)
-    assert fresh.market == :ee
+    assert Enum.sort(fresh.filters["markets"]) == ["ee", "lv"]
     assert fresh.status == :collecting
+    assert Campaign.selected_markets(fresh) |> Enum.sort() == [:ee, :lv]
   end
 end

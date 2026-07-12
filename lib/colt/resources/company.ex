@@ -4,6 +4,8 @@ defmodule Colt.Resources.Company do
     domain: Colt.Domain,
     data_layer: AshPostgres.DataLayer
 
+  use Memoize
+
   postgres do
     table "companies"
     repo Colt.Repo
@@ -50,6 +52,7 @@ defmodule Colt.Resources.Company do
     define :active
     define :filtered
     define :top_categories
+    define :market_totals
     define :set_website, args: [:website_url, :website_source]
     define :set_generic_email, args: [:generic_email]
     define :set_ai_summary, args: [:ai_summary]
@@ -220,7 +223,7 @@ defmodule Colt.Resources.Company do
       omit companies already attached to that campaign.
       """
 
-      argument :market, :atom, allow_nil?: false
+      argument :markets, {:array, :atom}, default: []
       # NACE 4-digit prefixes (e.g. "6201"). EMTAK is 5-digit; the 5th digit is
       # a national subclass that doesn't change the wording, so we filter on the
       # NACE class via LEFT(industry_code, 4).
@@ -234,7 +237,7 @@ defmodule Colt.Resources.Company do
       argument :exclude_campaign_id, :uuid
 
       filter expr(
-               market == ^arg(:market) and
+               market in ^arg(:markets) and
                  status == :registered and
                  (^arg(:industries) == [] or
                     fragment("LEFT(?, 4) = ANY(?)", industry_code, ^arg(:industries))) and
@@ -263,7 +266,7 @@ defmodule Colt.Resources.Company do
       Returns [%{code: "6201", count: 1240}, ...].
       """
 
-      argument :market, :atom, allow_nil?: false
+      argument :markets, {:array, :atom}, default: []
       argument :industries, {:array, :string}, default: []
       argument :industries_exclude, {:array, :string}, default: []
       argument :growth_buckets, {:array, :atom}, default: []
@@ -278,7 +281,7 @@ defmodule Colt.Resources.Company do
 
         filter_args =
           Map.take(input.arguments, [
-            :market,
+            :markets,
             :industries,
             :industries_exclude,
             :growth_buckets,
@@ -306,6 +309,17 @@ defmodule Colt.Resources.Company do
           {:ok, rows}
         end
       end
+    end
+
+    action :market_totals, :map do
+      description """
+      Registered-company count per market, keyed by market atom:
+      %{ee: 10891, fi: 13853, ...}. A `GROUP BY market` — Ash has no group-by, so
+      raw Ecto is the honest tool (deliberate, documented exception). Memoized 24h
+      (see market_totals_cached/0) — totals only move on the monthly registry ingest.
+      """
+
+      run fn _input, _context -> {:ok, market_totals_cached()} end
     end
   end
 
@@ -364,5 +378,17 @@ defmodule Colt.Resources.Company do
 
   identities do
     identity :registry_code_market, [:registry_code, :market]
+  end
+
+  defmemop market_totals_cached, expires_in: 24 * 60 * 60 * 1000 do
+    import Ecto.Query
+
+    Colt.Repo.all(
+      from c in __MODULE__,
+        where: c.status == :registered,
+        group_by: c.market,
+        select: {c.market, count(c.id)}
+    )
+    |> Map.new()
   end
 end

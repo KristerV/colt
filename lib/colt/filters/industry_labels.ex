@@ -1855,4 +1855,113 @@ defmodule Colt.Filters.IndustryLabels do
       |> Enum.map(fn {_, _, entry} -> entry end)
     end
   end
+
+  # ── NACE Rev. 2 sections (tree top level). {letter, title, div_lo, div_hi} ──
+  @sections [
+    {"A", "Agriculture, forestry and fishing", 1, 3},
+    {"B", "Mining and quarrying", 5, 9},
+    {"C", "Manufacturing", 10, 33},
+    {"D", "Electricity, gas, steam and air conditioning supply", 35, 35},
+    {"E", "Water supply, sewerage and waste management", 36, 39},
+    {"F", "Construction", 41, 43},
+    {"G", "Wholesale and retail trade; repair of motor vehicles", 45, 47},
+    {"H", "Transportation and storage", 49, 53},
+    {"I", "Accommodation and food service activities", 55, 56},
+    {"J", "Information and communication", 58, 63},
+    {"K", "Financial and insurance activities", 64, 66},
+    {"L", "Real estate activities", 68, 68},
+    {"M", "Professional, scientific and technical activities", 69, 75},
+    {"N", "Administrative and support service activities", 77, 82},
+    {"O", "Public administration and defence", 84, 84},
+    {"P", "Education", 85, 85},
+    {"Q", "Human health and social work activities", 86, 88},
+    {"R", "Arts, entertainment and recreation", 90, 93},
+    {"S", "Other service activities", 94, 96},
+    {"T", "Activities of households as employers", 97, 98},
+    {"U", "Activities of extraterritorial organisations", 99, 99}
+  ]
+
+  def sections do
+    @sections
+    |> Enum.filter(fn {_l, _t, lo, hi} -> Enum.any?(Map.keys(@divisions), &in_range?(&1, lo, hi)) end)
+    |> Enum.map(fn {l, t, _lo, _hi} -> {l, t} end)
+  end
+
+  def divisions_for_section(letter) do
+    case Enum.find(@sections, fn {l, _, _, _} -> l == letter end) do
+      {_, _, lo, hi} ->
+        @divisions
+        |> Enum.filter(fn {code, _} -> in_range?(code, lo, hi) end)
+        |> Enum.map(fn {code, {en, _}} -> {code, en} end)
+        |> Enum.sort()
+
+      nil ->
+        []
+    end
+  end
+
+  def groups_for_division(div2) do
+    @groups
+    |> Enum.filter(fn {code, _} -> String.starts_with?(code, div2) end)
+    |> Enum.map(fn {code, {en, _}} -> {code, en} end)
+    |> Enum.sort()
+  end
+
+  def classes_for_group(grp3) do
+    @classes
+    |> Enum.filter(fn {code, _} -> String.starts_with?(code, grp3) end)
+    |> Enum.map(fn {code, {en, _}} -> {code, en} end)
+    |> Enum.sort()
+  end
+
+  # All 4-digit classes under a node id (section letter or 2/3/4-digit code).
+  def leaf_classes(id) do
+    cond do
+      section?(id) ->
+        {_, _, lo, hi} = Enum.find(@sections, fn {l, _, _, _} -> l == id end)
+        @classes |> Map.keys() |> Enum.filter(&in_range?(String.slice(&1, 0, 2), lo, hi))
+
+      true ->
+        @classes |> Map.keys() |> Enum.filter(&String.starts_with?(&1, id))
+    end
+  end
+
+  def expand_codes(ids) when is_list(ids), do: ids |> Enum.flat_map(&leaf_classes/1) |> Enum.uniq()
+
+  def node_label(id), do: if(section?(id), do: section_title(id), else: label(id) || id)
+
+  # Whether selecting `a` covers `d` (a is ancestor-or-equal of d).
+  def contains?(a, d) do
+    cond do
+      section?(a) and section?(d) -> a == d
+      section?(a) -> section_of(d) == a
+      section?(d) -> false
+      true -> String.starts_with?(d, a)
+    end
+  end
+
+  def section_of(code) when is_binary(code) do
+    d = String.slice(code, 0, 2)
+
+    case Enum.find(@sections, fn {_l, _t, lo, hi} -> in_range?(d, lo, hi) end) do
+      {l, _, _, _} -> l
+      nil -> nil
+    end
+  end
+
+  defp section_title(letter) do
+    case Enum.find(@sections, fn {l, _, _, _} -> l == letter end) do
+      {_, t, _, _} -> t
+      nil -> letter
+    end
+  end
+
+  defp section?(id), do: String.match?(id, ~r/^[A-U]$/)
+
+  defp in_range?(code2, lo, hi) do
+    case Integer.parse(code2) do
+      {n, _} -> n >= lo and n <= hi
+      :error -> false
+    end
+  end
 end

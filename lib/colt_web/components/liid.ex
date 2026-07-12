@@ -396,7 +396,6 @@ defmodule ColtWeb.Components.Liid do
   defp step_to_active(nil), do: nil
   defp step_to_active(0), do: :campaigns
   defp step_to_active(1), do: :icp
-  defp step_to_active(2), do: :market
   defp step_to_active(3), do: :filters
   defp step_to_active(4), do: :exclude
   defp step_to_active(5), do: :target
@@ -405,7 +404,6 @@ defmodule ColtWeb.Components.Liid do
 
   @enrichment_items [
     %{id: :name, icon: "file"},
-    %{id: :market, icon: "globe"},
     %{id: :filters, icon: "filter"},
     %{id: :icp, icon: "user"},
     %{id: :exclude, icon: "x"},
@@ -432,7 +430,6 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:billing), do: gettext("Billing")
   defp nav_label(:name), do: gettext("Name")
   defp nav_label(:icp), do: gettext("ICP")
-  defp nav_label(:market), do: gettext("Market")
   defp nav_label(:filters), do: gettext("Filters")
   defp nav_label(:exclude), do: gettext("Exclude")
   defp nav_label(:target), do: gettext("Target")
@@ -788,7 +785,6 @@ defmodule ColtWeb.Components.Liid do
 
   defp enrichment_href(:name, id), do: "/campaigns/#{id}/name"
   defp enrichment_href(:icp, id), do: "/campaigns/#{id}/icp"
-  defp enrichment_href(:market, id), do: "/campaigns/#{id}/market"
   defp enrichment_href(:filters, id), do: "/campaigns/#{id}/filters"
   defp enrichment_href(:exclude, id), do: "/campaigns/#{id}/suppression"
   defp enrichment_href(:target, id), do: "/campaigns/#{id}/target"
