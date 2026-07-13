@@ -1,10 +1,6 @@
 import Config
 config :ash, policies: [show_policy_breakdowns?: true]
 
-# Wallaby (used by Colt.Services.Scrape.Wallaby for SPA fallback fetches).
-# Requires `chromedriver` on PATH; ignored at boot if not installed.
-config :wallaby, otp_app: :colt, driver: Wallaby.Chrome
-
 # Hash-sample ~3% of registry codes (≈11k of 371k) for the rik.ee ingest in
 # dev. Same set every run, evenly distributed across companies.
 # Unset / 0 in prod = ingest everything.

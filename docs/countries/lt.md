@@ -1,5 +1,18 @@
 # Lithuania — Registrų centras + Sodra ingest
 
+> **⚠️ Sodra section superseded (2026-07).** The original plan below — download
+> `atvira.sodra.lt/downloads/*.zip` per-employer files, blocked by Cloudflare, with a
+> pluggable fetcher stub — was based on a wrong assumption: **those zip files are
+> aggregate statistics with no company codes.** The real per-company data (headcount
+> **and** EVRK/NACE code, ~49k active employers) is the JSON API behind the "Atviri
+> įmonių duomenys" tool: `atvira.sodra.lt/imones-rest/solr/page` (`page`/`size`).
+> It is reached through the **stealth browser sidecar** (`browser/`,
+> `Colt.Services.Browser`) — plain Req and stock headless chromium are blocked by the
+> CF managed challenge; patchright-headed-under-Xvfb clears it. This also **closes the
+> LT NACE gap** described later in this doc. See `lib/colt/services/ingest/lt/sodra/`
+> (`harvest.ex`, `import.ex`) and `browser/README.md`. The RC (registry + revenue)
+> pipeline below is unchanged and correct.
+
 ## Summary
 
 Lithuania is the **two-source country** flagged in `data-sources.md`:

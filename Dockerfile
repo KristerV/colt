@@ -70,10 +70,14 @@ RUN mix release
 # the compiled release and other runtime necessities
 FROM ${RUNNER_IMAGE} AS final
 
+# The single scraping browser is a Node/patchright sidecar run headed under Xvfb
+# (see browser/README.md). node + xvfb + xauth for it; tini to reap the browser's
+# process tree; fonts + libs are patchright chromium's system deps (the rest are
+# pulled by `patchright install --with-deps` below).
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
        libstdc++6 openssl libncurses6 locales ca-certificates unzip curl \
-       chromium chromium-driver fonts-liberation \
+       nodejs npm xvfb xauth tini fonts-liberation \
        libnss3 libxss1 libasound2 libatk-bridge2.0-0 libgtk-3-0 libgbm1 \
        dbus dbus-user-session \
   && rm -rf /var/lib/apt/lists/*
@@ -91,17 +95,22 @@ RUN chown nobody /app
 
 # set runner ENV
 ENV MIX_ENV="prod"
-ENV CHROME_BINARY="/usr/bin/chromium"
+ENV COLT_BROWSER_PORT="8791"
+ENV PLAYWRIGHT_BROWSERS_PATH="/app/browser/browsers"
 
 # Only copy the final release from the build stage
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/colt ./
 RUN chmod +x /app/bin/entrypoint.sh
 
+# Install the single stealth browser sidecar (patchright + its patched chromium).
+COPY browser /app/browser
+RUN cd /app/browser \
+  && npm install --omit=dev --no-audit --no-fund \
+  && npx patchright install --with-deps chromium \
+  && chown -R nobody:root /app/browser
+
 USER nobody
 
-# If using an environment that doesn't automatically reap zombie processes, it is
-# advised to add an init process such as tini via `apt-get install`
-# above and adding an entrypoint. See https://github.com/krallin/tini for details
-# ENTRYPOINT ["/tini", "--"]
-
+# tini reaps the Xvfb + chromium process tree the sidecar spawns.
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["/app/bin/entrypoint.sh"]

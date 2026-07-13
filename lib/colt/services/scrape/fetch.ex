@@ -5,11 +5,12 @@ defmodule Colt.Services.Scrape.Fetch do
   request as a politeness default.
 
   Returns
-      {:ok, %{html, fetcher: :static | :wallaby, status, final_url}}
+      {:ok, %{html, fetcher: :static | :browser, status, final_url}}
       | {:error, reason}
   """
 
-  alias Colt.Services.Scrape.{Cdp, DetectSpa, Static}
+  alias Colt.Services.Browser
+  alias Colt.Services.Scrape.{DetectSpa, Static}
 
   @default_jitter_ms 250
 
@@ -26,8 +27,8 @@ defmodule Colt.Services.Scrape.Fetch do
           {:ok, scrub(static, :static)}
 
         :needs_wallaby ->
-          case Cdp.run(url) do
-            {:ok, rendered} -> {:ok, scrub(rendered, :cdp)}
+          case Browser.fetch_html(url) do
+            {:ok, rendered} -> {:ok, scrub(rendered, :browser)}
             # Fall back to whatever static gave us rather than failing the whole pipeline.
             {:error, _reason} -> {:ok, scrub(static, :static)}
           end

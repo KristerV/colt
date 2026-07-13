@@ -1,0 +1,14 @@
+{
+  "name": "colt-browser",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Single stealth browser sidecar for Colt scraping (patchright + Xvfb, clears Cloudflare).",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "patchright": "^1.61.1"
+  }
+}
