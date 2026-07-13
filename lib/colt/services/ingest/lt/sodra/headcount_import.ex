@@ -60,8 +60,8 @@ defmodule Colt.Services.Ingest.Lt.Sodra.HeadcountImport do
   @field_period "ataskaitinis_laikotarpis"
   @field_count "apdraustuju_sk"
 
-  def run do
-    with {:ok, path} <- locate_file(),
+  def run(path \\ nil) do
+    with {:ok, path} <- locate_file(path),
          {:ok, member} <- pick_csv_member(path),
          {:ok, by_code} <- index_companies(),
          {:ok, count} <- stream_and_upsert(path, member, by_code) do
@@ -69,7 +69,12 @@ defmodule Colt.Services.Ingest.Lt.Sodra.HeadcountImport do
     end
   end
 
-  defp locate_file do
+  # Explicit path (e.g. an admin-uploaded ZIP) bypasses the cache dir.
+  defp locate_file(path) when is_binary(path) do
+    if File.exists?(path), do: {:ok, path}, else: {:error, {:not_found, path}}
+  end
+
+  defp locate_file(nil) do
     dir = Application.fetch_env!(:colt, :sodra_lt_cache_dir)
     path = Path.join(dir, @filename)
     if File.exists?(path), do: {:ok, path}, else: {:error, {:not_found, path}}
