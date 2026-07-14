@@ -14,7 +14,7 @@ only **free** sources.
 |------|----------|---------------------------------|-------------|-----------------------|-----------------|----------|-------|
 | EE   | Estonia  | RIK Avaandmed                   | ✅ shipped  | `EeIngest`            | ✅ full         | ✅       | Reference implementation. Full population. |
 | FI   | Finland  | PRH YTJ + XBRL                  | ✅ shipped  | `FiIngest`            | ✅ partial      | ✅       | iXBRL coverage limited to ~10k filings; rest of FY register is identity-only. |
-| LV   | Latvia   | UR open data                    | ✅ shipped  | `LvIngest`            | ✅ slice        | ✅       | Verified with ELKO, LMT, ATTA-1. Industry codes NULL — `industry_code` gap. |
+| LV   | Latvia   | UR open data                    | ✅ shipped  | `LvIngest`            | ✅ slice        | ✅       | Verified with ELKO, LMT, ATTA-1. Industry codes NULL — `industry_code` gap; VID publishes NACE as free CC0 bulk CSV on data.gov.lv. **Import Rev. 2.1, not Rev. 2** — see `industry-codes.md`. |
 | LT   | Lithuania| Registrų centras + Sodra        | ⚠️ partial  | `LtIngest`, `LtHeadcountIngest` | ✅ RC slice / ❌ Sodra | ✅ | RC pipeline verified. Sodra (employees) blocked by Cloudflare — three bypass options in `lt.md`. |
 | DK   | Denmark  | CVR / Virk XBRL                 | ✅ shipped  | `DkIngest`            | ✅ slice (1000) | ✅       | Verified with Q8 Danmark, Terma. Revenue ~15% (Class B SMEs legally hide); employees ~94%. `industry_code` gated behind 3-week-approval CVR auth. |
 | NO   | Norway   | BRREG (enheter + regnskap)      | ✅ shipped  | `NoIngest`            | ⏳ in progress  | ❌       | First slice run kicked off this session. Flip UI to `:live` after the run lands rows. |
@@ -66,12 +66,23 @@ KRS REST gives identity + PKD codes, no revenue/employees. eKRS annual statement
 
 ## Schema gaps shared across countries
 
-- **`industry_code` missing for LV, LT, DK** (and PL, but PL isn't shipping). NACE/EVRK/PKD lives in different open datasets per country, often gated. Liid's NACE-prefix filter will skip these markets until each country's industry-code path is plumbed in.
+- **`industry_code` missing for LV and DK** (and PL, but PL isn't shipping). NACE/PKD lives in different open datasets per country, often gated. Liid's NACE-prefix filter will skip these markets until each country's industry-code path is plumbed in. LT's gap is closed — EVRK now comes from Sodra.
+- **NACE revision — read `industry-codes.md` before wiring `industry_code` for any country.** The EU renumbered NACE on 2025-01-01 (Rev. 2 → Rev. 2.1) and no registry re-classified its back catalogue, so most feeds serve a mix. Liid stores Rev. 2.1 only and translates at import via `Colt.Filters.NaceMigration`. Getting this wrong fails silently: the ingest succeeds and the filter just returns the wrong companies.
+
+  | Market | Rev 2.1 share | Classifier version in source |
+  |--------|---------------|------------------------------|
+  | NO | 100% | n/a — nothing to translate |
+  | FI | 99.96% | n/a |
+  | EE | ~71% | ✅ `emtak_versioon` (2 = 2008, 3 = 2025) |
+  | LT | ~97% | ❌ none — 23 ambiguous codes get dropped |
+  | LV | ? | ⚠️ mixed by filing year; unverified |
+  | SE | ? | ⚠️ unverified, and SNI may need de-dotting |
 - **`source` enum stamps only one source per `(company_id, year)` row.** When LT's Sodra ships, its UPSERT will keep `:rc` if revenue exists, otherwise `:sodra` — meaning `source` becomes "whichever filled first", not provenance-complete. If we ever need true multi-source attribution, add a `headcount_source` column.
 
 ## Reading order for a new contributor
 
 1. `docs/data-sources.md` — what's available per country, with paid alternatives
 2. `docs/large-csv-ingest.md` — the performance playbook (raw SQL `unnest`, stream-by-group, etc.)
-3. `lib/colt/services/ingest/ee/rik/*` — reference implementation
-4. The `<cc>.md` for the country you're touching
+3. `industry-codes.md` — **required before touching `industry_code`.** The NACE Rev. 2.1 playbook: which revision a feed is on, how to prove it, and how to translate.
+4. `lib/colt/services/ingest/ee/rik/*` — reference implementation
+5. The `<cc>.md` for the country you're touching
