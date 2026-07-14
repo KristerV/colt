@@ -22,7 +22,7 @@ defmodule ColtWeb.Admin.Summary do
       %{
         kicker: "Data",
         title: "Companies",
-        value: format_int(Ash.count!(Colt.Resources.Company)),
+        value: format_approx(Colt.Resources.Company.estimated_count()),
         path: "/admin/companies"
       },
       %{
@@ -273,6 +273,16 @@ defmodule ColtWeb.Admin.Summary do
 
   defp format_int(n),
     do: n |> Integer.to_string() |> String.replace(~r/\B(?=(\d{3})+(?!\d))/, " ")
+
+  # Deliberately coarse — signals "an estimate, roughly this" (from reltuples),
+  # not an exact count. 2_713_893 -> "~2.7M", 43_210 -> "~43k".
+  defp format_approx(n) when n >= 1_000_000,
+    do: "~" <> :erlang.float_to_binary(n / 1_000_000, decimals: 1) <> "M"
+
+  defp format_approx(n) when n >= 1_000,
+    do: "~" <> Integer.to_string(round(n / 1_000)) <> "k"
+
+  defp format_approx(n), do: Integer.to_string(n)
 
   defp current_month_cost do
     {:ok, rows} = Colt.Services.Costs.MonthlySummary.run(1)

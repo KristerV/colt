@@ -53,6 +53,7 @@ defmodule Colt.Resources.Company do
     define :filtered
     define :top_categories
     define :market_totals
+    define :market_stats
     define :set_website, args: [:website_url, :website_source]
     define :set_generic_email, args: [:generic_email]
     define :set_ai_summary, args: [:ai_summary]
@@ -325,6 +326,24 @@ defmodule Colt.Resources.Company do
 
       run fn _input, _context -> {:ok, market_totals_cached()} end
     end
+
+    action :market_stats, {:array, :map} do
+      description """
+      Per-market registry breakdown for the admin dashboard: one row per market
+      with counts for active (registered), with ≥1 annual report, with employee
+      count, and with NACE code. A single `GROUP BY market` over the full registry
+      (Ash has no group-by, so raw Ecto — same documented exception as
+      :market_totals). The annual-report figure joins the distinct set of company
+      ids from annual_reports rather than a per-row EXISTS. Even so, the query
+      full-scans the (large, update-heavy) companies heap and takes minutes, so it
+      is memoized 24h (see market_stats_cached/0) — figures only move on ingest /
+      enrichment. Call Colt.Resources.Company.refresh_market_stats/0 to recompute.
+      Returns [%{market: :ee, active: n, with_annual_report: n, with_employees: n,
+      with_nace_code: n}, ...].
+      """
+
+      run fn _input, _context -> {:ok, market_stats_cached()} end
+    end
   end
 
   attributes do
@@ -394,5 +413,55 @@ defmodule Colt.Resources.Company do
         select: {c.market, count(c.id)}
     )
     |> Map.new()
+  end
+
+  defmemop market_stats_cached, expires_in: 24 * 60 * 60 * 1000 do
+    import Ecto.Query
+
+    has_reports =
+      from ar in Colt.Resources.AnnualReport,
+        group_by: ar.company_id,
+        select: %{company_id: ar.company_id}
+
+    Colt.Repo.all(
+      from c in __MODULE__,
+        left_join: r in subquery(has_reports),
+        on: r.company_id == c.id,
+        group_by: c.market,
+        order_by: c.market,
+        select: %{
+          market: c.market,
+          active: filter(count(c.id), c.status == :registered),
+          with_annual_report: filter(count(c.id), not is_nil(r.company_id)),
+          with_employees: filter(count(c.id), not is_nil(c.employees_latest)),
+          with_nace_code: filter(count(c.id), not is_nil(c.industry_code))
+        }
+    )
+  end
+
+  @doc "Bust the 24h market_stats memo so the next read recomputes. Call after an ingest/enrichment run."
+  def refresh_market_stats, do: Memoize.invalidate(__MODULE__, :market_stats_cached)
+
+  @doc """
+  Planner's estimated row count from pg_class.reltuples — instant, no scan.
+  Approximate (refreshed by (auto)vacuum/analyze, not per-insert), which is fine
+  for a headline tile where an exact `count(*)` would full-scan a multi-hundred-MB
+  heap. Callers should format it as an approximation (e.g. "~2.7M").
+  """
+  def estimated_count do
+    %Postgrex.Result{rows: [[n]]} =
+      Colt.Repo.query!("SELECT reltuples::bigint FROM pg_class WHERE relname = 'companies'", [])
+
+    max(n, 0)
+  end
+
+  @doc """
+  Refresh pg_class.reltuples for the companies tile by sampling the table (ANALYZE).
+  Seconds, not a full scan. Use after an ingest when estimated_count/0 must reflect
+  reality instead of waiting for autovacuum.
+  """
+  def analyze do
+    Colt.Repo.query!("ANALYZE companies", [])
+    :ok
   end
 end

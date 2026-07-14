@@ -3,7 +3,6 @@ defmodule ColtWeb.Admin.CompaniesLive do
 
   alias Colt.Resources.Company
   alias ColtWeb.Admin.Summary
-  require Ash.Query
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
   on_mount ColtWeb.Admin.SummaryHook
@@ -25,6 +24,13 @@ defmodule ColtWeb.Admin.CompaniesLive do
           <.link navigate="/admin/oban" class="text-[13px] text-accent hover:underline">
             View Oban &rarr;
           </.link>
+          <button
+            type="button"
+            phx-click="refresh_stats"
+            class="border border-border rounded-[8px] px-3 py-1.5 text-[11px] font-semibold text-ink70 hover:bg-paperAlt cursor-pointer phx-click-loading:opacity-50"
+          >
+            Recompute from live data
+          </button>
         </div>
 
         <div
@@ -70,6 +76,18 @@ defmodule ColtWeb.Admin.CompaniesLive do
     """
   end
 
+  def handle_event("refresh_stats", _params, socket) do
+    Company.refresh_market_stats()
+    Company.analyze()
+
+    socket =
+      socket
+      |> assign(:markets, load_market_stats())
+      |> assign(:admin_tiles, Summary.tiles())
+
+    {:noreply, socket}
+  end
+
   def handle_event("schedule_ingest", %{"market" => market_str}, socket) do
     market = String.to_existing_atom(market_str)
 
@@ -105,28 +123,16 @@ defmodule ColtWeb.Admin.CompaniesLive do
   end
 
   defp load_market_stats do
-    %Postgrex.Result{rows: rows} =
-      Colt.Repo.query!("SELECT DISTINCT market FROM companies ORDER BY market", [])
-
-    Enum.map(rows, fn [market_str] ->
-      market = String.to_existing_atom(market_str)
-
+    Enum.map(Company.market_stats!(), fn row ->
       %{
-        market: market,
+        market: row.market,
         stats: [
-          %{label: "Active", value: count(:active, market)},
-          %{label: "With ≥1 annual report", value: count(:with_annual_report, market)},
-          %{label: "With employee count", value: count(:with_employees, market)},
-          %{label: "With NACE code", value: count(:with_nace_code, market)}
+          %{label: "Active", value: row.active},
+          %{label: "With ≥1 annual report", value: row.with_annual_report},
+          %{label: "With employee count", value: row.with_employees},
+          %{label: "With NACE code", value: row.with_nace_code}
         ]
       }
     end)
-  end
-
-  defp count(action, market) do
-    Company
-    |> Ash.Query.for_read(action)
-    |> Ash.Query.filter(market == ^market)
-    |> Ash.count!()
   end
 end
