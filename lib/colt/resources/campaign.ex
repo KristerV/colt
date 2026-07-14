@@ -246,11 +246,11 @@ defmodule Colt.Resources.Campaign do
   `filters["markets"]` list.
   """
   def selected_markets(campaign) do
-    enabled = Colt.Markets.enabled_atoms()
+    available = Colt.Markets.available_atoms()
 
     case is_map(campaign.filters) && Map.get(campaign.filters, "markets") do
       list when is_list(list) ->
-        list |> Enum.map(&to_market_atom/1) |> Enum.filter(&(&1 in enabled))
+        list |> Enum.map(&to_market_atom/1) |> Enum.filter(&(&1 in available))
 
       _ ->
         []

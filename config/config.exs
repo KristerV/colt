@@ -20,6 +20,125 @@ config :colt, :ai,
     smart: "google/gemini-3.5-flash"
   ]
 
+# Canonical list of markets — the single source of truth. The landing page, the
+# campaign country picker, the `market` enum on Company, the contact form's
+# market select, /admin/countries and the ingest cron schedule all derive from
+# this; nothing re-lists countries anywhere else.
+#
+# `available: false` means "declared but not offered": the market keeps its enum
+# slot, registry links and its monthly ingest, but is greyed out on the landing
+# and absent from the campaign picker. This is the intended path for a new
+# registry — let it ingest and fill up while hidden, watch the counts on
+# /admin/countries, then flip the flag. Only flip once rows have landed *in
+# prod*: an available market with no data shows users an empty result set.
+#
+# `job` is the monthly ingest (see the Oban crontab below); `job: nil` means the
+# market simply isn't scheduled, so an unwritten ingest can't be half-wired.
+#
+# `language` / `language_name` drive the writer's per-template language picker.
+markets = [
+  %{
+    code: "EE",
+    name: "Estonia",
+    api: "rik.ee",
+    market: :ee,
+    available: true,
+    language: "et",
+    language_name: "Estonian",
+    job: Colt.Jobs.Ingest.Ee
+  },
+  %{
+    code: "FI",
+    name: "Finland",
+    api: "ytj.fi",
+    market: :fi,
+    available: true,
+    language: "fi",
+    language_name: "Finnish",
+    job: Colt.Jobs.Ingest.Fi
+  },
+  %{
+    code: "LV",
+    name: "Latvia",
+    api: "ur.gov.lv",
+    market: :lv,
+    available: true,
+    language: "lv",
+    language_name: "Latvian",
+    job: Colt.Jobs.Ingest.Lv
+  },
+  %{
+    code: "LT",
+    name: "Lithuania",
+    api: "registrucentras.lt",
+    market: :lt,
+    available: true,
+    language: "lt",
+    language_name: "Lithuanian",
+    job: Colt.Jobs.Ingest.Lt
+  },
+  %{
+    code: "NO",
+    name: "Norway",
+    api: "brreg.no",
+    market: :no,
+    available: true,
+    language: "nb",
+    language_name: "Norwegian",
+    job: Colt.Jobs.Ingest.No
+  },
+  # Ingest is written and verified in dev, but prod has zero rows — leaving this
+  # available offered users an empty Denmark in the campaign picker.
+  %{
+    code: "DK",
+    name: "Denmark",
+    api: "datacvr.dk",
+    market: :dk,
+    available: false,
+    language: "da",
+    language_name: "Danish",
+    job: Colt.Jobs.Ingest.Dk
+  },
+  # Blocked on Bolagsverket OAuth client credentials (human-issued, form-gated).
+  %{
+    code: "SE",
+    name: "Sweden",
+    api: "bolagsverket.se",
+    market: :se,
+    available: false,
+    language: "sv",
+    language_name: "Swedish",
+    job: Colt.Jobs.Ingest.Se
+  },
+  # No ingest yet: KRS has no revenue/employees, eKRS bulk is Incapsula-gated.
+  %{
+    code: "PL",
+    name: "Poland",
+    api: "krs.gov.pl",
+    market: :pl,
+    available: false,
+    language: "pl",
+    language_name: "Polish",
+    job: nil
+  }
+]
+
+config :colt, :markets, markets
+
+# Monthly registry ingests, derived from the market list above so the schedule
+# can't drift from the countries we declare. Availability deliberately doesn't
+# gate this: a market ingests as soon as it has a job, which is what lets a new
+# registry fill up before anyone can select it.
+#
+# Every ingest fires at once because they all run on the :registry queue, which
+# has concurrency 1 — they queue on insert and drain one at a time. Spreading
+# them across the morning only reordered that queue; the registries are separate
+# national APIs with nothing shared to spread load across. Give a market its own
+# time only if its source actually publishes on a different schedule.
+ingest_cron = "0 3 1 * *"
+
+ingest_crontab = for %{job: job} <- markets, job != nil, do: {ingest_cron, job}
+
 config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
 
 config :colt, Oban,
@@ -30,20 +149,15 @@ config :colt, Oban,
   plugins: [
     {Oban.Plugins.Pruner, max_age: 60 * 60 * 24 * 3},
     {Oban.Plugins.Cron,
-     crontab: [
-       {"0 3 1 * *", Colt.Jobs.Ingest.Ee},
-       {"0 4 1 * *", Colt.Jobs.Ingest.Fi},
-       {"0 5 1 * *", Colt.Jobs.Ingest.Dk},
-       {"0 6 1 * *", Colt.Jobs.Ingest.Se},
-       {"0 7 1 * *", Colt.Jobs.Ingest.Lv},
-       {"0 4 1 * *", Colt.Jobs.Ingest.Lt},
-       {"0 8 1 * *", Colt.Jobs.Ingest.No},
-       {"* * * * *", Colt.Jobs.SendDueEmails},
-       {"0 * * * *", Colt.Jobs.AutoApproveDue},
-       {"* * * * *", Colt.Jobs.PollInbounds},
-       {"*/10 * * * *", Colt.Jobs.PollTracking},
-       {"0 6 * * *", Colt.Jobs.SyncRevenue}
-     ]}
+     crontab:
+       ingest_crontab ++
+         [
+           {"* * * * *", Colt.Jobs.SendDueEmails},
+           {"0 * * * *", Colt.Jobs.AutoApproveDue},
+           {"* * * * *", Colt.Jobs.PollInbounds},
+           {"*/10 * * * *", Colt.Jobs.PollTracking},
+           {"0 6 * * *", Colt.Jobs.SyncRevenue}
+         ]}
   ]
 
 config :ash,

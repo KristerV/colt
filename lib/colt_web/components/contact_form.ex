@@ -11,10 +11,12 @@ defmodule ColtWeb.Components.ContactForm do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
-  @markets [:ee, :fi, :lv, :lt, :se, :no, :dk, :pl]
-
-  @doc "The markets offered in the company select."
-  def markets, do: @markets
+  @doc """
+  The markets offered in the company select. Every declared market, not just the
+  available ones — a hand-entered contact can sit in a country whose registry
+  ingest hasn't shipped.
+  """
+  def markets, do: Colt.Markets.atoms()
 
   attr :id, :string, default: "contact-form"
   attr :values, :map, required: true, doc: "string-keyed field values"

@@ -249,11 +249,11 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   end
 
   defp seed_markets(saved) do
-    enabled = Markets.enabled_atoms()
+    available = Markets.available_atoms()
 
     case Map.get(saved, "markets") do
       list when is_list(list) ->
-        list |> Enum.map(&safe_atom/1) |> Enum.filter(&(&1 in enabled))
+        list |> Enum.map(&safe_atom/1) |> Enum.filter(&(&1 in available))
 
       _ ->
         []
@@ -412,7 +412,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   defp growth_lines(buckets), do: Enum.map(buckets, &growth_label/1)
 
   defp market_name(m) do
-    case Enum.find(Markets.all(), &(&1.market == m)) do
+    case Markets.get(m) do
       %{name: n} -> n
       _ -> m |> Atom.to_string() |> String.upcase()
     end
@@ -703,7 +703,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     ~H"""
     <.pane title={gettext("Markets")} hint={gettext("registries to pull companies from")}>
       <div class="flex flex-col gap-1">
-        <%= for m <- Markets.enabled() do %>
+        <%= for m <- Markets.available() do %>
           <% on = m.market in @form.markets %>
           <button
             type="button"

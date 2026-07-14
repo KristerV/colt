@@ -23,7 +23,7 @@ defmodule ColtWeb.Admin.Summary do
         kicker: "Data",
         title: "Companies",
         value: format_approx(Colt.Resources.Company.estimated_count()),
-        path: "/admin/companies"
+        path: "/admin/countries"
       },
       %{
         kicker: "Activity",

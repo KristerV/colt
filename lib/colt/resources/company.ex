@@ -352,7 +352,7 @@ defmodule Colt.Resources.Company do
     attribute :registry_code, :string, allow_nil?: false, public?: true
 
     attribute :market, :atom,
-      constraints: [one_of: [:ee, :fi, :lv, :lt, :se, :no, :dk, :pl]],
+      constraints: [one_of: Colt.Markets.atoms()],
       allow_nil?: false,
       public?: true
 

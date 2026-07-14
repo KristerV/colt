@@ -1,12 +1,19 @@
 defmodule ColtWeb.HomeLive do
   use ColtWeb, :live_view
 
+  alias Colt.Markets
+  alias Colt.Resources.Company
+
   on_mount {ColtWeb.LiveUserAuth, :live_user_optional}
 
   def mount(_params, _session, socket) do
+    countries = landing_countries()
+
     {:ok,
      assign(socket,
-       page_title: gettext("Liid — all-in-one lead gen for the Baltics and Nordics")
+       page_title: gettext("Liid — all-in-one lead gen for the Baltics and Nordics"),
+       countries: countries,
+       registry_total: registry_total(countries)
      )}
   end
 
@@ -15,18 +22,94 @@ defmodule ColtWeb.HomeLive do
     <div class="min-h-screen bg-canvas text-ink antialiased">
       <.top_nav current_user={@current_user} />
       <.hero current_user={@current_user} />
-      <.funnel />
+      <.funnel registry_total={@registry_total} />
       <.full_picture />
-      <.walkthrough />
+      <.walkthrough countries={@countries} />
       <.comparison />
       <.one_tool />
       <.pricing current_user={@current_user} />
-      <.final_cta current_user={@current_user} />
+      <.final_cta current_user={@current_user} countries={@countries} />
       <.site_footer />
     </div>
 
     <Layouts.flash_group flash={@flash} />
     """
+  end
+
+  ## ---------- countries ----------
+  #
+  # Every country shown on this page comes from `config :colt, :markets` — the
+  # same source the campaign picker and the `market` enum read. Don't hardcode a
+  # country here: an available market with no rows, or a live market advertised
+  # as "soon", is exactly the drift this indirection exists to prevent.
+
+  defp landing_countries do
+    counts =
+      case Company.market_totals() do
+        {:ok, totals} -> totals
+        _ -> %{}
+      end
+
+    Enum.map(Markets.all(), fn m ->
+      %{
+        name: country_name(m.name),
+        available: m.available,
+        count: m.available && counts[m.market]
+      }
+    end)
+  end
+
+  # Headline figure: active companies we can actually offer today. Only counts
+  # available markets — advertising rows a user can't filter on would be a lie.
+  defp registry_total(countries) do
+    countries |> Enum.map(&(&1.count || 0)) |> Enum.sum()
+  end
+
+  # Country names come from config, so gettext can't see them at the call site.
+  # These clauses keep the msgids in the catalogs; a country not listed here just
+  # renders untranslated rather than breaking the page.
+  defp country_name("Estonia"), do: gettext("Estonia")
+  defp country_name("Finland"), do: gettext("Finland")
+  defp country_name("Latvia"), do: gettext("Latvia")
+  defp country_name("Lithuania"), do: gettext("Lithuania")
+  defp country_name("Norway"), do: gettext("Norway")
+  defp country_name("Denmark"), do: gettext("Denmark")
+  defp country_name("Sweden"), do: gettext("Sweden")
+  defp country_name("Poland"), do: gettext("Poland")
+  defp country_name(name), do: name
+
+  # 2_425_472 -> "2.4M", 43_210 -> "43k". Coarse on purpose: the registry moves
+  # on every ingest and a precise-looking figure would just be precisely stale.
+  defp format_approx(n) when n >= 1_000_000,
+    do: :erlang.float_to_binary(n / 1_000_000, decimals: 1) <> "M"
+
+  defp format_approx(n) when n >= 1_000, do: Integer.to_string(round(n / 1_000)) <> "k"
+  defp format_approx(n), do: Integer.to_string(n)
+
+  defp format_count(n),
+    do: n |> Integer.to_string() |> String.replace(~r/\B(?=(\d{3})+(?!\d))/, " ")
+
+  defp join_names([]), do: nil
+  defp join_names([one]), do: one
+
+  defp join_names(names) do
+    {rest, [last]} = Enum.split(names, -1)
+    Enum.join(rest, ", ") <> " & " <> last
+  end
+
+  # "Estonia, Finland, Latvia, Lithuania & Norway live today · Denmark, Sweden &
+  # Poland soon." — both halves derived, so flipping `available` in config is the
+  # only edit needed to change what this claims.
+  defp country_note(countries) do
+    {live, soon} = Enum.split_with(countries, & &1.available)
+    live = live |> Enum.map(& &1.name) |> join_names()
+    soon = soon |> Enum.map(& &1.name) |> join_names()
+
+    cond do
+      live && soon -> gettext("%{live} live today · %{soon} soon.", live: live, soon: soon)
+      live -> gettext("%{live} live today.", live: live)
+      true -> gettext("Coming soon.")
+    end
   end
 
   ## ---------- shared bits ----------
@@ -158,12 +241,19 @@ defmodule ColtWeb.HomeLive do
 
   ## ---------- hero 4-step funnel ----------
 
+  attr :registry_total, :integer, required: true
+
   defp funnel(assigns) do
     ~H"""
     <section class="pt-[42px] pb-14">
       <div class="max-w-[1180px] mx-auto px-8">
         <div class="flex items-stretch justify-center gap-0 flex-col md:flex-row">
-          <.pstep no="1" tone={:accent} label={gettext("Filter")} value="300k">
+          <.pstep
+            no="1"
+            tone={:accent}
+            label={gettext("Filter")}
+            value={format_approx(@registry_total)}
+          >
             {gettext("government companies")}
           </.pstep>
 
@@ -554,6 +644,8 @@ defmodule ColtWeb.HomeLive do
 
   ## ---------- walkthrough spine ----------
 
+  attr :countries, :list, required: true
+
   defp walkthrough(assigns) do
     ~H"""
     <section id="how" class="pt-[54px] pb-[30px]">
@@ -606,12 +698,12 @@ defmodule ColtWeb.HomeLive do
             <:visual>
               <div class="vlabel">{gettext("Registry")}</div>
               <div class="bg-card border border-border rounded-[8px] overflow-hidden">
-                <.prow country={gettext("Estonia")} on />
-                <.prow country={gettext("Finland")} />
-                <.prow country={gettext("Latvia")} />
-                <.prow country={gettext("Lithuania")} />
-                <.prow country={gettext("Sweden")} />
-                <.prow country={gettext("Norway")} />
+                <.prow
+                  :for={c <- @countries}
+                  country={c.name}
+                  on={c.available}
+                  count={c.count && format_count(c.count)}
+                />
               </div>
             </:visual>
           </.wstep>
@@ -823,7 +915,7 @@ defmodule ColtWeb.HomeLive do
       <span class="ml-auto text-[11.5px] font-medium tabular-nums flex items-center gap-1.5">
         <span :if={@count} class="text-ink tabular-nums">{@count}</span>
         <span class="text-inkFaint font-[450]">
-          {if @count, do: gettext("active"), else: gettext("available")}
+          {if @count, do: gettext("active"), else: gettext("soon")}
         </span>
       </span>
     </div>
@@ -1244,6 +1336,7 @@ defmodule ColtWeb.HomeLive do
   ## ---------- final CTA ----------
 
   attr :current_user, :map, default: nil
+  attr :countries, :list, required: true
 
   defp final_cta(assigns) do
     ~H"""
@@ -1269,7 +1362,7 @@ defmodule ColtWeb.HomeLive do
             {primary_label(@current_user)}
           </.link>
           <p class="mt-[18px] text-[13px]" style="color:rgba(255,255,255,.5);">
-            {gettext("Estonia live today · Finland, Latvia, Lithuania, Sweden & Norway soon.")}
+            {country_note(@countries)}
           </p>
         </div>
       </div>

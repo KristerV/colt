@@ -82,10 +82,12 @@ defmodule ColtWeb.Campaigns.FlowTest do
 
     {:ok, view, html} = live(conn, ~p"/campaigns/#{c.id}/filters")
 
-    # Enabled markets are offered; disabled ones (SE) are not.
+    # The picker offers exactly the markets config marks available — offering one
+    # without rows behind it (DK, SE) hands the user an empty result set.
     assert html =~ "Estonia"
     assert html =~ "Latvia"
     refute html =~ "Sweden"
+    refute html =~ "Denmark"
 
     render_click(view, "toggle", %{"field" => "markets", "v" => "ee"})
     render_click(view, "toggle", %{"field" => "markets", "v" => "lv"})

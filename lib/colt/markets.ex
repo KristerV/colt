@@ -1,109 +1,63 @@
 defmodule Colt.Markets do
   @moduledoc """
-  Canonical list of supported markets. Landing page and the campaign country
-  picker both render from here.
+  Reader over the canonical market list in `config :colt, :markets`.
 
-  `enabled: false` markets are shown but greyed out / not clickable. Flip the
-  flag once the corresponding ingest has populated rows in prod.
+  Config is the source of truth. Everything that needs to know which countries
+  exist — the landing page, the campaign country picker, the `market` enum on
+  `Colt.Resources.Company`, the contact form's select, `/admin/countries` —
+  derives from here. Nothing re-lists countries anywhere else; if you find
+  yourself typing `[:ee, :fi, ...]`, call this module instead.
+
+  `available/0` is the list users are actually offered. A market that is
+  declared but `available: false` keeps its enum slot and registry links (so
+  existing rows stay valid) while staying out of the picker and greyed out on
+  the landing.
+
+  Read via `Application.compile_env/2`: the list lives in `config/config.exs`,
+  which is compile-time config, and the `Company.market` enum needs the atoms at
+  compile time. Elixir tracks the dependency and recompiles callers when the
+  config changes.
   """
 
-  # `language` / `language_name` drive the writer's per-template language
-  # picker — the offered languages are exactly the markets listed here (plus
-  # English, prepended in `languages/0`).
-  @markets [
-    %{
-      code: "EE",
-      name: "Estonia",
-      api: "rik.ee",
-      market: :ee,
-      enabled: true,
-      language: "et",
-      language_name: "Estonian",
-      job: Colt.Jobs.Ingest.Ee
-    },
-    %{
-      code: "FI",
-      name: "Finland",
-      api: "ytj.fi",
-      market: :fi,
-      enabled: true,
-      language: "fi",
-      language_name: "Finnish",
-      job: Colt.Jobs.Ingest.Fi
-    },
-    %{
-      code: "LV",
-      name: "Latvia",
-      api: "ur.gov.lv",
-      market: :lv,
-      enabled: true,
-      language: "lv",
-      language_name: "Latvian",
-      job: Colt.Jobs.Ingest.Lv
-    },
-    %{
-      code: "LT",
-      name: "Lithuania",
-      api: "registrucentras.lt",
-      market: :lt,
-      enabled: true,
-      language: "lt",
-      language_name: "Lithuanian",
-      job: Colt.Jobs.Ingest.Lt
-    },
-    %{
-      code: "DK",
-      name: "Denmark",
-      api: "datacvr.dk",
-      market: :dk,
-      enabled: true,
-      language: "da",
-      language_name: "Danish",
-      job: Colt.Jobs.Ingest.Dk
-    },
-    %{
-      code: "SE",
-      name: "Sweden",
-      api: "bolagsverket.se",
-      market: :se,
-      enabled: false,
-      language: "sv",
-      language_name: "Swedish",
-      job: Colt.Jobs.Ingest.Se
-    },
-    %{
-      code: "NO",
-      name: "Norway",
-      api: "brreg.no",
-      market: :no,
-      enabled: true,
-      language: "nb",
-      language_name: "Norwegian",
-      job: Colt.Jobs.Ingest.No
-    }
-  ]
+  @markets Application.compile_env(:colt, :markets, [])
 
   @english {"en", "English"}
 
+  def all, do: @markets
+
+  @doc "Markets offered to users — declared *and* flagged available in config."
+  def available, do: Enum.filter(@markets, & &1.available)
+
+  @doc "Every declared market atom, available or not. Drives the `market` enum."
+  def atoms, do: Enum.map(@markets, & &1.market)
+
+  def available_atoms, do: available() |> Enum.map(& &1.market)
+
+  def get(market) when is_atom(market), do: Enum.find(@markets, &(&1.market == market))
+
+  @doc "The ingest job module for a market, or nil if it has none yet."
   def job_for(market) when is_atom(market) do
-    case Enum.find(@markets, &(&1.market == market)) do
+    case get(market) do
       %{job: job} -> job
       nil -> nil
     end
   end
 
-  def all, do: @markets
-
-  def enabled, do: Enum.filter(@markets, & &1.enabled)
-
-  def atoms, do: Enum.map(@markets, & &1.market)
-
-  def enabled_atoms, do: enabled() |> Enum.map(& &1.market)
+  @doc ~S"""
+  Display label for a market, e.g. `"Estonia (EE)"`. Falls back to the upcased
+  atom for a market present in the data but absent from config.
+  """
+  def label(market) when is_atom(market) do
+    case get(market) do
+      %{name: name, code: code} -> "#{name} (#{code})"
+      nil -> market |> to_string() |> String.upcase()
+    end
+  end
 
   @doc """
-  Offered drafting languages as `{code, label}` — English plus one per listed
-  market, deduped by code. The template editor's language picker renders from
-  this so the options always track the supported countries.
+  Offered drafting languages as `{code, label}` — English plus one per declared
+  market, deduped by code. Covers unavailable markets too: drafting an email in
+  Swedish is useful even while the Swedish registry is dark.
   """
   def languages do
     [@english | Enum.map(@markets, &{&1.language, &1.language_name})]
@@ -112,7 +66,7 @@ defmodule Colt.Markets do
 
   @doc "The default drafting language code for a market (English if unknown)."
   def language_for(market) when is_atom(market) do
-    case Enum.find(@markets, &(&1.market == market)) do
+    case get(market) do
       %{language: lang} -> lang
       nil -> "en"
     end
