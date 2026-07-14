@@ -67,7 +67,8 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
     assert alpha.website_url == "https://alpha.ee"
     assert alpha.website_source == :registry
     assert alpha.generic_email == "info@alpha.ee"
-    assert alpha.industry_code == "62012"
+    # EMTAK 2008 (62011) forward-translated to its EMTAK 2025 equivalent.
+    assert alpha.industry_code == "62101"
     assert Decimal.equal?(alpha.revenue_latest, Decimal.new("600000.0"))
     assert alpha.employees_latest == 6
     assert alpha.revenue_growth_bucket == :slow
@@ -104,6 +105,35 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
 
     zeta_reports = AnnualReport.for_company!(zeta.id)
     assert zeta_reports == [], "no annual reports inserted for liquidation-only filings"
+  end
+
+  # RIK serves EMTAK 2008 and EMTAK 2025 side by side — a company keeps its old code
+  # until it re-declares — and we store Rev 2.1 only. See Colt.Filters.NaceMigration.
+  test "forward-translates EMTAK 2008 codes and passes EMTAK 2025 through" do
+    {:ok, _} = Rik.run(from: 2)
+
+    by_code =
+      Company
+      |> Ash.Query.filter(market == :ee)
+      |> Ash.read!()
+      |> Map.new(&{&1.registry_code, &1})
+
+    # EMTAK 2025 rows are already Rev 2.1 and must not be rewritten.
+    assert by_code["10000002"].industry_code == "62101"
+    assert by_code["10000005"].industry_code == "96211"
+
+    # A class that survived the revision unchanged keeps its code.
+    assert by_code["10000003"].industry_code == "73111"
+
+    # The case that started all this: EMTAK 2008 45201 (motor vehicle repair) has no
+    # division 45 in Rev 2.1 — it becomes 95311, so LEFT(code, 4) filters as 9531.
+    assert by_code["10000004"].industry_code == "95311"
+    assert String.slice(by_code["10000004"].industry_code, 0, 4) == "9531"
+
+    # 47911 "retail via mail order or internet" dissolved across 44 Rev 2.1 classes;
+    # we drop the code rather than fabricate one. The company survives, unlabelled.
+    assert is_nil(by_code["10000007"].industry_code)
+    assert by_code["10000007"].name == "Eta Big OÜ"
   end
 
   test "is idempotent on re-run", %{tmp: tmp} do

@@ -203,6 +203,14 @@ fetcher option 1 or 3 is in place.
 
 ### NACE / industry gap
 
+> **Superseded.** LT NACE now comes from Sodra's `evrk` field via the stealth
+> browser sidecar (commit c14178c) — see the Sodra section above. The gap below is
+> historical. Note Sodra's payload is a flat 14-key Solr projection with **no
+> classifier-version field**, so unlike Estonia we cannot tell whether a given
+> `evrk` is EVRK 2 or 2.1. LT data is ~97% Rev 2.1 with a small legacy remnant;
+> `Colt.Filters.NaceMigration.nace_rev2_to_rev21/1` translates the classes Rev 2.1
+> deleted and drops the 23 it reused for a different activity.
+
 JAR `iregistruoti` does **not** include EVRK (Lithuanian NACE-equivalent)
 codes. The Lithuanian statistics office (Valstybės duomenų agentūra)
 publishes them as data.gov.lt dataset **2088** (Saugyklos API at

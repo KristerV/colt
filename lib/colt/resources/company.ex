@@ -229,9 +229,11 @@ defmodule Colt.Resources.Company do
       """
 
       argument :markets, {:array, :atom}, default: []
-      # NACE 4-digit prefixes (e.g. "6201"). EMTAK is 5-digit; the 5th digit is
-      # a national subclass that doesn't change the wording, so we filter on the
-      # NACE class via LEFT(industry_code, 4).
+      # NACE Rev. 2.1 4-digit prefixes (e.g. "6210"). EMTAK is 5-digit; the 5th
+      # digit is a national subclass that doesn't change the wording, so we filter
+      # on the NACE class via LEFT(industry_code, 4). Every market's codes are
+      # normalised to Rev. 2.1 at import by Colt.Filters.NaceMigration, so this
+      # never has to match two vocabularies.
       argument :industries, {:array, :string}, default: []
       argument :industries_exclude, {:array, :string}, default: []
       argument :growth_buckets, {:array, :atom}, default: []
@@ -268,7 +270,7 @@ defmodule Colt.Resources.Company do
       Top industry categories (4-digit NACE) across the full filtered set,
       ordered by company count desc. Mirrors :filtered's arguments and reuses
       its filter; independent of the preview's random ordering.
-      Returns [%{code: "6201", count: 1240}, ...].
+      Returns [%{code: "6210", count: 1240}, ...].
       """
 
       argument :markets, {:array, :atom}, default: []

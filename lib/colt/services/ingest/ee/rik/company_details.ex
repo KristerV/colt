@@ -8,6 +8,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
   (name, region, status) are preserved on conflict.
   """
 
+  alias Colt.Filters.NaceMigration
   alias Colt.Resources.Company
   alias Colt.Services.Ingest.Ee.Rik.JsonRecordStream
   alias Colt.Services.Ingest.Progress
@@ -95,11 +96,28 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
   defp primary_industry(nil), do: nil
 
   defp primary_industry(list) do
-    Enum.find_value(list, fn item ->
-      if item["on_pohitegevusala"] == true and is_nil(item["lopp_kpv"]),
-        do: item["emtak_kood"]
-    end)
+    list
+    |> Enum.find(&(&1["on_pohitegevusala"] == true and is_nil(&1["lopp_kpv"])))
+    |> to_rev21()
   end
+
+  # RIK tags every declared activity with the classifier it was filed under:
+  # `emtak_versioon` 2 = EMTAK 2008 (NACE Rev. 2), 3 = EMTAK 2025 (NACE Rev. 2.1).
+  # The registry never re-classified its back catalogue — a company keeps its 2008
+  # code until it next re-declares — so the dump is ~29% Rev 2 and shrinking. We
+  # store Rev 2.1 only, and translate the stragglers here rather than teach the
+  # filters two vocabularies. Re-running the ingest self-heals as RIK migrates.
+  #
+  # `emtak_kood` is kept over the published `nace_kood` because it carries the
+  # national subclass digit and its first 4 chars are always exactly `nace_kood`
+  # (checked against all 414,821 activity records), so `LEFT(industry_code, 4)`
+  # still yields the NACE class.
+  defp to_rev21(%{"emtak_versioon" => 3, "emtak_kood" => code}), do: code
+
+  defp to_rev21(%{"emtak_versioon" => 2, "emtak_kood" => code}),
+    do: NaceMigration.emtak_2008_to_2025(code)
+
+  defp to_rev21(_), do: nil
 
   defp status_atom("R"), do: :registered
   defp status_atom("L"), do: :liquidation

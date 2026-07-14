@@ -1,102 +1,127 @@
-# Regenerates `lib/colt/filters/industry_labels.ex` from two sources:
-#   1. NACE Rev. 2 English JSON dump (Eurostat-derived)
-#      https://raw.githubusercontent.com/KeyteqLabs/node-nace-codes/master/resources/nace.json
-#   2. EMTAK 2008 selgitavad märkused (PRIA mirror — same NACE classes,
-#      Estonian labels). Layout-extracted via `pdftotext -layout`.
+# Regenerates `lib/colt/filters/industry_labels.ex` from the label tables checked in
+# under `priv/nace/`.
 #
-# Usage:
-#   curl -sL https://raw.githubusercontent.com/KeyteqLabs/node-nace-codes/master/resources/nace.json -o /tmp/nace.json
-#   curl -sL "https://www.pria.ee/sites/default/files/2021-06/EMTAK_2008%20%282%29.pdf" -o /tmp/emtak.pdf
-#   pdftotext -layout /tmp/emtak.pdf /tmp/emtak_l.txt
 #   mix run priv/scripts/gen_industry_labels.exs
+#
+#   priv/nace/nace_rev21_labels_en.csv
+#     Eurostat "NACE_Rev2.1_Structure_Explanatory_Notes_EN.xlsx", flattened to
+#     code,parent,label. 22 sections / 87 divisions / 287 groups / 651 classes.
+#     https://showvoc.op.europa.eu/ -> NACE Rev. 2.1
+#
+#   priv/nace/emtak_2025_labels_et.csv
+#     RIK's EMTAK 2025 classifier, same shape (plus 826 5-digit national subclasses
+#     we don't label off — the 5th digit doesn't change the wording).
+#     https://ariregister.rik.ee/est/emtak_search/download_emtak_csv?version=3
+#
+# NB this script previously emitted only @classes/@groups/@divisions/label/search,
+# while the module had grown a hand-written section+tree API (@sections, leaf_classes,
+# expand_codes, contains?, ...). Running it would have silently deleted them. It now
+# emits the whole module — keep it that way, and add to *this* file, not to the
+# generated one.
 
-# --- English (NACE) ---
-en_list = "/tmp/nace.json" |> File.read!() |> Jason.decode!()
+alias NimbleCSV.RFC4180, as: CSV
 
-en_for = fn level ->
-  en_list
-  |> Enum.filter(&(&1["level"] == level))
-  |> Enum.map(fn %{"code" => code, "name" => name} ->
-    {String.replace(code, ".", ""), name}
+read = fn name ->
+  Path.join(:code.priv_dir(:colt), "nace/#{name}")
+  |> File.read!()
+  |> String.replace_prefix("﻿", "")
+  |> CSV.parse_string(skip_headers: true)
+  |> Enum.flat_map(fn
+    [code, parent, label | _] when code != "" and label != "" ->
+      [{String.trim(code), String.trim(parent), String.trim(label)}]
+
+    _ ->
+      []
   end)
-  |> Map.new()
 end
 
-en_divisions = en_for.(2)
-en_groups = en_for.(3)
-en_classes = en_for.(4)
+en_rows = read.("nace_rev21_labels_en.csv")
+et_rows = read.("emtak_2025_labels_et.csv")
 
-# --- Estonian (EMTAK 2008) ---
-# Note: `pdftotext -layout` preserves columns; the plain output flattens them
-# and the parser fails. Always use `-layout`.
-et_lines = "/tmp/emtak_l.txt" |> File.stream!() |> Enum.to_list()
+section? = fn code -> String.match?(code, ~r/^[A-Z]$/) end
 
-et_for = fn n ->
-  re = Regex.compile!("^\\s*(\\d{#{n}})(?!\\d)\\s+(.+?)\\s*$", "u")
-
-  et_lines
-  |> Enum.flat_map(fn line ->
-    case Regex.run(re, line) do
-      [_, code, label] ->
-        cond do
-          String.contains?(label, "EMTAK 2008") -> []
-          true -> [{code, String.trim(label)}]
-        end
-
-      _ ->
-        []
-    end
-  end)
-  |> Enum.uniq_by(&elem(&1, 0))
-  |> Map.new()
+at_level = fn rows, n ->
+  rows
+  |> Enum.filter(fn {code, _, _} -> not section?.(code) and String.length(code) == n end)
+  |> Map.new(fn {code, _, label} -> {code, label} end)
 end
 
-et_divisions = et_for.(2)
-et_groups = et_for.(3)
-et_classes = et_for.(4)
+# Eurostat ships section headings in caps ("AGRICULTURE, FORESTRY AND FISHING");
+# every other level is already sentence case.
+sentence_case = fn s ->
+  case String.split(s, "", parts: 2) do
+    [first, rest] -> String.upcase(first) <> String.downcase(rest)
+    _ -> s
+  end
+end
 
-# --- Merge into {code => {en, et}} ---
+# {letter, title, division_lo, division_hi}. Sections map to contiguous division
+# ranges in Rev 2.1 (verified: no section's range swallows another's), so the tree
+# can keep using integer bounds rather than an explicit membership set.
+sections =
+  en_rows
+  |> Enum.filter(fn {code, _, _} -> section?.(code) end)
+  |> Enum.map(fn {letter, _, title} ->
+    divs =
+      en_rows
+      |> Enum.filter(fn {code, parent, _} ->
+        parent == letter and not section?.(code) and String.length(code) == 2
+      end)
+      |> Enum.map(fn {code, _, _} -> String.to_integer(code) end)
+
+    {letter, sentence_case.(title), Enum.min(divs), Enum.max(divs)}
+  end)
+  |> Enum.sort()
+
 merge = fn en, et ->
-  Map.keys(en)
+  en
+  |> Map.keys()
   |> Enum.concat(Map.keys(et))
   |> Enum.uniq()
   |> Enum.sort()
   |> Enum.map(fn k -> {k, Map.get(en, k), Map.get(et, k)} end)
 end
 
+classes = merge.(at_level.(en_rows, 4), at_level.(et_rows, 4))
+groups = merge.(at_level.(en_rows, 3), at_level.(et_rows, 3))
+divisions = merge.(at_level.(en_rows, 2), at_level.(et_rows, 2))
+
 dump = fn rows ->
-  rows
-  |> Enum.map(fn {k, en, et} ->
-    en_s = en |> to_string() |> String.replace("\"", "\\\"")
-    et_s = if et, do: "\"#{String.replace(et, "\"", "\\\"")}\"", else: "nil"
-    "    \"#{k}\" => {\"#{en_s}\", #{et_s}}"
+  Enum.map_join(rows, ",\n", fn {k, en, et} ->
+    ~s(    #{inspect(k)} => {#{inspect(en)}, #{inspect(et)}})
   end)
-  |> Enum.join(",\n")
 end
 
-classes = merge.(en_classes, et_classes)
-groups = merge.(en_groups, et_groups)
-divisions = merge.(en_divisions, et_divisions)
+dump_sections =
+  Enum.map_join(sections, ",\n", fn {l, t, lo, hi} ->
+    ~s(    {#{inspect(l)}, #{inspect(t)}, #{lo}, #{hi}})
+  end)
+
+letters = Enum.map_join(sections, "", fn {l, _, _, _} -> l end)
 
 content = """
+# This file is generated by priv/scripts/gen_industry_labels.exs — do not edit.
+# Regenerate with: mix run priv/scripts/gen_industry_labels.exs
 defmodule Colt.Filters.IndustryLabels do
   @moduledoc \"\"\"
-  EMTAK / NACE Rev. 2 code → bilingual label.
+  EMTAK / NACE Rev. 2.1 code → bilingual label, plus the section tree the campaign
+  filters pick from.
 
-  Each level (class / group / division) maps a code to `{en, et}`. The first
-  4 digits of an EMTAK 5-digit code are NACE Rev. 2; the 5th digit is a
-  national subclass that doesn't change the wording, so we label off the
-  NACE class.
+  Each level (class / group / division) maps a code to `{en, et}`. The first 4 digits
+  of an EMTAK 5-digit code are the NACE class; the 5th is a national subclass that
+  doesn't change the wording, so we label off the class.
 
   Lookup order (`label/1`): 4-digit class → 3-digit group → 2-digit division.
-  Returns the English label by default; `label/2` takes `:en` or `:et`.
+  Returns English by default; `label/2` takes `:en` or `:et`.
 
-  Search (`search/2`) matches the query as a code prefix or as a substring
-  in either the English or Estonian label.
+  This is **Rev. 2.1** (EMTAK 2025), the vocabulary every registry we ingest has
+  moved to. Legacy Rev. 2 codes are forward-translated at import by
+  `Colt.Filters.NaceMigration`, so nothing here needs to know about Rev. 2.
+  Note Rev. 2.1 has 22 sections (A–V, up from A–U) and no division 45 — motor-vehicle
+  repair is 95.3 and vehicle sales moved into 46/47.
 
-  Sources: NACE Rev. 2 EN from KeyteqLabs/node-nace-codes (615 classes /
-  272 groups / 88 divisions); ET from EMTAK 2008 selgitavad märkused
-  (PRIA mirror). Regenerate with `priv/scripts/gen_industry_labels.exs`.
+  Sources: EN from Eurostat's NACE Rev. 2.1 structure; ET from RIK's EMTAK 2025
+  classifier. Both vendored under `priv/nace/`.
   \"\"\"
 
   @classes %{
@@ -110,6 +135,11 @@ defmodule Colt.Filters.IndustryLabels do
   @divisions %{
 #{dump.(divisions)}
   }
+
+  # NACE Rev. 2.1 sections (tree top level). {letter, title, div_lo, div_hi}
+  @sections [
+#{dump_sections}
+  ]
 
   def label(code), do: label(code, :en)
 
@@ -134,8 +164,8 @@ defmodule Colt.Filters.IndustryLabels do
   def label(_, _), do: nil
 
   @doc \"\"\"
-  Substring/prefix search over the 615 NACE classes. Returns up to `limit`
-  `{code, en_label}` pairs. Matches code-prefix first, then substring hits in
+  Substring/prefix search over the #{length(classes)} NACE classes. Returns up to
+  `limit` `{code, en_label}` pairs. Matches code-prefix first, then substring hits in
   either the English or the Estonian label, ranked by EN-label length.
   \"\"\"
   def search(query, limit \\\\ 20) when is_binary(query) do
@@ -161,11 +191,103 @@ defmodule Colt.Filters.IndustryLabels do
       |> Enum.map(fn {_, _, entry} -> entry end)
     end
   end
+
+  def sections do
+    @sections
+    |> Enum.filter(fn {_l, _t, lo, hi} ->
+      Enum.any?(Map.keys(@divisions), &in_range?(&1, lo, hi))
+    end)
+    |> Enum.map(fn {l, t, _lo, _hi} -> {l, t} end)
+  end
+
+  def divisions_for_section(letter) do
+    case Enum.find(@sections, fn {l, _, _, _} -> l == letter end) do
+      {_, _, lo, hi} ->
+        @divisions
+        |> Enum.filter(fn {code, _} -> in_range?(code, lo, hi) end)
+        |> Enum.map(fn {code, {en, _}} -> {code, en} end)
+        |> Enum.sort()
+
+      nil ->
+        []
+    end
+  end
+
+  def groups_for_division(div2) do
+    @groups
+    |> Enum.filter(fn {code, _} -> String.starts_with?(code, div2) end)
+    |> Enum.map(fn {code, {en, _}} -> {code, en} end)
+    |> Enum.sort()
+  end
+
+  def classes_for_group(grp3) do
+    @classes
+    |> Enum.filter(fn {code, _} -> String.starts_with?(code, grp3) end)
+    |> Enum.map(fn {code, {en, _}} -> {code, en} end)
+    |> Enum.sort()
+  end
+
+  # All 4-digit classes under a node id (section letter or 2/3/4-digit code).
+  def leaf_classes(id) do
+    cond do
+      section?(id) ->
+        {_, _, lo, hi} = Enum.find(@sections, fn {l, _, _, _} -> l == id end)
+        @classes |> Map.keys() |> Enum.filter(&in_range?(String.slice(&1, 0, 2), lo, hi))
+
+      true ->
+        @classes |> Map.keys() |> Enum.filter(&String.starts_with?(&1, id))
+    end
+  end
+
+  def expand_codes(ids) when is_list(ids),
+    do: ids |> Enum.flat_map(&leaf_classes/1) |> Enum.uniq()
+
+  def node_label(id), do: if(section?(id), do: section_title(id), else: label(id) || id)
+
+  # Whether selecting `a` covers `d` (a is ancestor-or-equal of d).
+  def contains?(a, d) do
+    cond do
+      section?(a) and section?(d) -> a == d
+      section?(a) -> section_of(d) == a
+      section?(d) -> false
+      true -> String.starts_with?(d, a)
+    end
+  end
+
+  def section_of(code) when is_binary(code) do
+    d = String.slice(code, 0, 2)
+
+    case Enum.find(@sections, fn {_l, _t, lo, hi} -> in_range?(d, lo, hi) end) do
+      {l, _, _, _} -> l
+      nil -> nil
+    end
+  end
+
+  defp section_title(letter) do
+    case Enum.find(@sections, fn {l, _, _, _} -> l == letter end) do
+      {_, t, _, _} -> t
+      nil -> letter
+    end
+  end
+
+  defp section?(id), do: String.match?(id, ~r/^[#{String.first(letters)}-#{String.last(letters)}]$/)
+
+  defp in_range?(code2, lo, hi) do
+    case Integer.parse(code2) do
+      {n, _} -> n >= lo and n <= hi
+      :error -> false
+    end
+  end
 end
 """
 
-File.write!("lib/colt/filters/industry_labels.ex", content)
-IO.puts("wrote #{byte_size(content)} bytes")
-IO.puts("classes: #{length(classes)} (#{Enum.count(classes, fn {_,_,et} -> et end)} with ET)")
-IO.puts("groups:  #{length(groups)} (#{Enum.count(groups, fn {_,_,et} -> et end)} with ET)")
-IO.puts("divisions: #{length(divisions)} (#{Enum.count(divisions, fn {_,_,et} -> et end)} with ET)")
+formatted = content |> Code.format_string!() |> IO.iodata_to_binary()
+File.write!("lib/colt/filters/industry_labels.ex", formatted <> "\n")
+
+IO.puts("""
+wrote lib/colt/filters/industry_labels.ex (#{byte_size(formatted)} bytes)
+  sections : #{length(sections)} (#{letters})
+  divisions: #{length(divisions)} (#{Enum.count(divisions, fn {_, _, et} -> et end)} with ET)
+  groups   : #{length(groups)} (#{Enum.count(groups, fn {_, _, et} -> et end)} with ET)
+  classes  : #{length(classes)} (#{Enum.count(classes, fn {_, _, et} -> et end)} with ET)
+""")

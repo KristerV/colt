@@ -18,6 +18,7 @@ defmodule Colt.Services.Ingest.Lt.Sodra.Import do
 
   require Logger
 
+  alias Colt.Filters.NaceMigration
   alias Colt.Repo
   alias Colt.Resources.Company
 
@@ -123,8 +124,17 @@ defmodule Colt.Services.Ingest.Lt.Sodra.Import do
 
   # --- NACE -> companies.industry_code -----------------------------------------
 
+  # Sodra passes through whatever EVRK version each employer declared and exposes no
+  # classifier field (the payload is a flat 14-key Solr projection), so unlike Estonia
+  # we can't know a row's revision — only translate the codes Rev 2.1 deleted outright
+  # and drop the ones it reused for a different activity. `nil` is written through
+  # rather than skipped: a company sitting on a stale collision code must lose it, or
+  # re-running the ingest would never heal it.
   defp upsert_industry(resolved) do
-    rows = Enum.filter(resolved, & &1.evrk)
+    rows =
+      resolved
+      |> Enum.filter(& &1.evrk)
+      |> Enum.map(&%{&1 | evrk: NaceMigration.nace_rev2_to_rev21(&1.evrk)})
 
     count =
       rows

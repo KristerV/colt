@@ -133,9 +133,19 @@ Records in non-NOK, non-EUR currencies (e.g. Equinor in USD) are imported as com
 
 ## Industry-code handling
 
-BRREG `naeringskode1.kode` is dot-separated (`"43.210"`) while EE EMTAK is the same NACE class without a dot (`"43211"`). Liid's existing `Company.filtered` action uses `LEFT(industry_code, 4)` to match a 4-digit NACE class prefix.
+BRREG `naeringskode1.kode` is dot-separated (`"43.210"`) while EE EMTAK is the same NACE class without a dot (`"43211"`). Liid's `Company.filtered` action uses `LEFT(industry_code, 4)` to match a 4-digit NACE class prefix.
 
 For "43.210" `LEFT(_, 4)` returns `"43.2"` — wrong shape. **Strip the dot at ingest time**: `"43.210" → "43210"`. Verified the BRREG format is always `NN.NNN` (5 digits with one dot at position 3) by inspection. The 5th digit is the Norwegian national subdivision (consistent with EE EMTAK's 5th digit being national); the underlying NACE-4 prefix matches across countries.
+
+(The field-mapping table above says "Stored verbatim" — that is stale. The code de-dots.)
+
+### Which NACE revision
+
+**Norway is on SN2025 (NACE Rev. 2.1), not SN2007.** Verified against BRREG's own API: every `45.*` query returns `totalElements: 0`, while `43.210` returns 5613 — division 45 no longer exists. Motor-vehicle repair moved to `95.31` ("Reparasjon og vedlikehold av motorvogner"); vehicle *sales* moved into 46/47. Our dump is 100% Rev 2.1 — 0 of 33,423 sampled coded rows carry a Rev-2-only class.
+
+So the NO importer needs **no** revision translation: de-dotting is the whole job. This is not true of Estonia and Lithuania, whose registries still serve a mix; see `Colt.Filters.NaceMigration`. Liid stores Rev. 2.1 everywhere, and `Colt.Filters.IndustryLabels` is generated from the Rev. 2.1 structure.
+
+Historical note: for a long time NO looked like it had no car-repair shops at all, because the filter vocabulary was still NACE Rev. 2 and offered `4520` — which matches nothing in Norway. ~36% of Norwegian companies were unreachable by industry filter for the same reason.
 
 ## Pipeline stages
 
