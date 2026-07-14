@@ -8,11 +8,16 @@ defmodule Colt.Jobs.Ingest.Lv do
 
   ## Manual scheduling
 
-      # full ingest (all 4 stages)
+      # full ingest (all 5 stages)
       Colt.Jobs.Ingest.Lv.schedule()
 
-      # resume from stage 3 (annual reports + growth)
+      # resume from stage 3 (annual reports, NACE, growth)
       Colt.Jobs.Ingest.Lv.schedule(from: 3)
+
+      # NACE only — note stage 1 must have run recently enough that
+      # `vid_taxes_3y.csv` is still in the cache dir (a successful full
+      # ingest wipes it).
+      Colt.Jobs.Ingest.Lv.schedule(from: 4)
   """
 
   use Oban.Worker,

@@ -27,6 +27,16 @@ defmodule Colt.Services.Ingest.Lv.Ur.Download do
       url:
         "https://data.gov.lv/dati/dataset/8d31b878-536a-44aa-a013-8bc6b669d477/resource/d5fd17ef-d32e-40cb-8399-82b780095af0/download/income_statements.csv",
       out: "income_statements.csv"
+    },
+    # VID, not UR: the register genuinely has no NACE, but the tax service
+    # publishes `Pamatdarbibas_NACE_kods` per `Registracijas_kods` in its
+    # three-year paid-tax dump. Same CC0-1.0 licence, same plain-GET shape.
+    # Titled about taxes and never mentions NACE, which is why it reads as
+    # unrelated. See `docs/countries/lv.md`.
+    %{
+      url:
+        "https://data.gov.lv/dati/dataset/5ed74664-b49d-4b28-aacb-040931646e9b/resource/a42d6e8c-1768-4939-ba9b-7700d4f1dd3a/download/pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata.csv",
+      out: "vid_taxes_3y.csv"
     }
   ]
 

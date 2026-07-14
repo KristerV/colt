@@ -14,17 +14,29 @@ limited companies, free, no login. Coverage is the same shape as EE/RIK:
 "every entity required to file an annual report has one in the dump for
 each fiscal year submitted".
 
+**NACE is no longer a gap.** This doc previously said NACE was "recorded by
+VID but not exposed as a bulk download" and called it "the one real gap".
+**That was wrong.** VID publishes it as free bulk CC0-1.0 open data on the
+same portal, in `pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata.csv` —
+a dataset titled about *paid taxes* that never mentions NACE in its name or
+description, which is why it reads as unrelated. It carries
+`Pamatdarbibas_NACE_kods` (principal activity, 4-digit) keyed by
+`Registracijas_kods`, joining straight to `register.csv`'s `regcode`. No
+scraping, no Lursoft licence, no LLM inference. Stage 4 (`IndustryCodes`)
+imports it.
+
 What we still **don't** get for free:
 
-- **NACE codes per company.** UR's open data only has free-text "areas of
-  activity" (Latvian-language descriptions). NACE is recorded per company
-  by VID (State Revenue Service) in their EDS system but not exposed as a
-  bulk download. Per-company lookup via VID's public search exists but it
-  is screen-scrape territory. For now Latvian companies are ingested with
-  `industry_code = nil`; the NACE-prefix industry filter in `Company.filtered`
-  will not match them. **This is the one real gap.** Options if/when it
-  matters: (a) scrape VID per company, (b) buy from Lursoft, (c) infer from
-  the free-text activity description with an LLM pass.
+- **NACE for non-*komersanti*.** The VID file covers commercial entities
+  only, so associations (26k active), farms (23k), individual undertakings
+  (10k), foundations and media outlets get nothing — 0%, by construction.
+  Verified there is no free bulk alternative: UR's
+  `biedribu-un-nodibinajumu-darbibas-jomas` is an 80-value Latvian NPO label
+  vocabulary, not NACE; CSP publishes no company-level file (its per-regnr
+  lookup at `e.csp.gov.lv` is `Disallow: /` in robots.txt and enumeration-
+  proof); Lursoft is quote-only with unconfirmed non-merchant scope.
+  Accepted: these are largely not sales targets, and CSP shows associations
+  collapse to `9499` ("organisations n.e.c.") anyway.
 - Some non-merchant entities (associations, foundations, religious orgs)
   appear in `register.csv` but never file revenue-bearing annual reports;
   they end up in the DB with no `AnnualReport` rows. That's the same as
@@ -37,6 +49,12 @@ What we still **don't** get for free:
 | `register.csv` | https://data.gov.lv/dati/dataset/4de9697f-850b-45ec-8bba-61fa09ce932f/resource/25e80bf3-f107-4ab4-89ef-251b5b9374e9/download/register.csv | 122 MiB | CC0-1.0 | daily |
 | `financial_statements.csv` | https://data.gov.lv/dati/dataset/8d31b878-536a-44aa-a013-8bc6b669d477/resource/27fcc5ec-c63b-4bfd-bb08-01f073a52d04/download/financial_statements.csv | 192 MiB | CC0-1.0 | daily |
 | `income_statements.csv` | https://data.gov.lv/dati/dataset/8d31b878-536a-44aa-a013-8bc6b669d477/resource/d5fd17ef-d32e-40cb-8399-82b780095af0/download/income_statements.csv | 139 MiB | CC0-1.0 | daily |
+| `vid_taxes_3y.csv` | https://data.gov.lv/dati/dataset/5ed74664-b49d-4b28-aacb-040931646e9b/resource/a42d6e8c-1768-4939-ba9b-7700d4f1dd3a/download/pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata.csv | 65 MiB | CC0-1.0 | **annual** (~April) |
+
+Note the last one is published by **VID**, not UR, and on a much slower
+cadence than UR's three: annual, refreshed around April with a rolling
+three-year window. As of 2026-07 it still holds tax years 2022–2024 (last
+refreshed 2025-04-03), so NACE lags the rest of the LV data by design.
 
 Auth: **none**. Plain HTTPS GET, anonymous, no API key.
 
@@ -114,7 +132,7 @@ which is the vast majority; the rest are negligible).
 | `name` | `name` | UR includes the quoted variants; we use the full `name` |
 | `region` | `address` first segment | e.g. "Rīga", "Daugavpils", "Liepāja"; cheap split on `,` |
 | `status` | derived | `terminated` non-empty → `:deleted`, else `:registered`; pre-merchant types stay `:other` |
-| `industry_code` | `nil` | **gap**, see Summary |
+| `industry_code` | `Pamatdarbibas_NACE_kods` (VID) | NACE **Rev. 2.1**, 4-digit, newest tax year per company; `nil` for the 23 reused codes filed under Rev. 2. See below. |
 
 ## Coverage estimate vs spec §3.1 targets
 
@@ -123,9 +141,46 @@ which is the vast majority; the rest are negligible).
 | Identity (code, name, status, address) | ~100% | exact |
 | Revenue (`revenue_latest`) | ~70–80% of active limited cos | exact EUR, lags 12–18 months |
 | Employees (`employees_latest`) | ~70–80% | exact integer (average for the period) |
-| Industry / NACE | **0%** from free sources | see Summary |
+| Industry / NACE | **83.8% of active SIA** (28.6% of all rows) | exact, NACE Rev. 2.1; lags ~18 months |
 | Generic email | not in UR open data | enrichment path (already exists in code) |
 | Website | not in UR open data | enrichment path |
+
+## NACE (`industry_code`)
+
+Read `docs/countries/industry-codes.md` first — Latvia is the **revision-known**
+case (Estonia's category): the **tax year is the classifier version**, so
+collisions are only ambiguous on the old rows. Measured against the real file
+(2026-07-14):
+
+| Funnel | Rows |
+|---|---|
+| LV rows in `companies` | 485,896 |
+| …still active | 219,865 |
+| …present in the VID file with a 4-digit NACE | 150,652 |
+| …surviving translation | 139,831 |
+| …matching a row in our table | **138,856** |
+
+So **28.6% of the LV table**, but the losses are structural: 266k terminated
+entities and ~60k non-*komersanti* were never going to have a code. Against
+the addressable set: **active SIA 83.8%** (115,634 / 138,031), active IK 66.8%,
+all active companies 57.0%.
+
+Rule-4 partition proving the revision boundary (playbook §Rule 4):
+
+| year | rev2-only | rev21-only | both |
+|---|---|---|---|
+| 2022 | 48,000 | **0** | 86,586 |
+| 2023 | 50,221 | **0** | 91,006 |
+| 2024 | **429** | 41,448 | 76,580 |
+
+2022/23 hold zero Rev-2.1-only codes → they are Rev. 2. But 2024 is *not*
+purely Rev. 2.1: 429 rows still carry a Rev-2-only class, so `IndustryCodes`
+treats a Rev-2-only code as Rev. 2 regardless of its year. Every code in the
+file is valid in one revision or the other — there are no junk codes.
+
+10,821 companies (7.2% of those with a code) drop to `nil`: their class is one
+of the 23 reused between revisions *and* was filed under Rev. 2, making it
+genuinely undecidable. They heal when VID reissues under Rev. 2.1.
 
 In ranking terms: Latvia is closer to Estonia/Norway than the
 `data-sources.md` table claimed. The "Lursoft monetises the gap" framing
