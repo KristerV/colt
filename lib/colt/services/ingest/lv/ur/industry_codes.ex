@@ -93,10 +93,14 @@ defmodule Colt.Services.Ingest.Lv.Ur.IndustryCodes do
   # and legal names contain commas, so this must be a real CSV parse rather
   # than a `:binary.split/3` on ",". NimbleCSV's `parse_stream` opens the
   # file `:raw` internally (docs/large-csv-ingest.md §1.4).
+  #
+  # `:trim_bom` is load-bearing: NimbleCSV parses the header row even under
+  # `skip_headers`, and a leading BOM sits between line start and the first
+  # `"`, which it rejects as a stray escape character.
   defp newest_code_per_company(path) do
     newest =
       path
-      |> File.stream!()
+      |> File.stream!([:trim_bom, read_ahead: 256 * 1024])
       |> CSV.parse_stream()
       |> Progress.tick("VID tax rows read")
       |> Stream.map(&parse_row/1)

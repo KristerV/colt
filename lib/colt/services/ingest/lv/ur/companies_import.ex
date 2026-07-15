@@ -58,7 +58,7 @@ defmodule Colt.Services.Ingest.Lv.Ur.CompaniesImport do
 
     count =
       path
-      |> File.stream!(read_ahead: 256 * 1024)
+      |> File.stream!([:trim_bom, read_ahead: 256 * 1024])
       |> CSV.parse_stream(skip_headers: true)
       |> Progress.tick("register.csv rows read")
       |> Stream.map(&parse_row(&1, headers))
