@@ -66,7 +66,13 @@ defmodule Colt.Services.Ingest.Ee.RikTest do
     assert alpha.status == :registered
     assert alpha.website_url == "https://alpha.ee"
     assert alpha.website_source == :registry
-    assert alpha.generic_email == "info@alpha.ee"
+    # The registry EMAIL contact-means lands in :registry_email, never
+    # :generic_email — the latter is reserved for what the landing scrape finds.
+    assert alpha.registry_email == "info@alpha.ee"
+    assert alpha.generic_email == nil
+    # Not classified at import: that costs a model call per company, and only
+    # companies that actually enter a funnel are worth spending it on.
+    assert alpha.registry_email_kind == nil
     # EMTAK 2008 (62011) forward-translated to its EMTAK 2025 equivalent.
     assert alpha.industry_code == "62101"
     assert Decimal.equal?(alpha.revenue_latest, Decimal.new("600000.0"))

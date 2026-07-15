@@ -1,7 +1,13 @@
 defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
   @moduledoc """
   Streams `yldandmed.json` (Estonian business registry "general data") and
-  bulk-upserts website / industry / generic email onto `Colt.Resources.Company`.
+  bulk-upserts website / industry / registry email onto `Colt.Resources.Company`.
+
+  The EMAIL contact-means lands in `:registry_email`, *not* `:generic_email` —
+  the latter is reserved for the `info@`-style inbox scraped from the company's
+  own site. Keeping them apart matters: the registry address is frequently a
+  personal one (the owner's), and it is the owner rung's only candidate today.
+  See `docs/specs/contact-acquisition.md`.
 
   Uses the `:upsert_details` action with `upsert_fields` limited to the
   detail columns, so any registry-side fields written by `CompaniesImport`
@@ -79,7 +85,7 @@ defmodule Colt.Services.Ingest.Ee.Rik.CompanyDetails do
       industry_code: primary_industry(yld["teatatud_tegevusalad"]),
       website_url: website,
       website_source: if(website, do: :registry, else: nil),
-      generic_email: pick_active(yld["sidevahendid"], "EMAIL")
+      registry_email: pick_active(yld["sidevahendid"], "EMAIL")
     }
   end
 

@@ -25,6 +25,8 @@ defmodule Colt.Resources.Person do
     define :update_manual
     define :for_company, args: [:company_id]
     define :set_verification, args: [:email_verification_status]
+    define :create_from_address
+    define :by_email, args: [:company_id, :email]
     define :set_email, args: [:email]
   end
 
@@ -60,6 +62,19 @@ defmodule Colt.Resources.Person do
       filter expr(company_id == ^arg(:company_id))
     end
 
+    create :create_from_address do
+      description "A contact resolved from an address we already hold (registry email, generic inbox) rather than scraped off a page. No source_page — nothing was read to find it."
+      accept [:company_id, :name, :email]
+    end
+
+    read :by_email do
+      description "Find an existing contact for this company by address, so re-resolving a rung doesn't duplicate people."
+      argument :company_id, :uuid, allow_nil?: false
+      argument :email, :string, allow_nil?: false
+      filter expr(company_id == ^arg(:company_id) and email == ^arg(:email))
+      get? true
+    end
+
     update :set_email do
       accept [:email]
       require_atomic? false
@@ -69,7 +84,7 @@ defmodule Colt.Resources.Person do
       require_atomic? false
 
       argument :email_verification_status, :atom,
-        constraints: [one_of: [:valid, :invalid]],
+        constraints: [one_of: [:valid, :catch_all, :invalid]],
         allow_nil?: false
 
       change set_attribute(:email_verification_status, arg(:email_verification_status))
@@ -90,8 +105,10 @@ defmodule Colt.Resources.Person do
     attribute :validated_in_markdown, :boolean, default: false, public?: true
 
     attribute :email_verification_status, :atom,
-      constraints: [one_of: [:valid, :invalid]],
-      public?: true
+      constraints: [one_of: [:valid, :catch_all, :invalid]],
+      public?: true,
+      description:
+        ":catch_all means the domain accepts every address, so verification proved nothing. Deliverable for an address a human published (scraped) or filed with the registry; worthless for a guessed one. See docs/specs/contact-acquisition.md §3."
 
     attribute :email_verified_at, :utc_datetime_usec, public?: true
 

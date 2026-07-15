@@ -1,21 +1,28 @@
 defmodule Colt.Jobs.Enrichment.ExtractContacts do
   @moduledoc """
-  §6.9 — terminal step. Concatenate the company's stored markdown (landing +
+  §6.9 — the job-title rung. Concatenate the company's stored markdown (landing +
   contact pages), ask Claude Sonnet 4.5 to extract every named contact,
   validate emails by substring against the haystack, then batch a GLM 4.7
   call to flag rows that match the campaign's target title.
 
   Persists a `Person` per validated row, then marks the CampaignCompany
   `:enriched`.
+
+  No longer terminal: when this rung finds nobody, it hands back to
+  `ResolveContact`, which drops to the generic-inbox rung if the campaign
+  enabled it. Only an exhausted ladder ends as `:no_contacts`.
   """
   use Oban.Worker, queue: :ai, max_attempts: 2, priority: 1
 
+  alias Colt.Jobs.Enrichment.ResolveContact
   alias Colt.Jobs.Enrichment.VerifyEmail, as: VerifyEmailJob
   alias Colt.Resources.{Campaign, CampaignCompany, Company, IcpLearning, Page, Person}
 
   alias Colt.Services.Enrichment, as: Svc
 
   alias Colt.Services.Enrichment.{
+    ContactDedup,
+    ContactRungs,
     FailureMessage,
     Freshness,
     PickBestContact,
@@ -63,44 +70,92 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
 
     cond do
       haystack == "" ->
-        Transition.stage(cc, :contact, :fall)
-        {:ok, _} = Transition.terminate(cc, :no_contacts, reason: "no contact-page markdown")
-        :ok
+        title_rung_missed(cc, campaign, "no contact-page markdown")
 
       true ->
         run(cc, company, campaign, pages, haystack)
     end
   end
 
-  defp reuse_existing(cc, campaign, persons) do
-    titles = Enum.map(persons, & &1.title)
-    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id, cc.id)
+  # The title rung came up empty. Hand back to the ladder rather than ending the
+  # company here — the campaign may still accept a generic inbox.
+  defp title_rung_missed(cc, campaign, reason) do
+    case ContactRungs.after_rung(campaign, :title) do
+      :none ->
+        Transition.stage(cc, :contact, :fall)
+        {:ok, _} = Transition.terminate(cc, :no_contacts, reason: reason)
+        :ok
 
-    case picked_idx do
+      next ->
+        %{campaign_company_id: cc.id, rung: next}
+        |> ResolveContact.new()
+        |> Oban.insert!()
+
+        :ok
+    end
+  end
+
+  defp reuse_existing(cc, campaign, persons) do
+    pick_best(cc, campaign, persons)
+  end
+
+  # Drop anyone this campaign is already emailing *before* choosing, so the
+  # pick falls to the next-best real person at this company rather than
+  # abandoning it. Only if everyone here is a duplicate does the rung miss.
+  defp pick_best(cc, campaign, persons) do
+    {available, dupes} =
+      Enum.split_with(persons, &(not ContactDedup.taken?(cc.campaign_id, &1.email, cc.id)))
+
+    titles = Enum.map(available, & &1.title)
+
+    case pick_index(campaign.target_job_title, titles, cc.campaign_id, cc.id) do
       i when is_integer(i) ->
-        picked_person = Enum.at(persons, i)
-        {:ok, _} = CampaignCompany.set_picked_person(cc, picked_person.id)
+        finish_pick(cc, campaign, Enum.at(available, i))
+
+      :none ->
+        title_rung_missed(cc, campaign, unpicked_reason(campaign, titles, dupes))
+    end
+  end
+
+  defp finish_pick(cc, campaign, person) do
+    case CampaignCompany.set_picked_person(cc, person.id, ContactDedup.normalize(person.email),
+           authorize?: false
+         ) do
+      {:ok, cc} ->
         Transition.stage(cc, :contact, :done)
 
         broadcast_contact(cc, %{
-          contact_name: picked_person.name,
-          contact_title: picked_person.title,
-          contact_email: picked_person.email,
-          contact_phone: picked_person.phone
+          contact_name: person.name,
+          contact_title: person.title,
+          contact_email: person.email,
+          contact_phone: person.phone
         })
 
         enqueue_verify(cc)
         :ok
 
-      :none ->
-        Transition.stage(cc, :contact, :fall)
-
-        {:ok, _} =
-          Transition.terminate(cc, :no_contacts, reason: no_match_reason(campaign, titles))
-
-        :ok
+      {:error, error} ->
+        # Another company in this campaign claimed the address between the check
+        # above and this write. Anything else is a real failure and must not be
+        # reported to the user as a duplicate.
+        if ContactDedup.duplicate_error?(error) do
+          title_rung_missed(
+            cc,
+            campaign,
+            "#{person.email} is already being contacted in this campaign"
+          )
+        else
+          {:error, error}
+        end
     end
   end
+
+  defp unpicked_reason(_campaign, [], [_ | _] = dupes) do
+    emails = dupes |> Enum.map(& &1.email) |> Enum.reject(&is_nil/1) |> Enum.join(", ")
+    "everyone found here is already being contacted in this campaign (#{emails})"
+  end
+
+  defp unpicked_reason(campaign, titles, _dupes), do: no_match_reason(campaign, titles)
 
   defp run(cc, company, campaign, pages, haystack) do
     case Svc.ExtractContacts.run(haystack,
@@ -108,26 +163,18 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
            subject: {:campaign_company, cc.id}
          ) do
       {:ok, []} ->
-        Transition.stage(cc, :contact, :fall)
-
-        {:ok, _} =
-          Transition.terminate(cc, :no_contacts, reason: "no named people on contact pages")
-
-        :ok
+        title_rung_missed(cc, campaign, "no named people on contact pages")
 
       {:ok, candidates} ->
         validated = validate_all(candidates, haystack)
 
         cond do
           validated == [] ->
-            Transition.stage(cc, :contact, :fall)
-
-            {:ok, _} =
-              Transition.terminate(cc, :no_contacts,
-                reason: "extracted #{length(candidates)} contact(s); none verified in markdown"
-              )
-
-            :ok
+            title_rung_missed(
+              cc,
+              campaign,
+              "extracted #{length(candidates)} contact(s); none verified in markdown"
+            )
 
           true ->
             persist_and_finish(cc, company, campaign, pages, validated)
@@ -149,8 +196,6 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
   end
 
   defp persist_and_finish(cc, company, campaign, pages, validated) do
-    titles = Enum.map(validated, & &1.title)
-    picked_idx = pick_index(campaign.target_job_title, titles, cc.campaign_id, cc.id)
     source_page_id = pick_source_page(pages)
 
     persisted =
@@ -170,33 +215,11 @@ defmodule Colt.Jobs.Enrichment.ExtractContacts do
       end)
 
     # Always touch the company so the persisted people seed the freshness cache,
-    # even when none match this campaign's target.
+    # even when none match this campaign's target. Everyone found is persisted;
+    # the duplicate filter only governs who we *pick*, not who we remember.
     {:ok, _} = Company.touch_enriched(company)
 
-    case picked_idx do
-      i when is_integer(i) ->
-        picked_person = Enum.at(persisted, i)
-        {:ok, _} = CampaignCompany.set_picked_person(cc, picked_person.id)
-        Transition.stage(cc, :contact, :done)
-
-        broadcast_contact(cc, %{
-          contact_name: picked_person.name,
-          contact_title: picked_person.title,
-          contact_email: picked_person.email,
-          contact_phone: picked_person.phone
-        })
-
-        enqueue_verify(cc)
-        :ok
-
-      :none ->
-        Transition.stage(cc, :contact, :fall)
-
-        {:ok, _} =
-          Transition.terminate(cc, :no_contacts, reason: no_match_reason(campaign, titles))
-
-        :ok
-    end
+    pick_best(cc, campaign, persisted)
   end
 
   defp no_match_reason(campaign, titles) do

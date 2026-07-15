@@ -30,7 +30,9 @@ defmodule Colt.Resources.CampaignCompany do
     define :mark_no_contacts
     define :mark_verify_failed, args: [:reason]
     define :set_icp_reason, args: [:icp_reason]
-    define :set_picked_person, args: [:picked_person_id]
+    define :mark_website_skipped
+    define :set_picked_person, args: [:picked_person_id, :picked_email]
+    define :picked_with_email, args: [:campaign_id, :picked_email]
     define :list_for_campaign, args: [:campaign_id]
     define :next_unpromoted, args: [:campaign_id], not_found_error?: false
     define :page_for_funnel, args: [:campaign_id, :statuses]
@@ -154,6 +156,11 @@ defmodule Colt.Resources.CampaignCompany do
       change set_attribute(:icp_reason, arg(:icp_reason))
     end
 
+    update :mark_website_skipped do
+      description "Record that this company stayed in the funnel without a website, so the pills stay honest across a reload."
+      change set_attribute(:skipped_website?, true)
+    end
+
     update :mark_failed do
       argument :failed_stage, :atom,
         constraints: [one_of: [:website, :icp, :contact, :verify]],
@@ -214,10 +221,24 @@ defmodule Colt.Resources.CampaignCompany do
     end
 
     update :set_picked_person do
-      accept [:picked_person_id]
+      description "Pick (or clear) this company's contact. :picked_email travels with the pick so the campaign-wide uniqueness index can see it — pass the person's email, lowercased."
+      accept [:picked_person_id, :picked_email]
       argument :picked_person_id, :uuid, allow_nil?: true
+      argument :picked_email, :string, allow_nil?: true
       change set_attribute(:picked_person_id, arg(:picked_person_id))
+      change set_attribute(:picked_email, arg(:picked_email))
       require_atomic? false
+    end
+
+    read :picked_with_email do
+      description "Rows in this campaign already pointing at this address. Backs the duplicate-contact check."
+      argument :campaign_id, :uuid, allow_nil?: false
+      argument :picked_email, :string, allow_nil?: false
+
+      filter expr(
+               campaign_id == ^arg(:campaign_id) and
+                 picked_email == ^arg(:picked_email)
+             )
     end
 
     update :mark_no_contacts do
@@ -268,8 +289,20 @@ defmodule Colt.Resources.CampaignCompany do
       constraints: [one_of: [:website, :icp, :contact, :verify]],
       public?: true
 
+    attribute :skipped_website?, :boolean,
+      allow_nil?: false,
+      default: false,
+      public?: true,
+      description:
+        "Kept in the funnel with no website (campaign has require_website? off). The website and ICP stages never ran, so the pills must render :skip — without this the reload path would derive them as :done and claim checks we never made."
+
     attribute :included_in_export, :boolean, allow_nil?: false, default: true, public?: true
     attribute :picked_person_id, :uuid, public?: true
+
+    attribute :picked_email, :string,
+      public?: true,
+      description:
+        "Lowercased email of the picked person, denormalised off Person purely so (campaign_id, picked_email) can carry a unique index. The same human is a separate Person row per company — aare.kulli@gmail.com exists on four — so picked_person_id cannot detect that we're about to email one person twice in a campaign."
 
     create_timestamp :inserted_at
     update_timestamp :updated_at
@@ -287,6 +320,13 @@ defmodule Colt.Resources.CampaignCompany do
 
   identities do
     identity :campaign_company, [:campaign_id, :company_id]
+
+    # One human, one email, per campaign. Postgres treats NULLs as distinct, so
+    # the many not-yet-picked rows don't collide with each other. This is the
+    # actual guarantee — the pre-check in ContactDedup only saves churn; two
+    # concurrent Oban jobs resolving the same owner both pass that check and one
+    # of them lands here.
+    identity :campaign_picked_email, [:campaign_id, :picked_email]
   end
 
   @doc false

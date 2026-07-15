@@ -62,10 +62,13 @@ defmodule Colt.Services.Migration.VerifyAll do
     Broadcast.stage(cc.campaign_id, cc.id, :verify, :work)
 
     case VerifyEmail.run(person.email) do
-      {:ok, :valid} ->
-        {:ok, _} = Person.set_verification(person, :valid)
+      # Catch-all counts as deliverable here for the same reason as in
+      # Jobs.Enrichment.VerifyEmail: these addresses were published or filed by
+      # a human, never guessed.
+      {:ok, status} when status in [:valid, :catch_all] ->
+        {:ok, _} = Person.set_verification(person, status)
         Broadcast.stage(cc.campaign_id, cc.id, :verify, :done)
-        Logger.info("[VerifyAll] cc=#{cc.id} #{person.email} => valid")
+        Logger.info("[VerifyAll] cc=#{cc.id} #{person.email} => #{status}")
         :valid
 
       {:ok, :invalid} ->

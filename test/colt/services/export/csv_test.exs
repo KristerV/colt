@@ -92,7 +92,12 @@ defmodule Colt.Services.Export.CsvTest do
       )
       |> Ash.create(authorize?: false)
 
-    {:ok, cc} = CampaignCompany.set_picked_person(cc, person.id, actor: user, authorize?: false)
+    {:ok, cc} =
+      CampaignCompany.set_picked_person(cc, person.id, person.email,
+        actor: user,
+        authorize?: false
+      )
+
     {:ok, _cc} = CampaignCompany.mark_enriched(cc, actor: user, authorize?: false)
 
     person

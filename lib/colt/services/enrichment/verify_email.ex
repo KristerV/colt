@@ -2,8 +2,18 @@ defmodule Colt.Services.Enrichment.VerifyEmail do
   @moduledoc """
   Calls MyEmailVerifier to check whether a single email address is real.
 
-  Treats `"Valid"` and `"Catch-all"` as deliverable; everything else as
-  invalid. Transport-level errors bubble up so the caller can retry.
+  Returns `{:ok, :valid | :catch_all | :invalid}`. Transport-level errors bubble
+  up so the caller can retry.
+
+  `:catch_all` is reported rather than folded into `:valid`, because **what it
+  means depends on where the address came from** and only the caller knows that:
+
+  - A **scraped or registry-given** address on a catch-all domain is still good —
+    a human published it, the domain accepting everything doesn't unpublish it.
+  - A **guessed** address on a catch-all domain is worthless — the domain accepts
+    every local part, so "it verified" carries no information at all.
+
+  See `docs/specs/contact-acquisition.md` §3.
   """
   require Logger
 
@@ -50,7 +60,7 @@ defmodule Colt.Services.Enrichment.VerifyEmail do
     result =
       case status do
         "Valid" -> :valid
-        "Catch-all" -> :valid
+        "Catch-all" -> :catch_all
         _ -> :invalid
       end
 

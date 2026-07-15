@@ -3,7 +3,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
   §6.6 — Claude Sonnet 4.5 decides whether the company matches the
   campaign's ICP description, plus any user-added IcpLearning exclusions.
 
-  Match  → enqueue PickContactPages.
+  Match  → enter the contact ladder (`ResolveContact`).
   Reject → terminal `:rejected` with reason (also nils picked_person_id so
            a previously :enriched row drops out of the export cleanly).
   """
@@ -17,7 +17,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
       states: [:available, :scheduled, :executing, :retryable]
     ]
 
-  alias Colt.Jobs.Enrichment.PickContactPages
+  alias Colt.Jobs.Enrichment.ResolveContact
   alias Colt.Resources.{Campaign, CampaignCompany, Company, IcpLearning}
   alias Colt.Services.Enrichment.{ClassifyIcp, FailureMessage, Transition}
 
@@ -34,7 +34,18 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
       learnings = load_learnings(cc.campaign_id)
 
       cond do
-        icp == "" or summary == "" ->
+        # Nothing to check against. With no site there's no summary, and the ICP
+        # check reads the summary — so it cannot run. Mark it :skip rather than
+        # :done: the company is going through unjudged, and the pill should say
+        # so instead of claiming a pass it never earned. Reachable only when the
+        # campaign allows website-less targets; otherwise CheckWebsite/
+        # GoogleSearch already dropped them as :no_website.
+        summary == "" ->
+          Transition.stage(cc, :icp, :skip)
+          enqueue_next(cc)
+          :ok
+
+        icp == "" ->
           Transition.stage(cc, :icp, :done)
           enqueue_next(cc)
           :ok
@@ -54,7 +65,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
 
             {:ok, %{match: false, reason: reason}} ->
               Transition.stage(cc, :icp, :fall)
-              {:ok, _} = CampaignCompany.set_picked_person(cc, nil, authorize?: false)
+              {:ok, _} = CampaignCompany.set_picked_person(cc, nil, nil, authorize?: false)
               {:ok, _} = Transition.terminate(cc, :rejected, reason: reason)
               :ok
 
@@ -76,7 +87,7 @@ defmodule Colt.Jobs.Enrichment.MatchICP do
   end
 
   defp enqueue_next(cc) do
-    %{campaign_company_id: cc.id} |> PickContactPages.new() |> Oban.insert!()
+    %{campaign_company_id: cc.id} |> ResolveContact.new() |> Oban.insert!()
   end
 
   defp load_learnings(campaign_id) do

@@ -56,6 +56,7 @@ defmodule Colt.Resources.Company do
     define :market_stats
     define :set_website, args: [:website_url, :website_source]
     define :set_generic_email, args: [:generic_email]
+    define :set_registry_email_kind, args: [:registry_email_kind]
     define :set_ai_summary, args: [:ai_summary]
     define :touch_enriched
     define :touch_website_searched
@@ -128,7 +129,7 @@ defmodule Colt.Resources.Company do
     end
 
     create :upsert_details do
-      description "Bulk-upserts the yldandmed-sourced fields (website, industry, generic email)."
+      description "Bulk-upserts the yldandmed-sourced fields (website, industry, registry email)."
 
       accept [
         :registry_code,
@@ -138,12 +139,12 @@ defmodule Colt.Resources.Company do
         :industry_code,
         :website_url,
         :website_source,
-        :generic_email
+        :registry_email
       ]
 
       upsert? true
       upsert_identity :registry_code_market
-      upsert_fields [:industry_code, :website_url, :website_source, :generic_email]
+      upsert_fields [:industry_code, :website_url, :website_source, :registry_email]
     end
 
     update :update_basic do
@@ -153,8 +154,8 @@ defmodule Colt.Resources.Company do
     end
 
     update :patch_details do
-      description "Patch fields sourced from yldandmed (website, industry, generic email)."
-      accept [:industry_code, :website_url, :website_source, :generic_email]
+      description "Patch fields sourced from yldandmed (website, industry, registry email). Mirrors :upsert_details' field set — :generic_email is not here because it comes from the landing scrape, not the registry."
+      accept [:industry_code, :website_url, :website_source, :registry_email]
       require_atomic? false
     end
 
@@ -175,6 +176,14 @@ defmodule Colt.Resources.Company do
       require_atomic? false
     end
 
+    update :set_registry_email_kind do
+      description "Cache the AI verdict on whether :registry_email is a personal address or a shared inbox."
+      accept [:registry_email_kind]
+      argument :registry_email_kind, :atom, allow_nil?: false
+      change set_attribute(:registry_email_kind, arg(:registry_email_kind))
+      require_atomic? false
+    end
+
     update :set_ai_summary do
       accept [:ai_summary]
       argument :ai_summary, :string, allow_nil?: false
@@ -191,6 +200,10 @@ defmodule Colt.Resources.Company do
       change set_attribute(:ai_summary, nil)
       change set_attribute(:generic_email, nil)
       change set_attribute(:last_enriched_at, nil)
+
+      # :registry_email / :registry_email_kind are deliberately NOT cleared —
+      # the address is registry-sourced, not enrichment-derived, and re-running
+      # the pipeline must not destroy data only a full re-ingest can restore.
 
       require_atomic? false
     end
@@ -375,6 +388,18 @@ defmodule Colt.Resources.Company do
       public?: true
 
     attribute :generic_email, :string, public?: true
+
+    attribute :registry_email, :string,
+      public?: true,
+      description:
+        "Contact email as filed with the business registry. Distinct from :generic_email, which is the info@-style inbox scraped from the company's own site. Often a personal address — 66% of EE rows are on free domains."
+
+    attribute :registry_email_kind, :atom,
+      constraints: [one_of: [:personal, :generic]],
+      public?: true,
+      description:
+        "Cached AI verdict on :registry_email. nil = not yet classified. :personal makes it the owner rung's candidate; :generic demotes it to the info@ rung."
+
     attribute :ai_summary, :string, public?: true
     attribute :last_enriched_at, :utc_datetime_usec, public?: true
     attribute :website_search_attempted_at, :utc_datetime_usec, public?: true

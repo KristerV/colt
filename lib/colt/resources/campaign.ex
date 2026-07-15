@@ -73,8 +73,30 @@ defmodule Colt.Resources.Campaign do
     end
 
     update :set_icp do
-      description "View 1 — set ICP description, target job title, and business model."
-      accept [:icp_description, :target_job_title, :business_model]
+      description "View 1 — set ICP description, contact rungs, and business model."
+
+      accept [
+        :icp_description,
+        :target_job_title,
+        :business_model,
+        :reach_owner?,
+        :reach_title?,
+        :reach_generic?,
+        :require_website?
+      ]
+
+      validate fn changeset, _ ->
+        rungs = [:reach_owner?, :reach_title?, :reach_generic?]
+
+        if Enum.any?(rungs, &Ash.Changeset.get_attribute(changeset, &1)) do
+          :ok
+        else
+          {:error,
+           field: :reach_owner?,
+           message: "pick at least one way to reach someone, or the campaign can't find contacts"}
+        end
+      end
+
       require_atomic? false
     end
 
@@ -163,6 +185,36 @@ defmodule Colt.Resources.Campaign do
     attribute :name, :string, allow_nil?: false, public?: true
     attribute :icp_description, :string, public?: true, constraints: [max_length: 2000]
     attribute :target_job_title, :string, public?: true
+
+    # The contact rungs. Tried in the fixed order owner -> title -> generic;
+    # these only say which rungs we're willing to land on. See
+    # docs/specs/contact-acquisition.md §4 for why the order isn't user-editable.
+    attribute :reach_owner?, :boolean,
+      default: true,
+      allow_nil?: false,
+      public?: true,
+      description:
+        "Owner rung: use the registry contact email when it names a person. Cheapest rung — resolves with no scraping at all."
+
+    attribute :reach_title?, :boolean,
+      default: true,
+      allow_nil?: false,
+      public?: true,
+      description:
+        "Job-title rung: scrape contact pages and pick the person matching :target_job_title. The only rung that needs the contact-page subchain."
+
+    attribute :reach_generic?, :boolean,
+      default: false,
+      allow_nil?: false,
+      public?: true,
+      description: "Generic-inbox rung: fall back to the company's info@-style shared mailbox."
+
+    attribute :require_website?, :boolean,
+      default: true,
+      allow_nil?: false,
+      public?: true,
+      description:
+        "When true, a company with no discoverable website is dropped (:no_website), as before. When false it stays in the funnel on registry data alone — but ICP cannot be checked without a site, so targeting rests on the structured filters."
 
     attribute :business_model, :atom,
       constraints: [one_of: [:b2b, :b2c, :both]],

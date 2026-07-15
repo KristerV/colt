@@ -4,16 +4,18 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   registry's URL was dead.
 
   Hit  → save `website_url`, source `:google`, enqueue FetchLanding.
-  Miss → terminal `:no_website`.
+  Miss → `NoWebsite` decides: drop as `:no_website`, or carry on without a site
+         if the campaign allows it.
   """
   use Oban.Worker, queue: :ai, max_attempts: 2, priority: 9
 
   alias Colt.Jobs.Enrichment.FetchLanding
-  alias Colt.Resources.{CampaignCompany, Company}
+  alias Colt.Resources.{Campaign, CampaignCompany, Company}
 
   alias Colt.Services.Enrichment.{
     Broadcast,
     FailureMessage,
+    NoWebsite,
     PickBestResult,
     Suppression,
     Transition
@@ -84,9 +86,8 @@ defmodule Colt.Jobs.Enrichment.GoogleSearch do
   end
 
   defp mark_no_website(cc) do
-    Transition.stage(cc, :website, :fall)
-    {:ok, _} = Transition.terminate(cc, :no_website)
-    :ok
+    {:ok, campaign} = Campaign.get(cc.campaign_id, authorize?: false)
+    NoWebsite.run(cc, campaign)
   end
 
   defp fail(cc, reason) do

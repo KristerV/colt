@@ -82,7 +82,8 @@ defmodule Colt.Jobs.Enrichment.FetchLanding do
   defp finish_fetch(cc, company, html, fetcher, final_url) do
     case FromHtml.run(html) do
       {:ok, markdown} ->
-        {:ok, generic_email} = ExtractGenericEmail.run(html, uri_host(final_url))
+        {:ok, generic_email} =
+          ExtractGenericEmail.run(html, uri_host(final_url), campaign_id: cc.campaign_id)
 
         {:ok, _page} =
           Page.upsert(%{

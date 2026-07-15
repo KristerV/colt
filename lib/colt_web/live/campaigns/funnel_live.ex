@@ -415,7 +415,16 @@ defmodule ColtWeb.Campaigns.FunnelLive do
     # always match the outcome — guards against missed/out-of-order :stage
     # broadcasts (e.g. worker crashes before emitting :fail).
     if terminal?(new_row.status) and not terminal?(row.status) do
-      %{new_row | stages: stages_for(new_row.status, new_row.failed_stage, 0)}
+      %{
+        new_row
+        | stages:
+            stages_for(
+              new_row.status,
+              new_row.failed_stage,
+              0,
+              new_row[:skipped_website?] == true
+            )
+      }
     else
       new_row
     end
@@ -487,7 +496,14 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       growth: company.revenue_growth_bucket,
       status: cc.status,
       failed_stage: cc.failed_stage,
-      stages: stages_for(cc.status, cc.failed_stage, scraping_progress(cc, company)),
+      skipped_website?: cc.skipped_website?,
+      stages:
+        stages_for(
+          cc.status,
+          cc.failed_stage,
+          scraping_progress(cc, company),
+          cc.skipped_website?
+        ),
       contact: contact_for(person),
       extra_contacts: Enum.map(extras, &contact_for/1) |> Enum.take(3),
       total_contacts: length(company.persons),
@@ -535,7 +551,13 @@ defmodule ColtWeb.Campaigns.FunnelLive do
   # Snapshot pills from the CC's own persisted state — no Oban job lookups.
   # Maps a status to its frontier stage; reused by mount, new rows, and the
   # terminal re-derivation in apply_patch.
-  defp stages_for(status, failed_stage, scraping_progress) do
+  defp stages_for(status, failed_stage, scraping_progress, skipped_website? \\ false) do
+    status
+    |> base_stages(failed_stage, scraping_progress)
+    |> apply_website_skip(skipped_website?)
+  end
+
+  defp base_stages(status, failed_stage, scraping_progress) do
     case status do
       :scraping -> stage_frontier(scraping_progress, :work)
       :enriched -> stage_frontier(4, :done)
@@ -547,6 +569,16 @@ defmodule ColtWeb.Campaigns.FunnelLive do
       :failed when failed_stage in @stage_keys -> stage_frontier(stage_index(failed_stage), :fail)
       _ -> stage_frontier(0, :idle)
     end
+  end
+
+  # This company had no website and the campaign kept it anyway, so the website
+  # and ICP stages never ran. `stage_frontier/2` marks everything behind the
+  # frontier :done, which would read as "checked and passed" — overwrite both
+  # with :skip so the row says what actually happened.
+  defp apply_website_skip(stages, false), do: stages
+
+  defp apply_website_skip(stages, true) do
+    Map.merge(stages, %{website: :skip, icp: :skip})
   end
 
   # The single source of truth for what the pills mean, shared by the snapshot
