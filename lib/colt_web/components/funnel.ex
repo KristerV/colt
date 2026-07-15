@@ -8,6 +8,7 @@ defmodule ColtWeb.Components.Funnel do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
+  alias Colt.Filters.IndustryLabels
   alias ColtWeb.Components.Liid
 
   @stage_labels %{
@@ -422,6 +423,8 @@ defmodule ColtWeb.Components.Funnel do
         </button>
       </div>
       <div class="flex flex-col gap-6">
+        <.company_facts row={@row} />
+
         <div :if={@row.summary}>
           <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-3">
             {gettext("Company summary")}
@@ -579,6 +582,103 @@ defmodule ColtWeb.Components.Funnel do
     </div>
     """
   end
+
+  # Registry numbers we already hold on the company — no extra query, every field
+  # is carried on the row map by `FunnelLive.row_for/1`. Facts that are nil are
+  # dropped individually; if none survive, the whole card is omitted.
+  attr :row, :map, required: true
+
+  defp company_facts(assigns) do
+    assigns = assign(assigns, :facts, facts_for(assigns.row))
+
+    ~H"""
+    <div :if={@facts != []}>
+      <div class="text-[10px] tracking-[0.12em] uppercase text-inkFaint font-semibold mb-3">
+        {gettext("Company facts")}
+      </div>
+      <div class="px-5 py-[18px] bg-card border border-border rounded-[11px] flex flex-col gap-2">
+        <div
+          :for={{label, value, link} <- @facts}
+          class="flex items-baseline justify-between gap-4"
+        >
+          <span class="text-[11px] text-inkSoft shrink-0">{label}</span>
+          <a
+            :if={link}
+            href={link}
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-1.5 text-[12px] text-ink tnum hover:text-accent underline decoration-border underline-offset-2"
+          >
+            <Liid.icon name="link" size={11} class="text-inkFaint" />{value}
+          </a>
+          <span :if={!link} class="text-[12px] text-ink tnum text-right">{value}</span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp facts_for(row) do
+    [
+      {gettext("Turnover"), format_revenue(Map.get(row, :revenue)), nil},
+      {gettext("Employees"), format_count(Map.get(row, :size)), nil},
+      {gettext("Growth"), growth_label(Map.get(row, :growth)), nil},
+      {gettext("Industry"), industry_label(Map.get(row, :industry_code)), nil},
+      {gettext("Region"), Map.get(row, :region), nil},
+      {gettext("Reg. code"), Map.get(row, :registry_code),
+       registry_url(Map.get(row, :registry_link))}
+    ]
+    |> Enum.reject(fn {_label, value, _link} -> value in [nil, ""] end)
+  end
+
+  # `Colt.CompanyRegistry.link/1` returns %{label:, url:} (or nil), not a bare URL.
+  defp registry_url(%{url: url}) when is_binary(url), do: url
+  defp registry_url(_), do: nil
+
+  defp format_revenue(nil), do: nil
+
+  defp format_revenue(%Decimal{} = d),
+    do: d |> Decimal.round(0) |> Decimal.to_integer() |> format_revenue()
+
+  defp format_revenue(n) when is_integer(n) and n >= 1_000_000,
+    do: "€#{format_decimal(n / 1_000_000, 1)}M"
+
+  defp format_revenue(n) when is_integer(n) and n >= 1_000, do: "€#{div(n, 1_000)}k"
+  defp format_revenue(n) when is_integer(n) and n >= 0, do: "€#{n}"
+  defp format_revenue(_), do: nil
+
+  defp format_decimal(f, places) do
+    :io_lib.format("~.#{places}f", [f]) |> IO.iodata_to_binary() |> trim_zero()
+  end
+
+  defp trim_zero(s) do
+    if String.contains?(s, ".") do
+      s |> String.trim_trailing("0") |> String.trim_trailing(".")
+    else
+      s
+    end
+  end
+
+  defp format_count(n) when is_integer(n) and n >= 0, do: Integer.to_string(n)
+  defp format_count(_), do: nil
+
+  # nil is the normal case, not a gap: the growth rollup leaves the bucket unset
+  # for companies under €100k revenue or with fewer than two filed years.
+  defp growth_label(:growing_10x), do: gettext("Growing · 10×")
+  defp growth_label(:growing_2x), do: gettext("Growing · 2×")
+  defp growth_label(:slow), do: gettext("Growing · slow")
+  defp growth_label(:stagnant), do: gettext("Stagnant")
+  defp growth_label(:declining), do: gettext("Shrinking")
+  defp growth_label(_), do: nil
+
+  defp industry_label(code) when is_binary(code) and code != "" do
+    case IndustryLabels.label(code) do
+      nil -> code
+      label -> "#{label} (#{code})"
+    end
+  end
+
+  defp industry_label(_), do: nil
 
   defp outcome_label(:rejected, _), do: gettext("icp miss")
   defp outcome_label(:no_website, _), do: gettext("no website")
