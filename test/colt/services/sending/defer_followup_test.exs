@@ -50,13 +50,27 @@ defmodule Colt.Services.Sending.DeferFollowupTest do
       %{thread: thread, inbox: inbox} = graph(~U[2026-06-30 09:00:00Z])
 
       later =
-        seed_email(thread, inbox, status: :scheduled, scheduled_at: ~U[2026-07-05 09:00:00Z])
+        seed_email(thread, inbox,
+          position: 2,
+          status: :scheduled,
+          scheduled_at: ~U[2026-07-05 09:00:00Z]
+        )
 
       _earlier =
-        seed_email(thread, inbox, status: :scheduled, scheduled_at: ~U[2026-07-02 09:00:00Z])
+        seed_email(thread, inbox,
+          position: 3,
+          status: :scheduled,
+          scheduled_at: ~U[2026-07-02 09:00:00Z]
+        )
 
-      _sent = seed_email(thread, inbox, status: :sent, scheduled_at: ~U[2026-06-01 09:00:00Z])
-      _approved = seed_email(thread, inbox, status: :approved, scheduled_at: nil)
+      _sent =
+        seed_email(thread, inbox,
+          position: 4,
+          status: :sent,
+          scheduled_at: ~U[2026-06-01 09:00:00Z]
+        )
+
+      _approved = seed_email(thread, inbox, position: 5, status: :approved, scheduled_at: nil)
 
       {:ok, row} = OutboundEmail.next_scheduled_for_thread(thread.id, authorize?: false)
 
@@ -145,11 +159,13 @@ defmodule Colt.Services.Sending.DeferFollowupTest do
     }
   end
 
+  # step_position is incidental to these tests, but one row per step per thread
+  # is a DB invariant now, so each seeded row needs its own.
   defp seed_email(thread, inbox, opts) do
     Seed.seed!(OutboundEmail, %{
       thread_id: thread.id,
       email_account_id: inbox.id,
-      step_position: 1,
+      step_position: Keyword.get(opts, :position, 1),
       status: Keyword.fetch!(opts, :status),
       scheduled_at: Keyword.get(opts, :scheduled_at)
     })

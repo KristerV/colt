@@ -16,6 +16,7 @@ defmodule Colt.Services.Sending.EmailWriterTest do
       language: "en",
       email_steps: [%{kind: :email, position: 0, delay_days: 0}],
       ooo_step: nil,
+      ooo_in_pool?: false,
       all_steps: [%{kind: :email, position: 0, delay_days: 0}]
     }
   end

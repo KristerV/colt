@@ -618,6 +618,13 @@ defmodule ColtWeb.Sending.WriteLive do
       empty_pool?(socket) ->
         seed_blank_drafts(socket, missing)
 
+      # Every email is written and only the OOO welcome-back row is missing —
+      # a contact drafted before this template gained its OOO step. Seed the
+      # blank row directly: a writer run would produce nothing else, and until
+      # the row exists `missing` never empties, so every mount would re-run it.
+      missing -- [SequenceStep.ooo_position()] == [] ->
+        seed_ooo_draft(socket)
+
       true ->
         kick_off_writer(socket)
 
@@ -625,6 +632,26 @@ defmodule ColtWeb.Sending.WriteLive do
         |> assign(state: :drafting, first_email: false)
         |> put_drafts(drafts)
     end
+  end
+
+  defp seed_ooo_draft(socket) do
+    actor = socket.assigns.current_user
+    contact = socket.assigns.contact
+    thread = ensure_thread(contact, actor)
+
+    OutboundEmail.create_draft!(
+      thread.id,
+      SequenceStep.ooo_position(),
+      nil,
+      EmailWriter.starter_body(socket.assigns.sender),
+      socket.assigns.sequence.id,
+      actor: actor,
+      authorize?: actor != nil
+    )
+
+    socket
+    |> assign(contact: %{contact | thread: thread}, first_email: false)
+    |> load_drafts()
   end
 
   # Admin-only: ensure this variant carries an OOO welcome-back step (position
@@ -790,11 +817,26 @@ defmodule ColtWeb.Sending.WriteLive do
       end
     end)
 
-    keep
+    dedupe_by_position(keep)
   end
 
+  # One card per position, whatever the thread holds. A unique index now stops
+  # new duplicates, but rows written before it exist, and the oldest at a
+  # position is the one `SendOne.find_next_email/2` schedules — so show that
+  # one and never a stale twin.
+  defp dedupe_by_position(drafts) do
+    drafts
+    |> Enum.sort_by(& &1.inserted_at, DateTime)
+    |> Enum.uniq_by(& &1.step_position)
+    |> Enum.sort_by(& &1.step_position)
+  end
+
+  # Reconcile here too: the writer just wrote, and this is what renders. Listing
+  # the thread raw would show another variant's leftovers and any duplicate row.
   defp load_drafts(socket) do
-    drafts = list_outbound_drafts(socket.assigns.contact, socket.assigns.current_user)
+    actor = socket.assigns.current_user
+    wanted = Enum.map(socket.assigns.email_steps, & &1.position) ++ ooo_wanted(socket)
+    drafts = reconcile_drafts(socket.assigns.contact, wanted, socket.assigns.sequence.id, actor)
     socket |> assign(state: :default) |> put_drafts(drafts)
   end
 

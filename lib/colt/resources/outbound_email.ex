@@ -402,5 +402,9 @@ defmodule Colt.Resources.OutboundEmail do
 
   identities do
     identity :unique_nylas_message, [:nylas_message_id]
+
+    # One row per sequence step per thread. Manual replies carry a nil
+    # step_position and are exempt (nils_distinct? defaults true).
+    identity :step_per_thread, [:thread_id, :step_position]
   end
 end

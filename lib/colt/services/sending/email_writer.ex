@@ -129,6 +129,7 @@ defmodule Colt.Services.Sending.EmailWriter do
        sequence: sequence,
        email_steps: Enum.filter(sequence.sequence_steps, &(&1.kind == :email)),
        ooo_step: Enum.find(sequence.sequence_steps, &(&1.kind == :ooo)),
+       ooo_in_pool?: false,
        all_steps: sequence.sequence_steps,
        thread: thread,
        language: sequence.language,
@@ -137,16 +138,27 @@ defmodule Colt.Services.Sending.EmailWriter do
   end
 
   # Steps the writer produces a subject+body for: the linear email steps plus,
-  # when the template has an admin-authored OOO welcome-back (position -1), that
-  # step too — so the welcome-back is personalized per contact just like the
+  # when the admin has already authored a welcome-back under this template, the
+  # OOO step too — so the welcome-back is personalized per contact just like the
   # rest of the sequence. Sequences without an OOO step are unaffected.
-  defp writable_steps(ctx), do: ctx.email_steps ++ List.wrap(ctx.ooo_step)
+  defp writable_steps(ctx), do: ctx.email_steps ++ model_ooo_step(ctx)
+
+  # Steps that must end up with a row on the thread. The OOO step is always
+  # here, even when the model isn't writing it: its row is what the editor's
+  # golden card binds to, and a blank row is how the admin gets somewhere to
+  # author the first welcome-back. Without this the feature deadlocks — the
+  # model only writes a welcome-back once one exists in the pool, and one can
+  # only enter the pool by being authored in a card that needs the row.
+  defp draft_steps(ctx), do: ctx.email_steps ++ List.wrap(ctx.ooo_step)
+
+  defp model_ooo_step(%{ooo_in_pool?: true} = ctx), do: List.wrap(ctx.ooo_step)
+  defp model_ooo_step(_ctx), do: []
 
   # Steps shown to the model in the skeleton: linear emails, terminal, then the
-  # OOO welcome-back last (when it's in play — see maybe_drop_ooo_step/2).
+  # OOO welcome-back last (only when the model is writing it).
   defp prompt_steps(ctx) do
     terminal = Enum.filter(ctx.all_steps, &(&1.kind == :terminal))
-    ctx.email_steps ++ terminal ++ List.wrap(ctx.ooo_step)
+    ctx.email_steps ++ terminal ++ model_ooo_step(ctx)
   end
 
   # Load the specific template the contact is being written under. Falls back
@@ -195,22 +207,16 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.take(@max_examples)
 
     ctx = Map.put(ctx, :examples, examples)
-    {:ok, maybe_drop_ooo_step(ctx, examples)}
+    {:ok, %{ctx | ooo_in_pool?: ooo_in_pool?(examples)}}
   end
 
-  # The writer produces the welcome-back only when the admin actually authored
-  # one — i.e. a prior -1 example exists in the pool. When the pool has real
-  # examples but none for -1, drop the OOO step so we neither prompt for nor
-  # persist a welcome-back; the feature stays off until the admin fills the
-  # golden card. An empty pool is the hand-written seed path: keep the step so
-  # the blank -1 draft is seeded for the admin to author.
-  defp maybe_drop_ooo_step(%{ooo_step: nil} = ctx, _examples), do: ctx
-  defp maybe_drop_ooo_step(ctx, []), do: ctx
-
-  defp maybe_drop_ooo_step(ctx, examples) do
-    if Enum.any?(examples, fn ex -> Enum.any?(ex.steps, &(&1.position == -1)) end),
-      do: ctx,
-      else: %{ctx | ooo_step: nil}
+  # The model writes a welcome-back only once the admin has authored one — i.e.
+  # a prior -1 example exists in the pool. Until then the OOO step still gets a
+  # blank row (see draft_steps/1) for the admin to author in; it just isn't
+  # prompted for or AI-filled, so `InjectOooWelcomeBack.authored?/2` sees an
+  # empty body and the feature stays off.
+  defp ooo_in_pool?(examples) do
+    Enum.any?(examples, fn ex -> Enum.any?(ex.steps, &(&1.position == -1)) end)
   end
 
   # A thread's user-edited rows, grouped upstream by thread.
@@ -610,10 +616,7 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp clean_body(_), do: ""
 
   defp persist(ctx, prompt, ai_steps, actor) do
-    existing =
-      OutboundEmail.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
-      |> Enum.filter(&(&1.status == :drafted))
-      |> MapSet.new(& &1.step_position)
+    existing = existing_positions(ctx, actor)
 
     meta = %{
       "example_ids" => prompt.example_ids,
@@ -640,28 +643,40 @@ defmodule Colt.Services.Sending.EmailWriter do
         )
       end)
 
-    {:ok, emails}
+    covered = MapSet.union(existing, MapSet.new(ai_steps, & &1.position))
+    {:ok, emails ++ seed_blanks(ctx, covered, actor)}
   end
 
-  # No examples yet for this template: create blank :drafted rows for each
-  # email step so the editor renders the full sequence with empty fields and
-  # the user writes the first one by hand.
-  defp persist_blank(ctx, actor) do
-    existing =
-      OutboundEmail.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
-      |> Enum.map(& &1.step_position)
-      |> MapSet.new()
+  # Every position already on the thread, whatever its status. Filtering to
+  # :drafted here meant an approved/sent contact looked unwritten to the
+  # writer, so a re-run laid a second full set of drafts over the live one —
+  # inert to the sender, but rendered as duplicate cards in the editor.
+  defp existing_positions(ctx, actor) do
+    OutboundEmail.list_for_thread!(ctx.thread.id, actor: actor, authorize?: actor != nil)
+    |> MapSet.new(& &1.step_position)
+  end
 
+  # Rows the model didn't write and the thread doesn't have yet — in practice
+  # the OOO welcome-back before it enters the pool. Seeded with the signature
+  # so the admin has a card to author in.
+  defp seed_blanks(ctx, covered, actor) do
     seed = starter_body(ctx.sender)
 
-    writable_steps(ctx)
-    |> Enum.reject(&MapSet.member?(existing, &1.position))
+    draft_steps(ctx)
+    |> Enum.reject(&MapSet.member?(covered, &1.position))
     |> Enum.map(fn step ->
       OutboundEmail.create_draft!(ctx.thread.id, step.position, nil, seed, ctx.sequence.id,
         actor: actor,
         authorize?: actor != nil
       )
     end)
+  end
+
+  # No examples yet for this template: create blank :drafted rows for each
+  # email step so the editor renders the full sequence with empty fields and
+  # the user writes the first one by hand.
+  defp persist_blank(ctx, actor) do
+    seed_blanks(ctx, existing_positions(ctx, actor), actor)
   end
 
   @doc """
