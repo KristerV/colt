@@ -24,6 +24,7 @@ defmodule Colt.Resources.Campaign do
     define :list_auto_approve_active
     define :rename, args: [:name]
     define :update_filters, args: [:filters]
+    define :save_draft_filters, args: [:filters]
     define :update_target, args: [:target_contact_count]
     define :finalize, args: [:target_contact_count]
     define :mark_sending_initialized
@@ -104,6 +105,12 @@ defmodule Colt.Resources.Campaign do
       description "Persist filter selection and advance a draft to :collecting (never downgrades)."
       accept [:filters]
       change {Colt.Resources.Campaign.Changes.AdvanceStatus, to: :collecting}
+      require_atomic? false
+    end
+
+    update :save_draft_filters do
+      description "Autosave in-progress filter edits. Never advances status — the user is still choosing."
+      accept [:filters]
       require_atomic? false
     end
 

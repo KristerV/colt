@@ -64,6 +64,65 @@ defmodule ColtWeb.Campaigns.FiltersLiveTest do
 
   # seed_user is the first user in an empty table → auto-promoted to admin,
   # so it clears the pricing gate and proceeds into setup.
+  defp setup_draft(user) do
+    {:ok, c} = Campaign.create_draft("Draft hunt", actor: user)
+    {:ok, c} = Campaign.set_icp(c, "B2B", "CTO", :b2b, actor: user)
+    c
+  end
+
+  test "draft filter edits autosave, so navigating away without confirm keeps them", %{conn: conn} do
+    seed_companies()
+    user = seed_user()
+    c = setup_draft(user)
+    conn = log_in(conn, user)
+
+    {:ok, view, _} = live(conn, ~p"/campaigns/#{c.id}/filters")
+
+    render_click(view, "toggle", %{"field" => "markets", "v" => "ee"})
+    render_click(view, "toggle", %{"field" => "growth_buckets", "v" => "growing_2x"})
+
+    # The autosave rides the count-reload debounce (@debounce_ms 2_000).
+    Process.sleep(2_400)
+
+    {:ok, fresh} = Campaign.get(c.id, actor: user)
+    assert Map.get(fresh.filters, "markets") == ["ee"]
+    assert Map.get(fresh.filters, "growth_buckets") == ["growing_2x"]
+
+    # Autosave persists, but must not advance the campaign out of :draft —
+    # only "confirm" does that.
+    assert fresh.status == :draft
+  end
+
+  test "merely opening the filters page does not write to the campaign", %{conn: conn} do
+    seed_companies()
+    user = seed_user()
+    c = setup_draft(user)
+    conn = log_in(conn, user)
+
+    {:ok, _view, _} = live(conn, ~p"/campaigns/#{c.id}/filters")
+    Process.sleep(2_400)
+
+    {:ok, fresh} = Campaign.get(c.id, actor: user)
+    assert fresh.updated_at == c.updated_at
+  end
+
+  test "filters on a live (:collecting) campaign stay behind confirm, not autosaved", %{
+    conn: conn
+  } do
+    seed_companies()
+    user = seed_user()
+    c = setup_campaign(user)
+    conn = log_in(conn, user)
+
+    {:ok, view, _} = live(conn, ~p"/campaigns/#{c.id}/filters")
+
+    render_click(view, "toggle", %{"field" => "growth_buckets", "v" => "growing_2x"})
+    Process.sleep(2_400)
+
+    {:ok, fresh} = Campaign.get(c.id, actor: user)
+    refute Map.get(fresh.filters, "growth_buckets") == ["growing_2x"]
+  end
+
   test "confirm saves filters and redirects to icp (status stays :collecting)", %{conn: conn} do
     seed_companies()
     user = seed_user()

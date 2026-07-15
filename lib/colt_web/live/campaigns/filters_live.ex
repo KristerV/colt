@@ -13,6 +13,8 @@ defmodule ColtWeb.Campaigns.FiltersLive do
   """
   use ColtWeb, :live_view
 
+  require Logger
+
   alias Colt.Filters
   alias Colt.Filters.IndustryLabels
   alias Colt.Markets
@@ -50,7 +52,7 @@ defmodule ColtWeb.Campaigns.FiltersLive do
         # The summary is ~10 aggregate scans over the full registry; never run it
         # on the dead render (it would hold a pooled connection through the static
         # HTTP mount). Defer to the connected mount and run it off the mount path.
-        if connected?(socket), do: send(self(), :reload)
+        if connected?(socket), do: send(self(), :reload_only)
 
         {:ok, socket}
 
@@ -184,13 +186,54 @@ defmodule ColtWeb.Campaigns.FiltersLive do
     end
   end
 
-  def handle_info(:reload, socket), do: {:noreply, reload_filters(socket)}
+  # Mount seeds the form straight from saved filters, so there is nothing new to
+  # persist — only the counter needs filling in.
+  def handle_info(:reload_only, socket), do: {:noreply, reload_filters(socket)}
+
+  def handle_info(:reload, socket),
+    do: {:noreply, socket |> autosave_filters() |> reload_filters()}
+
+  # Memoize leaks a stray message into our own mailbox: the market counts go
+  # through `Company.market_totals_cached` (defmemop), and when two views want
+  # the same key at once, one runs it and the rest register as waiters. If the
+  # runner dies mid-computation — a user closing the tab is enough — each waiter
+  # sends {self(), :failed} to *every* waiter, itself included (memoize/cache.ex
+  # L166-168), and its own flush only matches messages from the runner. The
+  # value is already returned by then, so this is pure noise; without the clause
+  # it FunctionClauseErrors and takes the view down with it.
+  def handle_info({pid, status}, socket) when is_pid(pid) and status in [:completed, :failed] do
+    {:noreply, socket}
+  end
 
   defp reload_filters_async(socket) do
     if ref = socket.assigns.reload_ref, do: Process.cancel_timer(ref)
     ref = Process.send_after(self(), :reload, @debounce_ms)
     assign(socket, reload_ref: ref, pending?: true)
   end
+
+  # Rides the count-reload debounce so filter edits survive navigating away —
+  # the campaign row already exists by the time this view mounts.
+  #
+  # Draft only, and deliberately so: on a :collecting/:enriching campaign the
+  # filters are driving a live run, so changing them is an edit that belongs
+  # behind "confirm" (which also schedules the Topup). Autosaving those would
+  # mutate a running campaign mid-fiddle.
+  defp autosave_filters(%{assigns: %{campaign: %{status: :draft} = campaign}} = socket) do
+    filters = filter_args(socket.assigns.form)
+
+    case Campaign.save_draft_filters(campaign, filters, actor: socket.assigns.current_user) do
+      {:ok, campaign} ->
+        assign(socket, campaign: campaign)
+
+      {:error, err} ->
+        # Background save: the counter and the confirm button still work, so
+        # surface it in the log rather than throwing an error at the user.
+        Logger.warning("filter autosave failed for #{campaign.id}: #{inspect(err)}")
+        socket
+    end
+  end
+
+  defp autosave_filters(socket), do: socket
 
   defp reload_filters(socket) do
     socket = ensure_market_counts(socket)
