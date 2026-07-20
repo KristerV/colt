@@ -32,6 +32,7 @@ defmodule Colt.Resources.EmailAccount do
 
     define :mark_status, args: [:status, :paused_reason]
     define :touch_sync, args: [:last_sync_at]
+    define :set_inbox_folder_id, args: [:inbox_folder_id]
     define :disconnect
     define :set_quota, args: [:daily_quota]
     define :update_details, args: [:display_name]
@@ -106,6 +107,12 @@ defmodule Colt.Resources.EmailAccount do
       require_atomic? false
     end
 
+    update :set_inbox_folder_id do
+      description "Cache the Nylas inbox folder id (resolved once from /folders) the poller filters on."
+      accept [:inbox_folder_id]
+      require_atomic? false
+    end
+
     update :disconnect do
       description "Set status :disconnected. Caller is expected to revoke at Nylas first."
       accept []
@@ -169,6 +176,11 @@ defmodule Colt.Resources.EmailAccount do
     attribute :display_name, :string, public?: true
 
     attribute :nylas_grant_id, :string, public?: true
+
+    # Nylas v3's `in` message filter takes a folder id (e.g. "v0:<grant>:INBOX"),
+    # NOT the folder name. Resolved once from /folders and cached here so the
+    # 1-minute poller doesn't re-list folders on every run.
+    attribute :inbox_folder_id, :string, public?: true
 
     attribute :tz, :string,
       allow_nil?: false,

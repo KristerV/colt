@@ -10,6 +10,7 @@ defmodule Colt.Nylas do
     * `exchange_callback/1` — swap the auth code for a `grant_id`.
     * `send_message/2` — `POST /v3/grants/{grant_id}/messages/send`.
     * `list_messages/2` — `GET /v3/grants/{grant_id}/messages`.
+    * `list_folders/1` — `GET /v3/grants/{grant_id}/folders`.
     * `get_message/2` — `GET /v3/grants/{grant_id}/messages/{id}`.
     * `revoke/1` — `DELETE /v3/grants/{grant_id}` (server-key auth).
 
@@ -133,13 +134,32 @@ defmodule Colt.Nylas do
     |> handle(:list_messages)
   end
 
+  @doc """
+  List the grant's folders (labels). `GET /v3/grants/{grant_id}/folders`.
+  Used to resolve the real inbox folder id — Nylas v3's `in` filter wants a
+  folder id (e.g. `v0:<grant>:INBOX`), not the literal string `"INBOX"`.
+  """
+  @spec list_folders(Colt.Resources.EmailAccount.t() | String.t()) ::
+          {:ok, list(map())} | {:error, term()}
+  def list_folders(account_or_grant) do
+    grant_id = grant_id_for(account_or_grant)
+
+    request(:get, "/v3/grants/#{grant_id}/folders")
+    |> handle(:list_folders)
+  end
+
   @doc "Fetch one message by Nylas id."
   @spec get_message(Colt.Resources.EmailAccount.t() | String.t(), String.t()) ::
           {:ok, map()} | {:error, term()}
   def get_message(account_or_grant, message_id) when is_binary(message_id) do
     grant_id = grant_id_for(account_or_grant)
 
-    request(:get, "/v3/grants/#{grant_id}/messages/#{message_id}")
+    # IMAP grants report the raw RFC Message-ID (e.g. "<x@mail.gmail.com>") as
+    # the message id; its `<`, `>`, `@`, `=` must be percent-encoded or the
+    # request target is rejected.
+    encoded = URI.encode(message_id, &URI.char_unreserved?/1)
+
+    request(:get, "/v3/grants/#{grant_id}/messages/#{encoded}")
     |> handle(:get_message)
   end
 

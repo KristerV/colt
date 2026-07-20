@@ -70,10 +70,33 @@ defmodule Colt.Services.Sending.IngestInbound do
   end
 
   defp match_thread(account, msg) do
-    case msg.nylas_thread_id &&
-           Thread.find_by_nylas_thread_id(msg.nylas_thread_id, authorize?: false) do
-      {:ok, %Thread{} = thread} -> attach_to_thread(account, thread, msg, false)
-      _ -> domain_fallback(account, msg)
+    case thread_by_nylas_id(msg.nylas_thread_id) || thread_by_outbound(msg.nylas_thread_id) do
+      %Thread{} = thread -> attach_to_thread(account, thread, msg, false)
+      nil -> domain_fallback(account, msg)
+    end
+  end
+
+  defp thread_by_nylas_id(nil), do: nil
+
+  defp thread_by_nylas_id(nylas_thread_id) do
+    case Thread.find_by_nylas_thread_id(nylas_thread_id, authorize?: false) do
+      {:ok, %Thread{} = thread} -> thread
+      _ -> nil
+    end
+  end
+
+  # Nylas groups a reply under one of OUR sent message-ids, which is often a
+  # later step than the id stamped on the Thread — so fall back to resolving
+  # the thread through the outbound row that owns that message-id.
+  defp thread_by_outbound(nil), do: nil
+
+  defp thread_by_outbound(nylas_thread_id) do
+    case OutboundEmail.find_by_nylas_message(nylas_thread_id,
+           load: [:thread],
+           authorize?: false
+         ) do
+      {:ok, %OutboundEmail{thread: %Thread{} = thread}} -> thread
+      _ -> nil
     end
   end
 

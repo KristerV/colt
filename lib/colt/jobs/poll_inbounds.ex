@@ -36,9 +36,36 @@ defmodule Colt.Jobs.PollInbounds do
   end
 
   defp poll_one(%EmailAccount{} = account) do
+    case inbox_folder_id(account) do
+      {:ok, folder_id} -> poll_folder(account, folder_id)
+      :error -> :error
+    end
+  end
+
+  # Nylas v3's `in` filter matches on folder *id*, not name — passing "INBOX"
+  # silently returns an empty page. Resolve the id from /folders once and cache
+  # it on the account.
+  defp inbox_folder_id(%EmailAccount{inbox_folder_id: id}) when is_binary(id), do: {:ok, id}
+
+  defp inbox_folder_id(%EmailAccount{} = account) do
+    with {:ok, folders} when is_list(folders) <- Nylas.list_folders(account),
+         %{"id" => id} when is_binary(id) <- Enum.find(folders, &inbox_folder?/1),
+         {:ok, _} <- EmailAccount.set_inbox_folder_id(account, id, authorize?: false) do
+      {:ok, id}
+    else
+      other ->
+        Logger.warning("poll_inbounds: #{account.address} no inbox folder — #{inspect(other)}")
+        :error
+    end
+  end
+
+  defp inbox_folder?(%{"attributes" => attrs}) when is_list(attrs), do: "\\Inbox" in attrs
+  defp inbox_folder?(_), do: false
+
+  defp poll_folder(%EmailAccount{} = account, folder_id) do
     since = lookback(account.last_sync_at)
 
-    case Nylas.list_messages(account, received_after: since, in: "INBOX", limit: @page_limit) do
+    case Nylas.list_messages(account, received_after: since, in: folder_id, limit: @page_limit) do
       {:ok, messages} when is_list(messages) ->
         Enum.each(messages, fn msg ->
           case Map.get(msg, "id") do

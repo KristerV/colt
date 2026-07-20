@@ -29,6 +29,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :list_sent_for_user_since, args: [:user_id, :since]
     define :recent_to_recipient, args: [:recipient_email, :campaign_id, :since]
     define :find_to_recipient_in_inbox, args: [:email_account_id, :recipient_email]
+    define :find_by_nylas_message, args: [:nylas_message_id]
     define :list_halt_eligible_for_thread, args: [:thread_id]
     define :next_scheduled_for_thread, args: [:thread_id]
     define :list_user_edited_for_sequence, args: [:sequence_id, :limit]
@@ -167,6 +168,19 @@ defmodule Colt.Resources.OutboundEmail do
              )
 
       prepare build(sort: [sent_at: :desc, inserted_at: :desc], limit: 1)
+      get? true
+    end
+
+    read :find_by_nylas_message do
+      description """
+      Find a send by the message-id we stored for it. Nylas threads a reply
+      onto one of our sent messages' ids rather than the id we stamped on the
+      Thread, so this is how an inbound reply is traced back to its thread.
+      """
+
+      argument :nylas_message_id, :string, allow_nil?: false
+
+      filter expr(nylas_message_id == ^arg(:nylas_message_id))
       get? true
     end
 
