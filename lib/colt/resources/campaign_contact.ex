@@ -75,16 +75,38 @@ defmodule Colt.Resources.CampaignContact do
     end
 
     read :any_committed_for_campaign do
-      description "Up to one contact past pending_approval — the unlock gate for auto-approve (a variant has been seeded)."
+      description """
+      Up to one contact past pending_approval — the unlock gate for
+      auto-approve (a variant has been seeded). Sending-funnel only: a
+      sales-only manual contact has never been sent to, so it must not
+      count as evidence that a variant is seeded.
+      """
+
       argument :campaign_id, :uuid, allow_nil?: false
-      filter expr(campaign_id == ^arg(:campaign_id) and status != :pending_approval)
+
+      filter expr(
+               campaign_id == ^arg(:campaign_id) and status != :pending_approval and
+                 in_funnel_sending? == true
+             )
+
       prepare build(limit: 1)
     end
 
     read :next_pending do
-      description "Oldest contact in :pending_approval for a campaign."
+      description """
+      Oldest contact in :pending_approval for a campaign, in the sending
+      funnel. The `in_funnel_sending?` clause is load-bearing: `status`
+      defaults to `:pending_approval` for every row, including hand-entered
+      sales-only leads who must never be mailed by the sequence.
+      """
+
       argument :campaign_id, :uuid, allow_nil?: false
-      filter expr(campaign_id == ^arg(:campaign_id) and status == :pending_approval)
+
+      filter expr(
+               campaign_id == ^arg(:campaign_id) and status == :pending_approval and
+                 in_funnel_sending? == true
+             )
+
       prepare build(sort: [inserted_at: :asc], limit: 1)
       get? true
     end

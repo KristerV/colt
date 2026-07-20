@@ -7,7 +7,8 @@ defmodule Colt.Services.Sending.AutoDraftAndApprove do
   Pass `inbox_id:` to pin the sending inbox (the starter does, so the email
   schedules into the same account the slot was counted against); omit it and
   the sticky picker chooses. A no-op (`{:ok, :skipped}`) if the contact has
-  already left `:pending_approval`.
+  already left `:pending_approval`, and `{:error, :not_in_sending_funnel}`
+  if it isn't in the sending funnel at all.
 
   Steps:
     1. Pick the least-sent active, already-seeded variant (fair A/B rotation).
@@ -27,6 +28,7 @@ defmodule Colt.Services.Sending.AutoDraftAndApprove do
     inbox_id = Keyword.get(opts, :inbox_id)
 
     with {:ok, contact} <- load_contact(contact_id, actor),
+         :ok <- ensure_in_sending_funnel(contact),
          :pending_approval <- contact.status,
          {:ok, sequence} <- pick_template(contact.campaign_id, actor),
          {:ok, _} <- EmailWriter.run(contact_id, sequence_id: sequence.id, actor: actor),
@@ -46,6 +48,15 @@ defmodule Colt.Services.Sending.AutoDraftAndApprove do
       other -> other
     end
   end
+
+  # Hard gate, independent of the caller's query. `status` is the sending
+  # machine's state and defaults to `:pending_approval` on every row, so a
+  # status check alone will happily draft to a hand-entered sales-only lead
+  # someone is already talking to by phone. Funnel membership is the only
+  # honest answer to "may we mail this person"; refuse loudly rather than
+  # silently skipping, so a caller that shouldn't be here shows up in logs.
+  defp ensure_in_sending_funnel(%{in_funnel_sending?: true}), do: :ok
+  defp ensure_in_sending_funnel(_), do: {:error, :not_in_sending_funnel}
 
   # Cron-driven starts pin the inbox the slot was counted against, so the
   # email schedules into the same account the capacity check used. Manual
