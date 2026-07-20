@@ -11,6 +11,8 @@ defmodule Colt.Services.Sending.ExtractOooReturn do
 
   alias Colt.Resources.InboundEmail
   alias Colt.Services.Ai.Complete
+  alias Colt.Services.Email.HtmlToText
+  alias Colt.Services.Email.SplitQuote
 
   def run(%InboundEmail{} = inbound) do
     with {:ok, raw} <- extract(inbound) do
@@ -89,12 +91,10 @@ defmodule Colt.Services.Sending.ExtractOooReturn do
 
   defp parse_date(_), do: nil
 
-  defp strip_html(text) when is_binary(text) do
-    text
-    |> String.replace(~r{<br\s*/?>}i, "\n")
-    |> String.replace(~r{<[^>]+>}, "")
-    |> String.replace(~r{[ \t]+\n}, "\n")
+  # Quoted history can carry old dates — read the auto-reply text only.
+  defp strip_html(text) do
+    {:ok, plain} = HtmlToText.run(text)
+    {:ok, %{body: body}} = SplitQuote.run(plain)
+    body
   end
-
-  defp strip_html(_), do: ""
 end

@@ -19,6 +19,8 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   alias Colt.Resources.{CampaignContact, InboundEmail}
   alias Colt.Services.Ai.Complete
+  alias Colt.Services.Email.HtmlToText
+  alias Colt.Services.Email.SplitQuote
   alias Colt.Services.Sales.{AutoEnter, RecordStatusEvent}
 
   alias Colt.Services.Sending.{
@@ -239,12 +241,11 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
   defp to_float(_), do: 0.0
 
-  defp strip_html(text) when is_binary(text) do
-    text
-    |> String.replace(~r{<br\s*/?>}i, "\n")
-    |> String.replace(~r{<[^>]+>}, "")
-    |> String.replace(~r{[ \t]+\n}, "\n")
+  # Classify on the *new* text only — the quoted history is our own outbound
+  # pitch, which skews the model toward "interested" and burns tokens.
+  defp strip_html(text) do
+    {:ok, plain} = HtmlToText.run(text)
+    {:ok, %{body: body}} = SplitQuote.run(plain)
+    body
   end
-
-  defp strip_html(_), do: ""
 end

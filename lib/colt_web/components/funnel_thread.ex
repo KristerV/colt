@@ -22,6 +22,8 @@ defmodule ColtWeb.Components.FunnelThread do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
+  alias Colt.Services.Email.HtmlToText
+  alias Colt.Services.Email.SplitQuote
   alias ColtWeb.Components.Liid
 
   # A sequence step that's neither sent nor scheduled has no real moment in
@@ -260,10 +262,12 @@ defmodule ColtWeb.Components.FunnelThread do
         true -> gettext("Reply")
       end
 
-    body =
+    raw_body =
       if inbound?,
         do: assigns.item.email.body,
         else: assigns.item.email.user_body || assigns.item.email.ai_body || ""
+
+    %{body: body, quoted: quoted} = display_body(raw_body)
 
     subject =
       if inbound?,
@@ -282,6 +286,7 @@ defmodule ColtWeb.Components.FunnelThread do
         queued?: queued?,
         step_chip: step_chip,
         body: body,
+        quoted: quoted,
         subject: subject,
         sender: sender
       )
@@ -367,7 +372,19 @@ defmodule ColtWeb.Components.FunnelThread do
           <div :if={@subject} class="text-[13.5px] font-bold tracking-[-0.005em] text-ink mb-1.5">
             {@subject}
           </div>
-          <div phx-no-format class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">{body_text(@body)}</div>
+          <div phx-no-format class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">{@body}</div>
+          <details :if={@quoted} class="mt-2.5">
+            <summary class="cursor-pointer list-none select-none inline-flex items-center gap-1.5 text-[11px] font-semibold text-inkFaint hover:text-accent">
+              <span class="inline-flex items-center justify-center h-[14px] px-1.5 rounded-[4px] bg-paperAlt border border-border leading-none tracking-[0.08em]">
+                ···
+              </span>
+              {gettext("Quoted text")}
+            </summary>
+            <div
+              phx-no-format
+              class="mt-2 px-3 py-2.5 rounded-[8px] bg-bgSoft border border-border text-[12.5px] leading-[1.55] text-inkFaint whitespace-pre-wrap"
+            >{@quoted}</div>
+          </details>
         </div>
       </div>
     </div>
@@ -518,17 +535,12 @@ defmodule ColtWeb.Components.FunnelThread do
   end
 
   # Inbound + manual-reply bodies arrive as HTML; outbound AI drafts are plain
-  # text. Strip tags for a uniform read-only timeline display.
-  defp body_text(text) when is_binary(text) do
-    text
-    |> String.replace(~r/<br\s*\/?>/i, "\n")
-    |> String.replace(~r/<[^>]+>/, "")
-    |> String.replace(~r/[ \t]+\n/, "\n")
-    |> String.replace(~r/\n[ \t]+/, "\n")
-    |> String.trim()
+  # text. The stored body is never touched — this is display only.
+  defp display_body(raw) do
+    {:ok, text} = HtmlToText.run(raw)
+    {:ok, split} = SplitQuote.run(text)
+    split
   end
-
-  defp body_text(_), do: ""
 
   # Feed-line label for a StatusEvent: "from → to", "→ to", or just "to".
   defp event_transition(%{from: from, to: to}) when is_binary(from) and is_binary(to),
