@@ -85,6 +85,7 @@ defmodule Colt.MixProject do
       {:gettext, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
+      {:ab_funnel, github: "KristerV/ab_funnel"},
       {:bandit, "~> 1.5"}
     ]
   end

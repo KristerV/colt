@@ -16,6 +16,7 @@ defmodule ColtWeb.Router do
     plug :put_secure_browser_headers
     plug :load_from_session
     plug ColtWeb.Plugs.Locale
+    plug AbFunnel.Plug.Visitor
   end
 
   pipeline :api do
@@ -76,13 +77,21 @@ defmodule ColtWeb.Router do
       live "/admin/feedback", Admin.FeedbackLive
       live "/admin/system", Admin.SystemLive
       live "/admin/tracking-domain", Admin.TrackingDomainLive
+      live "/admin/deck", Admin.DeckStudioLive
+      live "/admin/deck/:slide_key", Admin.DeckStudioLive
     end
 
     ash_authentication_live_session :public_routes,
-      on_mount: [ColtWeb.LiveLocale, {ColtWeb.LiveUserAuth, :live_user_optional}] do
+      on_mount: [
+        ColtWeb.LiveLocale,
+        {ColtWeb.LiveUserAuth, :live_user_optional},
+        AbFunnel.LiveView
+      ] do
       live "/pricing", PricingLive
       live "/privacy", PrivacyLive
       live "/terms", TermsLive
+      live "/demo", DeckLive
+      live "/demo/:variant", DeckLive
     end
 
     post "/locale", LocaleController, :set
@@ -101,6 +110,7 @@ defmodule ColtWeb.Router do
 
     oban_dashboard("/admin/oban")
     live_dashboard "/admin/phoenix", metrics: ColtWeb.Telemetry
+    live "/admin/ab", AbFunnel.AdminLive
   end
 
   scope "/", ColtWeb do

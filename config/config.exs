@@ -218,6 +218,10 @@ config :colt,
   ash_authentication: [return_error_on_invalid_magic_link_token?: true],
   discord_webhook_url: nil
 
+config :ab_funnel,
+  repo: Colt.Repo,
+  variants: Colt.ABVariants
+
 # Configure the endpoint
 config :colt, ColtWeb.Endpoint,
   url: [host: "localhost"],

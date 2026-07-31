@@ -62,8 +62,36 @@ defmodule ColtWeb.Admin.Summary do
         title: "Tracking",
         value: tracking_domain_summary(),
         path: "/admin/tracking-domain"
+      },
+      %{
+        kicker: "Demo",
+        title: "Deck",
+        value: deck_summary(),
+        path: "/admin/deck"
+      },
+      %{
+        kicker: "Demo",
+        title: "A/B funnel",
+        value: format_int(deck_views()) <> " views",
+        path: "/admin/ab"
       }
     ]
+  end
+
+  defp deck_summary do
+    variants = ColtWeb.Deck.Slides.variants() |> length()
+
+    format_int(variants) <> " variants"
+  end
+
+  # Prospects who pressed play. ab_funnel ships an Ecto schema rather than an Ash
+  # resource, so there is no action to add and call here.
+  defp deck_views do
+    require Ecto.Query
+
+    AbFunnel.Event
+    |> Ecto.Query.where(event: "deck_started")
+    |> Colt.Repo.aggregate(:count)
   end
 
   defp tracking_domain_summary do
@@ -137,11 +165,22 @@ defmodule ColtWeb.Admin.Summary do
       ]}>
         {@tile.title}
       </span>
-      <span
-        :if={Map.get(@tile, :alert)}
-        class="w-1.5 h-1.5 rounded-full bg-red shrink-0"
-        title="needs attention"
-      >
+      <span class="flex items-center gap-1.5 shrink-0">
+        <%!-- Only tiles that leave the app get the marker. An internal tile
+              keeps this strip on the page it opens, so there's nothing to warn
+              about. --%>
+        <ColtWeb.Components.Liid.icon
+          :if={Map.get(@tile, :external)}
+          name="link"
+          size={11}
+          class="text-inkFaint"
+        />
+        <span
+          :if={Map.get(@tile, :alert)}
+          class="w-1.5 h-1.5 rounded-full bg-red"
+          title="needs attention"
+        >
+        </span>
       </span>
     </div>
     <div class={[

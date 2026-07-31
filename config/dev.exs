@@ -76,8 +76,10 @@ config :colt, ColtWeb.Endpoint,
   live_reload: [
     web_console_logger: true,
     patterns: [
-      # Static assets, except user uploads
-      ~r"priv/static/(?!uploads/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
+      # Static assets, except user uploads and recorded deck media. The deck
+      # studio writes a clip into priv/static while the take is still being
+      # saved; reloading the page on that would destroy the upload in flight.
+      ~r"priv/static/(?!uploads/|media/).*\.(js|css|png|jpeg|jpg|gif|svg)$",
       # Gettext translations
       ~r"priv/gettext/.*\.po$",
       # Router, Controllers, LiveViews and LiveComponents

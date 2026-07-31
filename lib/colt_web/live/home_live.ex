@@ -171,6 +171,16 @@ defmodule ColtWeb.HomeLive do
         </div>
         <div class="ml-auto flex items-center gap-3.5">
           <ColtWeb.Components.Liid.language_picker />
+          <%!-- Admin-only shortcut: the landing page is the default destination,
+                so without this /admin is always two clicks away. --%>
+          <.link
+            :if={@current_user && @current_user.is_admin}
+            navigate={~p"/admin"}
+            class="flex items-center gap-1.5 text-[14px] font-medium no-underline"
+            style="color:var(--gold);"
+          >
+            <ColtWeb.Components.Liid.icon name="code" size={14} /> Admin
+          </.link>
           <.link
             :if={is_nil(@current_user)}
             navigate={~p"/sign-in"}
