@@ -37,9 +37,17 @@ defmodule ColtWeb.DeckLive do
 
   # `/demo` plays whatever variant ab_funnel assigned this visitor. `/demo/features`
   # and `/demo/solving_emails` pin one, so a specific cut can be linked to
-  # directly without disturbing the test.
+  # directly.
+  #
+  # A pinned visit overwrites `ab_funnel_variant` for this LiveView, which is
+  # what makes its events land under the deck the viewer actually watched.
+  # `AbFunnel.track/2` reads that assign, not our `:variant`, so without this a
+  # pinned visitor's slides are filed under whatever the cookie happened to say
+  # — which files features slides under solving_emails and quietly corrupts the
+  # funnel at /admin/ab rather than merely sitting outside it.
   def mount(params, _session, socket) do
-    variant = pinned_variant(params) || socket.assigns[:ab_funnel_variant]
+    pinned = pinned_variant(params)
+    variant = pinned || socket.assigns[:ab_funnel_variant]
     keys = Slides.order(variant)
     countries = landing_countries()
 
@@ -47,6 +55,8 @@ defmodule ColtWeb.DeckLive do
      assign(socket,
        page_title: "Liid, lühike ülevaade",
        variant: variant,
+       ab_funnel_variant: variant,
+       pinned?: pinned != nil,
        keys: keys,
        index: 0,
        takes: Manifest.read(),
@@ -76,7 +86,9 @@ defmodule ColtWeb.DeckLive do
   ## ---------- events ----------
 
   def handle_event("start", _params, socket) do
-    AbFunnel.track(socket, "deck_started", %{variant: socket.assigns.variant})
+    # `pinned` separates traffic you aimed at a cut from traffic the coin flip
+    # sent there — the variant column can no longer tell you which.
+    AbFunnel.track(socket, "deck_started", %{pinned: socket.assigns.pinned?})
 
     {:noreply,
      socket

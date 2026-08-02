@@ -253,8 +253,25 @@ position across visitors and counts unique visitors per step, so you get a
 per-slide drop-off funnel grouped by variant for free. **Don't add bespoke
 analytics** — add an `AbFunnel.track/3` call if something new needs measuring.
 
+**Send people to bare `/demo`** — that is where the coin gets flipped. The
+pinned URLs are for aiming a specific prospect at a specific cut.
+
+**A pinned visit still counts, under the deck it played.** `AbFunnel.track/2`
+reads `assigns.ab_funnel_variant` — the cookie — not the deck being shown, so
+`DeckLive.mount` overwrites that assign with the resolved variant. Without it a
+pinned visitor's slides are filed under whatever the cookie happened to say,
+which files `slide_f_*` events under `solving_emails` and *corrupts* the funnel
+rather than merely sitting outside it. `deck_started` carries `pinned: true|false`
+so aimed traffic can still be told apart from the coin flip.
+
+There is a test for exactly this (`a pinned deck logs its events under the
+pinned variant`) — it sets a `solving_emails` cookie, opens `/demo/features`,
+and asserts the recorded variant. Delete the assign and it fails.
+
 Renaming a variant leaves old event rows carrying the old string, so `/admin/ab`
-will show dead groups for a while. Harmless.
+will show dead groups for a while. Returning visitors also keep the old value in
+their year-long cookie; `order/1` falls through to `features` for anything it
+doesn't recognise, so they see a real deck either way.
 
 ---
 

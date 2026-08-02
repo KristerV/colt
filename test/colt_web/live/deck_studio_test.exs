@@ -9,6 +9,7 @@ defmodule ColtWeb.DeckStudioTest do
   """
   use ColtWeb.ConnCase, async: false
 
+  import Ecto.Query, only: [where: 3]
   import Phoenix.LiveViewTest
 
   alias Colt.Accounts.User
@@ -199,6 +200,30 @@ defmodule ColtWeb.DeckStudioTest do
       # Controls only appear once it's running, and count the pinned variant.
       assert features_view |> element("button[data-deck-start]") |> render_click() =~ "1 / 10"
       assert emails_view |> element("button[data-deck-start]") |> render_click() =~ "1 / 8"
+    end
+
+    # A pinned link is how a specific prospect gets sent to a specific cut, and
+    # that journey has to show up under the cut they were sent to. AbFunnel
+    # tracks from `ab_funnel_variant`, which the cookie owns — so without the
+    # override in mount, half of this traffic files features slides under
+    # solving_emails and corrupts the funnel rather than just missing from it.
+    test "a pinned deck logs its events under the pinned variant", %{conn: conn} do
+      view =
+        conn
+        |> Plug.Test.put_req_cookie("ab_funnel_variant", "solving_emails")
+        |> Plug.Test.put_req_cookie("ab_funnel_visitor_id", "visitor-pinned")
+        |> then(fn conn -> live(conn, ~p"/demo/features") |> elem(1) end)
+
+      view |> element("button[data-deck-start]") |> render_click()
+
+      variants =
+        AbFunnel.Event
+        |> where([e], e.visitor_id == "visitor-pinned" and like(e.event, "slide_%"))
+        |> Colt.Repo.all()
+        |> Enum.map(& &1.variant)
+        |> Enum.uniq()
+
+      assert variants == ["features"]
     end
 
     test "holds on the cover until Play, then advances off it", %{conn: conn} do
