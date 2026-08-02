@@ -138,6 +138,7 @@ mix usage_rules.search_docs "Enum.zip" --query-by title
 
 - `docs/spec.md` — product spec. Read before scoping or designing any feature. §3.2 is the authoritative list of third-party services and credential locations.
 - `docs/design.md` — design system (tokens, type, components, per-view layouts) and the rules for respecting it.
+- `docs/demo-deck.md` — the narrated `/demo` slideshow, its A/B variants and the `/admin/deck` recording studio. **Read before touching any slide, the player, the studio or `assets/js/deck.js`** — several of its rules look arbitrary and are not.
 - `docs/phases.md` — phased build plan. Work through one phase at a time; clear context between phases. Don't start phase N+1 until phase N's Acceptance bullets pass. Read its **"Working with third-party services"** section before adding any external API integration.
 
 ## UI / frontend work — required reading
