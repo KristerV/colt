@@ -23,6 +23,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   alias Colt.Services.Sales.{CreateManualContact, MoveToStage, SeedStages, UpdateContact}
   alias Colt.Services.Sending.SendManualReply
   alias ColtWeb.Components.{ContactForm, FunnelThread, Liid}
+  alias ColtWeb.Deck.Slides
   alias Phoenix.LiveView.JS
   alias Phoenix.PubSub
 
@@ -1037,7 +1038,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       assign(assigns,
         recipient: recipient,
         registry_link: Colt.CompanyRegistry.link(company),
-        current_stage: assigns.contact.sales_stage
+        current_stage: assigns.contact.sales_stage,
+        insert_links: demo_links(assigns.contact)
       )
 
     ~H"""
@@ -1050,6 +1052,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       reply_html={@reply_html}
       reply_nonce={@reply_nonce}
       note_body={@note_body}
+      insert_links={@insert_links}
       error={@error}
     >
       <:actions>
@@ -1101,4 +1104,28 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     </FunnelThread.thread_pane>
     """
   end
+
+  # One entry per demo cut, each carrying this contact's id as `?c=`. That param
+  # is what lets the deck's closing form prefill and mirror the submission back
+  # onto this thread as a note — a link pasted without it still works, it just
+  # arrives anonymous. Absolute URL: it's going into an email.
+  defp demo_links(contact) do
+    Enum.map(Slides.variants(), fn variant ->
+      %{
+        label: Colt.ABVariants.name(variant),
+        # Not gettext: the deck it links to exists only in Estonian, so a
+        # translated anchor would promise a page that isn't there. Every other
+        # msgid in this app is English, and an Estonian one would be the odd
+        # entry in the .pot.
+        #
+        # The variant is in the anchor so inserting both links doesn't produce
+        # two identical-looking ones in the same email.
+        text: "Vaata ülevaadet (#{variant_word(variant)})",
+        url: ColtWeb.Endpoint.url() <> ~p"/demo/#{variant}?c=#{contact.id}"
+      }
+    end)
+  end
+
+  defp variant_word("solving_emails"), do: "kirjad kohale"
+  defp variant_word(_), do: "mida Liid teeb"
 end

@@ -11,6 +11,8 @@ defmodule ColtWeb.Admin.Summary do
       |> Ash.Query.for_read(:count_open)
       |> Ash.count!()
 
+    new_leads = Colt.Resources.DemoLead.count_new!(authorize?: false)
+
     [
       %{
         kicker: "Support",
@@ -74,6 +76,13 @@ defmodule ColtWeb.Admin.Summary do
         title: "A/B funnel",
         value: format_int(deck_views()) <> " views",
         path: "/admin/ab"
+      },
+      %{
+        kicker: "Demo",
+        title: "Demo leads",
+        value: format_int(new_leads) <> " new",
+        path: "/admin/demo-leads",
+        alert: new_leads > 0
       }
     ]
   end

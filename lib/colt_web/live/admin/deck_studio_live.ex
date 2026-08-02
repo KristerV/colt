@@ -15,8 +15,8 @@ defmodule ColtWeb.Admin.DeckStudioLive do
   what the studio shows is always what plays.
 
   The deck selector is only a filter on the slide list; you work through one
-  deck at a time. A clip is shared by every deck the slide appears in — `hook`
-  is in both, so you record it once.
+  deck at a time. A clip is shared by every deck the slide appears in — `cta`
+  closes both, so you record it once.
   """
   use ColtWeb, :live_view
 
@@ -34,7 +34,7 @@ defmodule ColtWeb.Admin.DeckStudioLive do
   # re-render each, which for a multi-megabyte clip means hundreds of them and
   # an upload that crawls. 1MB chunks cut that by ~16x.
   @chunk_size 1_000_000
-  @default_deck "long"
+  @default_deck "features"
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
   on_mount ColtWeb.Admin.SummaryHook
@@ -276,8 +276,36 @@ defmodule ColtWeb.Admin.DeckStudioLive do
 
     assign(socket,
       take: Map.get(entries, to_string(socket.assigns.slide_key)),
-      recorded: MapSet.new(Map.keys(entries))
+      recorded: MapSet.new(Map.keys(entries)),
+      takes: entries,
+      stats: deck_stats(socket.assigns.deck, entries)
     )
+  end
+
+  # How long a variant actually runs: the sum of its recorded clips. Slides with
+  # no clip contribute nothing rather than the player's 11s dwell — this is
+  # meant to answer "how long is the talk I've recorded", not "how long does the
+  # deck sit on screen".
+  defp deck_stats(deck, takes) do
+    keys = Slides.order(deck)
+
+    {recorded, ms} =
+      Enum.reduce(keys, {0, 0}, fn key, {n, acc} ->
+        case Map.get(takes, to_string(key)) do
+          %{duration_ms: d} when is_integer(d) and d > 0 -> {n + 1, acc + d}
+          _ -> {n, acc}
+        end
+      end)
+
+    %{total: length(keys), recorded: recorded, ms: ms}
+  end
+
+  defp runtime_label(0), do: "—"
+
+  defp runtime_label(ms) do
+    seconds = div(ms, 1000)
+
+    "#{div(seconds, 60)}:#{seconds |> rem(60) |> Integer.to_string() |> String.pad_leading(2, "0")}"
   end
 
   ## ---------- render ----------
@@ -306,10 +334,35 @@ defmodule ColtWeb.Admin.DeckStudioLive do
                 value={deck}
                 selected={@deck == deck}
               >
-                {String.capitalize(deck)} deck · {length(Slides.order(deck))} slides
+                <% s = deck_stats(deck, @takes) %>
+                {deck_label(deck)} · {s.total} slides · {runtime_label(s.ms)}
               </option>
             </select>
           </form>
+
+          <%!-- What's actually in the can for this deck. The runtime is the sum
+                of recorded clips, so it only reads as the real talk length once
+                every slide has one. --%>
+          <div
+            class="bg-card border border-border rounded-[11px] px-3.5 py-3"
+            style="box-shadow:var(--shadow);"
+          >
+            <div class="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-inkFaint">
+              Runtime
+            </div>
+            <div class="text-[24px] font-bold tracking-[-0.02em] text-ink tabular-nums leading-none mt-1">
+              {runtime_label(@stats.ms)}
+            </div>
+            <div class={[
+              "text-[12px] tabular-nums mt-1.5",
+              if(@stats.recorded == @stats.total,
+                do: "text-green font-semibold",
+                else: "text-inkSoft"
+              )
+            ]}>
+              {@stats.recorded} / {@stats.total} recorded
+            </div>
+          </div>
 
           <div
             class="bg-card border border-border rounded-[11px] p-2"
@@ -340,13 +393,21 @@ defmodule ColtWeb.Admin.DeckStudioLive do
             navigate={~p"/demo/#{@deck}"}
             class="rounded-lg border border-borderStrong bg-card px-3 py-2 text-[13px] text-inkSoft text-center no-underline"
           >
-            Watch the {@deck} deck →
+            Play deck →
           </.link>
         </div>
 
         <div id="studio-camera" phx-hook="DeckRecorder">
           <div class="deck-stage">
-            <Slides.slide key={@slide_key} registry_total={512_000} countries={[]} />
+            <%!-- Same numbers the cover advertises on /demo, so the slide you
+                  frame yourself against is the one the prospect sees. --%>
+            <Slides.slide
+              key={@slide_key}
+              registry_total={512_000}
+              countries={[]}
+              slide_count={@stats.total - 1}
+              minutes={max(1, round(@stats.ms / 60_000))}
+            />
 
             <%!-- Same element, same class, same corner as the player's bubble, so
                   what you frame yourself against while talking is exactly what the
@@ -441,6 +502,21 @@ defmodule ColtWeb.Admin.DeckStudioLive do
             </span>
           </div>
 
+          <%!-- The teleprompter. Only ever shown here — the prospect never sees
+                the script, so it is sized for reading at arm's length rather
+                than in the slide's cqw scale. --%>
+          <div
+            class="bg-card border border-border rounded-[11px] p-5 mt-4"
+            style="box-shadow:var(--shadow);"
+          >
+            <div class="text-[10.5px] font-semibold tracking-[0.08em] uppercase text-inkFaint mb-2">
+              Script — {Slides.title(@slide_key)}
+            </div>
+            <div class="text-[16px] leading-[1.65] text-ink whitespace-pre-line">
+              {Slides.script(@slide_key)}
+            </div>
+          </div>
+
           <%!-- The recorder hook hands blobs to LiveView via this.upload/2, which
                 needs a live file input on the page to bind them to. Hidden: the
                 clip never comes from a file picker. --%>
@@ -455,4 +531,8 @@ defmodule ColtWeb.Admin.DeckStudioLive do
 
   defp duration_label(nil), do: "—"
   defp duration_label(ms), do: "#{Float.round(ms / 1000, 1)}s"
+
+  defp deck_label("features"), do: "Features"
+  defp deck_label("solving_emails"), do: "Solving emails"
+  defp deck_label(deck), do: String.capitalize(deck)
 end

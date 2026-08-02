@@ -12,8 +12,8 @@ defmodule Colt.ABVariants do
 
   def variants do
     [
-      %{key: :long, label: "Long deck (6 slides)", active: true},
-      %{key: :short, label: "Short deck (4 slides)", active: true}
+      %{key: :features, label: "Features — the product tour", active: true},
+      %{key: :solving_emails, label: "Solving emails — deliverability angle", active: true}
     ]
   end
 end

@@ -22,6 +22,7 @@ defmodule Colt.Resources.Note do
     define :get, action: :read, get_by: [:id]
     define :list_for_thread, args: [:thread_id]
     define :create, args: [:thread_id, :body]
+    define :create_system, args: [:thread_id, :body]
   end
 
   actions do
@@ -37,6 +38,15 @@ defmodule Colt.Resources.Note do
     create :create do
       accept [:thread_id, :body]
       change relate_actor(:author)
+    end
+
+    # Notes written by the app rather than by a person — currently the demo
+    # deck mirroring a `?c=` submission onto the contact's thread. `:create`
+    # cannot be reused: `relate_actor` defaults to `allow_nil?: false`, so with
+    # no actor it *errors* rather than leaving `author_id` nil, and
+    # `authorize?: false` skips the policy but not the change.
+    create :create_system do
+      accept [:thread_id, :body]
     end
   end
 

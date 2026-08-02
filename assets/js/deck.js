@@ -17,10 +17,17 @@ export const DeckPlayer = {
     // narration on the slide you're looking at.
     this.el.addEventListener("ended", () => this.pushEvent("advance"))
 
-    // The cover's Play button has to start the video inside its own click
-    // handler, otherwise the browser refuses audio for the rest of the deck.
+    // A clip that 404s or fails to decode never fires `ended`, and the dwell
+    // timer is only armed for slides with no clip at all — so without this the
+    // deck sits on that slide forever with only the manual arrows to escape.
+    this.el.addEventListener("error", () => this.startFallback())
+
+    // The video has to be started inside the Play click's own handler,
+    // otherwise the browser refuses audio for the rest of the deck. Matched on
+    // the attribute rather than an id because the button lives in the cover
+    // *slide*, and each variant styles its own — see Slides.
     document.addEventListener("click", this.onDocClick = (e) => {
-      if (e.target.closest("#deck-start")) this.play()
+      if (e.target.closest("[data-deck-start]")) this.unlock()
     })
 
     document.addEventListener("keydown", this.onKey = (e) => {
@@ -58,6 +65,36 @@ export const DeckPlayer = {
     }
 
     if (started) { this.play() } else { this.pause() }
+  },
+
+  // The cover slide carries the Play button but no narration of its own, so
+  // there is nothing to start inside the click — and a play() that never
+  // happens during a gesture means every later clip is muted or blocked.
+  // Load the *next* slide's clip onto the element and play it silently for an
+  // instant: that is what marks this element as user-started. The index guard
+  // is for the case where the server's advance beats the play promise, which
+  // would otherwise pause the deck the moment it began.
+  unlock() {
+    // Any clip will do — this plays one silently just to mark the element as
+    // user-started. Falling back past the next slide matters: with nothing
+    // recorded on slide 2, keying off data-next-src alone means the unlock
+    // never runs and the first clip that *does* exist is blocked or muted.
+    const src = this.el.dataset.nextSrc || this.el.dataset.anySrc
+    if (!src || this.el.getAttribute("src")) return
+
+    const at = this.el.dataset.index
+    this.el.src = src
+    this.el.volume = 0
+
+    const p = this.el.play()
+    if (p && p.then) {
+      p.then(() => {
+        if (this.el.dataset.index === at) this.el.pause()
+        this.el.volume = 1
+      }).catch(() => { this.el.volume = 1 })
+    } else {
+      this.el.volume = 1
+    }
   },
 
   play() {

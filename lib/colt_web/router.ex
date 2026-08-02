@@ -75,6 +75,7 @@ defmodule ColtWeb.Router do
       live "/admin/clients-spending", Admin.ClientsSpendingLive
       live "/admin/clients", Admin.ClientsLive
       live "/admin/feedback", Admin.FeedbackLive
+      live "/admin/demo-leads", Admin.DemoLeadsLive
       live "/admin/system", Admin.SystemLive
       live "/admin/tracking-domain", Admin.TrackingDomainLive
       live "/admin/deck", Admin.DeckStudioLive

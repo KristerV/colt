@@ -12,6 +12,7 @@ defmodule Colt.Domain do
     resource Colt.Resources.Page
     resource Colt.Resources.Person
     resource Colt.Resources.Feedback
+    resource Colt.Resources.DemoLead
     resource Colt.Resources.IcpLearning
     resource Colt.Resources.SuppressedDomain
     resource Colt.Resources.EmailAccount

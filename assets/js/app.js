@@ -59,12 +59,32 @@ const TrixEditor = {
       this.pushEventTo(this.el, "trix_input", { value: input.value })
     }
     editor.addEventListener("blur", this.onBlur)
+
+    // "Insert link" in the composer header. The wrapper is phx-update="ignore",
+    // so the server can't patch text in — it dispatches here instead and Trix
+    // does the insert at the caret. The push afterwards matters: LiveView only
+    // learns the body on blur, and clicking Send straight after inserting would
+    // otherwise mail the version without the link.
+    this.onInsert = (e) => {
+      const {url, text} = e.detail || {}
+      if (!url) return
+      editor.focus()
+      editor.editor.insertHTML(`<a href="${escapeAttr(url)}">${escapeText(text || url)}</a>`)
+      this.pushEventTo(this.el, "trix_input", { value: input.value })
+    }
+    this.el.addEventListener("liid:insert-link", this.onInsert)
   },
   destroyed() {
     const editor = this.el.querySelector("trix-editor")
     if (editor && this.onBlur) editor.removeEventListener("blur", this.onBlur)
+    if (this.onInsert) this.el.removeEventListener("liid:insert-link", this.onInsert)
   }
 }
+
+const escapeText = (s) =>
+  String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+
+const escapeAttr = (s) => escapeText(s).replace(/"/g, "&quot;")
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {

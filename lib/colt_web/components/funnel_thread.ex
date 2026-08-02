@@ -25,6 +25,7 @@ defmodule ColtWeb.Components.FunnelThread do
   alias Colt.Services.Email.HtmlToText
   alias Colt.Services.Email.SplitQuote
   alias ColtWeb.Components.Liid
+  alias Phoenix.LiveView.JS
 
   # A sequence step that's neither sent nor scheduled has no real moment in
   # time — its inserted_at is just when the draft row was written. Pin those to
@@ -90,6 +91,7 @@ defmodule ColtWeb.Components.FunnelThread do
   attr :note_body, :string, required: true
   attr :sending?, :boolean, default: false
   attr :error, :any, default: nil
+  attr :insert_links, :list, default: []
   slot :actions, required: true
 
   def thread_pane(assigns) do
@@ -180,6 +182,7 @@ defmodule ColtWeb.Components.FunnelThread do
         note_body={@note_body}
         sending?={@sending?}
         recipient={@recipient}
+        insert_links={@insert_links}
         error={@error}
       />
     </div>
@@ -400,6 +403,11 @@ defmodule ColtWeb.Components.FunnelThread do
   attr :recipient, :string, required: true
   attr :error, :any, default: nil
 
+  # Links the writer can drop into the reply, as `%{label:, text:, url:}`. Empty
+  # by default so a funnel with nothing to offer shows no button. Insertion is
+  # pure client-side — see the `liid:insert-link` listener in `TrixEditor`.
+  attr :insert_links, :list, default: []
+
   def composer(assigns) do
     assigns = assign(assigns, has_recipient?: assigns.recipient not in [nil, ""])
 
@@ -434,6 +442,45 @@ defmodule ColtWeb.Components.FunnelThread do
         >
           {gettext("Note")}
         </button>
+        <%!-- Insertion happens entirely in the browser: the Trix wrapper is
+              phx-update="ignore", so a server round trip would have nothing to
+              patch. The hook syncs the editor's HTML back afterwards. --%>
+        <div
+          :if={@active_tab == :reply and @has_recipient? and @insert_links != []}
+          class="relative"
+        >
+          <button
+            type="button"
+            phx-click={JS.toggle(to: "#insert-menu-#{@reply_nonce}")}
+            class="inline-flex items-center gap-1.5 text-[12.5px] font-semibold px-3 py-1.5 rounded-[7px] cursor-pointer border border-border bg-card text-inkSoft hover:bg-paperAlt"
+          >
+            {gettext("Insert link")}
+            <span class="opacity-70 text-[10px]">▾</span>
+          </button>
+          <div
+            id={"insert-menu-#{@reply_nonce}"}
+            class="hidden absolute left-0 top-full mt-1 bg-card border border-border rounded-[8px] z-20 min-w-[240px] py-1"
+            style="box-shadow:var(--shadow-card)"
+            phx-click-away={JS.hide(to: "#insert-menu-#{@reply_nonce}")}
+          >
+            <button
+              :for={link <- @insert_links}
+              type="button"
+              phx-click={
+                JS.dispatch("liid:insert-link",
+                  to: "#trix-wrap-#{@reply_nonce}",
+                  detail: %{url: link.url, text: link.text}
+                )
+                |> JS.hide(to: "#insert-menu-#{@reply_nonce}")
+              }
+              class="flex flex-col w-full text-left px-3 py-2 hover:bg-paperAlt cursor-pointer"
+            >
+              <span class="text-[12.5px] text-inkSoft font-medium">{link.label}</span>
+              <span class="text-[11px] text-inkFaint truncate">{link.text}</span>
+            </button>
+          </div>
+        </div>
+
         <span
           :if={@active_tab == :reply and @has_recipient?}
           class="ml-auto text-[12px] text-inkFaint font-medium truncate"
