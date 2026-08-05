@@ -99,6 +99,15 @@ export const DeckPlayer = {
 
   play() {
     if (this.src) {
+      // A clip that has already run to its end must not be restarted by a
+      // re-render. play() on an ended element rewinds it to zero, and the last
+      // slide is the one place where finishing a clip causes a patch: `ended`
+      // pushes advance, the server has nowhere to advance to so it assigns
+      // paused? and re-renders, sync() runs, `started` is still true (it tracks
+      // @started? alone, on purpose — see the pause note below), and the deck
+      // played its closing clip on a loop.
+      if (this.el.ended) return
+
       const p = this.el.play()
       if (p && p.catch) p.catch(() => {})
     } else {
@@ -302,5 +311,51 @@ export const DeckRecorder = {
       const ext = type.includes("mp4") ? "mp4" : "webm"
       this.upload("clip", [new File([blob], `clip.${ext}`, {type})])
     })
+  },
+}
+
+// ------------------------------------------------------------ take preview
+
+// The recorded take, played back in the studio's bubble. One control, and only
+// while it is stopped: the button starts the clip and then gets out of the way,
+// so what you are looking at is the take exactly as a prospect sees it, with
+// nothing painted over the face. When it ends it rewinds to zero and the button
+// comes back.
+//
+// Entirely client-side. The server has no use for "is this preview playing",
+// and a phx-click round trip would put play() outside the click's own handler,
+// which is the one place the browser lets it start with sound.
+export const DeckTakePlayer = {
+  mounted() { this.bind() },
+  // Saving a new clip patches a new src onto the same element, which leaves it
+  // paused — rebind is cheap and the button has to be resynced anyway.
+  updated() { this.bind() },
+
+  bind() {
+    const video = this.el.querySelector("video")
+    const button = this.el.querySelector("[data-take-toggle]")
+    if (!video || !button) return
+
+    // The nodes survive a patch, so listeners must not be stacked on every one.
+    if (this.bound !== video) {
+      this.bound = video
+
+      button.addEventListener("click", () => video.play().catch(() => {}))
+
+      // Driven off the element's own events rather than the click, so a clip
+      // that reaches its end brings the button back without being told.
+      video.addEventListener("play", () => this.sync(video, button))
+      video.addEventListener("pause", () => this.sync(video, button))
+      video.addEventListener("ended", () => {
+        video.currentTime = 0
+        this.sync(video, button)
+      })
+    }
+
+    this.sync(video, button)
+  },
+
+  sync(video, button) {
+    button.hidden = !video.paused
   },
 }

@@ -37,12 +37,16 @@ defmodule ColtWeb.Deck.Slides do
   @features [
     :f_cover,
     :f_intro,
+    :f_part_contacts,
     :f_alternatives,
+    :f_process,
     :f_filter,
     :f_validate,
     :f_contacts,
+    :f_part_sending,
     :f_sending,
     :f_writing,
+    :f_volume,
     :f_reply,
     :f_summary,
     :cta
@@ -86,12 +90,16 @@ defmodule ColtWeb.Deck.Slides do
 
   def title(:f_cover), do: "Avaslaid"
   def title(:f_intro), do: "Kaks asja: kontaktid ja meilid"
+  def title(:f_part_contacts), do: "Vahe: kontaktid"
   def title(:f_alternatives), do: "Kust sa täna kontakte saad"
+  def title(:f_process), do: "Kogu kontaktide teekond"
   def title(:f_filter), do: "Registriinfo ja filtrid"
   def title(:f_validate), do: "AI loeb kodulehed läbi"
   def title(:f_contacts), do: "Õige inimene firmas"
+  def title(:f_part_sending), do: "Vahe: e-mailide saatmine"
   def title(:f_sending), do: "Meilide lehter"
   def title(:f_writing), do: "AI õpib sinu kirjast"
+  def title(:f_volume), do: "Mitu domeeni ja aadressi"
   def title(:f_reply), do: "Vastus tuli"
   def title(:f_summary), do: "Kokkuvõte ja Krister"
 
@@ -123,7 +131,12 @@ defmodule ColtWeb.Deck.Slides do
     proff, vähese vaevaga.
 
     Kui sa kirjeldad ära mida sa otsid, siis peaksid vastu saama juba
-    huvitatud kontakte. Esiteks räägime kontaktide leidmisest.
+    huvitatud kontakte.
+    """
+
+  def script(:f_part_contacts),
+    do: """
+    Alustame esimesest poolest: kust need kontaktid üldse tulevad.
     """
 
   def script(:f_alternatives),
@@ -136,6 +149,18 @@ defmodule ColtWeb.Deck.Slides do
     eesti kontaktid. Apollo annab lihtsalt aegunud infot. Kui sa tahad
     müügitoru, mis müüb värske info põhjalt Eestis ja välismaal, siis Liid on
     ainus valik.
+    """
+
+  def script(:f_process),
+    do: """
+    Enne kui detailidesse läheme, siin on kogu teekond ühel pildil.
+
+    Liid võtab Eesti, Läti, Leedu, Soome, Rootsi ja Norra ametlikud
+    äriregistrid. Sealt filtreerid välja esmase valimi, Liid leiab igale
+    firmale kodulehe, AI loeb kodulehe läbi ja kontrollib, kas see firma on
+    päriselt sinu sihtgrupp, ja alles siis korjab kodulehelt kontaktid.
+
+    Nüüd vaatame iga sammu eraldi.
     """
 
   def script(:f_filter),
@@ -165,6 +190,11 @@ defmodule ColtWeb.Deck.Slides do
     inimese oma või üldkontakt, ja kontrollime ka, kas see üldse eksisteerib.
     """
 
+  def script(:f_part_sending),
+    do: """
+    Kontaktid on olemas. Nüüd teine pool: kuidas neile kirjad välja lähevad.
+    """
+
   def script(:f_sending),
     do: """
     Kontakt siis läheb edasi meilide lehtrisse. Liid saadab esimese kirja ja ka
@@ -186,6 +216,18 @@ defmodule ColtWeb.Deck.Slides do
     detailidega, siis saad kampaania automaatseks teha.
     """
 
+  def script(:f_volume),
+    do: """
+    Üks meiliaadress ei tohiks saata rohkem kui kakskümmend kirja päevas, muidu
+    hakkab Google sind spämmiks pidama. Ja ühel domeenil võiks olla kuni kolm
+    saatvat aadressi.
+
+    Seega kui sa tahad päevas sada kaheksakümmend kirja saata, on sul vaja kolme
+    domeeni ja igal domeenil kolme aadressi. Liid laseb sul neid kõiki ühendada
+    ja jagab kirjad ise nende vahel ära, nii et ükski aadress oma päevalimiiti
+    ei ületa. Sina ei pea seda arvutama.
+    """
+
   def script(:f_reply),
     do: """
     Kui potentsiaalne klient vastab, siis saad temaga Liidis edasi suhelda või
@@ -194,10 +236,13 @@ defmodule ColtWeb.Deck.Slides do
 
   def script(:f_summary),
     do: """
-    Kokkuvõttes Liid automatiseerib külmad meilid, teeb kõned otsa ja terve aeg
-    vaatab, et iga kiri maanduks õige firma postkasti, mitte spämmi. See on
-    terviklik lahendus, millega saad nii Eestis kui ka Baltikumis ja
-    Skandinaavias oma müüki suurendada.
+    Kokkuvõttes teeb Liid kaks asja. Leiab üles need kontaktid, kes päriselt
+    sinu sihtgruppi sobivad, mitte lihtsalt suure nimekirja. Ja saadab neile
+    kirjad automaatselt, aga maitsekalt, sinu käekirjaga ja mõistlikus tempos.
+
+    Ja kui need kaks asja on korras, siis tuleb kolmas ise järele: kirjad ei
+    lähe spämmi, vaid jõuavad päriselt postkasti. Nii Eestis kui ka Baltikumis
+    ja Skandinaavias.
 
     Mina olen Krister, ehitasin Liidi, sest mul endal oli vaja kliente juurde
     leida. Kui töötava lahenduse ehitasin, siis tahtsin seda teistele ka
@@ -233,18 +278,23 @@ defmodule ColtWeb.Deck.Slides do
     prügikasti visata. Siis ei leia sind enam Googlest ega ei soovita AI
     agendid. Isegi vestlused klientidega lähevad punaseks.
 
-    Ära riski oma domeeniga. Kui ei viitsi end kurssi viia, kuidas tänapäeval
-    asju tehakse, siis kasuta lihtsalt Liidi. Muidu leiad oma domeeni
-    prügikastist nii, et su kodukat ei leita Googlest, AI ei soovita sind ja ka
-    su tavapärased meilid ei lähe kohale.
+    Aga domeen on ainult pool asja. Domeeni saab lõpuks parandada, mainet mitte.
+    Eestis ja Baltikumis on sinu sihtgrupis piiratud arv firmasid. Kui sa saadad
+    neile kõigile korraga ühe halva kirja, siis oled selle turu ära põletanud,
+    ja see on ainus turg mis sul on. Järgmine kord, kui sul on päriselt hea
+    pakkumine, mäletatakse sind juba spämmijana ja kirja ei avata.
+
+    Ära riski kummagagi. Kui ei viitsi end kurssi viia, kuidas tänapäeval asju
+    tehakse, siis kasuta lihtsalt Liidi.
     """
 
   def script(:s_rules),
     do: """
     Kõik taandub sellele, et kui su kirjadele vastatakse, siis järelikult
-    saadad häid meile. Kolm kõige tähtsamat reeglit on: saada firmadele, kes
-    päriselt võiks sinust huvitatud olla; saada kiri, mille oled ise
-    kirjutanud; ja kasuta tänapäevaseid meili saatmise taktikaid.
+    saadad häid meile. Kolm kõige tähtsamat reeglit on: saada ainult neile
+    firmadele, kes päriselt võiks sinust huvitatud olla, mitte kõigile keda
+    kätte saad; saada kiri, mille oled ise kirjutanud; ja kasuta tänapäevaseid
+    meili saatmise taktikaid.
 
     Kohe räägin neist täpsemalt.
     """
@@ -453,12 +503,16 @@ defmodule ColtWeb.Deck.Slides do
     case assigns.key do
       :f_cover -> f_cover(assigns)
       :f_intro -> f_intro(assigns)
+      :f_part_contacts -> f_part_contacts(assigns)
       :f_alternatives -> f_alternatives(assigns)
+      :f_process -> f_process(assigns)
       :f_filter -> f_filter(assigns)
       :f_validate -> f_validate(assigns)
       :f_contacts -> f_contacts(assigns)
+      :f_part_sending -> f_part_sending(assigns)
       :f_sending -> f_sending(assigns)
       :f_writing -> f_writing(assigns)
+      :f_volume -> f_volume(assigns)
       :f_reply -> f_reply(assigns)
       :f_summary -> f_summary(assigns)
       :s_cover -> s_cover(assigns)
@@ -504,11 +558,8 @@ defmodule ColtWeb.Deck.Slides do
       <h2 class="d-h2">Kaks asja, ühes kohas.</h2>
 
       <div class="grid grid-cols-2 gap-[2cqw] mt-[4cqw]">
-        <div
-          class="d-card px-[2.4cqw] py-[3cqw] text-center"
-          style="border-color:var(--accentRing);box-shadow:0 0 0 4px var(--accentSoft),var(--shadow-card);"
-        >
-          <div class="d-h3 font-bold text-accent">Kontaktide leidmine</div>
+        <div class="d-card px-[2.4cqw] py-[3cqw] text-center">
+          <div class="d-h3 font-bold">Kontaktide leidmine</div>
         </div>
 
         <div class="d-card px-[2.4cqw] py-[3cqw] text-center">
@@ -516,6 +567,14 @@ defmodule ColtWeb.Deck.Slides do
         </div>
       </div>
     </div>
+    """
+  end
+
+  ## ---------- features · chapter break: contacts ----------
+
+  defp f_part_contacts(assigns) do
+    ~H"""
+    <.chapter label="Kontaktid" />
     """
   end
 
@@ -539,6 +598,53 @@ defmodule ColtWeb.Deck.Slides do
           <.crow label="Välismaa firmad" a={:yes} b={:no} c={:yes} d={:yes} />
           <.crow label="Kiiresti palju kontakte" a={:no} b={:yes} c={:yes} d={:yes} last />
         </div>
+      </div>
+    </div>
+    """
+  end
+
+  ## ---------- features · the whole enrichment run ----------
+
+  # The map before the walk-through: the same steps the next three slides take
+  # one at a time. Sub-lines are examples here, because this slide is answering
+  # "what happens", where `s_targeting` answers "how much does it cut".
+  defp f_process(assigns) do
+    ~H"""
+    <div class="d-pad flex flex-col justify-center h-full">
+      <h2 class="d-h2">Riigiregistrist õige inimeseni.</h2>
+
+      <%!-- One row, registries included: the whole point is that this is a
+            single run from a state register to a named person, and a row that
+            wraps reads as two separate things happening. The countries are
+            small and two-up because they are the input to the row, not a step
+            of it, and shrinking them is what keeps five boxes on one line.
+
+            Step labels only. The next three slides each take one of these
+            apart, so anything explaining them here is said twice. --%>
+      <div class="grid grid-cols-[1.25fr_auto_1fr_auto_1fr_auto_1fr_auto_1fr] gap-[0.55cqw] items-stretch mt-[3.2cqw]">
+        <div class="d-card px-[0.9cqw] py-[1.2cqw] h-full flex flex-col items-center gap-[0.8cqw]">
+          <span class="d-fine text-inkFaint font-semibold uppercase tracking-[0.06em] text-center">
+            Äriregistrid
+          </span>
+          <div class="grid grid-cols-2 gap-[0.35cqw] w-full">
+            <span
+              :for={c <- ~w(Eesti Läti Leedu Soome Rootsi Norra)}
+              class="d-chip justify-center"
+              style="background:var(--bgSoft);border:1px solid var(--border);color:var(--inkSoft);font-size:0.82cqw;padding:0.28cqw 0.4cqw;"
+            >
+              {c}
+            </span>
+          </div>
+        </div>
+
+        <span class="d-h4 text-inkFaint self-center">→</span>
+        <.pstep no="1" label="Filter" />
+        <span class="d-h4 text-inkFaint self-center">→</span>
+        <.pstep no="2" label="Kodulehe otsing" />
+        <span class="d-h4 text-inkFaint self-center">→</span>
+        <.pstep no="3" label="AI sihtgrupi kontroll" />
+        <span class="d-h4 text-inkFaint self-center">→</span>
+        <.pstep no="4" label="AI korjab kontaktid" />
       </div>
     </div>
     """
@@ -624,6 +730,14 @@ defmodule ColtWeb.Deck.Slides do
     """
   end
 
+  ## ---------- features · chapter break: sending ----------
+
+  defp f_part_sending(assigns) do
+    ~H"""
+    <.chapter label="E-mailide saatmine" />
+    """
+  end
+
   ## ---------- features · the sending funnel ----------
 
   defp f_sending(assigns) do
@@ -689,6 +803,19 @@ defmodule ColtWeb.Deck.Slides do
     """
   end
 
+  ## ---------- features · domains and inboxes ----------
+
+  # The same picture as `s_volume`, under a different sentence: there it is the
+  # rule you have to obey, here it is what the product does for you.
+  defp f_volume(assigns) do
+    ~H"""
+    <div class="d-pad flex flex-col justify-center h-full">
+      <h2 class="d-h2">Mitu domeeni, igal domeenil mitu aadressi.</h2>
+      <.inbox_math />
+    </div>
+    """
+  end
+
   ## ---------- features · replies ----------
 
   defp f_reply(assigns) do
@@ -718,19 +845,30 @@ defmodule ColtWeb.Deck.Slides do
 
   ## ---------- features · summary ----------
 
+  # The whole pitch in two lines: the right contacts, and mail that arrives.
+  # Everything else the deck showed is a means to one of those two, so listing
+  # features here only competes with them.
   defp f_summary(assigns) do
     ~H"""
     <div class="d-pad flex flex-col justify-center h-full">
-      <h2 class="d-h2">Terviklahendus, üks tööriist.</h2>
+      <h2 class="d-h2">Kaks asja, mis loevad.</h2>
 
-      <div class="grid grid-cols-3 gap-[1.6cqw] mt-[3.4cqw]">
-        <.mini n="01" title="Leiab kontaktid" />
-        <.mini n="02" title="Saadab kirjad" />
-        <.mini n="03" title="Teeb kõned otsa" tone={:accent} />
+      <div class="flex flex-col gap-[1.2cqw] mt-[3cqw] w-[58cqw] mx-auto">
+        <div class="d-card px-[2cqw] py-[1.8cqw]">
+          <div class="d-h3 font-bold">
+            Leiab kontaktid, kes päriselt sinu sihtgruppi sobivad
+          </div>
+        </div>
+        <div class="d-card px-[2cqw] py-[1.8cqw]">
+          <div class="d-h3 font-bold">Saadab kirjad automaatselt ja maitsekalt</div>
+        </div>
       </div>
 
-      <div class="d-fine text-inkFaint mt-[2.6cqw] text-center">
-        {countries_line(@countries)}
+      <%!-- Deliberately not a third card: deliverability is not a third thing
+            Liid does, it is what you get out of doing the two above it
+            properly. --%>
+      <div class="d-lead text-inkSoft mt-[2.4cqw] text-center">
+        ja lisaks ei lähe meilid spämmi
       </div>
     </div>
     """
@@ -777,15 +915,27 @@ defmodule ColtWeb.Deck.Slides do
 
   ## ---------- solving_emails · the risk ----------
 
+  # Two headings on one slide, which nothing else in the deck does. The domain
+  # damage is technical and recoverable; the second block is the one that is
+  # not, and folding it into the first row would read as three more of the same
+  # kind of harm. They are different kinds.
   defp s_risk(assigns) do
     ~H"""
     <div class="d-pad flex flex-col justify-center h-full">
       <h2 class="d-h2">Riskid oma domeeniga.</h2>
 
-      <div class="grid grid-cols-3 gap-[1.6cqw] mt-[3.4cqw]">
+      <div class="grid grid-cols-3 gap-[1.4cqw] mt-[2.2cqw]">
         <.harm title="Google ei leia sind" />
         <.harm title="AI ei soovita sind" />
         <.harm title="Tavakirjad ei jõua kohale" />
+      </div>
+
+      <h2 class="d-h2 mt-[3.4cqw]">Ja oma mainega.</h2>
+
+      <div class="grid grid-cols-3 gap-[1.4cqw] mt-[2.2cqw]">
+        <.harm title="Turg on väike, kliente piiratud arv" />
+        <.harm title="Halb kiri põletab kontakti ära" />
+        <.harm title="Sind mäletatakse spämmijana" />
       </div>
     </div>
     """
@@ -799,9 +949,13 @@ defmodule ColtWeb.Deck.Slides do
       <h2 class="d-h2">Kolm reeglit.</h2>
 
       <div class="flex flex-col gap-[1.2cqw] mt-[3.4cqw]">
-        <.rule no="1" text="Saada neile, kes päriselt võiks osta." />
-        <.rule no="2" text="Saada kiri, mille oled ise kirjutanud." />
-        <.rule no="3" text="Kasuta tänapäevaseid saatmise taktikaid." />
+        <.rule no="1">
+          Saada
+          <.hl>ainult</.hl>
+          neile, kes päriselt võiks osta.
+        </.rule>
+        <.rule no="2">Saada kiri, mille oled ise kirjutanud.</.rule>
+        <.rule no="3">Kasuta tänapäevaseid saatmise taktikaid.</.rule>
       </div>
     </div>
     """
@@ -812,27 +966,45 @@ defmodule ColtWeb.Deck.Slides do
   defp s_targeting(assigns) do
     ~H"""
     <div class="d-pad flex flex-col justify-center h-full">
-      <h2 class="d-h2">1. Saada neile, kes päriselt võiks osta.</h2>
+      <h2 class="d-h2">1. Saada ainult neile, kes päriselt võiks osta.</h2>
 
-      <%!-- Same funnel numbers as the features deck's f_validate, cut down to
-            one column: the rule on the left, what it does to a list on the
-            right. --%>
-      <div class="grid grid-cols-[1.15fr_1fr] gap-[3cqw] mt-[3.2cqw] items-center">
-        <div class="flex flex-col gap-[0.9cqw]">
-          <.rung no="1" name="Tegevusala filter" />
-          <.rung no="2" name="AI valideerib täpse sihtgrupi" />
-          <.rung no="3" name="Värske kontakt kodulehelt" />
-        </div>
-
-        <%!-- Explicit 1fr rows for the boxes and auto rows for the arrows, so
-              the three steps stay the same height whatever their labels do. --%>
-        <div class="grid grid-rows-[1fr_auto_1fr_auto_1fr] h-full">
-          <.stat label="Sobib tegevusala" value="512" />
-          <div class="d-h4 text-inkFaint text-center py-[0.5cqw]">↓</div>
-          <.stat label="Vastab sihtgrupile" value="128" />
-          <div class="d-h4 text-inkFaint text-center py-[0.5cqw]">↓</div>
-          <.stat label="Sihtkontakt olemas" value="96" tone={:accent} />
-        </div>
+      <%!-- One column, not two. The steps and the counts were the same three
+            things listed twice, so the count lives in the step that produced
+            it and the row reads as "this filter, this many left". --%>
+      <div class="flex flex-col gap-[0.9cqw] mt-[3cqw] w-[62cqw] mx-auto">
+        <%!-- Step 0, not step 1: the registries are what the funnel starts
+              from, not something Liid does. It is also the only place this deck
+              says which countries are covered, which `f_process` carries for
+              the other one. --%>
+        <.rung
+          no="0"
+          name="Riiklikud äriregistrid"
+          sub="Eesti · Läti · Leedu · Soome · Rootsi · Norra"
+          value={approx(@registry_total)}
+          unit="firmat"
+        />
+        <.rung
+          no="1"
+          name="Tegevusala filter"
+          sub="tegevusala · töötajad · käive"
+          value="512"
+          unit="firmat"
+        />
+        <.rung
+          no="2"
+          name="AI sihtgrupi kontroll"
+          sub="loeb kodulehe läbi"
+          value="128"
+          unit="firmat"
+        />
+        <.rung
+          no="3"
+          name="AI korjab kontaktid"
+          sub="nimi, roll, e-mail kodulehelt"
+          value="96"
+          unit="kontakti"
+          tone={:accent}
+        />
       </div>
     </div>
     """
@@ -890,27 +1062,7 @@ defmodule ColtWeb.Deck.Slides do
     ~H"""
     <div class="d-pad flex flex-col justify-center h-full">
       <h2 class="d-h2">3. Kuni 20 kirja päevas ühelt aadressilt.</h2>
-
-      <div class="grid grid-cols-[1fr_auto_1fr] gap-[3cqw] items-center mt-[2.4cqw]">
-        <div class="text-right">
-          <div class="d-h1" style="font-size:8.5cqw;">180</div>
-          <div class="d-lead text-inkSoft">e-kirja päevas</div>
-        </div>
-
-        <div class="d-h1 text-inkFaint" style="font-size:5cqw;">=</div>
-
-        <%!-- Nine addresses, not a number saying nine. What the rule costs you
-              in setup is the thing worth showing, and stacking them in one
-              equal-width column is what makes the count read at a glance. --%>
-        <div class="w-[20cqw]">
-          <div class="d-fine text-inkFaint font-semibold uppercase tracking-[0.06em] mb-[0.7cqw]">
-            9 saatja aadressi
-          </div>
-          <div class="flex flex-col gap-[0.45cqw]">
-            <span :for={a <- inboxes()} class="d-inbox block">{a}</span>
-          </div>
-        </div>
-      </div>
+      <.inbox_math />
     </div>
     """
   end
@@ -1139,24 +1291,41 @@ defmodule ColtWeb.Deck.Slides do
 
   attr :no, :string, required: true
   attr :name, :string, required: true
+  attr :sub, :string, default: nil
+  attr :value, :string, default: nil
+  attr :unit, :string, default: nil
+  attr :tone, :atom, default: :plain
 
+  # `sub` is a tidbit, not a sentence: what the step actually looks at, in three
+  # or four words. `value` is what the step leaves behind, pinned to the far
+  # edge so three rows read as one narrowing column. Both optional — the rungs
+  # that name a person's role (`f_contacts`) have neither.
   defp rung(assigns) do
     ~H"""
-    <div class="flex items-center gap-[1cqw] d-card px-[1.4cqw] py-[1.1cqw]">
+    <div class="flex items-center gap-[1cqw] d-card px-[1.4cqw] py-[1.1cqw]" style={ring_style(@tone)}>
       <span class="d-step-no shrink-0">{@no}</span>
-      <span class="d-h4 font-semibold text-ink">{@name}</span>
+      <div class="min-w-0">
+        <div class="d-h4 font-semibold text-ink">{@name}</div>
+        <div :if={@sub} class="d-fine text-inkFaint mt-[0.25cqw]">{@sub}</div>
+      </div>
+      <div :if={@value} class="ml-auto text-right shrink-0">
+        <div class="d-num-sm" style={ink_style(@tone)}>{@value}</div>
+        <div :if={@unit} class="d-fine text-inkFaint">{@unit}</div>
+      </div>
     </div>
     """
   end
 
   attr :no, :string, required: true
-  attr :text, :string, required: true
+  slot :inner_block, required: true
 
+  # A slot rather than a string attr so a rule can highlight the word it turns
+  # on ("ainult"), which is the whole of rule 1.
   defp rule(assigns) do
     ~H"""
     <div class="d-card flex items-center gap-[1.4cqw] px-[1.8cqw] py-[1.3cqw]">
       <span class="d-step-no shrink-0" style={tone_style(:accent)}>{@no}</span>
-      <span class="d-lead text-ink">{@text}</span>
+      <span class="d-lead text-ink">{render_slot(@inner_block)}</span>
     </div>
     """
   end
@@ -1165,7 +1334,7 @@ defmodule ColtWeb.Deck.Slides do
 
   defp harm(assigns) do
     ~H"""
-    <div class="d-card px-[1.6cqw] py-[1.8cqw] flex items-center gap-[0.9cqw]">
+    <div class="d-card px-[1.4cqw] py-[1.5cqw] flex items-center gap-[0.9cqw]">
       <span class="d-x">✕</span>
       <div class="d-h4 font-bold">{@title}</div>
     </div>
@@ -1225,15 +1394,60 @@ defmodule ColtWeb.Deck.Slides do
     """
   end
 
-  attr :n, :string, required: true
-  attr :title, :string, required: true
-  attr :tone, :atom, default: :plain
+  attr :no, :string, required: true
+  attr :label, :string, required: true
 
-  defp mini(assigns) do
+  # A step in `f_process`'s chain. Full height with the number pinned to the
+  # top, so four steps with one- and three-word labels still line up.
+  defp pstep(assigns) do
     ~H"""
-    <div class="d-card px-[1.6cqw] py-[1.8cqw]" style={ring_style(@tone)}>
-      <span class="d-step-no">{@n}</span>
-      <div class="d-h4 font-bold mt-[1.1cqw]" style={ink_style(@tone)}>{@title}</div>
+    <div class="d-card px-[0.9cqw] py-[1.2cqw] h-full flex flex-col items-center text-center gap-[0.6cqw]">
+      <span class="d-step-no shrink-0">{@no}</span>
+      <span class="d-h4 font-semibold">{@label}</span>
+    </div>
+    """
+  end
+
+  # The arithmetic behind sending volume: how many addresses a daily number
+  # costs you. Both decks show it, under different headings — `s_volume` as the
+  # rule itself, `f_volume` as what the product does about it — so the picture
+  # lives here once and only the sentence above it changes.
+  defp inbox_math(assigns) do
+    ~H"""
+    <div class="grid grid-cols-[1fr_auto_1fr] gap-[3cqw] items-center mt-[2.4cqw]">
+      <div class="text-right">
+        <div class="d-h1" style="font-size:8.5cqw;">180</div>
+        <div class="d-lead text-inkSoft">e-kirja päevas</div>
+      </div>
+
+      <div class="d-h1 text-inkFaint" style="font-size:5cqw;">=</div>
+
+      <%!-- Nine addresses, not a number saying nine. What the rule costs you
+            in setup is the thing worth showing, and stacking them in one
+            equal-width column is what makes the count read at a glance. --%>
+      <div class="w-[20cqw]">
+        <div class="d-fine text-inkFaint font-semibold uppercase tracking-[0.06em] mb-[0.7cqw]">
+          9 saatja aadressi
+        </div>
+        <div class="flex flex-col gap-[0.45cqw]">
+          <span :for={a <- inboxes()} class="d-inbox block">{a}</span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  attr :label, :string, required: true
+
+  # A chapter break: one word, one box, nothing else. It exists to mark that the
+  # subject changed, so it has to look nothing like the slides either side of
+  # it — a heading and a visual would read as another point being made.
+  defp chapter(assigns) do
+    ~H"""
+    <div class="d-pad flex flex-col justify-center items-center h-full">
+      <div class="d-card w-[64cqw] px-[3cqw] py-[3.4cqw] text-center">
+        <div class="d-h1 text-ink" style="font-size:4.6cqw;">{@label}</div>
+      </div>
     </div>
     """
   end
@@ -1268,36 +1482,12 @@ defmodule ColtWeb.Deck.Slides do
   defp approx(n) when n >= 1_000, do: "#{div(n, 1000)}k"
   defp approx(n), do: to_string(n)
 
-  # `Colt.Markets` names are English because they drive the product UI; the deck
-  # is Estonian-only, so the handful of display names is translated here rather
-  # than adding a marketing-facing field to the market config.
-  @et_names %{
-    "Estonia" => "Eesti",
-    "Finland" => "Soome",
-    "Latvia" => "Läti",
-    "Lithuania" => "Leedu",
-    "Norway" => "Norra",
-    "Denmark" => "Taani",
-    "Sweden" => "Rootsi",
-    "Iceland" => "Island"
-  }
-
-  defp et_name(name), do: Map.get(@et_names, name, name)
-
   # Three domains, three inboxes each. Grouped by row so the 3×3 grid reads as
   # "three of these, three times" rather than nine unrelated addresses.
   defp inboxes do
     for domain <- ~w(liid.ee liidmail.ee liidapp.ee),
         user <- ~w(krister tiina info),
         do: "#{user}@#{domain}"
-  end
-
-  defp live_countries([]), do: ["Eesti", "Soome", "Läti", "Leedu"]
-
-  defp live_countries(countries) do
-    countries
-    |> Enum.filter(& &1.available)
-    |> Enum.map(&et_name(&1.name))
   end
 
   # The filter slide talks about Estonia specifically. Falls back to the
@@ -1307,13 +1497,6 @@ defmodule ColtWeb.Deck.Slides do
     case Enum.find(countries, &(&1.name == "Estonia")) do
       %{count: n} when is_integer(n) and n > 0 -> n
       _ -> fallback
-    end
-  end
-
-  defp countries_line(countries) do
-    case live_countries(countries) do
-      [] -> "Peagi."
-      names -> "Täna sees: " <> Enum.join(names, " · ")
     end
   end
 end

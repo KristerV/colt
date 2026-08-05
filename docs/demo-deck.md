@@ -160,6 +160,12 @@ Two shared components are worth knowing about before you reinvent them:
   two-row column of branches; pass the same `gap` as the branch column and the
   arrows line up by grid arithmetic. An earlier CSS-border bracket had to guess
   where the column centres were and drifted whenever a gap changed.
+- **`inbox_math/1`** — the 180-a-day = 9-addresses picture. Both decks show it
+  under different headings: `s_volume` as the rule you have to obey,
+  `f_volume` as what the product does about it.
+- **`chapter/1`** — the one-word break slides (`f_part_contacts`,
+  `f_part_sending`). Deliberately plain: a heading and a visual would read as
+  another point being made rather than a change of subject.
 - **`slider/1`** — a static picture of the campaign filter's dual-range control
   (`ColtWeb.Campaigns.FiltersLive.range_fset/1`). It exists so the filter slide
   shows the actual UI the viewer meets after registering. If that control gets
@@ -229,8 +235,9 @@ back to slide 0.
 `Slides.order/1` is the entire fork:
 
 ```elixir
-@features       [:f_cover, :f_intro, :f_alternatives, :f_filter, :f_validate,
-                 :f_contacts, :f_sending, :f_writing, :f_reply, :f_summary, :cta]
+@features       [:f_cover, :f_intro, :f_part_contacts, :f_alternatives, :f_process,
+                 :f_filter, :f_validate, :f_contacts, :f_part_sending, :f_sending,
+                 :f_writing, :f_volume, :f_reply, :f_summary, :cta]
 @solving_emails [:s_cover, :s_intro, :s_risk, :s_rules, :s_targeting,
                  :s_voice, :s_volume, :s_summary, :cta]
 ```
@@ -391,6 +398,13 @@ renders at ~150 px.
 channel closes itself once idle past `chunk_timeout`. `store_clip` copies the
 bytes out fast, then transcodes.
 
+**`DeckPlayer.play()` refuses to restart a finished clip.** `play()` on a video
+sitting at its end rewinds it to zero. The last slide is the one place where
+finishing a clip causes a re-render — `ended` pushes `advance`, the server has
+nowhere to advance to, so it assigns `paused?` and patches — and that patch runs
+`sync()`, which sees `data-started` still true and calls `play()`. Without the
+`ended` guard the closing clip loops, and only that clip.
+
 **Pause does not stop the narration.** It stops the deck *advancing*; the clip on
 the slide you're looking at plays to its end. That is why the decision lives in
 `handle_event("advance", …)` and why `data-started` tracks `@started?` alone.
@@ -416,6 +430,10 @@ corner and shape as playback.
   the player's 11s dwell: it answers "how long is the talk I've got", not "how
   long does the deck sit on screen". Each option in the deck selector carries
   its own total, so you can compare cuts without switching.
+- The live preview is mirrored, like a bathroom mirror, so framing yourself
+  works the way you expect. The recorded file is *not* flipped — it plays back
+  the way a viewer sees you, so your own clip will look "the other way round"
+  to you. That's correct.
 - Space = record/stop, N = next slide.
 - A slide has either a record button or its clip + Delete, never both. Replacing
   means deleting first.

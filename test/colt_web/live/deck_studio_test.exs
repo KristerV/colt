@@ -60,6 +60,9 @@ defmodule ColtWeb.DeckStudioTest do
 
       assert html =~ "Record this slide"
       refute html =~ "Delete"
+
+      # Nothing recorded yet, so the bubble is the live camera.
+      refute html =~ ~s(id="studio-take")
     end
 
     test "shows the slide's script as a teleprompter", %{conn: conn} do
@@ -82,6 +85,10 @@ defmodule ColtWeb.DeckStudioTest do
       assert html =~ "4.2s"
       assert html =~ "Delete"
       refute html =~ "Record this slide"
+
+      # The bubble shows the take, not the live camera, once there is one.
+      assert html =~ ~s(id="studio-take")
+      assert html =~ "/media/deck/f_intro-1.mp4"
 
       # Deleting takes two clicks: the first only arms the button.
       armed = view |> element("button[phx-click=delete]") |> render_click()
@@ -129,9 +136,9 @@ defmodule ColtWeb.DeckStudioTest do
 
       {:ok, view, html} = live(conn, ~p"/admin/deck")
 
-      # 42s + 18.5s, and 2 of the features deck's 11 slides are in the can.
+      # 42s + 18.5s, and 2 of the features deck's 15 slides are in the can.
       assert html =~ "1:00"
-      assert html =~ "2 / 11 recorded"
+      assert html =~ "2 / 15 recorded"
 
       # The other deck shares only `cta`, so its runtime is that clip alone.
       other =
@@ -141,6 +148,20 @@ defmodule ColtWeb.DeckStudioTest do
 
       assert other =~ "0:18"
       assert other =~ "1 / 9 recorded"
+    end
+
+    # Refreshing on a deep link used to land on the first slide of the default
+    # deck: mount starts on `features`, and a key that isn't in it fell through
+    # to the fallback rather than switching decks.
+    test "a link to another deck's slide opens that slide, in that deck", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/admin/deck/s_targeting")
+
+      # The teleprompter is showing that slide's script...
+      assert html =~ "Liid käib ka kodukalt kontakte otsimas"
+
+      # ...and the slide list is that slide's deck, not the default one.
+      assert html =~ "Risk on su domeen"
+      refute html =~ "Kust sa täna kontakte saad"
     end
 
     test "the deck selector filters the slide list", %{conn: conn} do
@@ -194,11 +215,11 @@ defmodule ColtWeb.DeckStudioTest do
 
       # The cover advertises the length before you press play, and the cover
       # itself isn't counted — it's the Play button, not a slide to sit through.
-      assert features =~ "10 slaidi"
+      assert features =~ "14 slaidi"
       assert emails =~ "8 slaidi"
 
       # Controls only appear once it's running, and count the pinned variant.
-      assert features_view |> element("button[data-deck-start]") |> render_click() =~ "1 / 10"
+      assert features_view |> element("button[data-deck-start]") |> render_click() =~ "1 / 14"
       assert emails_view |> element("button[data-deck-start]") |> render_click() =~ "1 / 8"
     end
 
@@ -290,7 +311,7 @@ defmodule ColtWeb.DeckStudioTest do
       view |> element("button[data-deck-start]") |> render_click()
 
       assert render_hook(view, "goto", %{"index" => "not-a-number"})
-      assert render(view) =~ "1 / 10"
+      assert render(view) =~ "1 / 14"
     end
 
     test "the try-it choice records a lead and sends them to register", %{conn: conn} do

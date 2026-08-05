@@ -1,3 +1,130 @@
 {
-  "slides": {}
+  "slides": {
+    "cta": {
+      "url": "/media/deck/cta-1785952183074.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 20891,
+      "recorded_at": "2026-08-05T17:49:44.993100Z"
+    },
+    "f_alternatives": {
+      "url": "/media/deck/f_alternatives-1785949784945.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 48738,
+      "recorded_at": "2026-08-05T17:09:48.847308Z"
+    },
+    "f_contacts": {
+      "url": "/media/deck/f_contacts-1785950021622.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 17962,
+      "recorded_at": "2026-08-05T17:13:43.386085Z"
+    },
+    "f_filter": {
+      "url": "/media/deck/f_filter-1785949905000.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 13842,
+      "recorded_at": "2026-08-05T17:11:46.421973Z"
+    },
+    "f_intro": {
+      "url": "/media/deck/f_intro-1785949719923.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 11079,
+      "recorded_at": "2026-08-05T17:08:41.178131Z"
+    },
+    "f_part_contacts": {
+      "url": "/media/deck/f_part_contacts-1785949727726.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 2406,
+      "recorded_at": "2026-08-05T17:08:48.280942Z"
+    },
+    "f_part_sending": {
+      "url": "/media/deck/f_part_sending-1785950041650.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 4852,
+      "recorded_at": "2026-08-05T17:14:02.393608Z"
+    },
+    "f_process": {
+      "url": "/media/deck/f_process-1785949886303.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 22321,
+      "recorded_at": "2026-08-05T17:11:28.434400Z"
+    },
+    "f_reply": {
+      "url": "/media/deck/f_reply-1785950401267.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 19331,
+      "recorded_at": "2026-08-05T17:20:03.070979Z"
+    },
+    "f_sending": {
+      "url": "/media/deck/f_sending-1785950128249.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 16908,
+      "recorded_at": "2026-08-05T17:15:30.068395Z"
+    },
+    "f_summary": {
+      "url": "/media/deck/f_summary-1785950946692.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 27537,
+      "recorded_at": "2026-08-05T17:29:09.272986Z"
+    },
+    "f_validate": {
+      "url": "/media/deck/f_validate-1785949974049.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 17610,
+      "recorded_at": "2026-08-05T17:12:55.658629Z"
+    },
+    "f_volume": {
+      "url": "/media/deck/f_volume-1785950659415.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 43638,
+      "recorded_at": "2026-08-05T17:24:23.197512Z"
+    },
+    "f_writing": {
+      "url": "/media/deck/f_writing-1785950374484.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 42045,
+      "recorded_at": "2026-08-05T17:19:38.274210Z"
+    },
+    "s_intro": {
+      "url": "/media/deck/s_intro-1785951497188.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 11979,
+      "recorded_at": "2026-08-05T17:38:18.405313Z"
+    },
+    "s_risk": {
+      "url": "/media/deck/s_risk-1785951724724.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 28975,
+      "recorded_at": "2026-08-05T17:42:07.443622Z"
+    },
+    "s_rules": {
+      "url": "/media/deck/s_rules-1785951760409.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 28432,
+      "recorded_at": "2026-08-05T17:42:43.107223Z"
+    },
+    "s_summary": {
+      "url": "/media/deck/s_summary-1785952137081.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 32267,
+      "recorded_at": "2026-08-05T17:48:59.927983Z"
+    },
+    "s_targeting": {
+      "url": "/media/deck/s_targeting-1785951928968.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 59193,
+      "recorded_at": "2026-08-05T17:45:33.912594Z"
+    },
+    "s_voice": {
+      "url": "/media/deck/s_voice-1785952020602.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 63723,
+      "recorded_at": "2026-08-05T17:47:05.954129Z"
+    },
+    "s_volume": {
+      "url": "/media/deck/s_volume-1785952092522.mp4",
+      "content_type": "video/mp4",
+      "duration_ms": 58221,
+      "recorded_at": "2026-08-05T17:48:17.168649Z"
+    }
+  }
 }

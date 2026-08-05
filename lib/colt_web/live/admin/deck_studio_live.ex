@@ -24,7 +24,6 @@ defmodule ColtWeb.Admin.DeckStudioLive do
 
   alias Colt.Deck.Manifest
   alias Colt.Deck.Transcode
-  alias ColtWeb.Admin.Summary
   alias ColtWeb.Deck.Slides
 
   @media_dir "media/deck"
@@ -37,7 +36,6 @@ defmodule ColtWeb.Admin.DeckStudioLive do
   @default_deck "features"
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     {:ok,
@@ -69,20 +67,34 @@ defmodule ColtWeb.Admin.DeckStudioLive do
      )}
   end
 
+  # A slide key in the URL is a deep link, so the deck selector follows the key
+  # rather than the other way round. Looking the key up inside the currently
+  # selected deck alone is what made a refresh on /admin/deck/s_targeting land
+  # back on the first slide of `features`: mount always starts on the default
+  # deck, and a key that isn't in it fell through to the fallback.
   def handle_params(params, _uri, socket) do
-    key =
-      case params["slide_key"] do
-        nil ->
-          hd(socket.assigns.keys)
-
-        given ->
-          Enum.find(socket.assigns.keys, hd(socket.assigns.keys), &(to_string(&1) == given))
-      end
+    key = resolve_key(params["slide_key"], socket.assigns.deck)
+    deck = deck_for(key, socket.assigns.deck)
 
     {:noreply,
      socket
-     |> assign(slide_key: key, confirm_delete?: false)
+     |> assign(slide_key: key, deck: deck, keys: Slides.order(deck), confirm_delete?: false)
      |> load_takes()}
+  end
+
+  defp resolve_key(nil, deck), do: hd(Slides.order(deck))
+
+  defp resolve_key(given, deck) do
+    Enum.find(Slides.all_keys(), hd(Slides.order(deck)), &(to_string(&1) == given))
+  end
+
+  # Keys that both decks play (`cta`) keep whichever deck you were already on.
+  defp deck_for(key, current) do
+    if key in Slides.order(current) do
+      current
+    else
+      Enum.find(Slides.variants(), current, &(key in Slides.order(&1)))
+    end
   end
 
   ## ---------- events ----------
@@ -315,10 +327,6 @@ defmodule ColtWeb.Admin.DeckStudioLive do
     <Layouts.app flash={@flash} current_user={@current_user}>
       <Slides.styles />
 
-      <div class="mb-4">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-      </div>
-
       <div class="grid grid-cols-1 lg:grid-cols-[210px_1fr] gap-4 items-start">
         <div class="flex flex-col gap-3">
           <%!-- Which deck's slides to work through. Nothing more — a take
@@ -412,8 +420,58 @@ defmodule ColtWeb.Admin.DeckStudioLive do
             <%!-- Same element, same class, same corner as the player's bubble, so
                   what you frame yourself against while talking is exactly what the
                   prospect sees. Hidden rather than removed: the hook holds a
-                  reference to it and the srcObject must survive the patch. --%>
-            <video id="studio-preview" class="deck-bubble" hidden={!@recording?} playsinline muted />
+                  reference to it and the srcObject must survive the patch.
+
+                  Mirrored, because a live self-view that isn't is unusable: you
+                  move right and the image goes left, so framing yourself becomes
+                  a guessing game. This is CSS on the preview only, the recorded
+                  file is untouched and plays back the way a viewer sees you.
+
+                  On from mount rather than only while recording, so you can
+                  check framing and lighting before a take. The ring goes red
+                  while recording, which is the one thing that tells you a take
+                  is running from across the room.
+
+                  It steps aside for a slide that already has a clip: there the
+                  clip is what you want to look at, not the camera. Hidden
+                  rather than removed either way — the hook holds a reference to
+                  this element and its srcObject must survive the patch. --%>
+            <video
+              id="studio-preview"
+              class="deck-bubble"
+              style={"transform:scaleX(-1);" <> recording_ring(@recording?)}
+              hidden={playback?(@take, @recording?)}
+              playsinline
+              muted
+            />
+
+            <%!-- The take, in the bubble it will play in. Green ring, so
+                  "this one is in the can" reads without looking anywhere else,
+                  and one button, shown only while the clip is stopped: it
+                  starts playback and then gets out of the way, so nothing is
+                  painted over your face while you watch. It rewinds and comes
+                  back when the clip ends.
+
+                  Not mirrored, unlike the live preview above — this is the file
+                  itself, the way a prospect sees it. --%>
+            <div :if={playback?(@take, @recording?)} id="studio-take" phx-hook="DeckTakePlayer">
+              <video
+                id="studio-take-video"
+                class="deck-bubble"
+                style="border-color:var(--green);"
+                src={@take.media_url}
+                playsinline
+              />
+              <button
+                type="button"
+                data-take-toggle
+                aria-label="Play take"
+                class="cursor-pointer"
+                style="position:absolute;right:5.65cqw;bottom:5.65cqw;width:3.2cqw;height:3.2cqw;border-radius:999px;display:grid;place-items:center;background:rgba(255,255,255,.92);color:var(--ink);border:0;box-shadow:0 2px 10px rgba(35,32,28,.22);font-size:1.15cqw;line-height:1;z-index:4;"
+              >
+                ▶
+              </button>
+            </div>
           </div>
 
           <%!-- One clip per slide, so this is either the clip or the button that
@@ -528,6 +586,17 @@ defmodule ColtWeb.Admin.DeckStudioLive do
     </Layouts.app>
     """
   end
+
+  # The preview ring is white like the player's bubble until a take is running,
+  # then red. It is the only always-visible signal that the camera is live
+  # rather than just on, which matters now that the preview never goes away.
+  defp recording_ring(true), do: "border-color:var(--red);"
+  defp recording_ring(_), do: ""
+
+  # Which of the two bubbles the stage shows. A slide with a clip shows the
+  # clip; recording always wins, so stopping a take that replaced nothing still
+  # hands the corner back to the camera until the new clip lands.
+  defp playback?(take, recording?), do: !is_nil(take) and not recording?
 
   defp duration_label(nil), do: "—"
   defp duration_label(ms), do: "#{Float.round(ms / 1000, 1)}s"
