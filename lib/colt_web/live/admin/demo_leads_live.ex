@@ -10,10 +10,8 @@ defmodule ColtWeb.Admin.DemoLeadsLive do
   use ColtWeb, :live_view
 
   alias Colt.Resources.DemoLead
-  alias ColtWeb.Admin.Summary
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     {:ok, socket |> assign(page_title: "Demo leads") |> load()}
@@ -35,7 +33,6 @@ defmodule ColtWeb.Admin.DemoLeadsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-6">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">Demo leads</h1>
 
         <div :if={@items == []} class="text-ink55 text-[13px]">

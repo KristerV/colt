@@ -3,11 +3,9 @@ defmodule ColtWeb.Admin.CostsLive do
 
   alias Colt.Resources.{ApiCall, RevenueEntry}
   alias Colt.Services.Costs.MonthlySummary
-  alias ColtWeb.Admin.Summary
   alias ColtWeb.Components.{ApiCallLog, Liid}
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   @months_back 12
 
@@ -106,7 +104,6 @@ defmodule ColtWeb.Admin.CostsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-8">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">API <em>costs</em></h1>
 
         <.chart chart={@chart} />

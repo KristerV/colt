@@ -3,10 +3,8 @@ defmodule ColtWeb.Admin.CountriesLive do
 
   alias Colt.Markets
   alias Colt.Resources.Company
-  alias ColtWeb.Admin.Summary
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, :countries, load_countries())}
@@ -16,7 +14,6 @@ defmodule ColtWeb.Admin.CountriesLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
           Companies by <em>country</em>
         </h1>
@@ -139,12 +136,7 @@ defmodule ColtWeb.Admin.CountriesLive do
     Company.refresh_market_stats()
     Company.analyze()
 
-    socket =
-      socket
-      |> assign(:countries, load_countries())
-      |> assign(:admin_tiles, Summary.tiles())
-
-    {:noreply, socket}
+    {:noreply, assign(socket, :countries, load_countries())}
   end
 
   def handle_event("schedule_ingest", %{"market" => market_str}, socket) do

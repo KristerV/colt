@@ -3,10 +3,8 @@ defmodule ColtWeb.Admin.ClientsLive do
 
   alias Colt.Accounts.User
   alias Colt.Resources.ApiCall
-  alias ColtWeb.Admin.Summary
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     rows = build_rows()
@@ -61,7 +59,6 @@ defmodule ColtWeb.Admin.ClientsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-10">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">All <em>clients</em></h1>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 md:max-w-2xl">

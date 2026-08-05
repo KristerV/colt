@@ -1,10 +1,7 @@
 defmodule ColtWeb.Admin.TrackingDomainLive do
   use ColtWeb, :live_view
 
-  alias ColtWeb.Admin.Summary
-
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     {:ok,
@@ -37,8 +34,6 @@ defmodule ColtWeb.Admin.TrackingDomainLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-8">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-
         <div>
           <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
             Tracking <em>domain</em>

@@ -2,10 +2,8 @@ defmodule ColtWeb.Admin.CampaignsLive do
   use ColtWeb, :live_view
 
   alias Colt.Resources.Campaign
-  alias ColtWeb.Admin.Summary
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   def mount(_params, _session, socket) do
     campaigns =
@@ -21,7 +19,6 @@ defmodule ColtWeb.Admin.CampaignsLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-6">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <div>
           <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
             All <em>campaigns</em>

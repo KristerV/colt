@@ -2,9 +2,6 @@ defmodule ColtWeb.Admin.StorageLive do
   use ColtWeb, :live_view
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
-
-  alias ColtWeb.Admin.Summary
 
   def mount(_params, _session, socket) do
     {:ok, socket |> assign(:tables, load_tables()) |> assign(:total, total_size())}
@@ -14,7 +11,6 @@ defmodule ColtWeb.Admin.StorageLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-8">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
           Database <em>storage</em>
         </h1>

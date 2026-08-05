@@ -4,9 +4,6 @@ defmodule ColtWeb.Admin.FeedbackLive do
   alias Colt.Resources.Feedback
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
-
-  alias ColtWeb.Admin.Summary
 
   def mount(_params, _session, socket) do
     {:ok, assign(socket, :items, Feedback.list!(actor: socket.assigns.current_user))}
@@ -23,7 +20,6 @@ defmodule ColtWeb.Admin.FeedbackLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-6">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">User <em>feedback</em></h1>
 
         <div :if={@items == []} class="text-ink55 text-[13px]">

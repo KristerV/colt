@@ -4,11 +4,9 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
   alias Colt.Accounts
   alias Colt.Resources.{ApiCall, CampaignCompany, RevenueEntry}
   alias Colt.Services.Billing.RevenueSync
-  alias ColtWeb.Admin.Summary
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
-  on_mount ColtWeb.Admin.SummaryHook
 
   @months_back 12
 
@@ -161,8 +159,6 @@ defmodule ColtWeb.Admin.ClientsSpendingLive do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user}>
       <div class="space-y-8">
-        <Summary.summary_strip tiles={@admin_tiles} current_path={@admin_current_path} />
-
         <div class="flex items-center justify-between gap-3">
           <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">
             Client <em>profit</em>
