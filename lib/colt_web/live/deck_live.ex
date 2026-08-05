@@ -181,7 +181,7 @@ defmodule ColtWeb.DeckLive do
 
     case validate(kind, params) do
       :ok ->
-        submit_lead(socket, kind, params)
+        socket |> submit_lead(kind, params) |> identify_lead(socket)
         AbFunnel.track(socket, "lead_submitted", %{kind: socket.assigns.asking})
 
         {:noreply, assign(socket, asking: nil, submitted?: kind, form_error: nil)}
@@ -222,6 +222,20 @@ defmodule ColtWeb.DeckLive do
         :error
     end
   end
+
+  # The one identity call nothing can infer. A signed-in browser binds itself, but someone
+  # who watches the deck on their phone and clicks the magic link on their laptop is two
+  # visitors and neither completes the funnel. Binding the browser to the email here joins
+  # them — retroactively, over the slides they already watched.
+  #
+  # Only fires for leads that carry an email, which today means prospects who arrived
+  # through a personalised `?c=` link: the lead panels collect name/phone or a message,
+  # never an address. Cold visitors stay per-browser until the form asks for one.
+  defp identify_lead({:ok, %{email: email}}, socket) when is_binary(email) do
+    AbFunnel.identify_by_email(socket, email)
+  end
+
+  defp identify_lead(_result, _socket), do: :ok
 
   defp build_lead(socket, kind, params) do
     assigns = socket.assigns

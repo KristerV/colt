@@ -24,6 +24,10 @@ defmodule ColtWeb.Campaigns.NewLive do
       true ->
         case Campaign.create_draft(name, actor: socket.assigns.current_user) do
           {:ok, campaign} ->
+            # The first thing anyone does that isn't just signing up — the step that turns
+            # a deck view into an activated account in the /admin/ab funnel.
+            AbFunnel.track(socket, "campaign_created")
+
             {:noreply, push_navigate(socket, to: ~p"/campaigns/#{campaign.id}/filters")}
 
           {:error, _} = err ->

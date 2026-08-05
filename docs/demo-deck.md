@@ -260,6 +260,25 @@ position across visitors and counts unique visitors per step, so you get a
 per-slide drop-off funnel grouped by variant for free. **Don't add bespoke
 analytics** — add an `AbFunnel.track/3` call if something new needs measuring.
 
+**The funnel does not stop at the deck.** `AbFunnel.LiveView` is on the
+authenticated live_session too, so `signed_in` (`ColtWeb.AuthController.success/4`)
+and `campaign_created` (`Campaigns.NewLive`) land in the same funnel as the
+slides. A deck view and the account it produced are one row in `/admin/ab`.
+
+**Counts are people, not browsers.** `ab_funnel` resolves visitor ids through
+`ab_funnel_identities` at read time. A signed-in browser binds itself — the plug
+and the `on_mount` hook both do it off `current_user.email`. The one case nothing
+can infer is an email handed over *before* an account exists, which is why
+`DeckLive` calls `AbFunnel.identify_by_email/2` on a lead that carries one. Today
+that means prospects who arrived through a personalised `?c=` link: the lead
+panels ask for name/phone or a message, never an address. Add an email field and
+cold visitors join up across devices too.
+
+Because resolution happens at read time, identifying is retroactive — it pulls in
+everything that browser already did. It is not precognitive: a browser that never
+identifies stays its own person, so the top of the funnel is counted per browser
+and the tail per person.
+
 **Send people to bare `/demo`** — that is where the coin gets flipped. The
 pinned URLs are for aiming a specific prospect at a specific cut.
 

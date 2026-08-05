@@ -238,7 +238,7 @@ defmodule ColtWeb.DeckStudioTest do
       view |> element("button[data-deck-start]") |> render_click()
 
       variants =
-        AbFunnel.Event
+        AbFunnel.Resources.Event
         |> where([e], e.visitor_id == "visitor-pinned" and like(e.event, "slide_%"))
         |> Colt.Repo.all()
         |> Enum.map(& &1.variant)

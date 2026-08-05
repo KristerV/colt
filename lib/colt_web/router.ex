@@ -36,8 +36,12 @@ defmodule ColtWeb.Router do
   scope "/", ColtWeb do
     pipe_through :browser
 
+    # AbFunnel last: it binds this browser to whoever is signed in, so it needs
+    # `current_user` already assigned. Without it here the visitor assigns are nil
+    # everywhere inside the app and `track/2` quietly records nothing — the deck funnel
+    # would stop dead at registration.
     ash_authentication_live_session :authenticated_routes,
-      on_mount: [ColtWeb.LiveLocale, ColtWeb.UsageAssign] do
+      on_mount: [ColtWeb.LiveLocale, ColtWeb.UsageAssign, AbFunnel.LiveView] do
       live "/", HomeLive
       live "/search", SearchLive
       live "/campaigns", Campaigns.IndexLive

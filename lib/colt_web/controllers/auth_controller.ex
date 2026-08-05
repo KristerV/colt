@@ -17,11 +17,26 @@ defmodule ColtWeb.AuthController do
           conn
       end
 
+    # Every strategy funnels through here, so it's the one place that sees the moment
+    # someone stops being an anonymous visitor. Bind explicitly rather than waiting for
+    # `AbFunnel.Plug.Visitor` to do it on the next request: the plug ran on *this* request
+    # while `current_user` was still nil, and without the binding the sign-in itself lands
+    # under a visitor nobody can join to the deck session that led here.
+    bind_visitor_to_person(conn, user)
+    AbFunnel.track(conn, "signed_in")
+
     conn
     |> delete_session(:return_to)
     |> store_in_session(user)
     |> assign(:current_user, user)
     |> redirect(to: return_to)
+  end
+
+  defp bind_visitor_to_person(conn, user) do
+    case AbFunnel.person_key_for(user) do
+      key when is_binary(key) -> AbFunnel.identify(conn, key)
+      _ -> :ok
+    end
   end
 
   def failure(conn, activity, reason) do

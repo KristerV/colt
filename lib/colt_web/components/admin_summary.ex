@@ -98,7 +98,7 @@ defmodule ColtWeb.Admin.Summary do
   defp deck_views do
     require Ecto.Query
 
-    AbFunnel.Event
+    AbFunnel.Resources.Event
     |> Ecto.Query.where(event: "deck_started")
     |> Colt.Repo.aggregate(:count)
   end
