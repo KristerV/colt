@@ -415,7 +415,7 @@ defmodule ColtWeb.DeckLive do
             navigate={~p"/"}
             class="inline-flex items-center justify-center mt-6 px-5 py-3 rounded-[8px] bg-accent text-white text-[14px] font-semibold no-underline"
           >
-            Vaata Liidi kohta rohkem
+            Tagasi kodukale
           </.link>
         </div>
       </div>

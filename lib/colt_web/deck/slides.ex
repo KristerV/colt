@@ -539,7 +539,7 @@ defmodule ColtWeb.Deck.Slides do
 
       <div class="mt-[3.4cqw]">
         <button type="button" data-deck-start phx-click="start" class="d-btn mx-auto">
-          ▶ Vaata ülevaadet
+          ▶ Alusta
         </button>
       </div>
 
@@ -886,7 +886,7 @@ defmodule ColtWeb.Deck.Slides do
 
       <div class="mt-[3.4cqw]">
         <button type="button" data-deck-start phx-click="start" class="d-btn mx-auto">
-          ▶ Vaata ülevaadet
+          ▶ Alusta
         </button>
       </div>
 

@@ -39,7 +39,9 @@ defmodule ColtWeb.Admin.DemoLeadsLive do
           Nothing submitted yet.
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <%!-- One column at every width: a lead is read top to bottom, and the
+              messages are long enough that two narrow columns hurt. --%>
+        <div class="grid grid-cols-1 gap-4">
           <.card :for={item <- @items} item={item} />
         </div>
       </div>
