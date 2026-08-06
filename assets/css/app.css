@@ -249,3 +249,61 @@ em {
 }
 .liid-range:active::-webkit-slider-thumb { cursor: grabbing; }
 .liid-range:active::-moz-range-thumb { cursor: grabbing; }
+
+/* ── Prose we don't author: the Trix composer and rendered email ────
+   Tailwind's preflight resets `a` to `color: inherit; text-decoration:
+   inherit` and strips list markers. Right for app chrome, wrong here — in the
+   composer it made an inserted link indistinguishable from the text around it,
+   so formatting looked broken even though the markup was correct. The timeline
+   needs the same rules to show a mail the way its recipient saw it.
+
+   `.trix-content` is also styled by trix.css, which loads after app.css (see
+   root.html.heex): its `.trix-content *` reset is one class + universal, so the
+   class+type selectors below outrank it. ──────────────────────────── */
+.trix-content a,
+.email-html a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.trix-content ul,
+.email-html ul { list-style: disc; padding-left: 1.3em; margin: 0.4em 0; }
+
+.trix-content ol,
+.email-html ol { list-style: decimal; padding-left: 1.3em; margin: 0.4em 0; }
+
+.trix-content h1, .email-html h1 { font-size: 1.3em; font-weight: 700; margin: 0.5em 0 0.3em; }
+.trix-content h2, .email-html h2 { font-size: 1.15em; font-weight: 700; margin: 0.5em 0 0.3em; }
+.trix-content h3, .email-html h3,
+.trix-content h4, .email-html h4,
+.trix-content h5, .email-html h5,
+.trix-content h6, .email-html h6 { font-size: 1em; font-weight: 600; margin: 0.5em 0 0.3em; }
+
+/* `em` is globally accent-blue — that's our one-italic-word-per-heading rule.
+   Inside somebody else's message it would just tint arbitrary italics. */
+.trix-content em, .email-html em { color: inherit; }
+
+.email-html p { margin: 0.55em 0; }
+.email-html p:first-child { margin-top: 0; }
+.email-html p:last-child { margin-bottom: 0; }
+
+.email-html blockquote {
+  margin: 0.5em 0;
+  padding-left: 0.9em;
+  border-left: 2px solid var(--border);
+  color: var(--inkSoft);
+}
+
+/* Foreign markup has to stay inside its card: no bleeding wide tables, no
+   images overflowing, and no fonts from outside the system (docs/design.md:
+   Inter only). Anything genuinely too wide scrolls in here, not on the page. */
+.email-html {
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}
+.email-html * { font-family: inherit !important; max-width: 100%; }
+.email-html img { height: auto; }
+.email-html table { border-collapse: collapse; }
+.email-html pre { white-space: pre-wrap; }
+.email-html hr { border-top: 1px solid var(--border); margin: 0.7em 0; }

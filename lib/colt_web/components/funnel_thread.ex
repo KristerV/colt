@@ -22,8 +22,7 @@ defmodule ColtWeb.Components.FunnelThread do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
-  alias Colt.Services.Email.HtmlToText
-  alias Colt.Services.Email.SplitQuote
+  alias Colt.Services.Email.RenderBody
   alias ColtWeb.Components.Liid
   alias Phoenix.LiveView.JS
 
@@ -375,7 +374,11 @@ defmodule ColtWeb.Components.FunnelThread do
           <div :if={@subject} class="text-[13.5px] font-bold tracking-[-0.005em] text-ink mb-1.5">
             {@subject}
           </div>
-          <div phx-no-format class="text-[13px] leading-[1.55] text-[#4a473f] whitespace-pre-wrap">{@body}</div>
+          <%!-- Sanitized by RenderBody. The card renders the sender's own
+                markup, so no whitespace-pre-wrap here — the <br>s are real. --%>
+          <div class="email-html text-[13px] leading-[1.55] text-[#4a473f]">
+            {Phoenix.HTML.raw(@body)}
+          </div>
           <details :if={@quoted} class="mt-2.5">
             <summary class="cursor-pointer list-none select-none inline-flex items-center gap-1.5 text-[11px] font-semibold text-inkFaint hover:text-accent">
               <span class="inline-flex items-center justify-center h-[14px] px-1.5 rounded-[4px] bg-paperAlt border border-border leading-none tracking-[0.08em]">
@@ -383,10 +386,9 @@ defmodule ColtWeb.Components.FunnelThread do
               </span>
               {gettext("Quoted text")}
             </summary>
-            <div
-              phx-no-format
-              class="mt-2 px-3 py-2.5 rounded-[8px] bg-bgSoft border border-border text-[12.5px] leading-[1.55] text-inkFaint whitespace-pre-wrap"
-            >{@quoted}</div>
+            <div class="email-html mt-2 px-3 py-2.5 rounded-[8px] bg-bgSoft border border-border text-[12.5px] leading-[1.55] text-inkFaint">
+              {Phoenix.HTML.raw(@quoted)}
+            </div>
           </details>
         </div>
       </div>
@@ -582,10 +584,9 @@ defmodule ColtWeb.Components.FunnelThread do
   end
 
   # Inbound + manual-reply bodies arrive as HTML; outbound AI drafts are plain
-  # text. The stored body is never touched — this is display only.
+  # text. Both halves come back sanitized and go through `raw/1` in the card.
   defp display_body(raw) do
-    {:ok, text} = HtmlToText.run(raw)
-    {:ok, split} = SplitQuote.run(text)
+    {:ok, split} = RenderBody.run(raw)
     split
   end
 

@@ -47,6 +47,7 @@ defmodule Colt.MixProject do
       {:tzdata, "~> 1.0"},
       {:nimble_csv, "~> 1.0"},
       {:html2markdown, "~> 0.3"},
+      {:floki, "~> 0.38"},
       {:picosat_elixir, "~> 0.2"},
       {:sourceror, "~> 1.8", only: [:dev, :test]},
       {:oban, "~> 2.0"},
