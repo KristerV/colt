@@ -39,12 +39,18 @@ defmodule ColtWeb.DeckLive do
   # and `/demo/solving_emails` pin one, so a specific cut can be linked to
   # directly.
   #
-  # A pinned visit overwrites `ab_funnel_variant` for this LiveView, which is
+  # A pinned visit overwrites this LiveView's ab_funnel *assignment*, which is
   # what makes its events land under the deck the viewer actually watched.
-  # `AbFunnel.track/2` reads that assign, not our `:variant`, so without this a
-  # pinned visitor's slides are filed under whatever the cookie happened to say
-  # — which files features slides under solving_emails and quietly corrupts the
-  # funnel at /admin/ab rather than merely sitting outside it.
+  # `AbFunnel.track/2` stamps every event with `assigns.ab_funnel_assignments`,
+  # not our `:variant`, so without this a pinned visitor's slides are filed under
+  # whatever the cookie happened to say — which files features slides under
+  # solving_emails and quietly corrupts the funnel at /admin/ab rather than
+  # merely sitting outside it. `ab_funnel_variant` is rewritten alongside it
+  # because that is the assign templates read.
+  #
+  # Not `?ab_funnel=deck:features`, which looks like it does the same thing: that
+  # is the QA override, and the report deliberately excludes anyone who uses it.
+  # A pinned prospect is real traffic.
   def mount(params, _session, socket) do
     pinned = pinned_variant(params)
     variant = pinned || socket.assigns[:ab_funnel_variant]
@@ -56,6 +62,7 @@ defmodule ColtWeb.DeckLive do
        page_title: "Liid, lühike ülevaade",
        variant: variant,
        ab_funnel_variant: variant,
+       ab_funnel_assignments: deck_assignment(socket, variant),
        pinned?: pinned != nil,
        keys: keys,
        index: 0,
@@ -533,6 +540,14 @@ defmodule ColtWeb.DeckLive do
   end
 
   defp pinned_variant(_params), do: nil
+
+  # Every other experiment this visitor is in is left alone — pinning a deck says
+  # nothing about which arm of some future test they belong to.
+  defp deck_assignment(socket, nil), do: socket.assigns[:ab_funnel_assignments] || %{}
+
+  defp deck_assignment(socket, variant) do
+    socket |> deck_assignment(nil) |> Map.put(Colt.ABTests.key(), variant)
+  end
 
   defp current_key(assigns), do: Enum.at(assigns.keys, assigns.index)
 

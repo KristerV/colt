@@ -225,9 +225,9 @@ defmodule ColtWeb.DeckStudioTest do
 
     # A pinned link is how a specific prospect gets sent to a specific cut, and
     # that journey has to show up under the cut they were sent to. AbFunnel
-    # tracks from `ab_funnel_variant`, which the cookie owns — so without the
-    # override in mount, half of this traffic files features slides under
-    # solving_emails and corrupts the funnel rather than just missing from it.
+    # stamps events with `ab_funnel_assignments`, which the cookie owns — so
+    # without the override in mount, half of this traffic files features slides
+    # under solving_emails and corrupts the funnel rather than just missing from it.
     test "a pinned deck logs its events under the pinned variant", %{conn: conn} do
       view =
         conn
@@ -241,7 +241,7 @@ defmodule ColtWeb.DeckStudioTest do
         AbFunnel.Resources.Event
         |> where([e], e.visitor_id == "visitor-pinned" and like(e.event, "slide_%"))
         |> Colt.Repo.all()
-        |> Enum.map(& &1.variant)
+        |> Enum.map(fn e -> e.assignments[Colt.ABTests.key()] end)
         |> Enum.uniq()
 
       assert variants == ["features"]

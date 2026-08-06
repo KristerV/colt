@@ -1112,7 +1112,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   defp demo_links(contact) do
     Enum.map(Slides.variants(), fn variant ->
       %{
-        label: Colt.ABVariants.name(variant),
+        label: Colt.ABTests.label(variant),
         # Not gettext: the deck it links to exists only in Estonian, so a
         # translated anchor would promise a page that isn't there. Every other
         # msgid in this app is English, and an Estonian one would be the odd

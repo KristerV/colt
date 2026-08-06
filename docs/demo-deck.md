@@ -247,18 +247,39 @@ through the product, `solving_emails` sells the same product through
 deliverability. `cta` closes both and is therefore recorded once.
 
 Adding a variant is a new `order/1` branch plus an entry in `variants/0` and in
-`Colt.ABVariants` — not a schema change.
+`Colt.ABTests` — not a schema change.
 
-Assignment comes from `ab_funnel`, which gives a visitor **one variant for the
-whole site** (cookie, one year). So the same key that picks the deck also drives
-whatever onboarding branches on later — it's one test, not two.
+Assignment comes from `ab_funnel`, which buckets a visitor **once per
+experiment** (one cookie, one year). The deck is the `deck` experiment; a second
+test later gets its own bucket rather than multiplying the deck's two arms into
+four.
 
 Tracking is already wired: one event per slide on first view (`slide_f_intro`,
 `slide_s_risk`, …), plus `deck_started`, `deck_completed`, `cta_clicked` and
-`lead_submitted`. `AbFunnel.AdminLive` at `/admin/ab` orders steps by average
-position across visitors and counts unique visitors per step, so you get a
-per-slide drop-off funnel grouped by variant for free. **Don't add bespoke
-analytics** — add an `AbFunnel.track/3` call if something new needs measuring.
+`lead_submitted`. **Don't add bespoke analytics** — add an `AbFunnel.track/3`
+call if something new needs measuring, and put it in `Colt.ABTests.steps/1` if
+it belongs in the chart.
+
+**The funnel is declared, not inferred.** `Colt.ABTests.steps/1` hands
+`ab_funnel` the same slide order `order/1` plays, so `/admin/ab` charts the deck
+in presentation order and renders a slide nobody reached as `0` instead of
+dropping it. Leave `steps` out and the library falls back to ordering events by
+their average position across visitors, which cannot tell `deck_started` from a
+`signed_in` fired somewhere else in the app — the two tie at position 0 and the
+chart order becomes arbitrary.
+
+**Nobody is in the funnel until they press Play.** `entry: "deck_started"` gates
+it. Without that every browser holding a cookie counted, including people who
+signed in on the landing page and never opened `/demo` — which is how a step
+*below* the entry point ended up holding more people than the entry point, and
+`/admin/ab` reported a 200% step conversion. Events a person fired before their
+first `deck_started` are trimmed too, so a pre-deck sign-in no longer lands
+halfway down the chart.
+
+The declared `goal` is `signed_in`: the deck's job is accounts. `lead_submitted`
+only covers the prospects who took the call/message branch of the closing slide,
+so it undercounts. Significance, sample size and the sample-ratio-mismatch alarm
+are all computed against that goal.
 
 **The funnel does not stop at the deck.** `AbFunnel.LiveView` is on the
 authenticated live_session too, so `signed_in` (`ColtWeb.AuthController.success/4`)
@@ -283,12 +304,19 @@ and the tail per person.
 pinned URLs are for aiming a specific prospect at a specific cut.
 
 **A pinned visit still counts, under the deck it played.** `AbFunnel.track/2`
-reads `assigns.ab_funnel_variant` — the cookie — not the deck being shown, so
-`DeckLive.mount` overwrites that assign with the resolved variant. Without it a
-pinned visitor's slides are filed under whatever the cookie happened to say,
-which files `slide_f_*` events under `solving_emails` and *corrupts* the funnel
-rather than merely sitting outside it. `deck_started` carries `pinned: true|false`
-so aimed traffic can still be told apart from the coin flip.
+stamps every event with `assigns.ab_funnel_assignments` — the cookie — not the
+deck being shown, so `DeckLive.mount` overwrites the `deck` key in that map with
+the resolved variant (and `ab_funnel_variant` alongside it, which is what
+templates read). Without it a pinned visitor's slides are filed under whatever
+the cookie happened to say, which files `slide_f_*` events under
+`solving_emails` and *corrupts* the funnel rather than merely sitting outside it.
+`deck_started` carries `pinned: true|false` so aimed traffic can still be told
+apart from the coin flip.
+
+Do **not** reach for `?ab_funnel=deck:features` here, which looks like it does
+the same job. That is the library's QA override, and anyone who uses it is
+flagged and dropped from the report entirely — correct for us checking the other
+arm, wrong for a prospect we aimed at a cut on purpose.
 
 There is a test for exactly this (`a pinned deck logs its events under the
 pinned variant`) — it sets a `solving_emails` cookie, opens `/demo/features`,

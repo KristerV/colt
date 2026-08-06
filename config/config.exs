@@ -220,7 +220,7 @@ config :colt,
 
 config :ab_funnel,
   repo: Colt.Repo,
-  variants: Colt.ABVariants
+  experiments: Colt.ABTests
 
 # Configure the endpoint
 config :colt, ColtWeb.Endpoint,
