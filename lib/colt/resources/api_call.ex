@@ -16,6 +16,12 @@ defmodule Colt.Resources.ApiCall do
     references do
       reference :campaign, on_delete: :nilify
     end
+
+    # The admin rollups group by campaign and by month over the whole table.
+    custom_indexes do
+      index [:campaign_id]
+      index [:inserted_at]
+    end
   end
 
   code_interface do
@@ -220,7 +226,9 @@ defmodule Colt.Resources.ApiCall do
         on: camp.id == c.campaign_id,
         group_by: camp.owner_id,
         select: %{
-          user_id: camp.owner_id,
+          # Schemaless queries hand back raw 16-byte UUIDs, which never match the
+          # string ids Ash returns — cast, or every lookup silently misses.
+          user_id: fragment("?::text", camp.owner_id),
           cost_usd: coalesce(sum(c.cost_usd), 0),
           calls: count(c.id),
           last_call_at: max(c.inserted_at)

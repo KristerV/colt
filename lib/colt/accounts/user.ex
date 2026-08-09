@@ -75,6 +75,28 @@ defmodule Colt.Accounts.User do
       require_atomic? false
     end
 
+    update :admin_set_profile do
+      description "Admin edits the client's CRM fields. Blank values fall back to the linked person/company."
+
+      accept [
+        :full_name,
+        :phone,
+        :company_name,
+        :company_reg_code,
+        :country,
+        :website,
+        :admin_notes
+      ]
+
+      require_atomic? false
+    end
+
+    update :admin_link_identity do
+      description "Point the client at a Person and/or Company we already hold. Nils unlink."
+      accept [:person_id, :company_id]
+      require_atomic? false
+    end
+
     read :get_by_subject do
       description "Get a user by the subject claim in a JWT"
       argument :subject, :string, allow_nil?: false
@@ -153,8 +175,12 @@ defmodule Colt.Accounts.User do
       authorize_if always()
     end
 
+    bypass actor_attribute_equals(:is_admin, true) do
+      authorize_if always()
+    end
+
+    # Admins are covered by the bypass above; this is the self-read rule.
     policy action_type(:read) do
-      authorize_if expr(^actor(:is_admin) == true)
       authorize_if expr(id == ^actor(:id))
     end
 
@@ -215,6 +241,21 @@ defmodule Colt.Accounts.User do
       constraints one_of: [:none, :active, :past_due, :canceled]
     end
 
+    # Admin-maintained CRM fields. Each is an *override*: blank means "use the
+    # linked person/company value", so there is no duplicated source of truth.
+    # The effective value is resolved in Colt.Services.Admin.ClientProfile.
+    attribute :full_name, :string, public?: true
+    attribute :phone, :string, public?: true
+    attribute :company_name, :string, public?: true
+    attribute :company_reg_code, :string, public?: true
+    attribute :country, :string, public?: true
+    attribute :website, :string, public?: true
+
+    attribute :admin_notes, :string do
+      public? true
+      constraints max_length: 4000
+    end
+
     # Registration time. Backfilled to the migration moment for users that
     # predate this column; accurate for everyone who signs up after.
     timestamps()
@@ -222,6 +263,12 @@ defmodule Colt.Accounts.User do
 
   relationships do
     has_many :campaigns, Colt.Resources.Campaign, destination_attribute: :owner_id
+    has_many :email_accounts, Colt.Resources.EmailAccount
+
+    # Who this client is in our own data. Auto-linked by matching the sign-up
+    # address against every Person we ever enriched — no campaign is named in code.
+    belongs_to :person, Colt.Resources.Person, allow_nil?: true, public?: true
+    belongs_to :company, Colt.Resources.Company, allow_nil?: true, public?: true
   end
 
   calculations do

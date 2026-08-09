@@ -33,6 +33,7 @@ defmodule Colt.Resources.OutboundEmail do
     define :list_halt_eligible_for_thread, args: [:thread_id]
     define :next_scheduled_for_thread, args: [:thread_id]
     define :list_user_edited_for_sequence, args: [:sequence_id, :limit]
+    define :contacts_emailed_by_month, args: [:months_back]
 
     define :create_draft,
       args: [:thread_id, :step_position, :ai_subject, :ai_body, :sequence_id]
@@ -56,6 +57,16 @@ defmodule Colt.Resources.OutboundEmail do
   actions do
     defaults [:read, :destroy]
     default_accept []
+
+    # Distinct contacts emailed per owner per month — the "reached" column of
+    # the admin client view. Returns {:ok, [%{user_id, month, count}]}.
+    action :contacts_emailed_by_month, {:array, :map} do
+      argument :months_back, :integer, default: 12
+
+      run fn input, _ctx ->
+        contacts_emailed_by_month_rows(input.arguments.months_back)
+      end
+    end
 
     read :list_for_thread do
       argument :thread_id, :uuid, allow_nil?: false
@@ -420,5 +431,40 @@ defmodule Colt.Resources.OutboundEmail do
     # One row per sequence step per thread. Manual replies carry a nil
     # step_position and are exempt (nils_distinct? defaults true).
     identity :step_per_thread, [:thread_id, :step_position]
+  end
+
+  @doc false
+  # Distinct contacts that received at least one email in a given "YYYY-MM"
+  # month, per campaign owner. Counts *people reached*, not messages sent — one
+  # contact getting a 4-step sequence in a month is 1, not 4. Returns
+  # {:ok, [%{user_id, month, count}]}.
+  def contacts_emailed_by_month_rows(months_back)
+      when is_integer(months_back) and months_back > 0 do
+    import Ecto.Query
+
+    cutoff = DateTime.add(DateTime.utc_now(), -months_back * 31 * 86_400, :second)
+
+    rows =
+      from(oe in "outbound_emails",
+        join: t in "threads",
+        on: t.id == oe.thread_id,
+        join: cc in "campaign_contacts",
+        on: cc.id == t.campaign_contact_id,
+        join: camp in "campaigns",
+        on: camp.id == cc.campaign_id,
+        where: oe.status == "sent" and not is_nil(oe.sent_at) and oe.sent_at >= ^cutoff,
+        group_by: [
+          fragment("?::text", camp.owner_id),
+          fragment("to_char(?, 'YYYY-MM')", oe.sent_at)
+        ],
+        select: %{
+          user_id: fragment("?::text", camp.owner_id),
+          month: fragment("to_char(?, 'YYYY-MM')", oe.sent_at),
+          count: fragment("count(distinct ?)", cc.id)
+        }
+      )
+      |> Colt.Repo.all()
+
+    {:ok, rows}
   end
 end

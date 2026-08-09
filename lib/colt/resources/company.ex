@@ -6,6 +6,8 @@ defmodule Colt.Resources.Company do
 
   use Memoize
 
+  require Ash.Query
+
   postgres do
     table "companies"
     repo Colt.Repo
@@ -50,6 +52,7 @@ defmodule Colt.Resources.Company do
     define :with_employees
     define :by_market, args: [:market]
     define :active
+    define :search, args: [:query]
     define :filtered
     define :top_categories
     define :market_totals
@@ -99,6 +102,25 @@ defmodule Colt.Resources.Company do
 
     read :active do
       filter expr(status == :registered)
+    end
+
+    read :search do
+      description "Admin lookup by company name or exact registry code. Capped at 20."
+      argument :query, :string, allow_nil?: false
+      prepare build(limit: 20, sort: [name: :asc])
+
+      prepare fn query, _context ->
+        trimmed = query |> Ash.Query.get_argument(:query) |> to_string() |> String.trim()
+
+        Ash.Query.filter(
+          query,
+          expr(
+            ^trimmed != "" and
+              (registry_code == ^trimmed or
+                 fragment("? ilike '%' || ? || '%'", name, ^trimmed))
+          )
+        )
+      end
     end
 
     create :upsert_basic do

@@ -17,6 +17,9 @@ defmodule Colt.Accounts do
 
       define :users_with_stripe_customer, action: :with_stripe_customer
       define :list_users, action: :read
+      define :get_user, action: :read, get_by: [:id]
+      define :admin_set_profile
+      define :admin_link_identity
     end
   end
 end

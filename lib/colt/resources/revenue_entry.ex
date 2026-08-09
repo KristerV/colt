@@ -21,6 +21,10 @@ defmodule Colt.Resources.RevenueEntry do
     references do
       reference :user, on_delete: :delete
     end
+
+    custom_indexes do
+      index [:user_id, :month]
+    end
   end
 
   code_interface do

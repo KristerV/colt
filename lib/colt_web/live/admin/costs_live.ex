@@ -3,7 +3,7 @@ defmodule ColtWeb.Admin.CostsLive do
 
   alias Colt.Resources.{ApiCall, RevenueEntry}
   alias Colt.Services.Costs.MonthlySummary
-  alias ColtWeb.Components.{ApiCallLog, Liid}
+  alias ColtWeb.Components.{ApiCallLog, Liid, MoneyChart}
 
   on_mount {ColtWeb.LiveUserAuth, :live_admin_required}
 
@@ -106,7 +106,7 @@ defmodule ColtWeb.Admin.CostsLive do
       <div class="space-y-8">
         <h1 class="text-[25px] font-semibold tracking-[-0.02em] text-ink">API <em>costs</em></h1>
 
-        <.chart chart={@chart} />
+        <MoneyChart.money_chart chart={@chart} />
 
         <div class="space-y-2">
           <div
@@ -291,50 +291,6 @@ defmodule ColtWeb.Admin.CostsLive do
     """
   end
 
-  # --- chart ----------------------------------------------------------------
-
-  defp chart(assigns) do
-    ~H"""
-    <div
-      class="bg-card border border-border rounded-[11px] p-5 md:p-6"
-      style="box-shadow:var(--shadow-card)"
-    >
-      <div class="flex items-center justify-between mb-4">
-        <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55">
-          cost vs revenue · monthly
-        </div>
-        <div class="flex items-center gap-4 text-[11px] text-ink70">
-          <span class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full" style="background:#3b7ae0"></span> revenue
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full" style="background:#d98a2b"></span> cost
-          </span>
-        </div>
-      </div>
-
-      <svg :if={@chart.points != []} viewBox="0 0 720 220" class="w-full" style="height:220px">
-        <polyline
-          :if={@chart.revenue_any}
-          fill="none"
-          stroke="#3b7ae0"
-          stroke-width="2"
-          points={@chart.revenue_line}
-        />
-        <polyline fill="none" stroke="#d98a2b" stroke-width="2" points={@chart.cost_line} />
-
-        <g :for={p <- @chart.points}>
-          <circle :if={@chart.revenue_any} cx={p.x} cy={p.ry} r="3" fill="#3b7ae0" />
-          <circle cx={p.x} cy={p.cy} r="3" fill="#d98a2b" />
-          <text x={p.x} y="214" text-anchor="middle" font-size="10" fill="#9b978f">{p.label}</text>
-        </g>
-      </svg>
-
-      <div :if={@chart.points == []} class="text-ink40 text-[13px]">not enough data yet</div>
-    </div>
-    """
-  end
-
   # --- data shaping ---------------------------------------------------------
 
   # One row per month from the per-provider summary: total cost + call count.
@@ -360,59 +316,24 @@ defmodule ColtWeb.Admin.CostsLive do
       else: [%{month: cm, total: Decimal.new(0), calls: 0} | months]
   end
 
-  # Build SVG geometry for the cost + revenue lines over the (chronological) months.
+  # Chronological month series for the shared revenue-vs-cost chart.
   defp build_chart(months, revenue_rows) do
     rev_by_month = Map.new(revenue_rows, &{&1.month, to_dec(&1.amount_usd)})
     cost_by_month = Map.new(months, &{&1.month, &1.total})
 
-    chron =
-      (Map.keys(cost_by_month) ++ Map.keys(rev_by_month))
-      |> Enum.uniq()
-      |> Enum.sort()
-      |> Enum.take(-@months_back)
-
-    series =
-      Enum.map(chron, fn m ->
-        %{
-          month: m,
-          cost: Map.get(cost_by_month, m, Decimal.new(0)),
-          revenue: Map.get(rev_by_month, m, Decimal.new(0))
-        }
-      end)
-
-    max_val =
-      series
-      |> Enum.flat_map(&[to_f(&1.cost), to_f(&1.revenue)])
-      |> Enum.max(fn -> 0.0 end)
-      |> max(0.0001)
-
-    n = length(series)
-    {x0, x1, y0, y1} = {20.0, 700.0, 16.0, 196.0}
-
-    points =
-      series
-      |> Enum.with_index()
-      |> Enum.map(fn {s, i} ->
-        x = if n <= 1, do: (x0 + x1) / 2, else: x0 + (x1 - x0) * i / (n - 1)
-
-        %{
-          x: Float.round(x, 1),
-          cy: Float.round(y1 - to_f(s.cost) / max_val * (y1 - y0), 1),
-          ry: Float.round(y1 - to_f(s.revenue) / max_val * (y1 - y0), 1),
-          label: month_label(s.month)
-        }
-      end)
-
-    %{
-      points: points,
-      cost_line: Enum.map_join(points, " ", &"#{&1.x},#{&1.cy}"),
-      revenue_line: Enum.map_join(points, " ", &"#{&1.x},#{&1.ry}"),
-      revenue_any: Enum.any?(series, &(to_f(&1.revenue) > 0))
-    }
+    (Map.keys(cost_by_month) ++ Map.keys(rev_by_month))
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.take(-@months_back)
+    |> Enum.map(fn m ->
+      %{
+        month: m,
+        cost: Map.get(cost_by_month, m, Decimal.new(0)),
+        revenue: Map.get(rev_by_month, m, Decimal.new(0))
+      }
+    end)
+    |> MoneyChart.build()
   end
-
-  defp month_label(<<_y::binary-size(4), "-", mm::binary-size(2)>>), do: mm
-  defp month_label(m), do: m
 
   defp current_ym do
     %{year: y, month: m} = DateTime.utc_now()
@@ -435,10 +356,6 @@ defmodule ColtWeb.Admin.CostsLive do
   defp to_dec(n) when is_integer(n), do: Decimal.new(n)
   defp to_dec(n) when is_float(n), do: Decimal.from_float(n)
   defp to_dec(_), do: Decimal.new(0)
-
-  defp to_f(%Decimal{} = d), do: Decimal.to_float(d)
-  defp to_f(n) when is_number(n), do: n / 1
-  defp to_f(_), do: 0.0
 
   # Whole-dollar rounding for sums — the user doesn't want cents on totals.
   defp format_money(nil), do: "0"

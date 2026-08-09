@@ -246,7 +246,15 @@ config :colt, :mail_from, {"Liid", "noreply@mg.liid.ee"}
 
 # Billing — Stripe price-id → monthly enriched-contact capacity. Populated from
 # env vars in runtime.exs for prod. Dev/test override via dev.secrets.exs.
-config :colt, Colt.Billing, price_capacity: %{}
+config :colt, Colt.Billing,
+  price_capacity: %{},
+  # The packages we sell, keyed by the capacity they grant. Capacity is the only
+  # thing the app stores, so this is how a user's plan gets a name and a price.
+  plans: [
+    %{name: "Starter", capacity: 50, eur: 49},
+    %{name: "Growth", capacity: 200, eur: 159},
+    %{name: "Scale", capacity: 1000, eur: 699}
+  ]
 
 config :stripity_stripe, api_key: System.get_env("STRIPE_SECRET_KEY", "")
 

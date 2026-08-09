@@ -21,6 +21,7 @@ defmodule Colt.Resources.Campaign do
     define :list_recent_for_user, args: [:user_id]
     define :list_for_user, args: [:user_id]
     define :list_all_recent
+    define :list_all_with_owner
     define :list_auto_approve_active
     define :rename, args: [:name]
     define :update_filters, args: [:filters]
@@ -59,6 +60,11 @@ defmodule Colt.Resources.Campaign do
     read :list_all_recent do
       description "Admin — every campaign across users, newest first."
       prepare build(sort: [inserted_at: :desc], limit: 200)
+    end
+
+    read :list_all_with_owner do
+      description "Admin — every campaign across users, for the per-client rollup."
+      prepare build(sort: [inserted_at: :desc])
     end
 
     read :list_auto_approve_active do
@@ -277,6 +283,7 @@ defmodule Colt.Resources.Campaign do
   relationships do
     belongs_to :owner, Colt.Accounts.User, allow_nil?: false, public?: true
     has_many :campaign_companies, Colt.Resources.CampaignCompany
+    has_many :campaign_contacts, Colt.Resources.CampaignContact
     has_many :api_calls, Colt.Resources.ApiCall
     has_many :campaign_email_accounts, Colt.Resources.CampaignEmailAccount
     has_many :sequences, Colt.Resources.Sequence
@@ -298,6 +305,24 @@ defmodule Colt.Resources.Campaign do
 
     count :failed_count, :campaign_companies,
       filter: expr(status in [:no_website, :no_contacts, :verify_failed, :failed])
+
+    # Companies we actually judged against the ICP. Same definition as the
+    # user-level `screened_this_period_count` and `screened_by_month`, so the
+    # funnel, the month table and the quota all agree: dead scrapes are free.
+    count :screened_count, :campaign_companies,
+      filter: expr(status in [:rejected, :no_contacts, :verify_failed, :enriched])
+
+    # Sending/sales side of the funnel — the admin client view rolls these up
+    # per owner, so the list and the per-client page reconcile by construction.
+    count :sent_contacts_count, :campaign_contacts,
+      filter: expr(exists(thread.outbound_emails, status == :sent))
+
+    count :replied_contacts_count, :campaign_contacts, filter: expr(status == :replied)
+
+    count :interested_contacts_count, :campaign_contacts,
+      filter: expr(reply_category == :interested)
+
+    max :last_contact_activity_at, :campaign_contacts, :updated_at
   end
 
   @doc """

@@ -8,6 +8,8 @@ defmodule Colt.Resources.Person do
     domain: Colt.Domain,
     data_layer: AshPostgres.DataLayer
 
+  require Ash.Query
+
   postgres do
     table "persons"
     repo Colt.Repo
@@ -27,6 +29,8 @@ defmodule Colt.Resources.Person do
     define :set_verification, args: [:email_verification_status]
     define :create_from_address
     define :by_email, args: [:company_id, :email]
+    define :find_by_email, args: [:email]
+    define :search, args: [:query]
     define :set_email, args: [:email]
   end
 
@@ -73,6 +77,37 @@ defmodule Colt.Resources.Person do
       argument :email, :string, allow_nil?: false
       filter expr(company_id == ^arg(:company_id) and email == ^arg(:email))
       get? true
+    end
+
+    read :find_by_email do
+      description """
+      Match a registered user against a contact we already enriched, in any
+      campaign. This is how the admin client view picks up a client's name,
+      phone and company without any campaign being named in code.
+      """
+
+      argument :email, :string, allow_nil?: false
+      filter expr(fragment("lower(?) = lower(?)", email, ^arg(:email)))
+      prepare build(load: [:company], sort: [inserted_at: :desc], limit: 1)
+    end
+
+    read :search do
+      description "Admin lookup by contact name or address. Capped at 20."
+      argument :query, :string, allow_nil?: false
+      prepare build(load: [:company], limit: 20, sort: [inserted_at: :desc])
+
+      prepare fn query, _context ->
+        trimmed = query |> Ash.Query.get_argument(:query) |> to_string() |> String.trim()
+
+        Ash.Query.filter(
+          query,
+          expr(
+            ^trimmed != "" and
+              (fragment("? ilike '%' || ? || '%'", name, ^trimmed) or
+                 fragment("? ilike '%' || ? || '%'", email, ^trimmed))
+          )
+        )
+      end
     end
 
     update :set_email do

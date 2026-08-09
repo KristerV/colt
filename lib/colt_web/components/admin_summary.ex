@@ -45,18 +45,7 @@ defmodule ColtWeb.Admin.Summary do
         value: format_money(current_month_cost()),
         path: "/admin/costs"
       },
-      %{
-        kicker: "Clients",
-        title: "Profit",
-        value: format_int(current_month_clients()) <> " clients",
-        path: "/admin/clients-spending"
-      },
-      %{
-        kicker: "Clients",
-        title: "All Users",
-        value: format_int(Ash.count!(Colt.Accounts.User, authorize?: false)) <> " users",
-        path: "/admin/clients"
-      },
+      client_tile(),
       oban_tile(),
       system_tile(),
       %{
@@ -341,14 +330,17 @@ defmodule ColtWeb.Admin.Summary do
     |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.cost_usd))
   end
 
-  # The grouped client_spending query is heavy and the count barely moves, so
-  # cache it for 4h. expires_in is in milliseconds.
-  defmemop current_month_clients, expires_in: 4 * 60 * 60 * 1000 do
-    ym = current_ym()
+  # Clients and their lifetime profit now live on one page. The rollup behind it
+  # is already memoized for 24h in ClientList, so reading it here is cheap.
+  defp client_tile do
+    {:ok, %{totals: totals}} = Colt.Services.Admin.ClientList.run()
 
-    1
-    |> Colt.Resources.ApiCall.client_spending!(authorize?: false)
-    |> Enum.count(&(&1.month == ym))
+    %{
+      kicker: "Clients",
+      title: "All Users",
+      value: "#{format_int(totals.users)} users · #{format_signed(totals.profit)}",
+      path: "/admin/clients"
+    }
   end
 
   defp current_ym do
@@ -358,5 +350,11 @@ defmodule ColtWeb.Admin.Summary do
 
   defp format_money(%Decimal{} = d) do
     "$" <> (d |> Decimal.round(2) |> Decimal.to_string(:normal))
+  end
+
+  # Profit reads as -$9.37, never $-9.37.
+  defp format_signed(%Decimal{} = d) do
+    sign = if Decimal.negative?(d), do: "-", else: ""
+    sign <> format_money(Decimal.abs(d))
   end
 end
