@@ -313,10 +313,15 @@ defmodule Colt.Services.Admin.ClientProfile do
       last_campaign_at: campaigns |> Enum.map(& &1.updated_at) |> latest(),
       last_contact_at: campaigns |> Enum.map(& &1.last_contact_activity_at) |> latest(),
       email_accounts: length(accounts),
-      email_accounts_ok: Enum.count(accounts, &(&1.status == :active)),
+      email_accounts_ok: Enum.count(accounts, &sendable?/1),
       registered_days_ago: days_since(user.inserted_at)
     }
   end
+
+  # Same definition as EmailAccount's :list_healthy — an inbox only counts if
+  # it can actually send.
+  defp sendable?(account),
+    do: account.status == :healthy and not is_nil(account.nylas_grant_id)
 
   defp latest(stamps) do
     stamps

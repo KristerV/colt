@@ -96,7 +96,7 @@ defmodule Colt.Services.Admin.ClientList do
       campaigns: length(campaigns),
       # A client with contacts but no working inbox physically cannot send —
       # it's the step that most often explains a stalled funnel.
-      inboxes: Enum.count(user.email_accounts || [], &(&1.status == :active)),
+      inboxes: Enum.count(user.email_accounts || [], &sendable?/1),
       with_enriched: Enum.count(campaigns, &(&1.done_count > 0)),
       with_sent: Enum.count(campaigns, &(&1.sent_contacts_count > 0)),
       with_interested: Enum.count(campaigns, &(&1.interested_contacts_count > 0)),
@@ -106,6 +106,11 @@ defmodule Colt.Services.Admin.ClientList do
       last_active_at: last_active_at(campaigns, Map.get(spend, :last_call_at))
     }
   end
+
+  # Same definition as EmailAccount's :list_healthy — an inbox only counts if
+  # it can actually send.
+  defp sendable?(account),
+    do: account.status == :healthy and not is_nil(account.nylas_grant_id)
 
   # "Using the product" has no login trail, so the freshest of: their last
   # tracked API call and their most recently touched campaign.
