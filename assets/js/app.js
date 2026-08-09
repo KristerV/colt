@@ -81,6 +81,31 @@ const TrixEditor = {
   }
 }
 
+// Thread timeline scroller. Opening a contact should land on the newest
+// message, not the oldest — the element is keyed on the contact id, so
+// switching contacts remounts this and re-pins to the bottom.
+//
+// On update it only follows if you were already near the bottom: yanking the
+// view away while someone reads back through a long thread is worse than
+// missing a new line, and a status event fires on every checklist tick.
+const ThreadScroll = {
+  mounted() {
+    this.toBottom()
+    // Email bodies and images settle a frame later, which changes the height.
+    requestAnimationFrame(() => this.toBottom())
+  },
+  beforeUpdate() {
+    const {scrollTop, scrollHeight, clientHeight} = this.el
+    this.wasPinned = scrollHeight - scrollTop - clientHeight < 120
+  },
+  updated() {
+    if (this.wasPinned !== false) this.toBottom()
+  },
+  toBottom() {
+    this.el.scrollTop = this.el.scrollHeight
+  }
+}
+
 const escapeText = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
@@ -90,7 +115,15 @@ const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, FeedbackModal, TrixEditor, DeckPlayer, DeckRecorder, DeckTakePlayer},
+  hooks: {
+    ...colocatedHooks,
+    FeedbackModal,
+    TrixEditor,
+    ThreadScroll,
+    DeckPlayer,
+    DeckRecorder,
+    DeckTakePlayer,
+  },
 })
 
 // Show progress bar on live navigation and form submits

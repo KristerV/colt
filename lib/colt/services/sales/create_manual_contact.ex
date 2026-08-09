@@ -88,10 +88,10 @@ defmodule Colt.Services.Sales.CreateManualContact do
     )
   end
 
-  # Sales entry runs the same seed → first-active-stage → StatusEvent path as an
-  # auto-entered interested reply, so nothing is special-cased for manual leads.
-  defp maybe_enter_sales(contact, campaign_id, %{in_funnel_sales?: true}, opts) do
-    case AutoEnter.run(contact.id, campaign_id, opts) do
+  # Sales entry runs the same path as an auto-entered interested reply, so
+  # nothing is special-cased for manual leads: they land in Now, untriaged.
+  defp maybe_enter_sales(contact, _campaign_id, %{in_funnel_sales?: true}, opts) do
+    case AutoEnter.run(contact.id, opts) do
       {:ok, %CampaignContact{} = updated} -> {:ok, updated}
       {:ok, :already_in} -> {:ok, contact}
       other -> other

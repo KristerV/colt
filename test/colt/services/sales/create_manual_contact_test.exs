@@ -88,7 +88,7 @@ defmodule Colt.Services.Sales.CreateManualContactTest do
   end
 
   describe "funnel flags" do
-    test "sales-only manual contact: in sales funnel, absent from sending, lands in first stage" do
+    test "sales-only manual contact: in sales funnel, absent from sending, lands in Now" do
       user = seed_user()
       campaign = seed_campaign(user)
 
@@ -100,21 +100,23 @@ defmodule Colt.Services.Sales.CreateManualContactTest do
         )
 
       loaded =
-        Ash.get!(CampaignContact, contact.id, load: [:sales_stage], authorize?: false)
+        Ash.get!(CampaignContact, contact.id, load: [:sales_bucket], authorize?: false)
 
       assert loaded.in_funnel_sales? == true
       assert loaded.in_funnel_sending? == false
-      assert loaded.sales_stage != nil
-      assert loaded.sales_stage.kind == :active
+      # Entered but never triaged — that's exactly what Now is for.
+      assert loaded.next_action_at == nil
+      assert loaded.outcome == nil
+      assert loaded.sales_bucket == :now
 
       {:ok, sending} = CampaignContact.list_for_campaign(campaign.id, actor: user)
-      {:ok, sales} = CampaignContact.list_entered_for_campaign(campaign.id, actor: user)
+      {:ok, sales} = CampaignContact.list_for_sales_funnel(campaign.id, actor: user)
 
       refute Enum.any?(sending, &(&1.id == contact.id))
       assert Enum.any?(sales, &(&1.id == contact.id))
     end
 
-    test "sending-only manual contact: in sending, absent from sales, no stage" do
+    test "sending-only manual contact: in sending, absent from sales" do
       user = seed_user()
       campaign = seed_campaign(user)
 
@@ -127,10 +129,9 @@ defmodule Colt.Services.Sales.CreateManualContactTest do
 
       assert contact.in_funnel_sending? == true
       assert contact.in_funnel_sales? == false
-      assert contact.sales_stage_id == nil
 
       {:ok, sending} = CampaignContact.list_for_campaign(campaign.id, actor: user)
-      {:ok, sales} = CampaignContact.list_entered_for_campaign(campaign.id, actor: user)
+      {:ok, sales} = CampaignContact.list_for_sales_funnel(campaign.id, actor: user)
 
       assert Enum.any?(sending, &(&1.id == contact.id))
       refute Enum.any?(sales, &(&1.id == contact.id))
@@ -143,12 +144,11 @@ defmodule Colt.Services.Sales.CreateManualContactTest do
       contact = promote_enriched(campaign, user)
       assert contact.in_funnel_sales? == false
 
-      {:ok, _} = Colt.Services.Sales.AutoEnter.run(contact.id, campaign.id, actor: user)
+      {:ok, _} = Colt.Services.Sales.AutoEnter.run(contact.id, actor: user)
 
       reloaded = Ash.get!(CampaignContact, contact.id, authorize?: false)
       assert reloaded.in_funnel_sales? == true
       assert reloaded.in_funnel_sending? == true
-      assert reloaded.sales_stage_id != nil
     end
 
     test "creates the person and its manual company from the form fields" do

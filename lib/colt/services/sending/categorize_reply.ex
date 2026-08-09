@@ -87,12 +87,11 @@ defmodule Colt.Services.Sending.CategorizeReply do
   end
 
   # Interested / call-ready pulls the contact into the sales funnel. This runs
-  # in the Oban categorize job (no user session), so a failed entry — e.g. the
-  # campaign has no active stage — is logged rather than surfaced; the reply is
-  # still categorized regardless.
-  defp maybe_auto_enter(category, contact_id, campaign_id) do
+  # in the Oban categorize job (no user session), so a failed entry is logged
+  # rather than surfaced; the reply is still categorized regardless.
+  defp maybe_auto_enter(category, contact_id, _campaign_id) do
     if AutoEnter.trigger?(category) do
-      case AutoEnter.run(contact_id, campaign_id) do
+      case AutoEnter.run(contact_id) do
         {:ok, _} ->
           :ok
 

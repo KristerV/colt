@@ -1,178 +1,161 @@
-# Sales funnel — spec + phased build plan
+# Sales funnel — spec
 
-> **Status: designed 2026-07-07, approved to build. Admin-only first, ⭐ golden** (destined to be
-> revealed to normal users later — high-value, drive it to a releasable state). Supersedes the
-> earlier brainstorm in `docs/closing-funnel.md`, which assumed hardcoded stages and one view.
+> **Status: rebuilt 2026-08-09** as a date-driven work queue. Supersedes the original
+> stage-based build (2026-07-07), which is described at the bottom under *History*.
+> Admin-only, ⭐ **golden** (destined to be revealed to normal users later — high-value, drive it
+> to a releasable state).
 
-The third funnel in Liid. The app now has three, and we name them distinctly to keep the
-vocabulary clean (the word "pipeline" is deliberately avoided in code — it's ambiguous here):
+The third funnel in Liid. The app has three, and we name them distinctly to keep the vocabulary
+clean (the word "pipeline" is deliberately avoided in code — it's ambiguous here):
 
 1. **Enrichment funnel** — `/campaigns/:id/funnel` — validated contacts out of enrichment.
-2. **Sending funnel** — `/campaigns/:id/ln` — the outbound send/reply machine.
-3. **Sales funnel** — *this doc* — a lightweight personal CRM: interested contacts move by hand
-   through user-defined stages (Interested → Demo → … → Won/Lost) while you keep talking to them.
+2. **Sending funnel** — `/campaigns/:id/sending-funnel` — the outbound send/reply machine.
+3. **Sales funnel** — *this doc* — a lightweight personal CRM for the people you're talking to.
 
-## Locked decisions (2026-07-07)
+## The problem this shape solves
 
-- **Scope: per-campaign.** Each campaign has its own sales funnel and its own stage set. Sits as
-  a **third nav section, "Sales"**, next to Enrichment/Sending.
-- **Admin-only for now.** Section gated on `@current_user.is_admin`, rendered with the golden
-  admin badge; LiveViews use `on_mount {ColtWeb.LiveUserAuth, :live_admin_required}`. Built as if
-  for users — just hidden.
-- **Customizable stages** → a `SalesStage` resource (data, not an enum), per campaign, reorderable.
-- **Auto-entry.** When the sending machine marks a contact `:interested` **or `:call_ready`**, the
-  contact auto-drops into the **first active stage** and a `StatusEvent` records the entry.
-  (call_ready is included because a call-ready contact is definitionally ready for a sales
-  conversation — veto in setup if unwanted.)
-- **Unified feed** → a `StatusEvent` resource. Every status change — the new sales-stage moves
-  **and** the existing sending transitions — writes one entry with actor (nullable = system),
-  from/to, kind, and reason. Rendered inline in the thread timeline of both funnels.
-- **StatusEvent approved** as the mechanism (not overloading free-text `Note`).
+The first build let each campaign define its own stages (`Interested → Demo → Proposal → Won →
+Lost`) and made those stages the board's columns. Two things were wrong:
 
-## Sales-workflow refinements (approved)
+1. **The custom stages weren't stages, they were a todo list.** "Demo booked" and "Proposal sent"
+   are things you tick off, not mutually exclusive states. Forcing them into columns meant a
+   contact could only be in one at a time, and Won/Lost had to be jammed into the same list to
+   make the board work at all.
+2. **A status board can't answer "who needs me today?"** Nothing carried a date, so
+   days-in-stage was the only time signal and you still had to read every row to find the work.
 
-- **Won/Lost are outcomes, not columns.** `SalesStage.kind ∈ :active | :won | :lost`. The board
-  shows active stages as the funnel; won/lost are exits. Enables a real conversion rate
-  (won ÷ entered).
-- **Days-in-stage** on every contact row (from the last stage-move `StatusEvent`, or entry time).
-  The point of the board is catching a contact stuck in "Demo" for 30 days.
-- **Lost reason.** Moving a contact to a `:lost` stage prompts for a short reason, stored on the
-  `StatusEvent`. Reason is optional on other moves.
+## The model
 
----
+**The columns are derived from a date, never typed.** Exactly two things are set by hand:
 
-## Domain (new / changed Ash resources)
+| field | meaning |
+|---|---|
+| `next_action_at` | when to next touch this contact |
+| `outcome` | `:won` / `:lost`, or `nil` while open |
 
-### `SalesStage` (new) — the customizable stages, per campaign
-```
-belongs_to :campaign
-attrs:
-  name (string, required)
-  position (int, 0-based, ordering)
-  kind (:active | :won | :lost, default :active)
-  color (string, nullable — optional chip color)
-identity :unique_position on [:campaign_id, :position]   (or reorder atomically)
-```
-- Actions: `list_for_campaign`, `create`, `rename`, `reposition`, `set_kind`, `destroy`,
-  and `seed_defaults` (idempotent — inserts the starter set on first visit to the sales funnel).
-- **Default seed** on first use of a campaign's sales funnel: `Interested (0)`, `Demo (1)`,
-  `Proposal (2)`, `Won (kind :won)`, `Lost (kind :lost)`. Fully editable in the setup view.
-- No `Ash.Query` outside the resource; code interface per project rules.
+Everything else falls out, via
+`Colt.Resources.CampaignContact.Calculations.SalesBucket`:
 
-### `CampaignContact` (changed)
-```
-+ belongs_to :sales_stage, SalesStage   (nullable — null = not in the sales funnel yet)
-+ update action :move_to_stage, args: [:sales_stage_id, :reason]
-    - sets sales_stage_id; writes a StatusEvent (from old stage → new stage, actor = current user, reason)
-+ update action :enter_sales_funnel, args: [:sales_stage_id]
-    - idempotent; only sets sales_stage_id when currently nil; writes a system StatusEvent
-```
-The existing `status` machine is untouched — `sales_stage` is an orthogonal axis, exactly as the
-old doc intended, just as an association instead of an enum.
+| bucket | derivation |
+|---|---|
+| **Now** | no outcome, and `next_action_at` is null (never triaged) or falls **on or before today** |
+| **Later** | no outcome, and `next_action_at` falls on a day **after** today |
+| **Won** / **Lost** | `outcome` is set |
 
-### `StatusEvent` (new) — the unified feed entry
-```
-belongs_to :thread                       (same container the timeline already merges)
-belongs_to :actor, Colt.Accounts.User    (nullable — null = system-generated)
-attrs:
-  kind (:sales_stage | :send_status | :reply_category | :entry, atom)
-  from (string, nullable)                # human label of prior value
-  to   (string, nullable)                # human label of new value
-  reason (string, nullable)              # e.g. lost reason, or "classified as interested (0.92)"
-  occurred_at (utc_datetime_usec, default now)
-```
-- Actions: `list_for_thread` (sort occurred_at asc), `record` (args: thread_id, kind, from, to,
-  reason; `change relate_actor(:actor)` — actor is nil when called from a system/Oban context with
-  `authorize?: false` and no actor).
-- Policies: admin bypass + owner-of-campaign, mirroring `Note`.
-- Rendered as a distinct timeline item (mono one-liner, actor + relative time, reason on a second
-  line) — see the sending funnel's `timeline_item/1` note clause as the style reference.
+A contact with no date at all lands in **Now** on purpose — untriaged is loud, not invisible.
 
-### Feed wiring (write a `StatusEvent` from every transition)
-A single helper (`Colt.Services.Sales.RecordStatusEvent` or inline in each action) called from:
-- **Sales:** `move_to_stage`, `enter_sales_funnel`.
-- **Sending (existing):** `mark_replied` (reply category), `manual_override`, `mark_bounced`,
-  `mark_failed`, `skip`, `stop_sequence`, `approve`. Each maps to `kind: :send_status` /
-  `:reply_category` with a readable from/to and, where available, a reason (e.g. the categorizer's
-  label + confidence flows through `CategorizeReply`).
-- These currently live in `campaign_contact.ex` actions + services under
-  `lib/colt/services/sending/` (`manual_override.ex`, `stop_sequence.ex`, `categorize_reply.ex`).
-  Wire the event write into those services / actions. Prefer a thread-scoped write so both funnels'
-  timelines pick it up with no extra plumbing.
+The boundary is a **calendar day, not a timestamp**: something dated today is work for today, so
+it belongs in Now from midnight. `Colt.Sales.Clock` owns that — it resolves "today" in
+`Europe/Tallinn` and is the single place the board's chips and the bucket calculation both go
+through, so they can't disagree. Presets store 09:00 local, converted to UTC.
 
----
+Prior art this borrows from: **Pipedrive's** activity-based selling (every deal carries a dated
+next activity; the board colours by it, and "no activity scheduled" is the loudest state),
+**Front/Superhuman/Close** snoozing, and **Todoist/Things** Today-vs-Upcoming.
+
+## Locked decisions
+
+- **Scope: per-campaign.** Each campaign has its own funnel and its own checklist.
+- **Admin-only for now.** `on_mount {ColtWeb.LiveUserAuth, :live_admin_required}` + golden badge.
+  Built as if for users, just hidden.
+- **Auto-entry.** When the sending machine marks a contact `:interested` **or `:call_ready`**,
+  the contact enters the funnel with no date — i.e. straight into **Now**, awaiting triage — and
+  a `StatusEvent` records the entry. `Colt.Services.Sales.AutoEnter`'s `@triggers` is the single
+  toggle.
+- **Unified feed** → `StatusEvent`. Sales writes `:next_action`, `:outcome` and `:checklist`;
+  the sending machine writes `:send_status` / `:reply_category`; entry writes `:entry`.
+  `:sales_stage` is retained **read-only** so pre-2026-08-09 rows still render.
+- **Lost reason** is prompted when marking a contact lost, and stored on both the contact
+  (`outcome_reason`) and the feed entry.
+- **No conversion-rate tile.** It was dropped 2026-08-09 — a percentage is a reporting number,
+  and this view is a work queue. `list_entered_for_campaign` went with it, since its filter
+  duplicated `list_for_sales_funnel` and the tile was its only caller.
+
+## Checklist
+
+The campaign-level list of things you do with every contact — **not** stages and **not**
+statuses. A contact ticks them off in any order, in their thread; ticking has no effect on which
+bucket they're in.
+
+- `Colt.Resources.ChecklistItem` — per campaign, `name` + `position`, reorderable.
+- `Colt.Resources.ContactChecklistItem` — one contact's tick. **Created lazily**, only when an
+  item is first ticked, so the thread view renders the campaign checklist and looks up done-state
+  by `checklist_item_id`. Editing the campaign checklist needs no backfill and no materialisation
+  step.
+- `checklist_item_id` is nullable, with a `name` alongside it, to leave room for ad-hoc
+  contact-specific todos. Nothing creates those yet.
+- **Nothing is seeded on mount.** The checklist is optional, and an on-visit seed would
+  resurrect the starter set every time someone cleared it deliberately. The empty state offers
+  `SeedChecklist` as a button instead.
 
 ## Views
 
-Both reuse the **sending funnel** layout (`ColtWeb.Sending.SendingFunnelLive` is the template to
-clone — list+thread two-pane, URL-driven, mobile-collapsing). The enrichment funnel's table layout
-is *not* the model here.
+### Checklist — `/campaigns/:id/sales/checklist`
+`ColtWeb.Sales.ChecklistLive`. Reorderable cards: inline rename (debounced, patched in memory so
+the focused input isn't re-rendered), up/down adjacent-position swap, add, delete. Empty state
+offers the starter checklist.
 
-### Setup view — `/campaigns/:id/sales/setup`
-Define the stages. Reorderable list of stage cards (drag or up/down), inline rename, add stage,
-delete, and a per-stage `kind` control (active / won / lost). Calm-Pro boxes per `docs/design.md`.
-On first visit, `seed_defaults` runs so the user starts from the starter set, not a blank slate.
+### Sales funnel — `/campaigns/:id/sales[/:bucket[/:contact_id]]`
+`ColtWeb.Sales.SalesFunnelLive`, slugs `now | later | won | lost`. Same list+thread two-pane as
+the sending funnel, URL-driven, mobile-collapsing.
 
-### Sales funnel — `/campaigns/:id/sales[/:stage[/:contact_id]]`
-Clone of the sending funnel:
-- **Stage strip** on top = the campaign's `SalesStage`s in order (active stages, then won/lost
-  exits visually separated). Each tile shows the stage name + live contact count. Click filters.
-- **Left pane:** contacts in the selected stage. Row shows name, company, and **days-in-stage**
-  (amber when stale). 
-- **Right pane:** the existing thread view — timeline (emails + notes + **StatusEvents**), the
-  Reply/Note composer, all reused as-is. Plus a **"Move to…"** control (stage dropdown) mirroring
-  the sending funnel's "Mark as…" pattern; choosing a `:lost` stage prompts for a reason.
+- **Bucket strip**: four flush tiles in one segmented block (`gap-px` over a border-coloured
+  background draws the hairlines, so the 2×2 mobile grid and the desktop row need no per-edge
+  border rules). One `list_for_sales_funnel` query feeds both the counts and the lists; contacts
+  are grouped by `:sales_bucket` in Elixir, so there are no per-bucket round trips.
+- **Left pane**: rows with a date chip — `4d overdue` (amber), `Today` (accent), `No date`,
+  `in 3d`, or the outcome date for closed contacts. Open buckets sort most-overdue-first with
+  undated rows last; Won/Lost sort most-recently-closed first.
+- **Right pane**: the shared `FunnelThread.thread_pane`, shaped exactly like the contact list —
+  one bounded card, a `flex-none` header, a `flex-1 overflow-y-auto` body holding the timeline and
+  composer. (It omits the list's `overflow-hidden`, since the header's disclosures hang below it
+  and would be clipped; the body rounds its own bottom corners instead.) The body carries the
+  `ThreadScroll` hook, keyed `thread-scroll-<contact_id>` so switching contacts remounts it and
+  lands on the newest message; on later updates it only follows if you were already within 120px
+  of the bottom, so a checklist tick can't yank you out of a thread you're reading.
+
+  There is no contact header card and no checklist card: the header *is* the contact UI, and the
+  detail collapses into disclosures, because it's reference material you consult occasionally
+  rather than something worth a permanent card above every thread. Four zones:
+
+  | zone | closed | open |
+  |---|---|---|
+  | contact name | name | panel with title, email, phone, company, registry + website links, and the `:info_actions` slot (Edit) |
+  | checklist | next unticked item + `1/3` | all items as checkboxes |
+  | outcome | `Outcome` / `Won` / `Lost` | Won · Lost, or Reopen once closed |
+  | next action | `Next action` / `Due today` / `in 3d` / `2d overdue` | Tomorrow · In 3 days · Next week · In 2 weeks · date picker · Clear |
+
+  Presets resolve server-side, so they mean days in the funnel's timezone rather than the
+  browser's. Marking Lost opens the reason modal. Closing clears `next_action_at`, so a reopened
+  contact returns to Now rather than to a stale date, and the next-action control is hidden while
+  closed rather than offering to schedule work on a finished deal.
+
+  Three slots carry what differs per funnel: `:actions` (right-hand controls), `:bar_items`
+  (middle — the sales checklist), `:info_actions` (inside the name disclosure). The sending funnel
+  passes only `:actions`, so it gets the same collapsed contact card for free and nothing else
+  changes.
 
 ### Nav
-Add a third `<.sidebar_section label="Sales">` in `lib/colt_web/components/liid.ex` after the
-Sending section, gated `:if={@campaign && @current_user && @current_user.is_admin}`, golden badge.
-Items: `Setup` (`:sales_setup`), `Sales funnel` (`:sales_funnel`). Add `nav_label/1` clauses, a
-`sales_items_with_hrefs/1` + `sales_href/2`, and the routes in `router.ex`. LiveViews pass
-`active={:sales_funnel | :sales_setup}` to `Layouts.app`.
+`<.sidebar_section label="Sales">` in `lib/colt_web/components/liid.ex`, gated on
+`@current_user.is_admin`, golden badge. Items: `Checklist` (`:sales_checklist`), `Sales funnel`
+(`:sales_funnel`).
 
----
+## Deferred
 
-## Phased build plan
-
-Build top-to-bottom; each phase ships independently with acceptance bullets. Mark a phase
-`✅ done` in this doc when its acceptance passes. Work on a `sales-funnel` branch; single-line
-commits, no Claude attribution.
-
-### Phase S1 — StatusEvent + feed wiring ✅ done
-- `StatusEvent` resource + migration (`mix ash_postgres.generate_migrations status_events`).
-- Write events from the **existing** sending transitions (mark_replied, manual_override,
-  mark_bounced, mark_failed, skip, stop_sequence, approve) with readable from/to + reason.
-- Render StatusEvents in the **existing sending funnel** timeline (add a 4th source to
-  `build_timeline/3` + a `timeline_item/1` clause).
-- **Acceptance**: reply to a test contact → the auto-categorization shows as a system feed line
-  ("classified as interested") in the sending funnel thread, with time and reason; a manual
-  "Mark as…" shows as an actor-attributed line.
-
-### Phase S2 — SalesStage + setup view ✅ done
-- `SalesStage` resource + migration; `seed_defaults`; `CampaignContact.sales_stage_id` + migration.
-- Setup LiveView (`/sales/setup`): list, add, rename, reorder, delete, set kind. Admin-gated.
-- Third nav section "Sales" (admin, golden), routes.
-- **Acceptance**: open `/sales/setup` on a campaign → starter stages seeded; rename/reorder/add a
-  stage and mark one Won and one Lost; refresh persists. Section hidden for non-admin users.
-
-### Phase S3 — Sales funnel view ✅ done
-- Clone `SendingFunnelLive` → `SalesFunnelLive`. Stage strip = `SalesStage`s with live counts.
-  Left pane rows with days-in-stage. Right pane = reused thread view + composer + StatusEvents.
-- **"Move to…"** control → `CampaignContact.move_to_stage` (writes a StatusEvent). Moving to a
-  `:lost` stage prompts for a reason.
-- **Acceptance**: a contact appears under its stage; move it Interested → Demo → the move shows in
-  the feed with actor + time; move to Lost, enter a reason, see it recorded; counts update live.
-
-### Phase S4 — Auto-entry + polish ✅ done
-- On `mark_replied(:interested)` and `:call_ready`, call `enter_sales_funnel(first_active_stage)`
-  (idempotent) + system StatusEvent. Wire into `CategorizeReply` / `ManualOverride`.
-- Empty states, conversion-rate tile (won ÷ entered), stale-in-stage styling, design pass vs
-  `docs/design.md` and the sending-funnel demo.
-- **Acceptance**: categorize a test reply as interested → contact auto-appears in the first sales
-  stage with a system entry event; conversion tile computes correctly.
-
-## Deferred (not v1)
-- Cross-campaign board (per-campaign only for now).
-- Any automation of movement (fully manual; AI integration follows later).
+- **Ad-hoc per-contact todos** — the columns exist; no UI.
+- **Cross-campaign Now queue** — the real end state once several campaigns run at once. `/search`
+  is the precedent for a workspace-level route, and `sidebar_section`'s unused
+  `variant: :workspace` branch is a free slot.
+- Notifications / a daily digest when something enters Now.
 - Reveal to non-admin users (golden — later).
-- Per-stage SLAs / reminders beyond the days-in-stage indicator.
+
+## History
+
+The original 2026-07-07 build shipped a `SalesStage` resource (per-campaign, reorderable, with
+`kind ∈ :active | :won | :lost`) and made those stages the board's columns, with a
+days-in-stage indicator and a "Move to…" control. The 2026-08-09 migration
+(`20260809110928_sales_checklist_and_next_action.exs`) renamed `sales_stages` into
+`checklist_items`, copied each contact's won/lost stage onto the new `outcome` column before
+dropping `sales_stage_id`, and deleted the Won/Lost stage rows. Contacts that had been sitting
+in an active stage came across with no outcome and no date — i.e. into Now, correctly, since
+none of them had ever been given a next action.

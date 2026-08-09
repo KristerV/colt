@@ -33,11 +33,6 @@ defmodule ColtWeb.Components.Liid do
     |> JS.add_class("hidden", to: "#liid-nav-backdrop")
   end
 
-  @doc "Dot background-color class for a sales-stage kind (nil/active → accent)."
-  def stage_dot(:won), do: "bg-green"
-  def stage_dot(:lost), do: "bg-inkFaint"
-  def stage_dot(_), do: "bg-accent"
-
   @icon_paths %{
     "arrow" => "M3 8h10M9 4l4 4-4 4",
     "logout" => "M10 3H4v10h6M8 8h6M11 5l3 3-3 3",
@@ -421,7 +416,7 @@ defmodule ColtWeb.Components.Liid do
   ]
 
   @sales_items [
-    %{id: :sales_setup, icon: "filter"},
+    %{id: :sales_checklist, icon: "check"},
     %{id: :sales_funnel, icon: "grid"}
   ]
 
@@ -442,7 +437,7 @@ defmodule ColtWeb.Components.Liid do
   defp nav_label(:write), do: gettext("Write")
   defp nav_label(:variants), do: gettext("Variants")
   defp nav_label(:settings), do: gettext("Settings")
-  defp nav_label(:sales_setup), do: gettext("Setup")
+  defp nav_label(:sales_checklist), do: gettext("Checklist")
   defp nav_label(:sales_funnel), do: gettext("Sales funnel")
 
   attr :active, :atom, default: nil
@@ -797,7 +792,7 @@ defmodule ColtWeb.Components.Liid do
   defp sending_href(:sending_accounts, id), do: "/campaigns/#{id}/sending-accounts"
   defp sending_href(:sending_funnel, id), do: "/campaigns/#{id}/sending-funnel"
 
-  defp sales_href(:sales_setup, id), do: "/campaigns/#{id}/sales/setup"
+  defp sales_href(:sales_checklist, id), do: "/campaigns/#{id}/sales/checklist"
   defp sales_href(:sales_funnel, id), do: "/campaigns/#{id}/sales"
 
   attr :label, :string, default: nil

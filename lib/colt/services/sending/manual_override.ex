@@ -40,11 +40,11 @@ defmodule Colt.Services.Sending.ManualOverride do
   end
 
   # Interested / call-ready pulls the contact into the sales funnel. The
-  # override itself already succeeded, so a failed entry (e.g. the campaign has
-  # no active stage) is logged, not surfaced — it never fails the mark.
+  # override itself already succeeded, so a failed entry is logged, not
+  # surfaced — it never fails the mark.
   defp maybe_auto_enter(override, contact, actor) do
     if AutoEnter.trigger?(override) do
-      case AutoEnter.run(contact.id, contact.campaign_id, actor: actor) do
+      case AutoEnter.run(contact.id, actor: actor) do
         {:ok, _} ->
           :ok
 

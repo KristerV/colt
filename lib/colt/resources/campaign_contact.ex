@@ -17,7 +17,7 @@ defmodule Colt.Resources.CampaignContact do
     repo Colt.Repo
 
     custom_indexes do
-      index [:sales_stage_id]
+      index [:campaign_id, :next_action_at]
     end
 
     references do
@@ -25,7 +25,6 @@ defmodule Colt.Resources.CampaignContact do
       reference :person, on_delete: :delete
       reference :assigned_email_account, on_delete: :nilify
       reference :sequence, on_delete: :nilify
-      reference :sales_stage, on_delete: :nilify
     end
   end
 
@@ -48,11 +47,11 @@ defmodule Colt.Resources.CampaignContact do
     define :set_status, args: [:status]
     define :manual_override, args: [:override]
     define :stop_sequence
-    define :move_to_stage, args: [:sales_stage_id]
-    define :enter_sales_funnel, args: [:sales_stage_id]
+    define :enter_sales_funnel
+    define :set_next_action, args: [:next_action_at]
+    define :set_outcome
     define :set_funnels
-    define :list_in_stage, args: [:sales_stage_id]
-    define :list_entered_for_campaign, args: [:campaign_id]
+    define :list_for_sales_funnel, args: [:campaign_id]
     define :count_assigned_today, args: [:email_account_id]
     define :find_active_in_inbox_by_domain, args: [:email_account_id, :domain_suffix]
     define :search, args: [:query]
@@ -283,35 +282,47 @@ defmodule Colt.Resources.CampaignContact do
       end
     end
 
-    update :move_to_stage do
+    update :enter_sales_funnel do
       description """
-      Move the contact to a sales stage. Sets sales_stage_id; the caller
-      (`Colt.Services.Sales.MoveToStage`) writes the StatusEvent with the
-      old→new stage labels, actor, and optional reason.
+      Put the contact in the sales funnel. `Colt.Services.Sales.EnterSalesFunnel`
+      owns the idempotency guard — it skips this action when the contact is
+      already a member — so this action just flips the flag. The contact lands
+      with no `next_action_at`, which puts them in the **Now** bucket: freshly
+      entered means not yet triaged.
       """
 
-      accept [:sales_stage_id]
+      accept []
       require_atomic? false
       change set_attribute(:in_funnel_sales?, true)
     end
 
-    update :enter_sales_funnel do
+    update :set_next_action do
       description """
-      Set the contact's sales stage. `Colt.Services.Sales.EnterSalesFunnel`
-      owns the idempotency guard — it skips this action when a stage is
-      already set — so this action just writes sales_stage_id.
+      Schedule (or clear) the next thing to do with this contact. A nil value
+      drops them back into **Now** as untriaged. The caller
+      (`Colt.Services.Sales.SetNextAction`) writes the StatusEvent.
       """
 
-      accept [:sales_stage_id]
+      accept [:next_action_at]
       require_atomic? false
-      change set_attribute(:in_funnel_sales?, true)
+    end
+
+    update :set_outcome do
+      description """
+      Close the conversation as won or lost, or reopen it with a nil outcome.
+      The caller (`Colt.Services.Sales.SetOutcome`) stamps `outcome_at`,
+      clears `next_action_at`, and writes the StatusEvent.
+      """
+
+      accept [:outcome, :outcome_reason, :outcome_at, :next_action_at]
+      require_atomic? false
     end
 
     update :set_funnels do
       description """
       Edit funnel membership from the sales contact edit form. Turning off
-      sales membership also drops the sales stage; re-entry (turning it back
-      on) is handled by the caller via `AutoEnter`, which seeds a stage.
+      sales membership also clears the next action and any outcome, so the
+      contact comes back in clean if re-entered later via `AutoEnter`.
       """
 
       accept [:in_funnel_sending?, :in_funnel_sales?]
@@ -319,24 +330,27 @@ defmodule Colt.Resources.CampaignContact do
 
       change fn changeset, _ ->
         if Ash.Changeset.get_attribute(changeset, :in_funnel_sales?) == false do
-          Ash.Changeset.force_change_attribute(changeset, :sales_stage_id, nil)
+          changeset
+          |> Ash.Changeset.force_change_attribute(:next_action_at, nil)
+          |> Ash.Changeset.force_change_attribute(:outcome, nil)
+          |> Ash.Changeset.force_change_attribute(:outcome_reason, nil)
+          |> Ash.Changeset.force_change_attribute(:outcome_at, nil)
         else
           changeset
         end
       end
     end
 
-    read :list_in_stage do
-      description "Contacts currently sitting in a given sales stage."
-      argument :sales_stage_id, :uuid, allow_nil?: false
-      filter expr(sales_stage_id == ^arg(:sales_stage_id))
-      prepare build(sort: [updated_at: :desc])
-    end
+    read :list_for_sales_funnel do
+      description """
+      Every contact in a campaign's sales funnel, in one query. The board
+      groups these by the `sales_bucket` calculation — counts and lists both
+      come off this single read, so there are no per-bucket round trips.
+      """
 
-    read :list_entered_for_campaign do
-      description "Every contact in the sales funnel (`in_funnel_sales?`) — the conversion-rate denominator."
       argument :campaign_id, :uuid, allow_nil?: false
       filter expr(campaign_id == ^arg(:campaign_id) and in_funnel_sales? == true)
+      prepare build(sort: [next_action_at: :asc_nils_last])
     end
 
     read :find_active_in_inbox_by_domain do
@@ -467,11 +481,19 @@ defmodule Colt.Resources.CampaignContact do
     attribute :completed_at, :utc_datetime_usec, public?: true
 
     # Which funnel(s) this contact participates in. Each funnel filters on its
-    # own flag rather than inferring membership from status/sales_stage — a
-    # hand-entered contact can live purely in sales without ever entering the
-    # send machine.
+    # own flag rather than inferring membership from status — a hand-entered
+    # contact can live purely in sales without ever entering the send machine.
     attribute :in_funnel_sending?, :boolean, allow_nil?: false, default: true, public?: true
     attribute :in_funnel_sales?, :boolean, allow_nil?: false, default: false, public?: true
+
+    # Sales funnel state. Between them these two decide the bucket (see the
+    # :sales_bucket calculation) — nothing else does. A null next_action_at
+    # means "never triaged", which is deliberately loud rather than invisible.
+    attribute :next_action_at, :utc_datetime, public?: true
+
+    attribute :outcome, :atom, constraints: [one_of: [:won, :lost]], public?: true
+    attribute :outcome_reason, :string, public?: true
+    attribute :outcome_at, :utc_datetime, public?: true
 
     # Provenance: enrichment (promoted from a CampaignCompany) vs manual (hand
     # entered / found on the street).
@@ -494,9 +516,17 @@ defmodule Colt.Resources.CampaignContact do
       public?: true
 
     belongs_to :sequence, Colt.Resources.Sequence, allow_nil?: true, public?: true
-    belongs_to :sales_stage, Colt.Resources.SalesStage, allow_nil?: true, public?: true
 
     has_one :thread, Colt.Resources.Thread
+    has_many :checklist_items, Colt.Resources.ContactChecklistItem
+  end
+
+  calculations do
+    calculate :sales_bucket,
+              :atom,
+              Colt.Resources.CampaignContact.Calculations.SalesBucket do
+      description "Which sales-funnel bucket this contact falls in: :now | :later | :won | :lost."
+    end
   end
 
   identities do

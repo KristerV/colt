@@ -97,9 +97,8 @@ defmodule Colt.Services.Sales.UpdateContact do
 
   defp maybe_update_company(_contact, _attrs, _actor, _auth?), do: {:ok, :unchanged}
 
-  # Write both flags first; if sales is now on but no stage is set yet (the
-  # contact was outside the sales funnel), run the same AutoEnter path a fresh
-  # manual sales lead takes to seed the first active stage.
+  # Write both flags first; AutoEnter is idempotent, so it only does anything
+  # when sales membership was just switched on.
   defp update_funnels(contact, attrs, opts, actor, auth?) do
     with {:ok, contact} <-
            CampaignContact.set_funnels(
@@ -115,8 +114,8 @@ defmodule Colt.Services.Sales.UpdateContact do
     end
   end
 
-  defp maybe_enter_sales(%{in_funnel_sales?: true, sales_stage_id: nil} = contact, _attrs, opts) do
-    case AutoEnter.run(contact.id, contact.campaign_id, opts) do
+  defp maybe_enter_sales(%{in_funnel_sales?: true} = contact, _attrs, opts) do
+    case AutoEnter.run(contact.id, opts) do
       {:ok, %CampaignContact{} = updated} -> {:ok, updated}
       {:ok, :already_in} -> {:ok, contact}
       other -> other

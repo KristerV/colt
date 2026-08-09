@@ -1,13 +1,17 @@
-defmodule Colt.Resources.SalesStage do
+defmodule Colt.Resources.ChecklistItem do
   @moduledoc """
-  A customizable stage in a campaign's sales funnel. Stages are data, not an
-  enum — per campaign, reorderable. `kind` splits the board into the active
-  funnel (`:active`) and its two exits (`:won` / `:lost`), so a real
-  conversion rate (won ÷ entered) is computable.
+  One item on a campaign's sales checklist — the list of things you work
+  through with every contact ("Intro call", "Demo booked", "Proposal sent").
+  Items are data, not an enum: per campaign, reorderable, editable in the
+  checklist setup view.
+
+  These are *not* mutually exclusive states. A contact ticks them off
+  independently via `Colt.Resources.ContactChecklistItem`; where a contact
+  stands overall is decided by `next_action_at` / `outcome` on
+  `CampaignContact`, not by this list.
 
   Positions are managed by the app (no unique DB index) so adjacent-swap
-  reorders don't trip a constraint mid-transaction. `Colt.Services.Sales`
-  seeds the starter set on first visit.
+  reorders don't trip a constraint mid-transaction.
   """
   use Ash.Resource,
     otp_app: :colt,
@@ -16,7 +20,7 @@ defmodule Colt.Resources.SalesStage do
     authorizers: [Ash.Policy.Authorizer]
 
   postgres do
-    table "sales_stages"
+    table "checklist_items"
     repo Colt.Repo
 
     custom_indexes do
@@ -34,7 +38,6 @@ defmodule Colt.Resources.SalesStage do
     define :create, args: [:campaign_id, :name, :position]
     define :rename, args: [:name]
     define :reposition, args: [:position]
-    define :set_kind, args: [:kind]
     define :destroy
   end
 
@@ -49,7 +52,7 @@ defmodule Colt.Resources.SalesStage do
     end
 
     create :create do
-      accept [:campaign_id, :name, :position, :kind, :color]
+      accept [:campaign_id, :name, :position]
     end
 
     update :rename do
@@ -59,11 +62,6 @@ defmodule Colt.Resources.SalesStage do
 
     update :reposition do
       accept [:position]
-      require_atomic? false
-    end
-
-    update :set_kind do
-      accept [:kind]
       require_atomic? false
     end
 
@@ -100,14 +98,6 @@ defmodule Colt.Resources.SalesStage do
     attribute :name, :string, allow_nil?: false, public?: true
 
     attribute :position, :integer, allow_nil?: false, default: 0, public?: true
-
-    attribute :kind, :atom,
-      constraints: [one_of: [:active, :won, :lost]],
-      allow_nil?: false,
-      default: :active,
-      public?: true
-
-    attribute :color, :string, public?: true
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

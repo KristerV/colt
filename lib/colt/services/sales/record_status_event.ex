@@ -2,7 +2,8 @@ defmodule Colt.Services.Sales.RecordStatusEvent do
   @moduledoc """
   Writes one `StatusEvent` to a thread's unified feed. Used by both funnels:
   the sending transitions (mark_replied, manual_override, stop_sequence,
-  mark_bounced, approve …) and the sales-stage moves.
+  mark_bounced, approve …) and the sales moves (next action, outcome,
+  checklist ticks).
 
   A feed write is a secondary concern — it must never break the transition
   that triggered it. Every entry point returns `:ok` and logs on failure

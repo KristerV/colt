@@ -1,9 +1,14 @@
 defmodule Colt.Resources.StatusEvent do
   @moduledoc """
-  Unified feed entry for a Thread. Every status change — the sales-stage
-  moves and the existing sending transitions — writes one entry with an
-  actor (nullable = system-generated), a human from/to, a kind, and an
-  optional reason. Rendered inline in the timeline of both funnels.
+  Unified feed entry for a Thread. Every status change — the sales moves and
+  the sending transitions — writes one entry with an actor (nullable =
+  system-generated), a human from/to, a kind, and an optional reason.
+  Rendered inline in the timeline of both funnels.
+
+  `:sales_stage` is **legacy, read-only**: it dates from when the sales funnel
+  was a set of user-defined stages. Nothing writes it any more, but old rows
+  must keep rendering, so the value stays in the constraint. Today's sales
+  writes are `:next_action`, `:outcome` and `:checklist`.
   """
   use Ash.Resource,
     otp_app: :colt,
@@ -25,11 +30,25 @@ defmodule Colt.Resources.StatusEvent do
     end
   end
 
+  # A `:checklist` event stores the item name in `to` and the resulting state
+  # in `reason`. These two constants are the contract between the writer
+  # (`Colt.Services.Sales.SetChecklistItem`) and the timeline renderer, which
+  # draws a real checkbox from it — keep them out of inline string literals so
+  # the two can't drift apart.
+  @checked "checked"
+  @unchecked "unchecked"
+
+  @doc "The `reason` value recording a checklist tick or untick."
+  def checklist_reason(true), do: @checked
+  def checklist_reason(false), do: @unchecked
+
+  @doc "True when a `:checklist` event recorded a tick rather than an untick."
+  def checklist_done?(%{kind: :checklist, reason: @checked}), do: true
+  def checklist_done?(_), do: false
+
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :list_for_thread, args: [:thread_id]
-    define :last_stage_change_for_thread, args: [:thread_id]
-    define :stage_changes_for_threads, args: [:thread_ids]
     define :record, args: [:thread_id, :kind, :from, :to, :reason]
   end
 
@@ -41,21 +60,6 @@ defmodule Colt.Resources.StatusEvent do
       argument :thread_id, :uuid, allow_nil?: false
       filter expr(thread_id == ^arg(:thread_id))
       prepare build(sort: [occurred_at: :asc])
-    end
-
-    read :last_stage_change_for_thread do
-      description "Most recent sales-stage move (or entry) on a thread — drives days-in-stage."
-      argument :thread_id, :uuid, allow_nil?: false
-      filter expr(thread_id == ^arg(:thread_id) and kind in [:sales_stage, :entry])
-      prepare build(sort: [occurred_at: :desc], limit: 1)
-      get? true
-    end
-
-    read :stage_changes_for_threads do
-      description "All sales-stage moves/entries for a set of threads, newest first — batches days-in-stage across the funnel board."
-      argument :thread_ids, {:array, :uuid}, allow_nil?: false
-      filter expr(thread_id in ^arg(:thread_ids) and kind in [:sales_stage, :entry])
-      prepare build(sort: [occurred_at: :desc])
     end
 
     create :record do
@@ -92,7 +96,18 @@ defmodule Colt.Resources.StatusEvent do
     uuid_primary_key :id
 
     attribute :kind, :atom,
-      constraints: [one_of: [:sales_stage, :send_status, :reply_category, :entry]],
+      constraints: [
+        one_of: [
+          :send_status,
+          :reply_category,
+          :entry,
+          :next_action,
+          :outcome,
+          :checklist,
+          # legacy — written by the old user-defined stage funnel, still rendered
+          :sales_stage
+        ]
+      ],
       allow_nil?: false,
       public?: true
 

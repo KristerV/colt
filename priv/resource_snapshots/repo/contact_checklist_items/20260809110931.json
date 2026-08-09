@@ -13,7 +13,7 @@
       "type": "uuid"
     },
     {
-      "allow_nil?": false,
+      "allow_nil?": true,
       "default": "nil",
       "generated?": false,
       "precision": null,
@@ -25,30 +25,6 @@
       "type": "text"
     },
     {
-      "allow_nil?": false,
-      "default": "0",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "position",
-      "type": "bigint"
-    },
-    {
-      "allow_nil?": false,
-      "default": "\"active\"",
-      "generated?": false,
-      "precision": null,
-      "primary_key?": false,
-      "references": null,
-      "scale": null,
-      "size": null,
-      "source": "kind",
-      "type": "text"
-    },
-    {
       "allow_nil?": true,
       "default": "nil",
       "generated?": false,
@@ -57,8 +33,8 @@
       "references": null,
       "scale": null,
       "size": null,
-      "source": "color",
-      "type": "text"
+      "source": "done_at",
+      "type": "utc_datetime"
     },
     {
       "allow_nil?": false,
@@ -103,16 +79,78 @@
           "global": null,
           "strategy": null
         },
-        "name": "sales_stages_campaign_id_fkey",
+        "name": "contact_checklist_items_campaign_contact_id_fkey",
         "on_delete": "delete",
         "on_update": null,
         "primary_key?": true,
         "schema": "public",
-        "table": "campaigns"
+        "table": "campaign_contacts"
       },
       "scale": null,
       "size": null,
-      "source": "campaign_id",
+      "source": "campaign_contact_id",
+      "type": "uuid"
+    },
+    {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": {
+        "deferrable": false,
+        "destination_attribute": "id",
+        "destination_attribute_default": null,
+        "destination_attribute_generated": null,
+        "index?": false,
+        "match_type": null,
+        "match_with": null,
+        "multitenancy": {
+          "attribute": null,
+          "global": null,
+          "strategy": null
+        },
+        "name": "contact_checklist_items_checklist_item_id_fkey",
+        "on_delete": "delete",
+        "on_update": null,
+        "primary_key?": true,
+        "schema": "public",
+        "table": "checklist_items"
+      },
+      "scale": null,
+      "size": null,
+      "source": "checklist_item_id",
+      "type": "uuid"
+    },
+    {
+      "allow_nil?": true,
+      "default": "nil",
+      "generated?": false,
+      "precision": null,
+      "primary_key?": false,
+      "references": {
+        "deferrable": false,
+        "destination_attribute": "id",
+        "destination_attribute_default": null,
+        "destination_attribute_generated": null,
+        "index?": false,
+        "match_type": null,
+        "match_with": null,
+        "multitenancy": {
+          "attribute": null,
+          "global": null,
+          "strategy": null
+        },
+        "name": "contact_checklist_items_done_by_id_fkey",
+        "on_delete": "nilify",
+        "on_update": null,
+        "primary_key?": true,
+        "schema": "public",
+        "table": "users"
+      },
+      "scale": null,
+      "size": null,
+      "source": "done_by_id",
       "type": "uuid"
     }
   ],
@@ -124,12 +162,12 @@
       "all_tenants?": false,
       "concurrently": false,
       "error_fields": [
-        "campaign_id"
+        "campaign_contact_id"
       ],
       "fields": [
         {
           "type": "atom",
-          "value": "campaign_id"
+          "value": "campaign_contact_id"
         }
       ],
       "include": null,
@@ -145,8 +183,27 @@
   ],
   "custom_statements": [],
   "has_create_action": true,
-  "hash": "12D703CE0F3F0B42FDE8F2DB21128374F40D8047665E65B370475C9B1EBAF688",
-  "identities": [],
+  "hash": "CF616D6C6910D9835180017C44EB3813BF6DF5A8E2C32AFE059EF5B3AD16C22D",
+  "identities": [
+    {
+      "all_tenants?": false,
+      "base_filter": null,
+      "index_name": "contact_checklist_items_unique_per_contact_item_index",
+      "keys": [
+        {
+          "type": "atom",
+          "value": "campaign_contact_id"
+        },
+        {
+          "type": "atom",
+          "value": "checklist_item_id"
+        }
+      ],
+      "name": "unique_per_contact_item",
+      "nils_distinct?": true,
+      "where": null
+    }
+  ],
   "multitenancy": {
     "attribute": null,
     "global": null,
@@ -154,5 +211,5 @@
   },
   "repo": "Elixir.Colt.Repo",
   "schema": null,
-  "table": "sales_stages"
+  "table": "contact_checklist_items"
 }

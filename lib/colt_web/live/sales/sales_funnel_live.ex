@@ -1,11 +1,18 @@
 defmodule ColtWeb.Sales.SalesFunnelLive do
   @moduledoc """
-  Sales funnel — a per-campaign, admin-only manual CRM. Cloned from the
-  sending funnel's list+thread two-pane: a stage strip on top (the campaign's
-  `SalesStage`s with live counts), a left pane of contacts in the selected
-  stage (with days-in-stage), and the reused thread pane on the right —
-  timeline (emails + notes + StatusEvents) + Reply/Note composer, plus a
-  "Move to…" control that moves the contact between stages.
+  Sales funnel — a per-campaign, admin-only manual CRM, shaped as a work queue
+  rather than a board of hand-typed stages.
+
+  The four buckets are **derived**, never set directly: `Now` (overdue, due
+  today, or never triaged), `Later` (a next action dated ahead), and the `Won`
+  / `Lost` exits. See `Colt.Resources.CampaignContact.Calculations.SalesBucket`
+  — a contact only ever moves by being given a date or an outcome, which is
+  what makes "who needs me today?" answerable at a glance.
+
+  Layout is the sending funnel's list+thread two-pane: bucket strip on top, a
+  left pane of contacts in the selected bucket (each with a date chip), and the
+  reused thread pane on the right — timeline, composer, the campaign checklist,
+  and the `Next action` / `Won` / `Lost` controls.
   """
 
   use ColtWeb, :live_view
@@ -13,6 +20,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   alias Colt.Resources.{
     Campaign,
     CampaignContact,
+    ChecklistItem,
+    ContactChecklistItem,
     EmailAccount,
     InboundEmail,
     Note,
@@ -20,7 +29,16 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     StatusEvent
   }
 
-  alias Colt.Services.Sales.{CreateManualContact, MoveToStage, SeedStages, UpdateContact}
+  alias Colt.SalesClock
+
+  alias Colt.Services.Sales.{
+    CreateManualContact,
+    SetChecklistItem,
+    SetNextAction,
+    SetOutcome,
+    UpdateContact
+  }
+
   alias Colt.Services.Sending.SendManualReply
   alias ColtWeb.Components.{ContactForm, FunnelThread, Liid}
   alias ColtWeb.Deck.Slides
@@ -31,8 +49,14 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   @pubsub Colt.PubSub
 
-  # Days in a stage past which the row reads as stale.
-  @stale_days 14
+  # The board's columns. Fixed, not user-defined — they're derived from each
+  # contact's next action date and outcome.
+  @buckets [:now, :later, :won, :lost]
+  @exits [:won, :lost]
+
+  # "Next action" presets, in days from today. Anything else goes through the
+  # date picker.
+  @presets [1, 3, 7, 14]
 
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
@@ -41,15 +65,14 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       {:ok, campaign} ->
         if connected?(socket), do: PubSub.subscribe(@pubsub, "campaign:#{campaign.id}")
 
-        {:ok, stages} = SeedStages.run(campaign.id, actor: actor)
-
         socket =
           socket
           |> assign(
             page_title: gettext("Sales funnel — %{name}", name: campaign.name),
             campaign: campaign,
-            stages: stages,
-            selected_stage: nil,
+            checklist: load_checklist(campaign.id, actor),
+            ticks: %{},
+            selected_bucket: nil,
             selected: nil,
             active_tab: nil,
             reply_html: "",
@@ -77,9 +100,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     end
   end
 
-  # Selection lives in the URL: /sales/:stage/:contact_id.
+  # Selection lives in the URL: /sales/:bucket/:contact_id.
   def handle_params(params, _uri, socket) do
-    stage = Enum.find(socket.assigns.stages, &(&1.id == params["stage"]))
+    bucket = parse_bucket(params["bucket"])
 
     selected =
       case params["contact_id"] do
@@ -90,12 +113,12 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     socket =
       socket
       |> assign(
-        selected_stage: stage,
+        selected_bucket: bucket,
         selected: selected,
         active_tab: nil,
         reply_html: "",
         note_body: "",
-        pending_lost: nil,
+        pending_lost: false,
         lost_reason: "",
         error: nil
       )
@@ -103,6 +126,10 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
     {:noreply, socket}
   end
+
+  # Whitelisted slug→atom; unknown slugs fall back to "no bucket selected"
+  # rather than raising on a hand-typed URL.
+  defp parse_bucket(slug), do: Enum.find(@buckets, &(to_string(&1) == slug))
 
   # ── Events ───────────────────────────────────────────────────────────
 
@@ -180,38 +207,85 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     end
   end
 
-  # Moving to a :lost stage first asks for a reason; every other move is
-  # immediate.
-  def handle_event("move_to_stage", %{"stage" => stage_id}, socket) do
-    stage = Enum.find(socket.assigns.stages, &(&1.id == stage_id))
+  # ── Next action ──────────────────────────────────────────────────────
 
-    cond do
-      is_nil(stage) or is_nil(socket.assigns.selected) ->
-        {:noreply, socket}
+  # Presets are resolved server-side so "in 3 days" means three days in the
+  # funnel's timezone, not the browser's. `JS.push` sends the value typed, so
+  # this arrives as an integer; a form-encoded one would arrive as a string.
+  def handle_event("next_action_in", %{"days" => days}, socket) when is_integer(days) do
+    {:noreply, do_set_next_action(socket, SalesClock.in_days(days))}
+  end
 
-      stage.kind == :lost ->
-        {:noreply, assign(socket, pending_lost: stage)}
-
-      true ->
-        {:noreply, do_move(socket, stage.id, nil)}
+  def handle_event("next_action_in", %{"days" => days}, socket) when is_binary(days) do
+    case Integer.parse(days) do
+      {n, ""} -> {:noreply, do_set_next_action(socket, SalesClock.in_days(n))}
+      _ -> {:noreply, socket}
     end
   end
 
-  def handle_event("confirm_lost", _params, socket) do
-    case socket.assigns.pending_lost do
-      %{id: stage_id} ->
-        {:noreply,
-         socket
-         |> do_move(stage_id, socket.assigns.lost_reason)
-         |> assign(pending_lost: nil, lost_reason: "")}
+  def handle_event("next_action_on", %{"value" => value}, socket) do
+    case Date.from_iso8601(value) do
+      {:ok, date} -> {:noreply, do_set_next_action(socket, SalesClock.at_start_of_workday(date))}
+      _ -> {:noreply, socket}
+    end
+  end
 
-      _ ->
-        {:noreply, socket}
+  def handle_event("clear_next_action", _params, socket) do
+    {:noreply, do_set_next_action(socket, nil)}
+  end
+
+  # ── Outcome ──────────────────────────────────────────────────────────
+
+  # Lost asks for a reason first; won and reopen are immediate.
+  def handle_event("set_outcome", %{"outcome" => "lost"}, socket) do
+    if socket.assigns.selected,
+      do: {:noreply, assign(socket, pending_lost: true)},
+      else: {:noreply, socket}
+  end
+
+  def handle_event("set_outcome", %{"outcome" => "won"}, socket) do
+    {:noreply, do_set_outcome(socket, :won, nil)}
+  end
+
+  def handle_event("set_outcome", %{"outcome" => "reopen"}, socket) do
+    {:noreply, do_set_outcome(socket, nil, nil)}
+  end
+
+  def handle_event("confirm_lost", _params, socket) do
+    if socket.assigns.pending_lost do
+      {:noreply,
+       socket
+       |> do_set_outcome(:lost, socket.assigns.lost_reason)
+       |> assign(pending_lost: false, lost_reason: "")}
+    else
+      {:noreply, socket}
     end
   end
 
   def handle_event("cancel_lost", _params, socket) do
-    {:noreply, assign(socket, pending_lost: nil, lost_reason: "")}
+    {:noreply, assign(socket, pending_lost: false, lost_reason: "")}
+  end
+
+  # ── Checklist ────────────────────────────────────────────────────────
+
+  def handle_event("toggle_checklist", %{"item" => item_id}, socket) do
+    contact = socket.assigns.selected
+    done? = not ticked?(socket.assigns.ticks, item_id)
+
+    if contact do
+      case SetChecklistItem.run(contact.id, item_id, done?, actor: socket.assigns.current_user) do
+        {:ok, _} ->
+          {:noreply, socket |> load_thread_data()}
+
+        {:error, reason} ->
+          {:noreply,
+           assign(socket,
+             error: gettext("Couldn't update the checklist: %{reason}", reason: inspect(reason))
+           )}
+      end
+    else
+      {:noreply, socket}
+    end
   end
 
   # ── New contact ──────────────────────────────────────────────────────
@@ -404,20 +478,59 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   # ── Helpers ──────────────────────────────────────────────────────────
 
-  defp do_move(socket, stage_id, reason) do
-    actor = socket.assigns.current_user
+  defp do_set_next_action(%{assigns: %{selected: nil}} = socket, _at), do: socket
+
+  defp do_set_next_action(socket, at) do
     contact = socket.assigns.selected
 
-    case MoveToStage.run(contact.id, stage_id, reason, actor: actor) do
+    case SetNextAction.run(contact.id, at, actor: socket.assigns.current_user) do
       {:ok, _} ->
         socket
-        |> put_flash(:info, gettext("Moved."))
-        |> load_contacts()
-        |> keep_selected()
-        |> load_thread_data()
+        |> put_flash(:info, next_action_flash(at))
+        |> refresh()
 
       {:error, reason} ->
-        assign(socket, error: gettext("Couldn't move: %{reason}", reason: inspect(reason)))
+        assign(socket,
+          error: gettext("Couldn't set the date: %{reason}", reason: inspect(reason))
+        )
+    end
+  end
+
+  defp next_action_flash(nil), do: gettext("Next action cleared — back in Now.")
+
+  defp next_action_flash(at),
+    do: gettext("Next action set for %{date}.", date: SalesClock.to_local_date(at))
+
+  defp do_set_outcome(%{assigns: %{selected: nil}} = socket, _outcome, _reason), do: socket
+
+  defp do_set_outcome(socket, outcome, reason) do
+    contact = socket.assigns.selected
+
+    case SetOutcome.run(contact.id, outcome, reason: reason, actor: socket.assigns.current_user) do
+      {:ok, _} ->
+        socket
+        |> put_flash(:info, outcome_flash(outcome))
+        |> refresh()
+
+      {:error, err} ->
+        assign(socket, error: gettext("Couldn't save: %{reason}", reason: inspect(err)))
+    end
+  end
+
+  defp outcome_flash(:won), do: gettext("Marked won.")
+  defp outcome_flash(:lost), do: gettext("Marked lost.")
+  defp outcome_flash(nil), do: gettext("Reopened — back in Now.")
+
+  # A contact whose bucket just changed is no longer in the list the URL
+  # points at, so reload everything and re-resolve the selection.
+  defp refresh(socket) do
+    socket |> load_contacts() |> keep_selected() |> load_thread_data()
+  end
+
+  defp load_checklist(campaign_id, actor) do
+    case ChecklistItem.list_for_campaign(campaign_id, actor: actor) do
+      {:ok, rows} -> rows
+      _ -> []
     end
   end
 
@@ -425,15 +538,15 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     actor = socket.assigns.current_user
 
     contacts =
-      case CampaignContact.list_entered_for_campaign(socket.assigns.campaign.id,
-             load: [:thread, :sales_stage, :assigned_email_account, person: :company],
+      case CampaignContact.list_for_sales_funnel(socket.assigns.campaign.id,
+             load: [:sales_bucket, :thread, :assigned_email_account, person: :company],
              actor: actor
            ) do
         {:ok, rows} -> rows
         _ -> []
       end
 
-    assign(socket, contacts: contacts, days_in_stage: compute_days_in_stage(contacts))
+    assign(socket, contacts: contacts)
   end
 
   defp keep_selected(socket) do
@@ -445,58 +558,62 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     assign(socket, selected: selected)
   end
 
-  # days-in-stage per contact, from the latest stage-move/entry event, else
-  # the contact's creation time. One batched query for the whole board (no
-  # per-contact N+1).
-  defp compute_days_in_stage(contacts) do
-    now = DateTime.utc_now()
+  defp visible_contacts(_contacts, nil), do: []
 
-    thread_ids =
-      contacts |> Enum.map(&(&1.thread && &1.thread.id)) |> Enum.reject(&is_nil/1)
-
-    latest_by_thread = latest_stage_change_by_thread(thread_ids)
-
-    Enum.reduce(contacts, %{}, fn c, acc ->
-      since =
-        case c.thread do
-          %{id: tid} -> Map.get(latest_by_thread, tid, c.inserted_at)
-          _ -> c.inserted_at
-        end
-
-      Map.put(acc, c.id, max(DateTime.diff(now, since, :day), 0))
-    end)
+  # Open buckets keep the query's date order (most overdue first, undated
+  # last); the closed ones read better most-recently-closed first.
+  defp visible_contacts(contacts, bucket) when bucket in @exits do
+    contacts
+    |> Enum.filter(&(&1.sales_bucket == bucket))
+    |> Enum.sort_by(& &1.outcome_at, {:desc, DateTime})
   end
 
-  defp latest_stage_change_by_thread([]), do: %{}
+  defp visible_contacts(contacts, bucket),
+    do: Enum.filter(contacts, &(&1.sales_bucket == bucket))
 
-  defp latest_stage_change_by_thread(thread_ids) do
-    case StatusEvent.stage_changes_for_threads(thread_ids, authorize?: false) do
-      # rows come back newest-first, so put_new keeps the latest per thread
-      {:ok, events} ->
-        Enum.reduce(events, %{}, fn e, acc ->
-          Map.put_new(acc, e.thread_id, e.occurred_at)
-        end)
+  defp bucket_count(contacts, bucket),
+    do: Enum.count(contacts, &(&1.sales_bucket == bucket))
 
-      _ ->
-        %{}
+  defp bucket_label(:now), do: gettext("Now")
+  defp bucket_label(:later), do: gettext("Later")
+  defp bucket_label(:won), do: gettext("Won")
+  defp bucket_label(:lost), do: gettext("Lost")
+
+  defp bucket_dot(:now), do: "bg-accent"
+  defp bucket_dot(:won), do: "bg-green"
+  defp bucket_dot(_), do: "bg-inkFaint"
+
+  # The date chip on each row. Overdue is the only thing loud enough to warrant
+  # amber — everything else is informational.
+  defp row_chip(%{sales_bucket: bucket, outcome_at: at}) when bucket in @exits do
+    {format_date(at), "bg-paperAlt text-inkSoft"}
+  end
+
+  defp row_chip(%{next_action_at: nil}), do: {gettext("No date"), "bg-paperAlt text-inkFaint"}
+
+  defp row_chip(%{next_action_at: at}) do
+    case SalesClock.days_from_today(at) do
+      0 -> {gettext("Today"), "bg-accentSoft text-accent"}
+      n when n < 0 -> {gettext("%{n}d overdue", n: abs(n)), "bg-amberSoft text-amber"}
+      n -> {gettext("in %{n}d", n: n), "bg-paperAlt text-inkSoft"}
     end
   end
 
-  defp visible_contacts(_contacts, nil), do: []
+  defp format_date(nil), do: "—"
+  defp format_date(%DateTime{} = at), do: at |> SalesClock.to_local_date() |> Date.to_iso8601()
 
-  defp visible_contacts(contacts, %{id: stage_id}),
-    do: Enum.filter(contacts, &(&1.sales_stage_id == stage_id))
+  defp ticked?(ticks, item_id), do: Map.get(ticks, item_id) != nil
 
-  defp stage_count(contacts, stage_id),
-    do: Enum.count(contacts, &(&1.sales_stage_id == stage_id))
+  defp done_count(ticks), do: ticks |> Map.values() |> Enum.count(&(&1 != nil))
 
   defp load_thread_data(%{assigns: %{selected: nil}} = socket) do
-    assign(socket, timeline: [], thread: nil)
+    assign(socket, timeline: [], thread: nil, ticks: %{})
   end
 
   defp load_thread_data(%{assigns: %{selected: contact}} = socket) do
     actor = socket.assigns.current_user
     thread = contact.thread
+    socket = assign(socket, ticks: load_ticks(contact.id, actor))
 
     if thread do
       outbound = OutboundEmail.list_for_thread!(thread.id, actor: actor, authorize?: true)
@@ -510,6 +627,15 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       )
     else
       assign(socket, timeline: [], thread: nil)
+    end
+  end
+
+  # checklist_item_id => done_at (or nil for an unticked row). Only ticked
+  # items have rows at all, so an untouched contact costs one empty query.
+  defp load_ticks(contact_id, actor) do
+    case ContactChecklistItem.list_for_contact(contact_id, actor: actor) do
+      {:ok, rows} -> Map.new(rows, &{&1.checklist_item_id, &1.done_at})
+      _ -> %{}
     end
   end
 
@@ -601,20 +727,13 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   end
 
   # A sales contact is navigated to so the user lands on the card they just
-  # created; a sending-only contact has no sales stage to show, so we stay put.
-  defp maybe_open_new_contact(
-         socket,
-         %{in_funnel_sales?: true, sales_stage_id: stage_id} = contact
-       )
-       when is_binary(stage_id) do
-    push_patch(socket,
-      to: ~p"/campaigns/#{socket.assigns.campaign.id}/sales/#{stage_id}/#{contact.id}"
-    )
+  # created. They enter untriaged, so that's always the Now bucket. A
+  # sending-only contact isn't on this board at all, so we stay put.
+  defp maybe_open_new_contact(socket, %{in_funnel_sales?: true} = contact) do
+    push_patch(socket, to: ~p"/campaigns/#{socket.assigns.campaign.id}/sales/now/#{contact.id}")
   end
 
   defp maybe_open_new_contact(socket, _contact), do: socket
-
-  defp stale?(days), do: days >= @stale_days
 
   # ── Render ───────────────────────────────────────────────────────────
 
@@ -622,23 +741,14 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     level =
       cond do
         assigns.selected -> :thread
-        assigns.selected_stage -> :list
-        true -> :stages
+        assigns.selected_bucket -> :list
+        true -> :buckets
       end
-
-    visible = visible_contacts(assigns.contacts, assigns.selected_stage)
-
-    entered = length(assigns.contacts)
-    won = Enum.count(assigns.contacts, &(&1.sales_stage && &1.sales_stage.kind == :won))
-    conversion = if entered > 0, do: round(won / entered * 100), else: nil
 
     assigns =
       assign(assigns,
         level: level,
-        visible: visible,
-        entered: entered,
-        won: won,
-        conversion: conversion
+        visible: visible_contacts(assigns.contacts, assigns.selected_bucket)
       )
 
     ~H"""
@@ -652,11 +762,11 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     >
       <div class="flex flex-col md:h-screen md:-mx-14 md:-my-10">
         <%!-- Mobile back-bar --%>
-        <div :if={@level != :stages} class="md:hidden px-2 pt-2 pb-1">
+        <div :if={@level != :buckets} class="md:hidden px-2 pt-2 pb-1">
           <.link
             patch={
               if @level == :thread,
-                do: ~p"/campaigns/#{@campaign.id}/sales/#{@selected_stage.id}",
+                do: ~p"/campaigns/#{@campaign.id}/sales/#{@selected_bucket}",
                 else: ~p"/campaigns/#{@campaign.id}/sales"
             }
             class="inline-flex items-center gap-2 py-2.5 px-2 text-[15px] font-medium text-inkSoft active:text-ink hover:text-ink no-underline"
@@ -664,19 +774,19 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             <span class="text-[30px] leading-none -mt-0.5">‹</span>
             <span>
               {if @level == :thread,
-                do: gettext("Back to %{stage}", stage: @selected_stage.name),
-                else: gettext("All stages")}
+                do: gettext("Back to %{bucket}", bucket: bucket_label(@selected_bucket)),
+                else: gettext("All contacts")}
             </span>
           </.link>
         </div>
 
         <div class={[
           "px-4 md:px-7 pt-5 md:pt-6 pb-4 flex-none",
-          (@level == :stages && "block") || "hidden md:block"
+          (@level == :buckets && "block") || "hidden md:block"
         ]}>
           <div class="flex items-start justify-between gap-4">
             <Liid.headline kicker={gettext("Sales · Funnel")}>
-              {raw(gettext("Move the ones who <em class=\"text-accent\">answered</em> forward."))}
+              {raw(gettext("Who needs you <em class=\"text-accent\">today</em>."))}
             </Liid.headline>
             <div class="flex items-center gap-3 shrink-0">
               <button
@@ -693,35 +803,21 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
           </div>
 
           <div class="mt-4">
-            <.stage_strip
-              stages={@stages}
+            <.bucket_strip
               contacts={@contacts}
-              selected_stage={@selected_stage}
+              selected_bucket={@selected_bucket}
               campaign_id={@campaign.id}
             />
           </div>
-
-          <div
-            :if={@conversion != nil}
-            class="mt-3 inline-flex items-center gap-4 bg-card border border-border rounded-[8px] px-3.5 py-2.5"
-            style="box-shadow:var(--shadow)"
-          >
-            <div class="flex items-center gap-2 text-[12px] text-inkSoft">
-              <span class="font-semibold text-inkSoft">{gettext("Conversion")}</span>
-              <b class="text-ink font-bold tabular-nums">{@conversion}%</b>
-              <span class="text-inkFaint tabular-nums">({@won}/{@entered} {gettext("won")})</span>
-            </div>
-          </div>
         </div>
 
-        <%= if @selected_stage do %>
+        <%= if @selected_bucket do %>
           <div class="grid grid-cols-1 md:grid-cols-[360px_1fr] flex-1 min-h-0 gap-4 px-0 md:px-7 pb-4 md:pb-6">
             <div class={["min-h-0", (@level == :list && "block") || "hidden", "md:block"]}>
               <.contact_list
                 contacts={@visible}
                 selected={@selected}
-                selected_stage={@selected_stage}
-                days_in_stage={@days_in_stage}
+                selected_bucket={@selected_bucket}
                 campaign_id={@campaign.id}
               />
             </div>
@@ -732,13 +828,12 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
                     contact={@selected}
                     thread={@thread}
                     timeline={@timeline}
-                    stages={@stages}
+                    checklist={@checklist}
+                    ticks={@ticks}
                     active_tab={@active_tab}
                     reply_html={@reply_html}
                     reply_nonce={@reply_nonce}
                     note_body={@note_body}
-                    pending_lost={@pending_lost}
-                    lost_reason={@lost_reason}
                     error={@error}
                   />
                 <% @visible != [] -> %>
@@ -747,18 +842,18 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
                     style="box-shadow:var(--shadow-card)"
                   >
                     <div class="text-[14px] text-inkSoft max-w-[300px] leading-[1.55]">
-                      {gettext("Select a contact to read the conversation and move them along.")}
+                      {gettext("Select a contact to read the conversation and pick what's next.")}
                     </div>
                   </div>
                 <% true -> %>
-                  <.empty_stage stage={@selected_stage} campaign_id={@campaign.id} />
+                  <.empty_bucket bucket={@selected_bucket} />
               <% end %>
             </div>
           </div>
         <% else %>
           <div class="hidden md:flex flex-1 items-center justify-center text-center px-8">
             <div class="text-[14px] text-inkSoft max-w-[320px] leading-[1.55]">
-              {gettext("Pick a stage above to work its contacts.")}
+              {gettext("Pick a bucket above. Now is the queue; everything else is bookkeeping.")}
             </div>
           </div>
         <% end %>
@@ -768,7 +863,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
         :if={@pending_lost}
         id="lost-reason-modal"
         on_cancel="cancel_lost"
-        eyebrow={@pending_lost.name}
+        eyebrow={gettext("Lost")}
         title={gettext("Why was this lost?")}
       >
         <form phx-change="set_lost_reason" phx-submit="confirm_lost">
@@ -858,64 +953,50 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   # ── Partials ─────────────────────────────────────────────────────────
 
-  attr :stages, :list, required: true
   attr :contacts, :list, required: true
-  attr :selected_stage, :any, default: nil
+  attr :selected_bucket, :any, default: nil
   attr :campaign_id, :string, required: true
 
-  defp stage_strip(assigns) do
-    {active, exits} = Enum.split_with(assigns.stages, &(&1.kind == :active))
-    assigns = assign(assigns, active: active, exits: exits)
-
+  # One flush segmented block. `gap-px` over a border-coloured background draws
+  # the hairlines between tiles, which works identically for the 2×2 mobile
+  # grid and the single desktop row — no per-edge border juggling.
+  defp bucket_strip(assigns) do
     ~H"""
-    <div class="flex flex-col gap-3 md:flex-row md:items-stretch">
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:flex md:flex-1 gap-3">
-        <.stage_tile
-          :for={s <- @active}
-          stage={s}
-          count={stage_count(@contacts, s.id)}
-          active?={@selected_stage != nil and @selected_stage.id == s.id}
-          campaign_id={@campaign_id}
-        />
-      </div>
-      <div :if={@exits != []} class="hidden md:block w-px bg-border mx-1" />
-      <div class="grid grid-cols-2 md:flex gap-3">
-        <.stage_tile
-          :for={s <- @exits}
-          stage={s}
-          count={stage_count(@contacts, s.id)}
-          active?={@selected_stage != nil and @selected_stage.id == s.id}
-          campaign_id={@campaign_id}
-        />
-      </div>
+    <div
+      class="grid grid-cols-2 md:flex gap-px bg-border border border-border rounded-[11px] overflow-hidden"
+      style="box-shadow:var(--shadow)"
+    >
+      <.bucket_tile
+        :for={b <- [:now, :later, :won, :lost]}
+        bucket={b}
+        count={bucket_count(@contacts, b)}
+        active?={@selected_bucket == b}
+        campaign_id={@campaign_id}
+      />
     </div>
     """
   end
 
-  attr :stage, :map, required: true
+  attr :bucket, :atom, required: true
   attr :count, :integer, required: true
   attr :active?, :boolean, default: false
   attr :campaign_id, :string, required: true
 
-  defp stage_tile(assigns) do
+  defp bucket_tile(assigns) do
     ~H"""
     <.link
-      patch={~p"/campaigns/#{@campaign_id}/sales/#{@stage.id}"}
-      style={"box-shadow: #{if @active?, do: "0 0 0 1px var(--accentRing), var(--shadow-card)", else: "var(--shadow)"};"}
+      patch={~p"/campaigns/#{@campaign_id}/sales/#{@bucket}"}
       class={[
-        "no-underline text-left p-[13px] cursor-pointer flex flex-col gap-0.5 min-h-[84px] md:min-w-[112px] rounded-[11px] border transition-colors",
-        if(@active?,
-          do: "bg-accentSoft border-accentRing",
-          else: "bg-card border-border hover:bg-bgSoft"
-        )
+        "no-underline text-left p-[13px] cursor-pointer flex flex-col gap-0.5 min-h-[84px] md:flex-1 md:min-w-[112px] transition-colors",
+        if(@active?, do: "bg-accentSoft", else: "bg-card hover:bg-bgSoft")
       ]}
     >
       <div class={[
         "flex items-center gap-1.5 text-[11.5px] font-semibold",
         if(@active?, do: "text-accent", else: "text-inkSoft")
       ]}>
-        <span class={["w-[7px] h-[7px] rounded-full shrink-0", Liid.stage_dot(@stage.kind)]} />
-        <span class="truncate">{@stage.name}</span>
+        <span class={["w-[7px] h-[7px] rounded-full shrink-0", bucket_dot(@bucket)]} />
+        <span class="truncate">{bucket_label(@bucket)}</span>
       </div>
       <div class={[
         "text-[27px] font-bold leading-[1.05] tracking-[-0.02em] tabular-nums mt-0.5",
@@ -930,8 +1011,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   attr :contacts, :list, required: true
   attr :selected, :map, default: nil
-  attr :selected_stage, :any, default: nil
-  attr :days_in_stage, :map, default: %{}
+  attr :selected_bucket, :any, default: nil
   attr :campaign_id, :string, required: true
 
   defp contact_list(assigns) do
@@ -942,7 +1022,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     >
       <div class="flex-none px-4 py-[13px] border-b border-border flex items-center justify-between">
         <div class="text-[13.5px] font-semibold text-ink">
-          <span :if={@selected_stage} class="text-accent">{@selected_stage.name}</span>
+          <span :if={@selected_bucket} class="text-accent">{bucket_label(@selected_bucket)}</span>
         </div>
         <div class="text-[12px] font-medium text-inkFaint tabular-nums">
           {gettext("%{n} contacts", n: length(@contacts))}
@@ -951,9 +1031,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       <div class="flex-1 overflow-y-auto p-2">
         <%= for c <- @contacts do %>
           <% active? = @selected && @selected.id == c.id %>
-          <% days = Map.get(@days_in_stage, c.id, 0) %>
+          <% {chip_label, chip_class} = row_chip(c) %>
           <.link
-            patch={~p"/campaigns/#{@campaign_id}/sales/#{@selected_stage.id}/#{c.id}"}
+            patch={~p"/campaigns/#{@campaign_id}/sales/#{@selected_bucket}/#{c.id}"}
             style={active? && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
             class={[
               "no-underline w-full text-left flex items-center gap-3 px-[11px] py-2.5 rounded-[8px] mb-1 border cursor-pointer",
@@ -980,12 +1060,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             </div>
             <span class={[
               "shrink-0 text-[11px] font-semibold rounded-[6px] px-[7px] py-0.5 tabular-nums",
-              cond do
-                stale?(days) -> "bg-amberSoft text-amber"
-                true -> "bg-paperAlt text-inkSoft"
-              end
+              chip_class
             ]}>
-              {gettext("%{n}d", n: days)}
+              {chip_label}
             </span>
           </.link>
         <% end %>
@@ -994,10 +1071,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     """
   end
 
-  attr :stage, :map, required: true
-  attr :campaign_id, :string, required: true
+  attr :bucket, :atom, required: true
 
-  defp empty_stage(assigns) do
+  defp empty_bucket(assigns) do
     ~H"""
     <div
       class="h-full bg-bgSoft border border-border rounded-[11px] flex flex-col items-center justify-center text-center px-8 py-16 gap-4"
@@ -1006,28 +1082,36 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       <div class="text-[64px] font-bold leading-none text-ink20">0</div>
       <div class="text-[22px] font-semibold tracking-[-0.01em] text-ink">
         {raw(
-          gettext("Nothing in <em class=\"text-accent italic font-semibold\">%{stage}</em> yet.",
-            stage: @stage.name
+          gettext("Nothing in <em class=\"text-accent italic font-semibold\">%{bucket}</em>.",
+            bucket: bucket_label(@bucket)
           )
         )}
       </div>
       <div class="text-[13px] text-inkSoft max-w-[360px] leading-[1.55]">
-        {gettext("Interested contacts land here automatically, or move them from another stage.")}
+        {empty_bucket_hint(@bucket)}
       </div>
     </div>
     """
   end
 
+  defp empty_bucket_hint(:now),
+    do: gettext("Inbox zero. Everything is either scheduled or closed.")
+
+  defp empty_bucket_hint(:later),
+    do: gettext("Nothing scheduled ahead. Give a contact a next action to park them here.")
+
+  defp empty_bucket_hint(:won), do: gettext("No wins recorded yet.")
+  defp empty_bucket_hint(:lost), do: gettext("Nothing written off yet.")
+
   attr :contact, :map, required: true
   attr :thread, :any, required: true
   attr :timeline, :list, required: true
-  attr :stages, :list, required: true
+  attr :checklist, :list, required: true
+  attr :ticks, :map, required: true
   attr :active_tab, :atom, required: true
   attr :reply_html, :string, required: true
   attr :reply_nonce, :integer, required: true
   attr :note_body, :string, required: true
-  attr :pending_lost, :any, default: nil
-  attr :lost_reason, :string, default: ""
   attr :error, :any, default: nil
 
   defp thread_pane(assigns) do
@@ -1038,7 +1122,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       assign(assigns,
         recipient: recipient,
         registry_link: Colt.CompanyRegistry.link(company),
-        current_stage: assigns.contact.sales_stage,
+        closed?: assigns.contact.outcome != nil,
+        presets: Enum.map(@presets, &%{days: &1, date: SalesClock.today() |> Date.add(&1)}),
         insert_links: demo_links(assigns.contact)
       )
 
@@ -1055,7 +1140,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       insert_links={@insert_links}
       error={@error}
     >
-      <:actions>
+      <:info_actions>
         <button
           type="button"
           phx-click="open_edit"
@@ -1063,45 +1148,231 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
         >
           {gettext("Edit")}
         </button>
-        <button
-          type="button"
-          phx-click={JS.toggle(to: "#stage-menu-#{@contact.id}")}
-          class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-accentSoft border-accentRing text-accent"
-        >
-          <span class={[
-            "w-[7px] h-[7px] rounded-full",
-            Liid.stage_dot(@current_stage && @current_stage.kind)
-          ]} />
-          {(@current_stage && @current_stage.name) || gettext("Move to…")}
-          <span class="opacity-70 text-[10px]">▾</span>
-        </button>
-        <div
-          id={"stage-menu-#{@contact.id}"}
-          class="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-[8px] z-20 min-w-[200px] py-1"
-          style="box-shadow:var(--shadow-card)"
-          phx-click-away={JS.hide(to: "#stage-menu-#{@contact.id}")}
-        >
-          <%= for s <- @stages do %>
+      </:info_actions>
+
+      <:bar_items>
+        <.checklist_zone
+          :if={@checklist != []}
+          checklist={@checklist}
+          ticks={@ticks}
+          id={@contact.id}
+        />
+      </:bar_items>
+
+      <:actions>
+        <%!-- Outcome is one control, not two buttons: closing is rare next to
+             re-dating, and the trigger doubles as the current state. --%>
+        <div class="relative">
+          <button
+            type="button"
+            phx-click={JS.toggle(to: "#outcome-menu-#{@contact.id}")}
+            class={[
+              "inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border",
+              outcome_button_class(@contact.outcome)
+            ]}
+          >
+            <span
+              :if={@contact.outcome}
+              class={["w-[7px] h-[7px] rounded-full", outcome_dot(@contact.outcome)]}
+            />
+            {outcome_button_label(@contact.outcome)}
+            <span class="opacity-70 text-[10px]">▾</span>
+          </button>
+          <div
+            id={"outcome-menu-#{@contact.id}"}
+            class="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-[8px] z-40 min-w-[160px] py-1"
+            style="box-shadow:var(--shadow-card)"
+            phx-click-away={JS.hide(to: "#outcome-menu-#{@contact.id}")}
+          >
             <button
+              :if={not @closed?}
               phx-click={
-                JS.push("move_to_stage", value: %{stage: s.id})
-                |> JS.hide(to: "#stage-menu-#{@contact.id}")
+                JS.push("set_outcome", value: %{outcome: "won"})
+                |> JS.hide(to: "#outcome-menu-#{@contact.id}")
               }
-              class={[
-                "flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] hover:bg-paperAlt",
-                if(@current_stage && @current_stage.id == s.id,
-                  do: "text-accent font-semibold",
-                  else: "text-inkSoft"
-                )
-              ]}
+              class="flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-greenSoft hover:text-green"
             >
-              <span class={["w-[6px] h-[6px] rounded-full shrink-0", Liid.stage_dot(s.kind)]} />
-              {s.name}
+              <span class="w-[7px] h-[7px] rounded-full bg-green" />{gettext("Won")}
             </button>
-          <% end %>
+            <button
+              :if={not @closed?}
+              phx-click={
+                JS.push("set_outcome", value: %{outcome: "lost"})
+                |> JS.hide(to: "#outcome-menu-#{@contact.id}")
+              }
+              class="flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-redSoft hover:text-red"
+            >
+              <span class="w-[7px] h-[7px] rounded-full bg-inkFaint" />{gettext("Lost")}
+            </button>
+            <button
+              :if={@closed?}
+              phx-click={
+                JS.push("set_outcome", value: %{outcome: "reopen"})
+                |> JS.hide(to: "#outcome-menu-#{@contact.id}")
+              }
+              class="flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-paperAlt"
+            >
+              {gettext("Reopen")}
+            </button>
+          </div>
+        </div>
+
+        <%!-- A closed contact has no next action, so the control goes away
+             rather than offering to schedule work on a finished deal. --%>
+        <div :if={not @closed?} class="relative">
+          <button
+            type="button"
+            phx-click={JS.toggle(to: "#next-action-menu-#{@contact.id}")}
+            class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-accentSoft border-accentRing text-accent"
+          >
+            {next_action_button_label(@contact)}
+            <span class="opacity-70 text-[10px]">▾</span>
+          </button>
+          <div
+            id={"next-action-menu-#{@contact.id}"}
+            class="hidden absolute right-0 top-full mt-1 bg-card border border-border rounded-[8px] z-40 min-w-[230px] py-1"
+            style="box-shadow:var(--shadow-card)"
+            phx-click-away={JS.hide(to: "#next-action-menu-#{@contact.id}")}
+          >
+            <button
+              :for={p <- @presets}
+              phx-click={
+                JS.push("next_action_in", value: %{days: p.days})
+                |> JS.hide(to: "#next-action-menu-#{@contact.id}")
+              }
+              class="flex items-center justify-between gap-4 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-paperAlt"
+            >
+              <span>{preset_label(p.days)}</span>
+              <span class="text-inkFaint tabular-nums">{format_short(p.date)}</span>
+            </button>
+
+            <div class="my-1 h-px bg-border" />
+
+            <form phx-change="next_action_on" class="px-3 py-1.5">
+              <label class="block text-[11px] font-semibold text-inkFaint mb-1">
+                {gettext("Pick a date")}
+              </label>
+              <input
+                type="date"
+                name="value"
+                min={Date.to_iso8601(SalesClock.today())}
+                class="w-full px-2 py-1.5 border border-border rounded-[8px] text-[12.5px] bg-card text-ink tabular-nums outline-none focus:border-accentRing"
+              />
+            </form>
+
+            <button
+              :if={@contact.next_action_at}
+              phx-click={
+                JS.push("clear_next_action")
+                |> JS.hide(to: "#next-action-menu-#{@contact.id}")
+              }
+              class="flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-paperAlt"
+            >
+              {gettext("Clear")}
+            </button>
+          </div>
         </div>
       </:actions>
     </FunnelThread.thread_pane>
+    """
+  end
+
+  defp outcome_button_label(nil), do: gettext("Outcome")
+  defp outcome_button_label(:won), do: gettext("Won")
+  defp outcome_button_label(:lost), do: gettext("Lost")
+
+  defp outcome_dot(:won), do: "bg-green"
+  defp outcome_dot(_), do: "bg-inkFaint"
+
+  defp outcome_button_class(:won), do: "bg-greenSoft border-[#bfe0c4] text-green"
+  defp outcome_button_class(:lost), do: "bg-paperAlt border-border text-inkSoft"
+  defp outcome_button_class(_), do: "bg-card border-border text-inkSoft hover:bg-bgSoft"
+
+  defp preset_label(1), do: gettext("Tomorrow")
+  defp preset_label(7), do: gettext("Next week")
+  defp preset_label(14), do: gettext("In 2 weeks")
+  defp preset_label(n), do: gettext("In %{n} days", n: n)
+
+  defp format_short(%Date{} = date), do: Calendar.strftime(date, "%a %-d %b")
+
+  # The button doubles as the current state, so the date is readable without
+  # opening the menu.
+  defp next_action_button_label(%{next_action_at: nil}), do: gettext("Next action")
+
+  defp next_action_button_label(%{next_action_at: at}) do
+    case SalesClock.days_from_today(at) do
+      0 -> gettext("Due today")
+      n when n < 0 -> gettext("%{n}d overdue", n: abs(n))
+      n -> gettext("in %{n}d", n: n)
+    end
+  end
+
+  attr :checklist, :list, required: true
+  attr :ticks, :map, required: true
+  attr :id, :string, required: true
+
+  # The bar shows only what's next; the rest is one click away. Showing the
+  # first unticked item answers "what do I do with this person" without
+  # spending a whole card on a list that is mostly already done.
+  defp checklist_zone(assigns) do
+    next_item = Enum.find(assigns.checklist, &(not ticked?(assigns.ticks, &1.id)))
+
+    assigns =
+      assign(assigns,
+        next_item: next_item,
+        done: done_count(assigns.ticks),
+        total: length(assigns.checklist),
+        menu_id: "checklist-menu-#{assigns.id}"
+      )
+
+    ~H"""
+    <div class="relative min-w-0">
+      <button
+        type="button"
+        phx-click={JS.toggle(to: "##{@menu_id}")}
+        class="inline-flex items-center gap-2 max-w-[240px] rounded-[8px] px-2.5 py-[7px] text-[12.5px] font-medium text-inkSoft hover:bg-paperAlt cursor-pointer"
+      >
+        <span class={[
+          "w-[14px] h-[14px] rounded-[4px] shrink-0 flex items-center justify-center border",
+          if(@next_item,
+            do: "bg-card border-borderStrong",
+            else: "bg-accent border-accent text-white"
+          )
+        ]}>
+          <Liid.icon :if={is_nil(@next_item)} name="check" size={10} class="[stroke-width:2.2]" />
+        </span>
+        <span class="truncate">
+          {if @next_item, do: @next_item.name, else: gettext("All done")}
+        </span>
+        <span class="shrink-0 text-[11px] text-inkFaint tabular-nums">{@done}/{@total}</span>
+        <span class="opacity-50 text-[10px] shrink-0">▾</span>
+      </button>
+
+      <div
+        id={@menu_id}
+        class="hidden absolute left-0 top-full mt-1 z-40 w-[260px] bg-card border border-border rounded-[11px] p-3"
+        style="box-shadow:var(--shadow-card)"
+        phx-click-away={JS.hide(to: "##{@menu_id}")}
+      >
+        <div class="flex flex-col gap-2">
+          <label
+            :for={item <- @checklist}
+            class={[
+              "flex items-center gap-2.5 text-[13px] text-ink cursor-pointer",
+              ticked?(@ticks, item.id) && "opacity-60"
+            ]}
+          >
+            <input
+              type="checkbox"
+              checked={ticked?(@ticks, item.id)}
+              phx-click={JS.push("toggle_checklist", value: %{item: item.id})}
+              class="accent-accent w-[15px] h-[15px]"
+            />
+            <span class={ticked?(@ticks, item.id) && "line-through"}>{item.name}</span>
+          </label>
+        </div>
+      </div>
+    </div>
     """
   end
 

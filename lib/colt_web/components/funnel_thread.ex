@@ -2,17 +2,20 @@ defmodule ColtWeb.Components.FunnelThread do
   @moduledoc """
   Shared list+thread funnel UI for the **sending** and **sales** funnels.
 
-  The conversation thread pane — the company-info header card, the timeline of
-  email / note / status cards, and the Reply/Note composer — is identical in
-  both funnels, so it lives here once. Improve it here and both funnels change
-  together.
+  The conversation thread pane — a fixed header carrying the whole contact UI,
+  a scrolling timeline of email / note / status cards, and the Reply/Note
+  composer — is identical in both funnels, so it lives here once. Improve it
+  here and both funnels change together.
 
   What legitimately differs between the two funnels stays in each LiveView and
   is injected through slots:
 
-    * the top strip (bucket strip vs stage strip) — not part of this component,
-    * the thread-header action controls (`Mark as…` / `Stop sequence` vs
-      `Move to…`) — the `:actions` slot.
+    * the top strip (bucket strip vs enrichment table) — not part of this
+      component,
+    * `:actions` — the right-hand header controls (`Outcome` / `Next action`
+      vs `Mark as…` / `Stop sequence`),
+    * `:bar_items` — compact middle-of-header controls (the sales checklist),
+    * `:info_actions` — buttons inside the contact-info disclosure (Edit).
 
   The composer emits plain events (`switch_tab`, `trix_input`, `set_note`,
   `send_reply`, `save_note`) that both host LiveViews already handle
@@ -22,6 +25,7 @@ defmodule ColtWeb.Components.FunnelThread do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
+  alias Colt.Resources.StatusEvent
   alias Colt.Services.Email.RenderBody
   alias ColtWeb.Components.Liid
   alias Phoenix.LiveView.JS
@@ -76,8 +80,8 @@ defmodule ColtWeb.Components.FunnelThread do
   defp outbound_at(_), do: nil
 
   @doc """
-  The right-hand thread pane: company-info header (with an `:actions` slot for
-  the funnel-specific controls), the timeline, and the composer.
+  The right-hand thread pane: a fixed header of contact controls, then a
+  scrolling body holding the timeline and the composer.
   """
   attr :contact, :map, required: true
   attr :timeline, :list, required: true
@@ -91,22 +95,63 @@ defmodule ColtWeb.Components.FunnelThread do
   attr :sending?, :boolean, default: false
   attr :error, :any, default: nil
   attr :insert_links, :list, default: []
-  slot :actions, required: true
+
+  slot :actions,
+    required: true,
+    doc: "Right-hand controls on the pinned bar (outcome, next action, mark-as…)."
+
+  slot :bar_items,
+    doc: """
+    Funnel-specific compact controls in the middle of the pinned bar. The sales
+    funnel puts its checklist summary here; the sending funnel passes nothing.
+    """
+
+  slot :info_actions,
+    doc: "Buttons inside the contact-info disclosure — currently just Edit."
 
   def thread_pane(assigns) do
     company = assigns.contact.person && assigns.contact.person.company
-    assigns = assign(assigns, company: company)
+
+    assigns =
+      assign(assigns,
+        company: company,
+        info_id: "contact-info-#{assigns.contact.id}"
+      )
 
     ~H"""
-    <div class="h-full flex flex-col gap-3 md:gap-3.5 min-h-0 overflow-y-auto md:p-4 md:bg-bgSoft md:border md:border-border md:rounded-[11px] md:[box-shadow:var(--shadow-card)]">
-      <div
-        class="flex-none bg-card border border-border rounded-[11px] px-4 md:px-5 py-[15px]"
-        style="box-shadow:var(--shadow)"
-      >
-        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between md:gap-4">
-          <div class="flex items-center gap-3 md:gap-3.5 min-w-0">
-            <div class="min-w-0">
-              <div class="text-[17px] font-bold tracking-[-0.01em] text-ink truncate">
+    <%!-- Same shape as the contact list: one bounded card, a fixed header, a
+         scrolling body. The header is the entire contact UI — everything you
+         need to work someone, on a row that can't scroll away. The detail (who
+         they are, where they work, what's left on the checklist) collapses into
+         disclosures, because it's reference material you consult occasionally,
+         not something worth a permanent card above every thread.
+
+         Unlike the contact list this card has no `overflow-hidden`: the
+         header's disclosures hang below it and would be clipped. The body
+         rounds its own bottom corners instead. --%>
+    <div
+      class="h-full flex flex-col min-h-0 bg-card border border-border rounded-[11px]"
+      style="box-shadow:var(--shadow-card)"
+    >
+      <div class="flex-none px-2 py-2 border-b border-border relative z-30">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <div class="relative min-w-0">
+            <button
+              type="button"
+              phx-click={JS.toggle(to: "##{@info_id}")}
+              class="inline-flex items-center gap-1.5 max-w-[220px] rounded-[8px] px-2.5 py-[7px] text-[13px] font-semibold text-ink hover:bg-paperAlt cursor-pointer"
+            >
+              <span class="truncate">{(@contact.person && @contact.person.name) || "—"}</span>
+              <span class="opacity-50 text-[10px] shrink-0">▾</span>
+            </button>
+
+            <div
+              id={@info_id}
+              class="hidden absolute left-0 top-full mt-1 z-40 w-[290px] bg-card border border-border rounded-[11px] p-4"
+              style="box-shadow:var(--shadow-card)"
+              phx-click-away={JS.hide(to: "##{@info_id}")}
+            >
+              <div class="text-[15px] font-bold tracking-[-0.01em] text-ink">
                 {(@contact.person && @contact.person.name) || "—"}
               </div>
               <div
@@ -115,8 +160,9 @@ defmodule ColtWeb.Components.FunnelThread do
               >
                 {@contact.person.title}
               </div>
+
               <%!-- Personal: the human's own contact points, grouped together --%>
-              <div class="mt-1.5 flex flex-col gap-0.5 text-[12px]">
+              <div class="mt-2 flex flex-col gap-0.5 text-[12px]">
                 <span class="text-accent font-medium break-all">{@recipient}</span>
                 <a
                   :if={@contact.person && @contact.person.phone}
@@ -128,7 +174,7 @@ defmodule ColtWeb.Components.FunnelThread do
               </div>
 
               <%!-- Company: everything about the org, kept separate from the person --%>
-              <div :if={@company} class="mt-2.5 text-[12px] text-inkSoft">
+              <div :if={@company} class="mt-3 pt-3 border-t border-border text-[12px] text-inkSoft">
                 <div class="font-semibold text-ink">{@company.name}</div>
                 <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1">
                   <a
@@ -154,36 +200,51 @@ defmodule ColtWeb.Components.FunnelThread do
                   {gettext("From:")} {@from_name}
                 </div>
               </div>
+
+              <div :if={@info_actions != []} class="mt-3 pt-3 border-t border-border flex gap-2">
+                {render_slot(@info_actions)}
+              </div>
             </div>
           </div>
 
-          <div class="flex items-center gap-2.5 flex-wrap shrink-0 relative">
+          {render_slot(@bar_items)}
+
+          <div class="ml-auto flex items-center gap-1.5 flex-wrap justify-end shrink-0 relative">
             {render_slot(@actions)}
           </div>
         </div>
       </div>
 
-      <%= if @timeline == [] do %>
-        <div
-          class="flex-none bg-card border border-border rounded-[11px] px-5 py-4 text-[12.5px] text-inkFaint"
-          style="box-shadow:var(--shadow)"
-        >
-          {gettext("No messages yet. The first step will appear here once it sends.")}
-        </div>
-      <% else %>
-        <.timeline_item :for={item <- @timeline} item={item} />
-      <% end %>
+      <%!-- Keyed on the contact so switching contacts remounts the hook and
+           lands you at the newest message rather than at whatever scroll
+           offset the previous thread was left at. --%>
+      <div
+        id={"thread-scroll-#{@contact.id}"}
+        phx-hook="ThreadScroll"
+        class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 p-3 md:p-4 bg-bgSoft rounded-b-[11px]"
+      >
+        <%= if @timeline == [] do %>
+          <div
+            class="flex-none bg-card border border-border rounded-[11px] px-5 py-4 text-[12.5px] text-inkFaint"
+            style="box-shadow:var(--shadow)"
+          >
+            {gettext("No messages yet. The first step will appear here once it sends.")}
+          </div>
+        <% else %>
+          <.timeline_item :for={item <- @timeline} item={item} />
+        <% end %>
 
-      <.composer
-        active_tab={@active_tab}
-        reply_html={@reply_html}
-        reply_nonce={@reply_nonce}
-        note_body={@note_body}
-        sending?={@sending?}
-        recipient={@recipient}
-        insert_links={@insert_links}
-        error={@error}
-      />
+        <.composer
+          active_tab={@active_tab}
+          reply_html={@reply_html}
+          reply_nonce={@reply_nonce}
+          note_body={@note_body}
+          sending?={@sending?}
+          recipient={@recipient}
+          insert_links={@insert_links}
+          error={@error}
+        />
+      </div>
     </div>
     """
   end
@@ -196,9 +257,10 @@ defmodule ColtWeb.Components.FunnelThread do
 
     assigns =
       assign(assigns,
-        transition: event_transition(event),
+        event: event,
+        label: event_label(event),
         actor_label: event_actor(event),
-        reason: event.reason
+        reason: event_reason(event)
       )
 
     ~H"""
@@ -208,8 +270,8 @@ defmodule ColtWeb.Components.FunnelThread do
         style="box-shadow:var(--shadow)"
       >
         <div class="flex items-center gap-2">
-          <span class="w-[5px] h-[5px] rounded-full bg-inkFaint shrink-0" />
-          <span class="text-[12px] font-medium text-inkSoft tabular-nums">{@transition}</span>
+          <.event_marker event={@event} />
+          <span class="text-[12px] font-medium text-inkSoft tabular-nums">{@label}</span>
           <span class="text-[11px] text-inkFaint truncate">· {@actor_label}</span>
           <span :if={@item.at} class="ml-auto shrink-0 text-[11px] text-inkFaint tabular-nums">
             {Calendar.strftime(@item.at, "%b %d · %H:%M")}
@@ -294,7 +356,7 @@ defmodule ColtWeb.Components.FunnelThread do
       )
 
     ~H"""
-    <div class={["flex-none flex", if(@outbound?, do: "md:justify-start", else: "md:justify-end")]}>
+    <div class={["flex-none flex", if(@outbound?, do: "md:justify-end", else: "md:justify-start")]}>
       <div
         class={[
           "w-full md:w-[90%] max-w-[680px] bg-card rounded-[11px] overflow-hidden border",
@@ -591,12 +653,51 @@ defmodule ColtWeb.Components.FunnelThread do
   end
 
   # Feed-line label for a StatusEvent: "from → to", "→ to", or just "to".
-  defp event_transition(%{from: from, to: to}) when is_binary(from) and is_binary(to),
+  # A checklist tick gets a real checkbox rather than the generic dot — the
+  # state *is* the information, and an arrow transition ("→ Demo") read as if
+  # the contact had moved somewhere.
+  attr :event, :map, required: true
+
+  defp event_marker(%{event: %{kind: :checklist}} = assigns) do
+    assigns = assign(assigns, done?: StatusEvent.checklist_done?(assigns.event))
+
+    ~H"""
+    <span class={[
+      "w-[14px] h-[14px] rounded-[4px] shrink-0 flex items-center justify-center border",
+      if(@done?, do: "bg-accent border-accent text-white", else: "bg-card border-borderStrong")
+    ]}>
+      <%!-- The shared icon is drawn at 1.25 stroke, which disappears at 10px. --%>
+      <Liid.icon :if={@done?} name="check" size={10} class="[stroke-width:2.2]" />
+    </span>
+    """
+  end
+
+  defp event_marker(assigns) do
+    ~H"""
+    <span class="w-[5px] h-[5px] rounded-full bg-inkFaint shrink-0" />
+    """
+  end
+
+  # The checkbox already says checked-or-not, so the label is just the item.
+  defp event_label(%{kind: :checklist, to: item}) when is_binary(item), do: item
+
+  # Entry has only ever meant one thing, and on pre-2026-08-09 rows its `to` is
+  # a stage name that no longer exists — so it reads as a sentence, not as a
+  # transition into a bucket you can't navigate to.
+  defp event_label(%{kind: :entry}), do: gettext("Entered the sales funnel")
+
+  defp event_label(%{from: from, to: to}) when is_binary(from) and is_binary(to),
     do: "#{from} → #{to}"
 
-  defp event_transition(%{to: to}) when is_binary(to), do: "→ #{to}"
-  defp event_transition(%{from: from}) when is_binary(from), do: from
-  defp event_transition(_), do: gettext("status changed")
+  defp event_label(%{to: to}) when is_binary(to), do: "→ #{to}"
+  defp event_label(%{from: from}) when is_binary(from), do: from
+  defp event_label(_), do: gettext("status changed")
+
+  # Both of these carry their meaning in the label/marker; repeating it on a
+  # second line ("checked", "entered sales funnel") was pure noise.
+  defp event_reason(%{kind: :checklist}), do: nil
+  defp event_reason(%{kind: :entry}), do: nil
+  defp event_reason(%{reason: reason}), do: reason
 
   defp event_actor(%{actor: %{email: email}}) when not is_nil(email), do: to_string(email)
   defp event_actor(_), do: gettext("System")
