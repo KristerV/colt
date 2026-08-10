@@ -96,6 +96,13 @@ defmodule ColtWeb.Components.FunnelThread do
   attr :error, :any, default: nil
   attr :insert_links, :list, default: []
 
+  attr :transcript, :string,
+    default: "",
+    doc: """
+    The whole conversation as plain text (`Colt.Services.Export.ThreadTranscript`),
+    for the copy-for-AI button. Empty string hides the button.
+    """
+
   slot :actions,
     required: true,
     doc: "Right-hand controls on the pinned bar (outcome, next action, mark-as…)."
@@ -208,6 +215,29 @@ defmodule ColtWeb.Components.FunnelThread do
           </div>
 
           {render_slot(@bar_items)}
+
+          <%!-- Take the conversation somewhere else to think about it: the
+                whole thread as plain text, shaped so a chat AI reads it
+                without the markup the pane needs. Copying happens entirely in
+                the browser — the text is already here, in the hidden node the
+                hook reads. Keyed on the contact so the "Copied" confirmation
+                can't linger on someone else's thread. --%>
+          <div
+            :if={@transcript != ""}
+            id={"copy-transcript-#{@contact.id}"}
+            phx-hook="CopyText"
+            data-copied-label={gettext("Copied")}
+          >
+            <button
+              type="button"
+              title={gettext("Copy the whole conversation as plain text, to paste into an AI chat")}
+              class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-card border-border text-inkSoft hover:bg-bgSoft"
+            >
+              <Liid.icon name="copy" size={11} />
+              <span data-copy-label>{gettext("Copy for AI")}</span>
+            </button>
+            <div class="hidden" data-copy-text phx-no-format>{@transcript}</div>
+          </div>
 
           <div class="ml-auto flex items-center gap-1.5 flex-wrap justify-end shrink-0 relative">
             {render_slot(@actions)}

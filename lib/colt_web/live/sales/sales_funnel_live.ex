@@ -39,6 +39,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     UpdateContact
   }
 
+  alias Colt.Services.Export.ThreadTranscript
   alias Colt.Services.Sending.SendManualReply
   alias ColtWeb.Components.{ContactForm, FunnelThread, Liid}
   alias ColtWeb.Deck.Slides
@@ -89,7 +90,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             email_accounts: load_email_account_options(actor),
             error: nil,
             timeline: [],
-            thread: nil
+            thread: nil,
+            transcript: ""
           )
           |> load_contacts()
 
@@ -607,7 +609,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   defp done_count(ticks), do: ticks |> Map.values() |> Enum.count(&(&1 != nil))
 
   defp load_thread_data(%{assigns: %{selected: nil}} = socket) do
-    assign(socket, timeline: [], thread: nil, ticks: %{})
+    assign(socket, timeline: [], thread: nil, ticks: %{}, transcript: "")
   end
 
   defp load_thread_data(%{assigns: %{selected: contact}} = socket) do
@@ -621,12 +623,12 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true)
       events = StatusEvent.list_for_thread!(thread.id, load: [:actor], authorize?: false)
 
-      assign(socket,
-        timeline: FunnelThread.build_timeline(outbound, inbound, notes, events),
-        thread: thread
-      )
+      timeline = FunnelThread.build_timeline(outbound, inbound, notes, events)
+      {:ok, transcript} = ThreadTranscript.run(contact, timeline)
+
+      assign(socket, timeline: timeline, thread: thread, transcript: transcript)
     else
-      assign(socket, timeline: [], thread: nil)
+      assign(socket, timeline: [], thread: nil, transcript: "")
     end
   end
 
@@ -830,6 +832,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
                     timeline={@timeline}
                     checklist={@checklist}
                     ticks={@ticks}
+                    transcript={@transcript}
                     active_tab={@active_tab}
                     reply_html={@reply_html}
                     reply_nonce={@reply_nonce}
@@ -1108,6 +1111,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   attr :timeline, :list, required: true
   attr :checklist, :list, required: true
   attr :ticks, :map, required: true
+  attr :transcript, :string, required: true
   attr :active_tab, :atom, required: true
   attr :reply_html, :string, required: true
   attr :reply_nonce, :integer, required: true
@@ -1131,6 +1135,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     <FunnelThread.thread_pane
       contact={@contact}
       timeline={@timeline}
+      transcript={@transcript}
       recipient={@recipient}
       registry_link={@registry_link}
       active_tab={@active_tab}

@@ -20,6 +20,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     StatusEvent
   }
 
+  alias Colt.Services.Export.ThreadTranscript
   alias Colt.Services.Sending.{ManualOverride, SendManualReply, Stats, StopSequence}
   alias Phoenix.LiveView.JS
   alias ColtWeb.Components.{FunnelThread, Liid}
@@ -61,7 +62,8 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             sending?: false,
             error: nil,
             timeline: [],
-            thread: nil
+            thread: nil,
+            transcript: ""
           )
 
         {:ok, socket}
@@ -336,7 +338,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   defp contact_in_bucket?(_, _, _), do: true
 
   defp load_thread_data(%{assigns: %{selected: nil}} = socket) do
-    assign(socket, timeline: [], thread: nil)
+    assign(socket, timeline: [], thread: nil, transcript: "")
   end
 
   defp load_thread_data(%{assigns: %{selected: contact}} = socket) do
@@ -354,9 +356,11 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       events = StatusEvent.list_for_thread!(thread.id, load: [:actor], authorize?: false)
 
       timeline = FunnelThread.build_timeline(outbound, inbound, notes, events)
-      assign(socket, timeline: timeline, thread: thread)
+      {:ok, transcript} = ThreadTranscript.run(contact, timeline)
+
+      assign(socket, timeline: timeline, thread: thread, transcript: transcript)
     else
-      assign(socket, timeline: [], thread: nil)
+      assign(socket, timeline: [], thread: nil, transcript: "")
     end
   end
 
@@ -537,6 +541,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
                     contact={@selected}
                     thread={@thread}
                     timeline={@timeline}
+                    transcript={@transcript}
                     active_tab={@active_tab}
                     reply_html={@reply_html}
                     reply_nonce={@reply_nonce}
@@ -865,6 +870,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   attr :contact, :map, required: true
   attr :thread, :any, required: true
   attr :timeline, :list, required: true
+  attr :transcript, :string, required: true
   attr :active_tab, :atom, required: true
   attr :reply_html, :string, required: true
   attr :reply_nonce, :integer, required: true
@@ -893,6 +899,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     <FunnelThread.thread_pane
       contact={@contact}
       timeline={@timeline}
+      transcript={@transcript}
       recipient={@recipient}
       registry_link={@registry_link}
       from_name={@from_name}

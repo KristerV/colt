@@ -238,6 +238,28 @@ defmodule ColtWeb.Sales.SalesFunnelTest do
       assert html =~ ~s(id="thread-scroll-#{contact.id}")
     end
 
+    test "the thread ships its own plain-text transcript for the copy button", %{
+      conn: conn,
+      user: user,
+      campaign: campaign
+    } do
+      contact = sales_contact(campaign, user, "Jane Tamm")
+
+      {:ok, _view, html} =
+        live(conn, ~p"/campaigns/#{campaign.id}/sales/now/#{contact.id}")
+
+      # Copying is client-side: the text has to already be in the markup the
+      # hook reads, or the button copies nothing.
+      assert html =~ ~s(phx-hook="CopyText")
+      assert html =~ ~s(id="copy-transcript-#{contact.id}")
+      assert html =~ "Copy for AI"
+      assert html =~ "Contact: Jane Tamm"
+
+      # Flush against the tag: template indentation inside the node would be
+      # copied along with the transcript.
+      assert html =~ ~s(data-copy-text="">CONVERSATION TRANSCRIPT)
+    end
+
     test "a checklist tick logs as a checkbox, not as an arrow transition", %{
       conn: conn,
       user: user,

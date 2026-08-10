@@ -106,6 +106,51 @@ const ThreadScroll = {
   }
 }
 
+// Copy-to-clipboard for text the server already rendered. The text lives in a
+// hidden child (`[data-copy-text]`) rather than an attribute so it keeps its
+// newlines exactly as the server wrote them, and so nothing has to round-trip
+// on click. The label swaps to a confirmation for a moment — a clipboard write
+// is otherwise completely invisible.
+const CopyText = {
+  mounted() {
+    const source = this.el.querySelector("[data-copy-text]")
+    const label = this.el.querySelector("[data-copy-label]")
+    const done = this.el.dataset.copiedLabel || "Copied"
+
+    this.onClick = async () => {
+      const text = source ? source.textContent : ""
+      if (!text) return
+
+      try {
+        await navigator.clipboard.writeText(text)
+      } catch (_e) {
+        // Insecure origin or a browser that refuses without a permission —
+        // fall back to the old selection-based copy.
+        const ta = document.createElement("textarea")
+        ta.value = text
+        ta.style.position = "fixed"
+        ta.style.opacity = "0"
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand("copy")
+        document.body.removeChild(ta)
+      }
+
+      if (!label) return
+      if (this.revert) clearTimeout(this.revert)
+      this.was = this.was ?? label.textContent
+      label.textContent = done
+      this.revert = setTimeout(() => { label.textContent = this.was }, 1600)
+    }
+
+    this.el.addEventListener("click", this.onClick)
+  },
+  destroyed() {
+    if (this.revert) clearTimeout(this.revert)
+    if (this.onClick) this.el.removeEventListener("click", this.onClick)
+  }
+}
+
 const escapeText = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
 
@@ -120,6 +165,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
     FeedbackModal,
     TrixEditor,
     ThreadScroll,
+    CopyText,
     DeckPlayer,
     DeckRecorder,
     DeckTakePlayer,
