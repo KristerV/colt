@@ -662,7 +662,7 @@ defmodule ColtWeb.Admin.ClientLive do
             phx-value-company_id={c.id}
           >
             <span class="text-ink font-medium">{c.name}</span>
-            <span class="text-ink55 tabular-nums"> ·       {c.registry_code} · {c.market}</span>
+            <span class="text-ink55 tabular-nums"> ·        {c.registry_code} · {c.market}</span>
           </button>
           <button
             :for={p <- @results.persons}
@@ -672,8 +672,8 @@ defmodule ColtWeb.Admin.ClientLive do
             phx-value-person_id={p.id}
           >
             <span class="text-ink font-medium">{p.name}</span>
-            <span class="text-ink55"> ·       {p.email}</span>
-            <span :if={p.company} class="text-ink40"> ·       {p.company.name}</span>
+            <span class="text-ink55"> ·        {p.email}</span>
+            <span :if={p.company} class="text-ink40"> ·        {p.company.name}</span>
           </button>
           <div
             :if={@results.companies == [] and @results.persons == []}
