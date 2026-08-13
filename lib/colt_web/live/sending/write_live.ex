@@ -264,6 +264,23 @@ defmodule ColtWeb.Sending.WriteLive do
 
   # ── Skip contact: "Not a good fit" ─────────────────────────────────────
 
+  # Admin-only clean slate: bin this contact's drafts and re-enter the same
+  # path mount uses, so the writer runs again from scratch against the current
+  # example pool. Only `:drafted` rows are removed (see `clear_drafts/2`) —
+  # anything already approved, scheduled or sent is left alone.
+  def handle_event("rewrite_drafts", _params, socket) do
+    if socket.assigns.is_admin and socket.assigns.contact do
+      actor = socket.assigns.current_user
+
+      {:noreply,
+       socket
+       |> tap_clear_drafts(socket.assigns.contact, actor)
+       |> load_drafts_or_start_writer()}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("open_learning", _params, socket) do
     {:noreply, assign(socket, learning_open?: true, learning_error: nil)}
   end
@@ -970,7 +987,12 @@ defmodule ColtWeb.Sending.WriteLive do
             <.empty_state />
           <% s when s in [:default, :drafting] -> %>
             <.contact_header person={@person} company={@company} />
-            <.variant_bar variants={@variants} selected_id={@selected_id} />
+            <.variant_bar
+              variants={@variants}
+              selected_id={@selected_id}
+              is_admin={@is_admin}
+              drafting={s == :drafting}
+            />
             <.editor
               sender={@sender}
               drafts={@drafts}
@@ -1011,6 +1033,8 @@ defmodule ColtWeb.Sending.WriteLive do
 
   attr :variants, :list, required: true
   attr :selected_id, :string, required: true
+  attr :is_admin, :boolean, default: false
+  attr :drafting, :boolean, default: false
 
   defp variant_bar(assigns) do
     ~H"""
@@ -1029,6 +1053,19 @@ defmodule ColtWeb.Sending.WriteLive do
           <option value="__new__">{gettext("+ new variant")}</option>
         </select>
       </form>
+      <button
+        :if={@is_admin}
+        type="button"
+        phx-click="rewrite_drafts"
+        disabled={@drafting}
+        data-confirm={
+          gettext("Discard this contact's drafts and have the AI write the sequence again?")
+        }
+        class="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-goldSoft text-gold text-[11px] font-semibold cursor-pointer border-0 disabled:opacity-50 disabled:cursor-default"
+      >
+        <Liid.icon name="refresh" size={12} />
+        {if @drafting, do: gettext("Rewriting…"), else: gettext("Admin · Rewrite")}
+      </button>
     </div>
     """
   end
