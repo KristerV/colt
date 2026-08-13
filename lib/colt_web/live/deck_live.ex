@@ -96,6 +96,7 @@ defmodule ColtWeb.DeckLive do
     # `pinned` separates traffic you aimed at a cut from traffic the coin flip
     # sent there — the variant column can no longer tell you which.
     AbFunnel.track(socket, "deck_started", %{pinned: socket.assigns.pinned?})
+    record_demo_step(socket, :started)
 
     {:noreply,
      socket
@@ -115,6 +116,7 @@ defmodule ColtWeb.DeckLive do
 
       socket.assigns.index >= last ->
         AbFunnel.track(socket, "deck_completed")
+        record_demo_step(socket, :completed)
         {:noreply, assign(socket, paused?: true)}
 
       true ->
@@ -159,6 +161,7 @@ defmodule ColtWeb.DeckLive do
   # registration. The other two open the panel.
   def handle_event("cta_choice", %{"kind" => "try_it"}, socket) do
     AbFunnel.track(socket, "cta_clicked", %{kind: "try_it"})
+    record_demo_step(socket, :cta, cta_kind: kind_label(:try_it))
     submit_lead(socket, :try_it, %{})
 
     {:noreply, push_navigate(socket, to: ~p"/register")}
@@ -167,6 +170,7 @@ defmodule ColtWeb.DeckLive do
   def handle_event("cta_choice", %{"kind" => kind}, socket)
       when kind in ~w(call_request not_a_fit) do
     AbFunnel.track(socket, "cta_clicked", %{kind: kind})
+    record_demo_step(socket, :cta, cta_kind: kind_label(String.to_existing_atom(kind)))
 
     {:noreply, assign(socket, asking: kind, form_error: nil)}
   end
@@ -281,6 +285,18 @@ defmodule ColtWeb.DeckLive do
         Logger.warning("demo lead note failed for contact #{contact.id}: #{inspect(reason)}")
         :ok
     end
+  end
+
+  # How far a prospect got through the deck, mirrored onto their thread. Only
+  # a `?c=` visitor has a contact; everyone else watches anonymously and this
+  # is a no-op. The service owns the once-only guard, so a viewer who reloads
+  # and replays doesn't repeat themselves in the timeline.
+  defp record_demo_step(socket, step, opts \\ [])
+
+  defp record_demo_step(%{assigns: %{contact: nil}}, _step, _opts), do: :ok
+
+  defp record_demo_step(%{assigns: %{contact: contact}}, step, opts) do
+    Colt.Services.Sales.RecordDemoStep.run(contact.id, step, opts)
   end
 
   defp note_body(lead) do

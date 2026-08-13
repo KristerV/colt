@@ -59,7 +59,8 @@ defmodule ColtWeb.Components.Liid do
     "grid" => "M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z",
     "refresh" => "M13.5 8a5.5 5.5 0 1 1-1.6-3.9M13.5 2v3h-3",
     "menu" => "M2 4h12M2 8h12M2 12h12",
-    "copy" => "M6 6h8v8H6zM10 6V2H2v8h4"
+    "copy" => "M6 6h8v8H6zM10 6V2H2v8h4",
+    "play" => "M5.5 3.5l7 4.5-7 4.5z"
   }
 
   attr :name, :string, required: true

@@ -46,6 +46,16 @@ defmodule Colt.Resources.StatusEvent do
   def checklist_done?(%{kind: :checklist, reason: @checked}), do: true
   def checklist_done?(_), do: false
 
+  @doc """
+  The `to` value for one step of the `/demo` deck. Same contract as the
+  checklist constants above: the writer (`Colt.Services.Sales.RecordDemoStep`)
+  and the timeline renderer have to agree on these strings, so neither spells
+  them inline.
+  """
+  def demo_step(:started), do: "started"
+  def demo_step(:completed), do: "completed"
+  def demo_step(:cta), do: "cta"
+
   code_interface do
     define :get, action: :read, get_by: [:id]
     define :list_for_thread, args: [:thread_id]
@@ -104,6 +114,9 @@ defmodule Colt.Resources.StatusEvent do
           :next_action,
           :outcome,
           :checklist,
+          # what the prospect did inside the `/demo` deck; `to` is one of
+          # `demo_steps/0` and, for "cta", `reason` names which button
+          :demo,
           # legacy — written by the old user-defined stage funnel, still rendered
           :sales_stage
         ]

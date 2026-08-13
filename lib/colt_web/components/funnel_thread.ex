@@ -702,6 +702,15 @@ defmodule ColtWeb.Components.FunnelThread do
     """
   end
 
+  # Everything else in the feed is something you or the machine did; a demo step
+  # is the prospect acting on their own. Worth the one accent glyph — these are
+  # the lines you scan a long thread for.
+  defp event_marker(%{event: %{kind: :demo}} = assigns) do
+    ~H"""
+    <Liid.icon name="play" size={11} class="text-accent shrink-0" />
+    """
+  end
+
   defp event_marker(assigns) do
     ~H"""
     <span class="w-[5px] h-[5px] rounded-full bg-inkFaint shrink-0" />
@@ -728,6 +737,13 @@ defmodule ColtWeb.Components.FunnelThread do
     end
   end
 
+  # What the prospect did inside the deck. Each step is an event in its own
+  # right, not a transition between two of them — they can click a CTA without
+  # ever reaching the end — so none of these take an arrow.
+  defp event_label(%{kind: :demo, to: "started"}), do: gettext("Started the demo")
+  defp event_label(%{kind: :demo, to: "completed"}), do: gettext("Watched the demo to the end")
+  defp event_label(%{kind: :demo, to: "cta"}), do: gettext("Chose an option on the demo")
+
   # An outcome is a state, not a journey: "Marked won" beats "→ Won", and
   # clearing it is the one move worth its own word.
   defp event_label(%{kind: :outcome, to: nil}), do: gettext("Reopened")
@@ -748,6 +764,9 @@ defmodule ColtWeb.Components.FunnelThread do
   defp event_reason(%{kind: :entry}), do: nil
   defp event_reason(%{reason: reason}), do: reason
 
+  # A deck visitor is never signed in, so a demo step has no actor — but "System"
+  # would credit the wrong party for the one kind of event the prospect drives.
+  defp event_actor(%{kind: :demo}), do: gettext("Prospect")
   defp event_actor(%{actor: %{email: email}}) when not is_nil(email), do: to_string(email)
   defp event_actor(_), do: gettext("System")
 

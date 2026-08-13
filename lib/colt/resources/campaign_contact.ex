@@ -50,6 +50,7 @@ defmodule Colt.Resources.CampaignContact do
     define :enter_sales_funnel
     define :set_next_action, args: [:next_action_at]
     define :set_outcome
+    define :record_demo_step
     define :set_funnels
     define :list_for_sales_funnel, args: [:campaign_id]
     define :count_assigned_today, args: [:email_account_id]
@@ -318,6 +319,17 @@ defmodule Colt.Resources.CampaignContact do
       require_atomic? false
     end
 
+    update :record_demo_step do
+      description """
+      Stamp one demo-deck milestone. The caller
+      (`Colt.Services.Sales.RecordDemoStep`) owns the first-write-wins guard and
+      writes the StatusEvent; this action just sets the timestamp it is given.
+      """
+
+      accept [:demo_started_at, :demo_completed_at, :demo_cta_at]
+      require_atomic? false
+    end
+
     update :set_funnels do
       description """
       Edit funnel membership from the sales contact edit form. Turning off
@@ -494,6 +506,17 @@ defmodule Colt.Resources.CampaignContact do
     attribute :outcome, :atom, constraints: [one_of: [:won, :lost]], public?: true
     attribute :outcome_reason, :string, public?: true
     attribute :outcome_at, :utc_datetime, public?: true
+
+    # How far this contact got through the `/demo` deck, stamped the first time
+    # each step happens. First-write-wins is the point: a prospect who reloads
+    # and hits Play again has not started twice, and three identical chips in
+    # the timeline would say less than one. Nullable all the way down — most
+    # contacts never open the deck, and the three are independent (a CTA click
+    # is possible without reaching the end, since the closing slide is
+    # reachable by hand).
+    attribute :demo_started_at, :utc_datetime, public?: true
+    attribute :demo_completed_at, :utc_datetime, public?: true
+    attribute :demo_cta_at, :utc_datetime, public?: true
 
     # Provenance: enrichment (promoted from a CampaignCompany) vs manual (hand
     # entered / found on the street).
