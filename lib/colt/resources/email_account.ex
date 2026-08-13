@@ -169,8 +169,10 @@ defmodule Colt.Resources.EmailAccount do
 
     attribute :address, :string, allow_nil?: false, public?: true
     # The sender's signature block — name plus optional phone/title/company.
-    # The AI writer mirrors it (swapping its details into the examples' sign-off
-    # pattern) and hand-written first emails are seeded with it. Named
+    # It tells the AI writer WHO is signing, not what the sign-off looks like:
+    # the writer copies the examples' sign-off block verbatim (links included)
+    # and swaps only the personal details for these. Hand-written first emails
+    # are seeded with it. Named
     # `display_name` for historical reasons; it does NOT set the From header
     # (Nylas uses the grant's own identity).
     attribute :display_name, :string, public?: true

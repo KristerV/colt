@@ -262,9 +262,21 @@ defmodule Colt.Services.Sending.EmailWriter do
     Markdown, no HTML.
 
     What to learn from where:
-    - The example sequences under "Examples" are the primary source. Take
-      your style, structure, tone, length, angle, level of detail, opening
-      moves and sign-off from them. Write like those emails were written.
+    - The example sequences under "Examples" are the primary source, and
+      they are text to REUSE, not merely a style reference. Keep the
+      user's actual sentences wherever they still hold: same phrasing,
+      same sentence order, same length, same paragraph breaks.
+    - Change only what is factually tied to the recipient — their name,
+      company, role, industry, size, numbers, situation — plus any
+      sentence that would be untrue or nonsensical for this company.
+      Everything else stays as the user wrote it.
+    - Do not paraphrase for variety. Do not "improve" a sentence, tighten
+      it, or make it flow better. Do not reorder, split or merge
+      sentences. Do not add a sentence that no example contains. When
+      your own phrasing seems better than the user's, use the user's.
+    - If there is only ONE example sequence, treat it as the template:
+      reproduce it near-verbatim with the recipient-specific facts
+      swapped in.
     - The "Sender context" pitch is reference only — facts so you don't
       lie, invent claims, or misstate what the sender does. Do NOT treat it
       as the script, the talking points, or the structure. If the examples
@@ -275,17 +287,25 @@ defmodule Colt.Services.Sending.EmailWriter do
     - You are writing AS the sender described under "Sender" below. When
       you introduce yourself or sign off, use THAT sender — never a name
       that appears in the examples (those were written by other senders).
-    - The sender's "Signature" below holds their real sign-off details:
-      name, and possibly a phone number, title, or company. Mirror the
-      sign-off PATTERN the example emails use, then fill it with the
-      signature's details: if the examples sign with a full name, use the
-      full name from the signature; if first name only, use only the first
-      name; if they include a phone number or title, include the matching
-      detail from the signature; if they sign off minimally, keep it
-      minimal.
-    - The signature is the ONLY source of the sender's own sign-off
-      details. Never lift a name, phone, or title out of the examples —
-      those belong to other senders.
+    - The examples end with the sender's own sign-off block: usually a
+      name, sometimes extra lines — a title, a phone number, a company
+      line, a link. Reproduce that block EXACTLY as the examples have
+      it, character for character: same lines, same order, same
+      punctuation, same line breaks, same URLs.
+    - The ONLY thing you change in it is WHO is signing. Swap the
+      personal details — name, and a phone number or personal title if
+      the examples carry one — for the current sender's, taken from
+      "Signature" below. If "Signature" has no equivalent for one of
+      those personal lines, drop that line rather than keep the other
+      sender's detail.
+    - Everything else in the block stays exactly as the examples wrote
+      it. Links especially: a URL the user typed into their email is
+      deliberate and current. Never swap it for one from "Signature",
+      never drop it, never rewrite its text.
+    - "Signature" below tells you who is signing, NOT what the block
+      looks like — the examples decide that. Only when the examples
+      contain no sign-off block at all do you fall back to signing with
+      just the sender's name.
 
     Sequence rules:
     - Step 1 opens cold; introduce yourself briefly (using the sender's
@@ -418,14 +438,17 @@ defmodule Colt.Services.Sending.EmailWriter do
     point, not one uniform script:
     #{rendered_examples(examples)}
     Instruction: every example is a full sequence the user actually sent —
-    real, finished writing in their own voice, and your primary model for
-    how this email should read. Find the examples whose companies most
-    resemble THIS target (revenue, employees, industry, situation) and
-    follow their angle and specific moves; don't average all examples into
-    one generic approach. Let these decide the style, structure, length and
-    tone — not the pitch. Match style per step (opener style from openers,
-    followup style from followups), and write fresh wording tailored to
-    this company.
+    real, finished writing in their own voice, and the text you are
+    adapting rather than a style brief. Find the examples whose companies
+    most resemble THIS target (revenue, employees, industry, situation)
+    and follow those closely — their angle, their specific moves, their
+    actual sentences; don't average all examples into one generic
+    approach. Let these decide the style, structure, length and tone —
+    not the pitch. Match per step (opener from openers, followup from
+    followups) and stay as close to the chosen example's wording as the
+    facts allow: reuse its sentences, and change only the parts that name
+    or describe the recipient and their company. Rewriting a sentence
+    that would still be true for this company is a mistake.
     """
   end
 
@@ -472,9 +495,11 @@ defmodule Colt.Services.Sending.EmailWriter do
     "- Name: #{sender_name_or_local(sender)}\n- Email: #{address}\n- Signature:\n#{signature_block(sender)}"
   end
 
-  # The signature (stored in display_name) is the canonical sign-off block —
-  # name plus whatever the user added (phone, title…). Rendered verbatim so the
-  # writer can mirror the examples' pattern while swapping in these details.
+  # The signature (stored in display_name) identifies the sender — name plus
+  # whatever the user added (phone, title…). It is the source for WHO signs,
+  # not for the shape of the block: the examples' own sign-off is copied
+  # verbatim (the user's edited link stays as they typed it) and only these
+  # personal details are swapped in.
   defp signature_block(sender) do
     case signature(sender) do
       nil -> "    (no signature set — sign off with just the sender's name)"
@@ -575,7 +600,9 @@ defmodule Colt.Services.Sending.EmailWriter do
            system: prompt.system,
            response_format: :json,
            schema: @schema,
-           temperature: 0.7,
+           # Low: the job is to reuse the user's own sentences with the
+           # recipient's facts swapped in, not to find fresh phrasings.
+           temperature: 0.3,
            task: :email_writer,
            campaign_id: ctx.contact.campaign_id,
            subject: {:campaign_contact, ctx.contact.id}
