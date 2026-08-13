@@ -1,7 +1,7 @@
 defmodule Colt.Services.Enrichment.PickBestContact do
   @moduledoc """
   Given a list of extracted person titles (and optionally a target job title),
-  ask GLM 4.7 to pick the single best contact by index. Returns
+  pick the single best contact by index. Returns
   `{:ok, index | :none}`. One AI call per company.
 
   Rationale: replaces a per-title boolean classifier. Letting the model see

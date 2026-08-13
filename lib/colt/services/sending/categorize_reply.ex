@@ -1,7 +1,7 @@
 defmodule Colt.Services.Sending.CategorizeReply do
   @moduledoc """
   Classify one InboundEmail into `:ooo | :interested | :not_interested |
-  :other` via Claude 4.5 Sonnet and write the category back.
+  :other` and write the category back.
 
   A real reply (`:interested | :not_interested | :other`) marks the contact
   replied and halts the sequence — a human takes over. An out-of-office

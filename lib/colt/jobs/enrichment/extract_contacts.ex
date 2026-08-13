@@ -1,8 +1,8 @@
 defmodule Colt.Jobs.Enrichment.ExtractContacts do
   @moduledoc """
   §6.9 — the job-title rung. Concatenate the company's stored markdown (landing +
-  contact pages), ask Claude Sonnet 4.5 to extract every named contact,
-  validate emails by substring against the haystack, then batch a GLM 4.7
+  contact pages), extract every named contact,
+  validate emails by substring against the haystack, then batch an AI
   call to flag rows that match the campaign's target title.
 
   Persists a `Person` per validated row, then marks the CampaignCompany

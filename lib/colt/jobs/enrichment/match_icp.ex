@@ -1,6 +1,6 @@
 defmodule Colt.Jobs.Enrichment.MatchICP do
   @moduledoc """
-  §6.6 — Claude Sonnet 4.5 decides whether the company matches the
+  §6.6 — decides whether the company matches the
   campaign's ICP description, plus any user-added IcpLearning exclusions.
 
   Match  → enter the contact ladder (`ResolveContact`).

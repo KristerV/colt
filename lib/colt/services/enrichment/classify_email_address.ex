@@ -93,10 +93,10 @@ defmodule Colt.Services.Enrichment.ClassifyEmailAddress do
     Return: {"kind": "personal"|"generic"}.
     """
 
-    # :smart, not :cheap. The `:cheap` tier is a reasoning model and this prompt
-    # is far too small for it — it routinely spends its whole reasoning budget
-    # and returns empty, which costs three retries plus an escalation to land
-    # the same answer. :smart is a fast flash model here; one call per company
+    # :smart, not :cheap. The prompt is tiny and the answer is one token, which
+    # :cheap has historically dead-ended on — spending its whole reasoning budget
+    # and returning empty, costing three retries plus an escalation to land the
+    # same answer anyway. Worth re-testing after a tier swap. One call per company
     # that enters a funnel, and only when the keyword list misses.
     case Complete.run(:smart, user,
            system: @system,

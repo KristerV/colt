@@ -1,6 +1,6 @@
 defmodule Colt.Services.Sending.EmailWriter do
   @moduledoc """
-  Claude 4.5 Sonnet writes the full sequence of drafts for one contact.
+  Writes the full sequence of drafts for one contact.
 
   Input: a `CampaignContact` (id or struct).
   Output: `{:ok, %{steps: [%{position, subject, body}], emails: [...]}}` —

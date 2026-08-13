@@ -7,8 +7,8 @@ _Snapshot: 2026-06-25 (current month). Source: `/admin/costs` "THIS MONTH · BY 
 | task | provider | calls | $ | model tier |
 |---|---|---|---:|---|
 | google_search | google_cse | 29,873 | 108.57 | — (per-query) |
-| extract_contacts | openrouter | 3,192 | 63.20 | `:smart` (gemini-3.5-flash) |
-| pick_best_result | openrouter | 30,016 | 29.40 | `:cheap` (glm-4.7) |
+| extract_contacts | openrouter | 3,192 | 63.20 | `:smart` |
+| pick_best_result | openrouter | 30,016 | 29.40 | `:cheap` |
 | classify_icp | openrouter | 6,662 | 21.35 | `:smart` |
 | pick_contact_paths | openrouter | 12,437 | 19.60 | `:cheap` |
 | summarize_landing | openrouter | 8,592 | 18.12 | `:cheap` |
@@ -58,7 +58,7 @@ total)**, most of it spent on companies that go nowhere.
    already names the junk to exclude (teatmik.ee, infoturg.ee, registries). A fuzzy
    domain↔name match with a directory blocklist handles the common case; fall back to the
    LLM only on ambiguity. It currently fires on every search, including the 71% that are useless.
-   _Note: this task already runs on `:cheap` (glm-4.7) — not a tier-downgrade opportunity;
+   _Note: this task already runs on `:cheap` — not a tier-downgrade opportunity;
    the win is skipping the LLM entirely for the common case._
 
 3. **Pre-filter before searching — NOT doable.**
@@ -68,9 +68,10 @@ total)**, most of it spent on companies that go nowhere.
 ## Other notes
 
 - `extract_contacts` is the #2 cost ($63, only 3,192 calls ≈ $0.02 each): `:smart`
-  (gemini-3.5-flash) over large scraped-page context. A separate pass could trim that
+  over large scraped-page context. A separate pass could trim that
   context or route to a cheaper tier if needed.
 - All `pick_*` / `summarize_landing` tasks already run on `:cheap`. The `:smart`-tier tasks
   are `extract_contacts`, `classify_icp`, and the two `generate_*_learning` tasks.
-- Model tiers are defined in `config/config.exs:18-21` (`cheap: z-ai/glm-4.7`,
-  `smart: google/gemini-3.5-flash`).
+- Model tiers are defined under `config :colt, :ai` in `config/config.exs`. The dollar
+  figures above were measured on whichever models were configured at the time, so treat
+  them as relative weights between tasks rather than current spend.

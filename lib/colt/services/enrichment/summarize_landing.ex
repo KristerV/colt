@@ -1,6 +1,6 @@
 defmodule Colt.Services.Enrichment.SummarizeLanding do
   @moduledoc """
-  GLM 4.7 turns a landing page's markdown into one paragraph: what this
+  Turns a landing page's markdown into one paragraph: what this
   company does, who it serves. Used downstream by ICP matching.
   """
 

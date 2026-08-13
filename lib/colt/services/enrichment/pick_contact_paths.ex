@@ -1,6 +1,6 @@
 defmodule Colt.Services.Enrichment.PickContactPaths do
   @moduledoc """
-  From a list of paths on a company website, ask GLM 4.7 to pick up to 3
+  From a list of paths on a company website, pick up to 3
   most likely to list named contacts (people, offices, "contact us", team).
   Multilingual — the AI handles language variants better than a keyword list.
   Returns `{:ok, [path]}`.

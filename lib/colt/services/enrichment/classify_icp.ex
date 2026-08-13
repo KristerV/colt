@@ -1,6 +1,6 @@
 defmodule Colt.Services.Enrichment.ClassifyIcp do
   @moduledoc """
-  Claude Sonnet 4.5: given an ICP description and a company summary, decide
+  Given an ICP description and a company summary, decide
   match. Returns `{:ok, %{match: bool, reason: string}}`.
   """
 

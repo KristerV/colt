@@ -16,8 +16,8 @@ config :colt, :nylas, api_uri: "https://api.eu.nylas.com"
 # LLM model per tier. Single place to swap models — see Colt.Services.Ai.Complete.
 config :colt, :ai,
   models: [
-    cheap: "z-ai/glm-4.7",
-    smart: "google/gemini-3.5-flash"
+    cheap: "openai/gpt-5.6-luna",
+    smart: "openai/gpt-5.6-terra"
   ]
 
 # Canonical list of markets — the single source of truth. The landing page, the

@@ -196,14 +196,18 @@ defmodule Colt.Services.Ai.Complete do
     })
   end
 
-  # Both tiers are reasoning models. Our tasks are extraction / classification /
-  # writing, not deep reasoning — keep effort on the low end to avoid burning
-  # tokens (and latency) on chain-of-thought.
+  # Both tiers are reasoning models. `:cheap` is extraction / classification /
+  # selection, where effort buys little and the tier is output-heavy enough that
+  # chain-of-thought is most of the bill — medium is the ceiling worth paying.
+  #
+  # `:smart` writes the outgoing letters, which need a moment of reflection
+  # before committing to a phrasing. That tier is ~18:1 input-heavy, so the
+  # extra reasoning tokens are cheap against a prompt we're already paying for.
   defp maybe_put_reasoning(map, :cheap),
     do: Map.put(map, :reasoning, %{effort: "medium"})
 
   defp maybe_put_reasoning(map, :smart),
-    do: Map.put(map, :reasoning, %{effort: "low"})
+    do: Map.put(map, :reasoning, %{effort: "medium"})
 
   defp maybe_put_reasoning(map, _), do: map
 

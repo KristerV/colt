@@ -1,7 +1,7 @@
 defmodule Colt.Jobs.Enrichment.PickContactPages do
   @moduledoc """
   §6.7 — pick up to 3 nav-extracted paths most likely to host named contacts,
-  via heuristic prefilter then GLM 4.7. Enqueues `ScrapeContactPage` per path.
+  via heuristic prefilter then an AI pass. Enqueues `ScrapeContactPage` per path.
 
   When no paths qualify (no nav, all stripped) we still enqueue
   `ExtractContacts` against the landing page so we don't lose the run.

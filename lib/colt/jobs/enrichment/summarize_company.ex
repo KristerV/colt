@@ -1,6 +1,6 @@
 defmodule Colt.Jobs.Enrichment.SummarizeCompany do
   @moduledoc """
-  §6.5 — GLM 4.7 turns landing markdown into a one-paragraph company summary.
+  §6.5 — turns landing markdown into a one-paragraph company summary.
   Cached on `Company.ai_summary` and reused across campaigns (spec §7).
   Enqueues `MatchICP` on success.
   """

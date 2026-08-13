@@ -1,6 +1,6 @@
 defmodule Colt.Services.Enrichment.PickBestResult do
   @moduledoc """
-  Given Google search results for a company, ask GLM 4.7 which (if any) is
+  Given Google search results for a company, decide which (if any) is
   the company's official site. Returns `{:ok, url | :none}`.
   """
 

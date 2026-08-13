@@ -1,6 +1,6 @@
 defmodule Colt.Services.Enrichment.ExtractContacts do
   @moduledoc """
-  Claude Sonnet 4.5 over concatenated contact-page markdown. Returns ALL
+  Extracts contacts from concatenated contact-page markdown. Returns ALL
   named people found, not only title-matchers — title matching is a separate
   cheaper step.
 
