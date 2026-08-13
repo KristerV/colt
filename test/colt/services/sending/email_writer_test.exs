@@ -28,9 +28,11 @@ defmodule Colt.Services.Sending.EmailWriterTest do
 
     assert prompt.user =~ "Robert Kuusk"
     assert prompt.user =~ "robert@liidid.ee"
-    # System rule: use the sender's name, never one from the examples.
+    # System rule: swap the sender's OWN name, but keep every other name —
+    # guests, artists, partners — since those are the offer, not a signature.
     assert prompt.system =~ "Sender identity"
-    assert prompt.system =~ "never a name"
+    assert prompt.system =~ "applies ONLY to the sender's own identity"
+    assert prompt.system =~ "part of the offer, not a signature"
   end
 
   test "includes the full multi-line signature so its details survive" do

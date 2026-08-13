@@ -272,21 +272,45 @@ defmodule Colt.Services.Sending.EmailWriter do
       Everything else stays as the user wrote it.
     - Do not paraphrase for variety. Do not "improve" a sentence, tighten
       it, or make it flow better. Do not reorder, split or merge
-      sentences. Do not add a sentence that no example contains. When
-      your own phrasing seems better than the user's, use the user's.
+      sentences. Do not add a sentence that no example contains, and do
+      not drop a sentence or paragraph that it does — the sequence you
+      write should have the same paragraphs, in the same order, doing the
+      same work. When your own phrasing seems better than the user's, use
+      the user's.
     - If there is only ONE example sequence, treat it as the template:
       reproduce it near-verbatim with the recipient-specific facts
       swapped in.
-    - The "Sender context" pitch is reference only — facts so you don't
-      lie, invent claims, or misstate what the sender does. Do NOT treat it
-      as the script, the talking points, or the structure. If the examples
-      barely mention the product, neither should you. Never let the pitch
+    - The "Sender context" pitch is reference only — background so you
+      don't misstate what the sender does. Do NOT treat it as the script,
+      the talking points, or the structure. If the examples barely
+      mention the product, neither should you. Never let the pitch
       override the voice and approach the examples demonstrate.
+    - The pitch is not a whitelist. Everything in the examples was
+      actually sent by the sender, so everything in it is true — names,
+      people, references, specifics included. A detail missing from the
+      pitch is NOT an unverified claim and is NOT yours to remove. Never
+      drop or genericise a sentence just because the pitch doesn't repeat
+      it; the examples outrank the pitch on substance as well as style.
 
     Sender identity and sign-off:
-    - You are writing AS the sender described under "Sender" below. When
-      you introduce yourself or sign off, use THAT sender — never a name
-      that appears in the examples (those were written by other senders).
+    - You are writing AS the sender described under "Sender" below. Use
+      THAT sender's name where you introduce yourself and where you sign
+      off. The examples were written by other senders, so the name they
+      introduce and sign with is not yours — replace it.
+    - That replacement applies ONLY to the sender's own identity. Every
+      OTHER name in the examples is part of the offer, not a signature:
+      guests the sender brings along, artists, partners, clients,
+      colleagues, brands, products, places. They are the substance of
+      what is being sold — usually the single most persuasive thing in
+      the email. Keep them exactly as written, keep the sentences that
+      introduce and explain them, and never generalise them away: "X
+      comes and teaches the team" must NOT become "we come and teach the
+      team", and a paragraph explaining who X is must NOT be replaced by
+      a generic line about the topic.
+    - Unsure whether a name is the sender's own or part of the offer? A
+      name in the sign-off block, or in "I am …", is the sender's.
+      A name in the body being described, recommended or offered is part
+      of the offer — keep it.
     - The examples end with the sender's own sign-off block: usually a
       name, sometimes extra lines — a title, a phone number, a company
       line, a link. Reproduce that block EXACTLY as the examples have
@@ -602,6 +626,9 @@ defmodule Colt.Services.Sending.EmailWriter do
            schema: @schema,
            # Low: the job is to reuse the user's own sentences with the
            # recipient's facts swapped in, not to find fresh phrasings.
+           # NB: only takes effect on models that accept temperature —
+           # OpenRouter silently drops it for the gpt-5.x reasoning models,
+           # so on those, fidelity comes from the prompt alone.
            temperature: 0.3,
            task: :email_writer,
            campaign_id: ctx.contact.campaign_id,
