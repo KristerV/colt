@@ -716,6 +716,25 @@ defmodule ColtWeb.Components.FunnelThread do
   # transition into a bucket you can't navigate to.
   defp event_label(%{kind: :entry}), do: gettext("Entered the sales funnel")
 
+  # `:next_action` stores an ISO date (or nil, meaning "no date") in from/to.
+  # Through the generic arrow branches below that rendered as a bare
+  # "→ 2026-08-13", and — when the date was cleared — as a lone date that read
+  # as if one had just been set. A date is meaningless without its noun.
+  defp event_label(%{kind: :next_action, from: from, to: to}) do
+    case {event_date(from), event_date(to)} do
+      {_, nil} -> gettext("Follow-up cleared")
+      {nil, to} -> gettext("Follow-up set for %{date}", date: to)
+      {from, to} -> gettext("Follow-up moved %{from} → %{to}", from: from, to: to)
+    end
+  end
+
+  # An outcome is a state, not a journey: "Marked won" beats "→ Won", and
+  # clearing it is the one move worth its own word.
+  defp event_label(%{kind: :outcome, to: nil}), do: gettext("Reopened")
+
+  defp event_label(%{kind: :outcome, to: to}) when is_binary(to),
+    do: gettext("Marked %{outcome}", outcome: String.downcase(to))
+
   defp event_label(%{from: from, to: to}) when is_binary(from) and is_binary(to),
     do: "#{from} → #{to}"
 
@@ -731,4 +750,16 @@ defmodule ColtWeb.Components.FunnelThread do
 
   defp event_actor(%{actor: %{email: email}}) when not is_nil(email), do: to_string(email)
   defp event_actor(_), do: gettext("System")
+
+  # Dates ride in from/to as ISO strings. Render them the way the timestamp on
+  # the other end of the same row is rendered ("Aug 13"), and hand back
+  # anything unparseable untouched — old rows must never crash the feed.
+  defp event_date(nil), do: nil
+
+  defp event_date(iso) when is_binary(iso) do
+    case Date.from_iso8601(iso) do
+      {:ok, date} -> Calendar.strftime(date, "%b %-d")
+      _ -> iso
+    end
+  end
 end
