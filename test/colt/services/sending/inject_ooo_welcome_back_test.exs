@@ -92,6 +92,51 @@ defmodule Colt.Services.Sending.InjectOooWelcomeBackTest do
     end
   end
 
+  describe "run/3 — subject" do
+    test "a subjectless welcome-back inherits the sequence subject from the opener" do
+      %{contact: contact, thread: thread, inbox: inbox} = graph(@snapshot_with_ooo)
+
+      seed_email(thread, inbox,
+        step_position: 0,
+        status: :sent,
+        ai_subject: "quick question about acme",
+        ai_body: "hello"
+      )
+
+      ooo =
+        seed_email(thread, inbox, step_position: -1, status: :approved, ai_body: "welcome back!")
+
+      assert {:ok, {:injected, _, _}} = InjectOooWelcomeBack.run(thread.id, contact, @not_before)
+
+      {:ok, scheduled} = OutboundEmail.get(ooo.id, authorize?: false)
+      assert (scheduled.user_subject || scheduled.ai_subject) == "quick question about acme"
+    end
+
+    test "a welcome-back that already carries a subject keeps it" do
+      %{contact: contact, thread: thread, inbox: inbox} = graph(@snapshot_with_ooo)
+
+      seed_email(thread, inbox,
+        step_position: 0,
+        status: :sent,
+        ai_subject: "quick question about acme",
+        ai_body: "hello"
+      )
+
+      ooo =
+        seed_email(thread, inbox,
+          step_position: -1,
+          status: :approved,
+          user_subject: "quick question about acme",
+          ai_body: "welcome back!"
+        )
+
+      assert {:ok, {:injected, _, _}} = InjectOooWelcomeBack.run(thread.id, contact, @not_before)
+
+      {:ok, scheduled} = OutboundEmail.get(ooo.id, authorize?: false)
+      assert scheduled.user_subject == "quick question about acme"
+    end
+  end
+
   describe "run/3 — fallback (returns :no_welcome_back, leaves the thread untouched)" do
     test "when the welcome-back body is empty" do
       %{contact: contact, thread: thread, inbox: inbox} = graph(@snapshot_with_ooo)
@@ -181,7 +226,9 @@ defmodule Colt.Services.Sending.InjectOooWelcomeBackTest do
       step_position: Keyword.fetch!(opts, :step_position),
       status: Keyword.fetch!(opts, :status),
       scheduled_at: Keyword.get(opts, :scheduled_at),
-      ai_body: Keyword.get(opts, :ai_body)
+      ai_body: Keyword.get(opts, :ai_body),
+      ai_subject: Keyword.get(opts, :ai_subject),
+      user_subject: Keyword.get(opts, :user_subject)
     })
   end
 end

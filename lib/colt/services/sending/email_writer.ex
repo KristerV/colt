@@ -300,9 +300,12 @@ defmodule Colt.Services.Sending.EmailWriter do
       position -1, write it too: a short, warm note sent only when the
       prospect auto-replied that they were away. Welcome them back,
       acknowledge they were out, and ask one light question. No hard
-      pitch, no pressure — the goal is to re-open the conversation.
+      pitch, no pressure — the goal is to re-open the conversation. It
+      continues the same conversation, so it keeps the sequence's
+      subject — repeat step 1's subject for it.
     - Subject lines: short (under 60 chars), lowercase preferred,
-      no clickbait, no emojis.
+      no clickbait, no emojis. The whole sequence shares one subject:
+      write it for step 1 and repeat it on every later step.
 
     Return JSON matching the schema. One object per step listed in the
     skeleton (including the welcome-back step when present).
@@ -591,7 +594,8 @@ defmodule Colt.Services.Sending.EmailWriter do
   defp normalize_steps(ai_steps, email_steps) do
     by_position = Map.new(ai_steps, fn s -> {s["position"], s} end)
 
-    Enum.map(email_steps, fn step ->
+    email_steps
+    |> Enum.map(fn step ->
       raw = Map.get(by_position, step.position) || %{}
 
       %{
@@ -600,6 +604,30 @@ defmodule Colt.Services.Sending.EmailWriter do
         body: clean_body(Map.get(raw, "body", ""))
       }
     end)
+    |> inherit_opener_subject()
+  end
+
+  # The OOO welcome-back (position -1) has no subject of its own: it continues
+  # the same conversation, so it carries the sequence's subject exactly like a
+  # follow-up does (the editor has one subject field for the whole sequence,
+  # and ApproveContact writes it onto every row). Whatever the model wrote for
+  # -1 is discarded here so the draft is right before approval too.
+  defp inherit_opener_subject(steps) do
+    opener =
+      steps
+      |> Enum.filter(&(&1.position >= 0))
+      |> Enum.min_by(& &1.position, fn -> nil end)
+
+    case opener do
+      nil ->
+        steps
+
+      %{subject: subject} ->
+        Enum.map(steps, fn
+          %{position: -1} = s -> %{s | subject: subject}
+          s -> s
+        end)
+    end
   end
 
   # The prompt indents example bodies for readability, which the model copies

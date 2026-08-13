@@ -89,7 +89,6 @@ defmodule ColtWeb.Sending.WriteLive do
             bodies: %{},
             is_admin: admin?(actor),
             ooo_draft: nil,
-            ooo_subject: "",
             first_email: false,
             saved_at: nil,
             learning_open?: false,
@@ -168,20 +167,6 @@ defmodule ColtWeb.Sending.WriteLive do
     bodies = Map.put(socket.assigns.bodies, pos, v)
     socket = persist_body(socket, pos, v)
     {:noreply, assign(socket, bodies: bodies) |> mark_saved()}
-  end
-
-  # The admin-only OOO welcome-back keeps its own subject (independent of the
-  # sequence-wide subject), so it has a dedicated event.
-  def handle_event("set_ooo_subject", %{"value" => v}, socket) do
-    actor = socket.assigns.current_user
-
-    socket =
-      case socket.assigns[:ooo_draft] do
-        nil -> socket
-        d -> assign(socket, ooo_draft: save_user_fields(d, v, d.user_body, actor))
-      end
-
-    {:noreply, socket |> assign(ooo_subject: v) |> mark_saved()}
   end
 
   # ── Variant picker (the quiet dropdown) ────────────────────────────────
@@ -312,7 +297,6 @@ defmodule ColtWeb.Sending.WriteLive do
 
     edits = %{
       "subject" => socket.assigns.subject,
-      "ooo_subject" => socket.assigns.ooo_subject,
       "bodies" => socket.assigns.bodies
     }
 
@@ -858,9 +842,7 @@ defmodule ColtWeb.Sending.WriteLive do
         {e.step_position, e.user_body || e.ai_body || ""}
       end)
 
-    ooo_subject = (ooo_draft && (ooo_draft.user_subject || ooo_draft.ai_subject)) || ""
-
-    assign(socket, subject: subject, bodies: bodies, ooo_subject: ooo_subject)
+    assign(socket, subject: subject, bodies: bodies)
   end
 
   defp kick_off_writer(socket) do
@@ -912,7 +894,8 @@ defmodule ColtWeb.Sending.WriteLive do
     end
   end
 
-  # Subject is shared across the whole sequence, so persist it onto every draft
+  # Subject is shared across the whole sequence — the follow-ups and the OOO
+  # welcome-back all carry the same line — so persist it onto every draft
   # (mirrors how ApproveContact applies edits).
   defp persist_subject(socket, v) do
     actor = socket.assigns.current_user
@@ -922,7 +905,13 @@ defmodule ColtWeb.Sending.WriteLive do
         save_user_fields(email, v, email.user_body, actor)
       end)
 
-    assign(socket, drafts: drafts)
+    ooo =
+      case socket.assigns[:ooo_draft] do
+        nil -> nil
+        d -> save_user_fields(d, v, d.user_body, actor)
+      end
+
+    assign(socket, drafts: drafts, ooo_draft: ooo)
   end
 
   defp persist_body(socket, pos, v) do
@@ -996,7 +985,6 @@ defmodule ColtWeb.Sending.WriteLive do
               saved_at={@saved_at}
               is_admin={@is_admin}
               ooo_draft={@ooo_draft}
-              ooo_subject={@ooo_subject}
             />
             <.action_bar
               drafting={s == :drafting}
@@ -1088,7 +1076,6 @@ defmodule ColtWeb.Sending.WriteLive do
   attr :saved_at, :any, default: nil
   attr :is_admin, :boolean, default: false
   attr :ooo_draft, :map, default: nil
-  attr :ooo_subject, :string, default: ""
 
   defp editor(assigns) do
     step_by_position = Map.new(assigns.email_steps, fn s -> {s.position, s} end)
@@ -1192,11 +1179,7 @@ defmodule ColtWeb.Sending.WriteLive do
         <% end %>
 
         <div :if={@is_admin && @ooo_draft}>
-          <.ooo_card
-            ooo_draft={@ooo_draft}
-            subject={@ooo_subject}
-            body={Map.get(@bodies, -1, "")}
-          />
+          <.ooo_card ooo_draft={@ooo_draft} body={Map.get(@bodies, -1, "")} />
         </div>
       </div>
 
@@ -1543,12 +1526,12 @@ defmodule ColtWeb.Sending.WriteLive do
   end
 
   attr :ooo_draft, :map, required: true
-  attr :subject, :string, default: ""
   attr :body, :string, default: ""
 
   # Golden, admin-only card for the OOO welcome-back. Rendered after the
   # follow-ups; its blank body is optional (empty ⇒ the feature no-ops for the
-  # contact). Kept out of @drafts so it never blocks approval.
+  # contact). Kept out of @drafts so it never blocks approval. Body only — it
+  # rides the sequence's shared subject like every follow-up does.
   defp ooo_card(assigns) do
     ~H"""
     <div class="rounded-[11px] border border-gold/40 bg-goldSoft overflow-hidden [box-shadow:var(--shadow)]">
@@ -1562,19 +1545,9 @@ defmodule ColtWeb.Sending.WriteLive do
       <div class="px-5 py-4 flex flex-col gap-3 bg-card">
         <p class="text-[12px] leading-[1.5] text-inkSoft m-0">
           {gettext(
-            "Sent only when a prospect auto-replies out-of-office: it welcomes them back ~3 days after they return, then the follow-ups resume. Leave blank to skip."
+            "Sent only when a prospect auto-replies out-of-office: it welcomes them back ~3 days after they return, then the follow-ups resume. Uses the same subject as the sequence. Leave blank to skip."
           )}
         </p>
-        <form phx-change="set_ooo_subject" class="block">
-          <input
-            type="text"
-            name="value"
-            value={@subject}
-            phx-debounce="400"
-            placeholder={gettext("welcome-back subject")}
-            class="w-full px-4 py-2.5 border border-border bg-bgSoft rounded-[8px] text-[13.5px] text-ink outline-none placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
-          />
-        </form>
         <form id="ooo-body-form" phx-change="set_body" class="block">
           <input type="hidden" name="position" value={SequenceStep.ooo_position()} />
           <textarea

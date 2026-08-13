@@ -99,11 +99,40 @@ defmodule Colt.Services.Sending.InjectOooWelcomeBack do
          %{} = row <- Enum.find(rows, &(&1.step_position == SequenceStep.ooo_position())),
          false <- row.status in [:sent, :scheduled],
          true <- authored?(row, inbox) do
-      {:ok, row}
+      {:ok, backfill_subject(row, rows)}
     else
       _ -> {:error, :no_welcome_back}
     end
   end
+
+  # The welcome-back carries the sequence's subject (ApproveContact writes the
+  # one shared subject onto every row). Rows approved before that was true can
+  # still sit here with no subject at all — fall back to the opener's so the
+  # send never goes out blank.
+  defp backfill_subject(row, rows) do
+    case {subject(row), opener_subject(rows)} do
+      {"", s} when s != "" ->
+        case OutboundEmail.update_user_fields(row, s, row.user_body, authorize?: false) do
+          {:ok, updated} -> updated
+          {:error, _} -> row
+        end
+
+      _ ->
+        row
+    end
+  end
+
+  defp opener_subject(rows) do
+    rows
+    |> Enum.filter(&(&1.step_position >= 0))
+    |> Enum.min_by(& &1.step_position, fn -> nil end)
+    |> case do
+      nil -> ""
+      row -> subject(row)
+    end
+  end
+
+  defp subject(row), do: normalize(row.user_subject || row.ai_subject)
 
   # Authored = the effective body has real content beyond the starter seed
   # (a blank hand-written card leaves only the signature seed / nothing).
