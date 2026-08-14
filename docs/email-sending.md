@@ -333,29 +333,94 @@ On `CampaignContact` approval:
 Computed at approval time for step 1, and at parent-send time for followups. One function: `next_slot(email_account, not_before_dt)` → returns a `DateTime`.
 
 ```
-def next_slot(account, not_before):
-  candidate = max(now, not_before) in account.tz
-  candidate = bump_into_workday(candidate)        # Mon–Fri 09:00–17:00
+def next_slot(account, not_before, step_position):
+  candidate = ceil_to_minute(max(now, not_before) in account.tz)
+  # advance = bump_into_workday, THEN the step 1 floor — in that order, at
+  # every point the candidate can move to another day.
+  candidate = advance(candidate)                  # Mon–Fri 09:00–17:00, opens at 09:00+jitter
   loop:
     today_count = emails scheduled or sent today for account
     if today_count >= effective_quota(account, today):
-      candidate = tomorrow at 09:00; bump_into_workday; continue
-    last = latest scheduled_at today for account
-    if last == nil:
+      candidate = advance(tomorrow at day_open(account, tomorrow)); continue
+    rows = today's rows for account, ordered by scheduled_at
+    if rows == []:
       return candidate                            # first slot of the day
+    last = truncate_to_minute(last(rows))         # rows carry a cosmetic second offset
+    # Derive the *current burst* from the rows, not from today_count:
+    # walk backwards while consecutive gaps stay < 60 min.
+    burst_size  = 1 + count of trailing gaps < 60 min
+    burst_index = count of gaps >= 60 min         # completed bursts today
     gap = candidate - last
-    if gap < 60 min and today_count < burst_cap_today(account):
-      return last + uniform(1, 5) minutes         # inside current burst
+    if gap < 60 min and burst_size < burst_cap(account, today, burst_index):
+      slot = last + uniform(1, 5) minutes         # inside current burst
+      if slot is outside the workday window: candidate = advance(slot); continue
+      return set_second(slot)
     else:
-      candidate = last + 60 min                   # next burst
-      candidate = bump_into_workday(candidate)
+      candidate = advance(max(candidate, last + burst_pause(account, today, burst_index)))
       continue
+# every return goes through set_second(slot) — see "sub-minute jitter" below
 ```
 
-- `burst_cap_today(account)` is a per-(account, date) random pick in `6..12`, memoized.
-- `effective_quota(account, date)` is `round(quota × uniform(0.85, 1.05))`, memoized.
-- `bump_into_workday` snaps weekends + nights to next Mon–Fri 09:00.
-- **Step 1 special rule**: when scheduling a step 1 email, replace the lower bound with `max(not_before, today_11am_in_account_tz)` before running the loop. Followups ignore the 11am floor.
+- `burst_cap(account, date, burst_index)` is a random pick in `6..12`, seeded on
+  `{account_id, date, burst_index}` — so the cap varies *per burst*, and a day reads
+  "5 now, 9 later, 7 later" instead of one identical size all day. Deriving burst
+  membership from the rows (rather than from `today_count`) is what makes bursts keep
+  repeating all day; the old `today_count < burst_cap_today` form silently degenerated
+  into one burst followed by hourly singletons once the day's count passed the cap.
+- `burst_pause(account, date, burst_index)` is a random pick in `60..90` minutes, seeded
+  the same way. Never below 60.
+- Quota roll-over goes to the **next** day's `day_open` (then `bump_into_workday` for
+  weekends), not to today at 09:00.
+- **Days are counted in calendar days, never in `86_400`-second hops.** "Next day" is
+  `Date.add(date, 1)` re-anchored at the same wall-clock time in the account's tz. A local
+  day is not always 24 hours long: `Africa/Cairo` ends DST on the *last Thursday* of
+  October at 24:00, making that Thursday 25 hours. With an absolute-seconds add,
+  `next_day(start_of_day(d))` landed at 23:00 of the **same** date — the roll-over branch
+  then re-proposed the same over-quota day until `@max_loops` and returned
+  `{:error, :scheduler_loop_exhausted}`, and the day's closing bound `day_end` fell an hour
+  short so `list_today` under-counted the day's rows. (EU/US zones hid this because their
+  fall-back is always a Sunday, which the weekend branch re-checks anyway.) Wall-clock
+  times a zone skips or repeats resolve to the first instant after the gap / the earlier of
+  the ambiguous pair, so no path raises on a DST boundary.
+- **`not_before` is read as an instant, not as a representation.** The round-up to the
+  minute grid matches the microsecond *value*, not its precision: `:utc_datetime_usec`
+  columns come back from Postgres as `{0, 6}`, and an exactly-on-the-minute bound must not
+  gain a spurious extra minute just for carrying precision 6 (reachable from
+  `send_one.ex` and `defer_followup.ex`).
+- `effective_quota(account, date)` is `round(quota × uniform(0.85, 1.05))`, seeded on
+  `{account_id, date}`. Every pick here is `:erlang.phash2` over its seed tuple, so the
+  scheduler stays stateless — no cache, no memo table; same rows in, same slot out.
+- `bump_into_workday` snaps weekends + nights to the next Mon–Fri **`day_open`**.
+- **Jittered day start**: `day_open(account, date)` is `09:00 + uniform(0, 25)` minutes,
+  seeded on `{:day_open, account_id, date}`. A flat 09:00:00 open repeated five days a week
+  is a stronger machine fingerprint than the hourly-singleton ladder was, so every day the
+  account opens gets its own minute — including days reached by quota roll-over and by the
+  17:00 wall. Never before 09:00, never after 09:25.
+- **Step 1 special rule**: when scheduling a step 1 email, raise the candidate to
+  `max(candidate, 11am_in_account_tz + uniform(0, 25) minutes)` — the floor is jittered like
+  the day start, under its own salt (`{:step1_floor, account_id, date}`) so the day's 09:xx
+  and 11:xx picks don't correlate. It stays inside the 11th hour (never past 11:25), so it
+  always wins over a jittered 09:xx open. Followups ignore the 11am floor.
+  - **Order and date matter.** The floor is applied *after* `bump_into_workday`, and again
+    after every later bump (weekend roll, 17:00 wall, quota roll-over) — `advance/1` in the
+    pseudocode above. Flooring only once, up front, let the bump replace an out-of-window
+    11:xx with the landing day's 09:xx open and drop the floor entirely: a Friday-18:30 bound
+    (what `approve_contact`, `auto_draft_and_approve` and `auto_approve_campaign` all pass,
+    via `utc_now()`) landed on Monday 09:15. The floor holds on **whatever day the email
+    actually lands on**, and its jitter is seeded on that **landing** date — so two bounds
+    that roll onto the same Monday get the same floor minute. This can't loop: the floor only
+    moves a slot to 11:00..11:25 on a day that is already a workday.
+- **Sub-minute jitter**: every returned slot carries a deterministic `uniform(0, 59)` second
+  offset, seeded on `{:second_of_minute, account_id, slot_at_whole_minute}`, on every path
+  that produces a slot (day open, intra-burst, new burst, quota roll-over, weekend / 17:00
+  rolls, step 1 floor). `seconds == 0` on every send forever is the same fingerprint class as
+  the flat 09:00:00 open, one resolution down.
+  - The offset is **set**, never added. All scheduling math runs on a whole-minute grid: the
+    caller's bound is rounded *up* to a whole minute, rows read back from the DB are
+    truncated to the minute, and the offset is applied last. Adding instead would accumulate
+    across a burst — each slot is stepped off the previous stored row — rolling into extra
+    whole minutes and genuinely drifting the 1..5 min band. Rounding the bound up (plus a
+    non-negative offset on a whole minute) is what keeps `slot >= not_before`.
 - No mutex. Two concurrent scheduling calls can land within the same minute — fine, deliverability isn't that sensitive.
 
 ### 5.3 Send loop
