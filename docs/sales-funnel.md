@@ -62,6 +62,13 @@ next activity; the board colours by it, and "no activity scheduled" is the loude
   the contact enters the funnel with no date — i.e. straight into **Now**, awaiting triage — and
   a `StatusEvent` records the entry. `Colt.Services.Sales.AutoEnter`'s `@triggers` is the single
   toggle.
+- **A reply pops the contact back into Now.** You park someone until Tuesday, they answer on
+  Monday — the date is stale the moment their reply lands, so
+  `Colt.Services.Sales.ReactivateOnReply` clears `next_action_at` and the feed entry says
+  "prospect replied". It runs from `CategorizeReply`'s real-reply branch, so it covers every
+  category a human has to answer (`:interested`, `:not_interested`, `:other`) but never `:ooo`,
+  which isn't a reply. Guarded to contacts in the funnel, still open, and actually holding a
+  date — a Won/Lost contact stays closed, and reopening is a human's call.
 - **Unified feed** → `StatusEvent`. Sales writes `:next_action`, `:outcome` and `:checklist`;
   the sending machine writes `:send_status` / `:reply_category`; entry writes `:entry`.
   `:sales_stage` is retained **read-only** so pre-2026-08-09 rows still render.

@@ -21,7 +21,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
   alias Colt.Services.Ai.Complete
   alias Colt.Services.Email.HtmlToText
   alias Colt.Services.Email.SplitQuote
-  alias Colt.Services.Sales.{AutoEnter, RecordStatusEvent}
+  alias Colt.Services.Sales.{AutoEnter, ReactivateOnReply, RecordStatusEvent}
 
   alias Colt.Services.Sending.{
     Broadcast,
@@ -68,7 +68,9 @@ defmodule Colt.Services.Sending.CategorizeReply do
     end
   end
 
-  # Real reply: mark replied + stop the sequence so a human takes over.
+  # Real reply: mark replied + stop the sequence so a human takes over. If the
+  # contact is already in the sales funnel on a future date, the reply makes
+  # that date stale — `ReactivateOnReply` clears it so they surface in Now.
   defp handle(category, confidence, inbound, contact) do
     with {:ok, _} <- CampaignContact.mark_replied(contact, category, authorize?: false),
          {:ok, halted} <- HaltSequence.run(inbound.thread_id) do
@@ -79,6 +81,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
       )
 
       maybe_auto_enter(category, contact.id, campaign_id)
+      ReactivateOnReply.run(contact.id)
 
       Broadcast.reply_categorized(campaign_id, contact.id, category)
       Broadcast.sequence_halted(campaign_id, contact.id, :reply)

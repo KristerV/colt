@@ -14,6 +14,8 @@ defmodule Colt.Services.Sales.SetNextAction do
 
   @doc """
   Set (or clear, with `nil`) `next_action_at` on `contact_id`.
+  `opts` may carry `:actor` and a `:reason` for the feed entry (a human
+  picking a date needs none; an automatic clear should say why).
   Returns `{:ok, contact}`.
   """
   def run(contact_id, next_action_at, opts \\ []) when is_binary(contact_id) do
@@ -28,7 +30,8 @@ defmodule Colt.Services.Sales.SetNextAction do
              authorize?: auth?
            ) do
       RecordStatusEvent.for_contact(contact.id, :next_action, from, label(next_action_at),
-        actor: actor
+        actor: actor,
+        reason: Keyword.get(opts, :reason)
       )
 
       {:ok, updated}
