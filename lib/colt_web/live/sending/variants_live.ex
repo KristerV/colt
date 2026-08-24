@@ -10,6 +10,7 @@ defmodule ColtWeb.Sending.VariantsLive do
 
   alias Colt.Markets
   alias Colt.Resources.{Campaign, CampaignContact, Sequence}
+  alias Colt.Services.Sending.EmailWriter
   alias ColtWeb.Components.Liid
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
@@ -88,6 +89,7 @@ defmodule ColtWeb.Sending.VariantsLive do
       end
 
     by_sequence = Enum.group_by(contacts, & &1.sequence_id)
+    admin? = actor && actor.is_admin
 
     variants =
       Enum.map(sequences, fn seq ->
@@ -99,7 +101,9 @@ defmodule ColtWeb.Sending.VariantsLive do
           sequence: seq,
           sent: sent,
           replied: replied,
-          reply_rate: if(sent > 0, do: round(replied * 100 / sent), else: nil)
+          reply_rate: if(sent > 0, do: round(replied * 100 / sent), else: nil),
+          examples_count:
+            if(admin?, do: length(EmailWriter.examples_for_sequence(seq.id)), else: 0)
         }
       end)
 
@@ -134,7 +138,12 @@ defmodule ColtWeb.Sending.VariantsLive do
         </Liid.headline>
 
         <div class="mt-10 flex flex-col gap-3">
-          <.variant_row :for={v <- @variants} v={v} />
+          <.variant_row
+            :for={v <- @variants}
+            v={v}
+            campaign_id={@campaign.id}
+            is_admin={@current_user.is_admin}
+          />
 
           <button
             type="button"
@@ -150,6 +159,8 @@ defmodule ColtWeb.Sending.VariantsLive do
   end
 
   attr :v, :map, required: true
+  attr :campaign_id, :string, required: true
+  attr :is_admin, :boolean, default: false
 
   defp variant_row(assigns) do
     assigns = assign(assigns, :seq, assigns.v.sequence)
@@ -178,6 +189,14 @@ defmodule ColtWeb.Sending.VariantsLive do
           <span :if={@v.reply_rate} class="text-inkSoft font-medium">· {@v.reply_rate}%</span>
         </div>
       </form>
+
+      <.link
+        :if={@is_admin}
+        navigate={~p"/campaigns/#{@campaign_id}/variants/#{@seq.id}/training"}
+        class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] bg-goldSoft text-gold text-[11px] font-semibold"
+      >
+        {gettext("%{n} examples", n: @v.examples_count)}
+      </.link>
 
       <.active_toggle on={@seq.enabled} id={@seq.id} />
     </div>

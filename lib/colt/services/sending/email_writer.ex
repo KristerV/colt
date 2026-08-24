@@ -89,6 +89,9 @@ defmodule Colt.Services.Sending.EmailWriter do
     build_prompt(ctx)
   end
 
+  @doc "The example pool the writer would use for this template right now."
+  def examples_for_sequence(sequence_id), do: build_examples(sequence_id)
+
   defp load_contact(%CampaignContact{} = c, _actor), do: {:ok, c}
 
   defp load_contact(id, actor) when is_binary(id) do
@@ -188,8 +191,14 @@ defmodule Colt.Services.Sending.EmailWriter do
   # categorization — the template IS the grouping. An empty pool means the
   # user hasn't written for this template yet, so the writer leaves blanks.
   defp collect_examples(ctx) do
+    examples = build_examples(ctx.sequence.id)
+    ctx = Map.put(ctx, :examples, examples)
+    {:ok, %{ctx | ooo_in_pool?: ooo_in_pool?(examples)}}
+  end
+
+  defp build_examples(sequence_id) do
     rows =
-      case OutboundEmail.list_user_edited_for_sequence(ctx.sequence.id, @example_window,
+      case OutboundEmail.list_user_edited_for_sequence(sequence_id, @example_window,
              load: [thread: [campaign_contact: [person: [company: [:annual_reports]]]]],
              authorize?: false
            ) do
@@ -197,17 +206,13 @@ defmodule Colt.Services.Sending.EmailWriter do
         _ -> []
       end
 
-    examples =
-      rows
-      |> Enum.group_by(& &1.thread_id)
-      |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
-      |> Enum.reject(&is_nil/1)
-      # newest contacts first (rows already arrive inserted_at desc)
-      |> Enum.sort_by(& &1.recency, {:desc, DateTime})
-      |> Enum.take(@max_examples)
-
-    ctx = Map.put(ctx, :examples, examples)
-    {:ok, %{ctx | ooo_in_pool?: ooo_in_pool?(examples)}}
+    rows
+    |> Enum.group_by(& &1.thread_id)
+    |> Enum.map(fn {_thread_id, emails} -> contact_example(emails) end)
+    |> Enum.reject(&is_nil/1)
+    # newest contacts first (rows already arrive inserted_at desc)
+    |> Enum.sort_by(& &1.recency, {:desc, DateTime})
+    |> Enum.take(@max_examples)
   end
 
   # The model writes a welcome-back only once the admin has authored one — i.e.
@@ -503,10 +508,11 @@ defmodule Colt.Services.Sending.EmailWriter do
     """
   end
 
-  defp step_label(nil), do: "manual reply"
-  defp step_label(-1), do: "welcome-back (out-of-office)"
-  defp step_label(0), do: "opener"
-  defp step_label(n) when is_integer(n), do: "followup #{n}"
+  @doc "Label for a step position, matching what the prompt shows the model."
+  def step_label(nil), do: "manual reply"
+  def step_label(-1), do: "welcome-back (out-of-office)"
+  def step_label(0), do: "opener"
+  def step_label(n) when is_integer(n), do: "followup #{n}"
 
   defp indent(text) do
     text |> String.split("\n") |> Enum.map(&("    " <> &1)) |> Enum.join("\n")

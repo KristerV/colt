@@ -68,6 +68,7 @@ defmodule ColtWeb.Router do
       live "/campaigns/:id/write", Sending.WriteLive
       live "/campaigns/:id/write/:variant_id", Sending.WriteLive
       live "/campaigns/:id/variants", Sending.VariantsLive
+      live "/campaigns/:id/variants/:variant_id/training", Sending.TrainingSequencesLive
       live "/campaigns/:id/settings", Sending.SettingsLive
       live "/email-accounts", Account.EmailAccountsLive
       live "/billing", Account.BillingLive
