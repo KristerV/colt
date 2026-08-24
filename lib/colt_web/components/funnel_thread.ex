@@ -296,6 +296,7 @@ defmodule ColtWeb.Components.FunnelThread do
           note_body={@note_body}
           sending?={@sending?}
           recipient={@recipient}
+          from_name={@from_name}
           insert_links={@insert_links}
           error={@error}
         />
@@ -520,6 +521,7 @@ defmodule ColtWeb.Components.FunnelThread do
   attr :note_body, :string, required: true
   attr :sending?, :boolean, default: false
   attr :recipient, :string, required: true
+  attr :from_name, :any, default: nil
   attr :error, :any, default: nil
 
   # Links the writer can drop into the reply, as `%{label:, text:, url:}`. Empty
