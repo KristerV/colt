@@ -55,10 +55,6 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   @buckets [:now, :later, :won, :lost]
   @exits [:won, :lost]
 
-  # "Next action" presets, in days from today. Anything else goes through the
-  # date picker.
-  @presets [1, 3, 7, 14]
-
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
 
@@ -211,20 +207,10 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   # ── Next action ──────────────────────────────────────────────────────
 
-  # Presets are resolved server-side so "in 3 days" means three days in the
-  # funnel's timezone, not the browser's. `JS.push` sends the value typed, so
-  # this arrives as an integer; a form-encoded one would arrive as a string.
-  def handle_event("next_action_in", %{"days" => days}, socket) when is_integer(days) do
-    {:noreply, do_set_next_action(socket, SalesClock.in_days(days))}
-  end
-
-  def handle_event("next_action_in", %{"days" => days}, socket) when is_binary(days) do
-    case Integer.parse(days) do
-      {n, ""} -> {:noreply, do_set_next_action(socket, SalesClock.in_days(n))}
-      _ -> {:noreply, socket}
-    end
-  end
-
+  # Presets are resolved server-side (see `next_action_groups/0`) so "3 days"
+  # means three days in the funnel's timezone, not the browser's — the button
+  # just relays back the exact ISO date already computed for it, same as the
+  # date picker below.
   def handle_event("next_action_on", %{"value" => value}, socket) do
     case Date.from_iso8601(value) do
       {:ok, date} -> {:noreply, do_set_next_action(socket, SalesClock.at_start_of_workday(date))}
@@ -1127,7 +1113,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
         recipient: recipient,
         registry_link: Colt.CompanyRegistry.link(company),
         closed?: assigns.contact.outcome != nil,
-        presets: Enum.map(@presets, &%{days: &1, date: SalesClock.today() |> Date.add(&1)}),
+        next_action_groups: next_action_groups(),
         insert_links: demo_links(assigns.contact)
       )
 
@@ -1239,31 +1225,36 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             style="box-shadow:var(--shadow-card)"
             phx-click-away={JS.hide(to: "#next-action-menu-#{@contact.id}")}
           >
-            <button
-              :for={p <- @presets}
-              phx-click={
-                JS.push("next_action_in", value: %{days: p.days})
-                |> JS.hide(to: "#next-action-menu-#{@contact.id}")
-              }
-              class="flex items-center justify-between gap-4 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-paperAlt"
-            >
-              <span>{preset_label(p.days)}</span>
-              <span class="text-inkFaint tabular-nums">{format_short(p.date)}</span>
-            </button>
+            <div :for={group <- @next_action_groups} class="py-1 border-b border-border">
+              <div class="px-3 pb-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase text-inkFaint">
+                {group.label}
+              </div>
+              <button
+                :for={item <- group.items}
+                phx-click={
+                  JS.push("next_action_on", value: %{value: Date.to_iso8601(item.date)})
+                  |> JS.hide(to: "#next-action-menu-#{@contact.id}")
+                }
+                class="flex items-center justify-between gap-4 w-full text-left px-3 py-2 text-[12.5px] text-inkSoft hover:bg-paperAlt"
+              >
+                <span>{item.label}</span>
+                <span class="text-inkFaint tabular-nums">{format_short(item.date)}</span>
+              </button>
+            </div>
 
-            <div class="my-1 h-px bg-border" />
-
-            <form phx-change="next_action_on" class="px-3 py-1.5">
-              <label class="block text-[11px] font-semibold text-inkFaint mb-1">
-                {gettext("Pick a date")}
-              </label>
-              <input
-                type="date"
-                name="value"
-                min={Date.to_iso8601(SalesClock.today())}
-                class="w-full px-2 py-1.5 border border-border rounded-[8px] text-[12.5px] bg-card text-ink tabular-nums outline-none focus:border-accentRing"
-              />
-            </form>
+            <div class="py-1 border-b border-border">
+              <div class="px-3 pb-1 text-[10.5px] font-semibold tracking-[0.08em] uppercase text-inkFaint">
+                {gettext("Custom calendar")}
+              </div>
+              <form phx-change="next_action_on" class="px-3 pb-1.5">
+                <input
+                  type="date"
+                  name="value"
+                  min={Date.to_iso8601(SalesClock.today())}
+                  class="w-full px-2 py-1.5 border border-border rounded-[8px] text-[12.5px] bg-card text-ink tabular-nums outline-none focus:border-accentRing"
+                />
+              </form>
+            </div>
 
             <button
               :if={@contact.next_action_at}
@@ -1293,10 +1284,32 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   defp outcome_button_class(:lost), do: "bg-paperAlt border-border text-inkSoft"
   defp outcome_button_class(_), do: "bg-card border-border text-inkSoft hover:bg-bgSoft"
 
-  defp preset_label(1), do: gettext("Tomorrow")
-  defp preset_label(7), do: gettext("Next week")
-  defp preset_label(14), do: gettext("In 2 weeks")
-  defp preset_label(n), do: gettext("In %{n} days", n: n)
+  # "Soon" is the next three individual days; "Next week" is Mon/Tue/Wed of
+  # the week after this one, not the next occurrence of those weekdays (so on
+  # a Wednesday, "next week" still means next week, not tomorrow).
+  defp next_action_groups do
+    today = SalesClock.today()
+    next_monday = Date.add(today, 8 - Date.day_of_week(today))
+
+    [
+      %{
+        label: gettext("Soon"),
+        items: [
+          %{label: gettext("Tomorrow"), date: Date.add(today, 1)},
+          %{label: gettext("2 days"), date: Date.add(today, 2)},
+          %{label: gettext("3 days"), date: Date.add(today, 3)}
+        ]
+      },
+      %{
+        label: gettext("Next week"),
+        items: [
+          %{label: gettext("Mon"), date: next_monday},
+          %{label: gettext("Tue"), date: Date.add(next_monday, 1)},
+          %{label: gettext("Wed"), date: Date.add(next_monday, 2)}
+        ]
+      }
+    ]
+  end
 
   defp format_short(%Date{} = date), do: Calendar.strftime(date, "%a %-d %b")
 

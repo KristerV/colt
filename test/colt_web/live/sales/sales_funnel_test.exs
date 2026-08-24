@@ -129,7 +129,7 @@ defmodule ColtWeb.Sales.SalesFunnelTest do
       {:ok, view, _html} =
         live(conn, ~p"/campaigns/#{campaign.id}/sales/now/#{contact.id}")
 
-      view |> element("button", "In 3 days") |> render_click()
+      view |> element("button", "3 days") |> render_click()
 
       assert reload(contact.id).sales_bucket == :later
     end
