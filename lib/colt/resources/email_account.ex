@@ -33,6 +33,8 @@ defmodule Colt.Resources.EmailAccount do
     define :mark_status, args: [:status, :paused_reason]
     define :touch_sync, args: [:last_sync_at]
     define :set_inbox_folder_id, args: [:inbox_folder_id]
+    define :record_poll_success, args: [:at]
+    define :record_poll_failure, args: [:at]
     define :disconnect
     define :set_quota, args: [:daily_quota]
     define :update_details, args: [:display_name]
@@ -111,6 +113,25 @@ defmodule Colt.Resources.EmailAccount do
       description "Cache the Nylas inbox folder id (resolved once from /folders) the poller filters on."
       accept [:inbox_folder_id]
       require_atomic? false
+    end
+
+    update :record_poll_success do
+      description "Inbound poller succeeded (even an empty page) — clears the failure streak."
+      accept []
+      argument :at, :utc_datetime_usec, allow_nil?: false
+      require_atomic? false
+      change set_attribute(:last_poll_success_at, arg(:at))
+      change set_attribute(:last_poll_error_at, nil)
+      change set_attribute(:poll_failure_count, 0)
+    end
+
+    update :record_poll_failure do
+      description "Inbound poller failed (folder resolution or the Nylas list call) — tracks the streak for alerting."
+      accept []
+      argument :at, :utc_datetime_usec, allow_nil?: false
+      require_atomic? false
+      change set_attribute(:last_poll_error_at, arg(:at))
+      change increment(:poll_failure_count)
     end
 
     update :disconnect do
@@ -203,6 +224,18 @@ defmodule Colt.Resources.EmailAccount do
 
     attribute :last_sync_at, :utc_datetime_usec, public?: true
     attribute :paused_reason, :string, public?: true
+
+    # Decoupled from `last_sync_at` (the message cursor) on purpose: the
+    # cursor advances even on an empty page, so it can't tell you whether
+    # polling is actually succeeding. These can.
+    attribute :last_poll_success_at, :utc_datetime_usec, public?: true
+    attribute :last_poll_error_at, :utc_datetime_usec, public?: true
+
+    attribute :poll_failure_count, :integer,
+      allow_nil?: false,
+      default: 0,
+      public?: true,
+      constraints: [min: 0]
 
     create_timestamp :inserted_at
     update_timestamp :updated_at

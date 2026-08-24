@@ -116,9 +116,16 @@ defmodule Colt.Nylas do
     |> handle(:send_message)
   end
 
+  # Nylas pages at `limit` (max 200) per request; a `next_cursor` on the
+  # response body means there's more. Hard stop so a persistently-nonempty
+  # cursor (API oddity, or a backlog genuinely bigger than this) can't spin
+  # forever — better to surface a partial-fetch warning than loop forever.
+  @max_message_pages 25
+
   @doc """
   List messages for a grant. Opts: `:received_after` (unix ts), `:in` (folder),
-  `:limit`.
+  `:limit`. Paginates internally via `page_token`/`next_cursor` and returns
+  every message across all pages (up to #{@max_message_pages} pages).
   """
   @spec list_messages(Colt.Resources.EmailAccount.t() | String.t(), keyword()) ::
           {:ok, list(map())} | {:error, term()}
@@ -130,8 +137,41 @@ defmodule Colt.Nylas do
       |> Keyword.take([:received_after, :in, :limit, :unread])
       |> Enum.into(%{})
 
-    request(:get, "/v3/grants/#{grant_id}/messages", params: params)
-    |> handle(:list_messages)
+    paginate_messages(grant_id, params, [], 0)
+  end
+
+  defp paginate_messages(grant_id, _params, acc_pages, page_count)
+       when page_count >= @max_message_pages do
+    Logger.warning(
+      "nylas list_messages: hit #{@max_message_pages}-page cap for grant #{grant_id} — " <>
+        "returning a partial result, remaining messages will be picked up next poll"
+    )
+
+    {:ok, acc_pages |> Enum.reverse() |> List.flatten()}
+  end
+
+  defp paginate_messages(grant_id, params, acc_pages, page_count) do
+    case request(:get, "/v3/grants/#{grant_id}/messages", params: params) do
+      {:ok, %Req.Response{status: status, body: %{"data" => data} = body}}
+      when status in 200..299 and is_list(data) ->
+        acc_pages = [data | acc_pages]
+
+        case Map.get(body, "next_cursor") do
+          token when is_binary(token) and token != "" ->
+            paginate_messages(
+              grant_id,
+              Map.put(params, :page_token, token),
+              acc_pages,
+              page_count + 1
+            )
+
+          _ ->
+            {:ok, acc_pages |> Enum.reverse() |> List.flatten()}
+        end
+
+      other ->
+        handle(other, :list_messages)
+    end
   end
 
   @doc """

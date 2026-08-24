@@ -43,7 +43,15 @@ defmodule Colt.Services.Sending.SendOne do
   # Hard idempotency check. Oban retries the whole job on any post-Nylas
   # failure (e.g. mark_sent ok, but next-step scheduling errors). Without
   # this guard the retry would hit Nylas again and deliver a duplicate.
-  defp guard_already_sent(%{email: %{status: :sent}}), do: {:ok, :already_sent}
+  #
+  # Also bails on :skipped/:bounced/:failed — a race with HaltSequence
+  # (reply classification flips this row to :skipped) can otherwise let a
+  # SendOne job that was already enqueued for the old :scheduled state slip
+  # past and send anyway; this is the last line of defense against that.
+  defp guard_already_sent(%{email: %{status: status}})
+       when status in [:sent, :skipped, :bounced, :failed],
+       do: {:ok, :already_finalized}
+
   defp guard_already_sent(_), do: :ok
 
   # ── Load ─────────────────────────────────────────────────────────────
@@ -98,6 +106,14 @@ defmodule Colt.Services.Sending.SendOne do
   end
 
   # ── Gate checks ─────────────────────────────────────────────────────
+
+  # Final gate against the same halt race guard_already_sent/1 covers: if
+  # classification landed and marked the contact :replied but this row
+  # hadn't been swept to :skipped yet when it was loaded, don't send.
+  defp proceed_or_skip(%{contact: %{status: :replied}} = ctx) do
+    Broadcast.skipped(ctx.campaign.id, ctx.email.id, ctx.contact.id, :contact_replied)
+    {:ok, :skipped_contact_replied}
+  end
 
   defp proceed_or_skip(%{campaign: %{panic_switch_on: true}} = ctx) do
     Broadcast.skipped(ctx.campaign.id, ctx.email.id, ctx.contact.id, :panic)

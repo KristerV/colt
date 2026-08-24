@@ -18,9 +18,10 @@ defmodule Colt.Jobs.PollInbounds do
 
   alias Colt.Nylas
   alias Colt.Resources.EmailAccount
+  alias Colt.Services.Sending.{AlertPollFailing, RecordPollOutcome}
 
   @lookback_padding_seconds 60
-  @page_limit 50
+  @page_limit 200
 
   @impl true
   def perform(_job) do
@@ -36,10 +37,21 @@ defmodule Colt.Jobs.PollInbounds do
   end
 
   defp poll_one(%EmailAccount{} = account) do
-    case inbox_folder_id(account) do
-      {:ok, folder_id} -> poll_folder(account, folder_id)
-      :error -> :error
+    outcome =
+      case inbox_folder_id(account) do
+        {:ok, folder_id} -> poll_folder(account, folder_id)
+        {:error, _} = err -> err
+      end
+
+    record_outcome(account, outcome)
+  end
+
+  defp record_outcome(account, outcome) do
+    with {:ok, updated} <- RecordPollOutcome.run(account, outcome) do
+      if match?({:error, _}, outcome), do: AlertPollFailing.run(updated)
     end
+
+    outcome
   end
 
   # Nylas v3's `in` filter matches on folder *id*, not name — passing "INBOX"
@@ -55,7 +67,7 @@ defmodule Colt.Jobs.PollInbounds do
     else
       other ->
         Logger.warning("poll_inbounds: #{account.address} no inbox folder — #{inspect(other)}")
-        :error
+        {:error, :no_inbox_folder}
     end
   end
 
@@ -77,11 +89,11 @@ defmodule Colt.Jobs.PollInbounds do
           end
         end)
 
-        bump_cursor(account, messages)
+        with {:ok, _} <- bump_cursor(account, messages), do: :ok
 
       {:error, reason} ->
         Logger.warning("poll_inbounds: #{account.address} failed — #{inspect(reason)}")
-        :error
+        {:error, reason}
     end
   end
 

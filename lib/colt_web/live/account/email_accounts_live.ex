@@ -99,6 +99,14 @@ defmodule ColtWeb.Account.EmailAccountsLive do
   defp status_dot_style(:auth_error), do: "background:var(--red)"
   defp status_dot_style(_), do: "background:var(--inkFaint)"
 
+  # Mirrors the first-alert threshold in Colt.Services.Sending.AlertPollFailing —
+  # once inbound polling has failed this many 1-minute cycles in a row, replies
+  # may already be sitting unseen, so surface it here too, not just Discord.
+  @poll_failing_threshold 5
+
+  defp poll_failing?(%{poll_failure_count: n}), do: n >= @poll_failing_threshold
+  defp poll_failing?(_), do: false
+
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_user={@current_user} active={:email_accounts}>
@@ -181,6 +189,16 @@ defmodule ColtWeb.Account.EmailAccountsLive do
                 ]}>
                   <span class="w-1.5 h-1.5 rounded-full" style={status_dot_style(a.status)}></span>
                   {a.status}
+                </span>
+                <span
+                  :if={poll_failing?(a)}
+                  class="inline-flex items-center gap-1.5 text-[10.5px] font-semibold tracking-[0.04em] uppercase rounded-[8px] px-2 py-0.5 bg-amberSoft text-amber"
+                  title={
+                    gettext("Inbound reply polling has been failing — replies may not be showing up.")
+                  }
+                >
+                  <span class="w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>
+                  {gettext("Sync issue")}
                 </span>
               </div>
             </.link>
