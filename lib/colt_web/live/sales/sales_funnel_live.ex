@@ -1112,6 +1112,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       assign(assigns,
         recipient: recipient,
         registry_link: Colt.CompanyRegistry.link(company),
+        from_name: FunnelThread.from_display(assigns.contact.assigned_email_account),
         closed?: assigns.contact.outcome != nil,
         next_action_groups: next_action_groups(),
         insert_links: demo_links(assigns.contact)
@@ -1124,6 +1125,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       transcript={@transcript}
       recipient={@recipient}
       registry_link={@registry_link}
+      from_name={@from_name}
       active_tab={@active_tab}
       reply_html={@reply_html}
       reply_nonce={@reply_nonce}

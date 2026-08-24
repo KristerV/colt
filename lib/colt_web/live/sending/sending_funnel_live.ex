@@ -364,30 +364,6 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     end
   end
 
-  # Human label for the assigned sending inbox — display name if set, else the
-  # email's local-part humanized (mirrors the writer's own fallback). nil when
-  # no inbox is assigned yet (e.g. a contact still pending in Writing).
-  defp from_display(%{} = account),
-    do: display_name(account) || local_part(Map.get(account, :address))
-
-  defp from_display(_), do: nil
-
-  defp display_name(%{display_name: sig}) when is_binary(sig) do
-    sig |> String.split("\n") |> Enum.map(&String.trim/1) |> Enum.find(&(&1 != ""))
-  end
-
-  defp display_name(_), do: nil
-
-  defp local_part(address) when is_binary(address) do
-    address
-    |> String.split("@")
-    |> List.first()
-    |> String.split(~r/[._]/)
-    |> Enum.map_join(" ", &String.capitalize/1)
-  end
-
-  defp local_part(_), do: nil
-
   defp strip_html(html) when is_binary(html) do
     html
     |> String.replace(~r/<[^>]+>/, "")
@@ -891,7 +867,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         status_tone: status_tone,
         recipient: recipient,
         registry_link: Colt.CompanyRegistry.link(company),
-        from_name: from_display(assigns.contact.assigned_email_account),
+        from_name: FunnelThread.from_display(assigns.contact.assigned_email_account),
         overrides: ManualOverride.overrides()
       )
 

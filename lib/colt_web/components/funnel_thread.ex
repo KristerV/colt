@@ -80,6 +80,31 @@ defmodule ColtWeb.Components.FunnelThread do
   defp outbound_at(_), do: nil
 
   @doc """
+  The name outgoing mail from this mailbox appears to be sent from —
+  the signature name if one is set, otherwise the address's local part.
+  """
+  def from_display(%{} = account),
+    do: sender_display_name(account) || local_part(Map.get(account, :address))
+
+  def from_display(_), do: nil
+
+  defp sender_display_name(%{display_name: sig}) when is_binary(sig) do
+    sig |> String.split("\n") |> Enum.map(&String.trim/1) |> Enum.find(&(&1 != ""))
+  end
+
+  defp sender_display_name(_), do: nil
+
+  defp local_part(address) when is_binary(address) do
+    address
+    |> String.split("@")
+    |> List.first()
+    |> String.split(~r/[._]/)
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
+  defp local_part(_), do: nil
+
+  @doc """
   The right-hand thread pane: a fixed header of contact controls, then a
   scrolling body holding the timeline and the composer.
   """
@@ -575,12 +600,17 @@ defmodule ColtWeb.Components.FunnelThread do
           </div>
         </div>
 
-        <span
+        <div
           :if={@active_tab == :reply and @has_recipient?}
-          class="ml-auto text-[12px] text-inkFaint font-medium truncate"
+          class="ml-auto flex flex-col items-end gap-0.5 text-[12px] text-inkFaint font-medium truncate"
         >
-          {gettext("To:")} <b class="text-inkSoft font-semibold">{@recipient}</b>
-        </span>
+          <span :if={@from_name}>
+            {gettext("From:")} <b class="text-inkSoft font-semibold">{@from_name}</b>
+          </span>
+          <span>
+            {gettext("To:")} <b class="text-inkSoft font-semibold">{@recipient}</b>
+          </span>
+        </div>
       </div>
 
       <div :if={@error} class="px-3.5 pt-3 text-[12px] text-red">{@error}</div>
