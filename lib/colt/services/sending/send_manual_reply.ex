@@ -7,7 +7,8 @@ defmodule Colt.Services.Sending.SendManualReply do
   """
 
   alias Colt.Nylas
-  alias Colt.Resources.{InboundEmail, OutboundEmail, Thread}
+  alias Colt.Resources.{OutboundEmail, Thread}
+  alias Colt.Services.Sending.LastThreadMessageId
 
   def run(thread_id, body_html, opts \\ []) when is_binary(thread_id) do
     actor = Keyword.get(opts, :actor)
@@ -16,7 +17,7 @@ defmodule Colt.Services.Sending.SendManualReply do
     with {:ok, thread} <- load_thread(thread_id, actor),
          {:ok, inbox} <- inbox(thread),
          {:ok, recipient} <- recipient(thread),
-         {:ok, reply_to_id} <- last_message_id(thread_id),
+         {:ok, reply_to_id} <- LastThreadMessageId.run(thread_id),
          resolved_subject <- subject_or_re(subject, thread),
          {:ok, resp} <-
            Nylas.send_message(inbox,
@@ -45,32 +46,6 @@ defmodule Colt.Services.Sending.SendManualReply do
     do: {:ok, email}
 
   defp recipient(_), do: {:error, :no_recipient}
-
-  defp last_message_id(thread_id) do
-    inbound =
-      case InboundEmail.list_for_thread(thread_id, authorize?: false) do
-        {:ok, rows} -> rows |> Enum.sort_by(& &1.received_at, {:desc, DateTime}) |> List.first()
-        _ -> nil
-      end
-
-    if inbound && inbound.nylas_message_id do
-      {:ok, inbound.nylas_message_id}
-    else
-      outbound =
-        case OutboundEmail.list_for_thread(thread_id, authorize?: false) do
-          {:ok, rows} ->
-            rows
-            |> Enum.filter(&(&1.status == :sent and &1.nylas_message_id))
-            |> Enum.sort_by(& &1.sent_at, {:desc, DateTime})
-            |> List.first()
-
-          _ ->
-            nil
-        end
-
-      {:ok, outbound && outbound.nylas_message_id}
-    end
-  end
 
   defp subject_or_re(nil, thread), do: "re: " <> (last_subject(thread) || "")
   defp subject_or_re("", thread), do: "re: " <> (last_subject(thread) || "")

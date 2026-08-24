@@ -27,7 +27,7 @@ defmodule Colt.Services.Sending.SendOne do
     Thread
   }
 
-  alias Colt.Services.Sending.{Broadcast, NextSlot}
+  alias Colt.Services.Sending.{Broadcast, LastThreadMessageId, NextSlot}
 
   @dedupe_window_hours 24
 
@@ -134,13 +134,22 @@ defmodule Colt.Services.Sending.SendOne do
     subject = email.user_subject || email.ai_subject || ""
     body = email.user_body || email.ai_body || ""
 
-    send_opts =
-      [
-        to: [person.email],
-        subject: subject,
-        body: plain_to_html(body)
-      ]
-      |> maybe_put(:tracking_options, tracking_options(ctx.campaign))
+    with {:ok, reply_to_id} <- LastThreadMessageId.run(email.thread_id) do
+      send_opts =
+        [
+          to: [person.email],
+          subject: subject,
+          body: plain_to_html(body)
+        ]
+        |> maybe_put(:reply_to_message_id, reply_to_id)
+        |> maybe_put(:tracking_options, tracking_options(ctx.campaign))
+
+      send_and_finalize(ctx, inbox, send_opts)
+    end
+  end
+
+  defp send_and_finalize(ctx, inbox, send_opts) do
+    email = ctx.email
 
     case Nylas.send_message(inbox, send_opts) do
       {:ok, %{"id" => message_id} = resp} ->
