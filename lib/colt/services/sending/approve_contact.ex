@@ -1,57 +1,31 @@
 defmodule Colt.Services.Sending.ApproveContact do
   @moduledoc """
-  Move one CampaignContact from :pending_approval → :approved.
-
-  Steps (run/3):
-    1. Load contact + the template (sequence) it was written under + drafts.
-    2. Apply pending user edits (subject, body per step).
-    3. Pick sticky inbox.
-    4. Snapshot the template's sequence (steps + delays + terminal).
-    5. Update the contact: status, assigned_email_account, template, snapshot.
-    6. Schedule step 1's Email via the §5.2 burst scheduler. Followups
-       stay :approved until the send loop fires step N and schedules N+1.
-    7. Mark the rest of the email drafts as :approved (no scheduled_at yet).
+  Move one CampaignContact from :pending_approval → :approved, applying
+  whatever text edits the human made in the writing view first.
 
   The template is passed via `sequence_id:` in opts — the template the user
   was working in. Stamping it on the contact scopes future learning.
+
+  Drafting already happened earlier, when the human opened the writing view
+  (`write_live.ex` → `StickyInbox` → `EmailWriter`) — this module only picks
+  up from there: apply edits, then hand off to `FinalizeApproval` for the
+  tail shared with the cron-driven auto-approve path (snapshot, approve,
+  schedule, mark approved, record the status transition).
   """
 
-  alias Colt.Resources.{CampaignContact, EmailAccount, OutboundEmail, Sequence, Thread}
-  alias Colt.Services.Sales.RecordStatusEvent
-  alias Colt.Services.Sending.{AssignInbox, NextSlot}
+  alias Colt.Resources.{CampaignContact, Sequence}
+  alias Colt.Services.Sending.{FinalizeApproval, StickyInbox}
 
   def run(contact_id, edits, opts \\ []) when is_binary(contact_id) and is_map(edits) do
     actor = Keyword.get(opts, :actor)
     sequence_id = Keyword.get(opts, :sequence_id)
 
     with {:ok, contact} <- load_contact(contact_id, actor),
-         thread = contact.thread,
-         from = contact.status |> to_string() |> String.replace("_", " "),
          {:ok, sequence} <- load_sequence(sequence_id, contact.campaign_id, actor),
-         {:ok, drafts} <- load_drafts(contact, actor),
-         :ok <- ensure_drafts_present(drafts),
-         {:ok, drafts} <- apply_edits(drafts, edits, actor),
-         {:ok, inbox} <- resolve_inbox(contact, actor),
-         snapshot = build_snapshot(sequence),
-         {:ok, contact} <- approve_contact(contact, inbox, sequence, snapshot, actor),
-         {:ok, _} <- schedule_step_one(drafts, inbox, actor),
-         {:ok, _} <- approve_other_steps(drafts, actor) do
-      record_event(thread, from, actor)
-      {:ok, %{contact_id: contact.id, inbox_id: inbox.id}}
+         {:ok, inbox} <- StickyInbox.run(contact, actor: actor) do
+      FinalizeApproval.run(contact, sequence, inbox, edits, actor: actor, auto_approved?: false)
     end
   end
-
-  defp record_event(%Thread{id: thread_id}, from, actor),
-    do: RecordStatusEvent.run(thread_id, :send_status, from, "approved", actor: actor)
-
-  defp record_event(_, _from, _actor), do: :ok
-
-  # Reuse the inbox the writer composed for (assigned at write time). Only fall
-  # back to a fresh pick if the contact somehow reached approval unassigned.
-  defp resolve_inbox(%{assigned_email_account_id: id}, actor) when is_binary(id),
-    do: EmailAccount.get(id, actor: actor, authorize?: actor != nil)
-
-  defp resolve_inbox(contact, actor), do: AssignInbox.run(contact.campaign_id, actor: actor)
 
   defp load_contact(id, actor) do
     Ash.get(CampaignContact, id,
@@ -78,108 +52,4 @@ defmodule Colt.Services.Sending.ApproveContact do
        authorize?: actor != nil
      )}
   end
-
-  defp load_drafts(%{thread: nil}, _actor), do: {:ok, []}
-
-  defp load_drafts(%{thread: %{id: tid}}, actor) do
-    {:ok,
-     OutboundEmail.list_for_thread!(tid, actor: actor, authorize?: actor != nil)
-     |> Enum.filter(&(&1.status == :drafted))
-     |> Enum.sort_by(& &1.step_position)}
-  end
-
-  # edits = %{"subject" => "<single subject>",
-  #           "bodies" => %{step_position => body_string}}
-  defp apply_edits(drafts, edits, actor) do
-    subject = Map.get(edits, "subject")
-    bodies = Map.get(edits, "bodies", %{})
-
-    updated =
-      Enum.map(drafts, fn email ->
-        body = Map.get(bodies, email.step_position) || Map.get(bodies, "#{email.step_position}")
-        new_subject = subject_for(email, subject)
-        new_body = if body in [nil, ""], do: email.user_body, else: body
-
-        if subject_changed?(email, new_subject) or body_changed?(email, new_body) do
-          {:ok, e} =
-            OutboundEmail.update_user_fields(email, new_subject, new_body,
-              actor: actor,
-              authorize?: actor != nil
-            )
-
-          e
-        else
-          email
-        end
-      end)
-
-    {:ok, updated}
-  end
-
-  # One subject for the whole sequence — the opener, every follow-up and the
-  # OOO welcome-back (position -1) all carry the same line, so the welcome-back
-  # reads as part of the same conversation.
-  defp subject_for(%{user_subject: s}, shared) when shared in [nil, ""], do: s
-  defp subject_for(_email, shared), do: shared
-
-  defp subject_changed?(%{user_subject: s}, new), do: s != new
-  defp body_changed?(%{user_body: b}, new), do: b != new
-
-  defp build_snapshot(sequence) do
-    %{
-      "version" => sequence.version,
-      "language" => sequence.language,
-      "steps" =>
-        Enum.map(sequence.sequence_steps, fn s ->
-          %{
-            "position" => s.position,
-            "kind" => Atom.to_string(s.kind),
-            "delay_days" => s.delay_days,
-            "terminal_action" => s.terminal_action && Atom.to_string(s.terminal_action)
-          }
-        end)
-    }
-  end
-
-  defp approve_contact(contact, inbox, sequence, snapshot, actor) do
-    CampaignContact.approve(contact, inbox.id, sequence.id, snapshot, sequence.version,
-      actor: actor,
-      authorize?: actor != nil
-    )
-  end
-
-  defp schedule_step_one([], _inbox, _actor), do: {:ok, nil}
-
-  defp schedule_step_one(drafts, inbox, actor) do
-    case Enum.find(drafts, &(&1.step_position == 0)) do
-      nil ->
-        {:ok, nil}
-
-      step1 ->
-        with {:ok, slot} <-
-               NextSlot.run(inbox, DateTime.utc_now(), step_position: 0, actor: actor),
-             {:ok, _} <-
-               OutboundEmail.schedule(step1, slot, inbox.id,
-                 actor: actor,
-                 authorize?: actor != nil
-               ) do
-          {:ok, slot}
-        end
-    end
-  end
-
-  defp approve_other_steps(drafts, actor) do
-    drafts
-    |> Enum.reject(&(&1.step_position == 0))
-    |> Enum.each(fn e ->
-      OutboundEmail.mark_approved(e, actor: actor, authorize?: actor != nil)
-    end)
-
-    {:ok, :ok}
-  end
-
-  # Hard guard so a half-loaded UI (drafts still being generated, or
-  # EmailWriter silently crashed) can't approve a contact into nothing.
-  defp ensure_drafts_present([]), do: {:error, :no_drafts_to_approve}
-  defp ensure_drafts_present([_ | _]), do: :ok
 end

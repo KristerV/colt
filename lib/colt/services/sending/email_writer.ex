@@ -316,25 +316,16 @@ defmodule Colt.Services.Sending.EmailWriter do
       name in the sign-off block, or in "I am …", is the sender's.
       A name in the body being described, recommended or offered is part
       of the offer — keep it.
-    - The examples end with the sender's own sign-off block: usually a
-      name, sometimes extra lines — a title, a phone number, a company
-      line, a link. Reproduce that block EXACTLY as the examples have
-      it, character for character: same lines, same order, same
-      punctuation, same line breaks, same URLs.
-    - The ONLY thing you change in it is WHO is signing. Swap the
-      personal details — name, and a phone number or personal title if
-      the examples carry one — for the current sender's, taken from
-      "Signature" below. If "Signature" has no equivalent for one of
-      those personal lines, drop that line rather than keep the other
-      sender's detail.
-    - Everything else in the block stays exactly as the examples wrote
-      it. Links especially: a URL the user typed into their email is
-      deliberate and current. Never swap it for one from "Signature",
-      never drop it, never rewrite its text.
-    - "Signature" below tells you who is signing, NOT what the block
-      looks like — the examples decide that. Only when the examples
-      contain no sign-off block at all do you fall back to signing with
-      just the sender's name.
+    - Every email you write ends with the sender's own sign-off, and it
+      is ALWAYS "Signature" below, copied EXACTLY as given — same
+      lines, same order, same punctuation, same line breaks. This is
+      true no matter what the examples do for their own sign-off: a
+      different name, a phone number you don't have, a bare brand or
+      domain, no sign-off at all — ignore it and use "Signature"
+      instead, every single step, including short followups. Do not
+      shorten it, reformat it, add a line to it, or drop a line from
+      it. If "Signature" says there is none, sign off with just the
+      sender's name.
 
     Sequence rules:
     - Step 1 opens cold; introduce yourself briefly (using the sender's

@@ -27,7 +27,6 @@ defmodule ColtWeb.Sending.WriteLive do
   alias Colt.Resources.{
     Campaign,
     CampaignContact,
-    EmailAccount,
     OutboundEmail,
     Sequence,
     SequenceStep,
@@ -36,10 +35,10 @@ defmodule ColtWeb.Sending.WriteLive do
 
   alias Colt.Services.Sending.{
     ApproveContact,
-    AssignInbox,
     PromoteOne,
     RejectContactIcp,
-    RejectContactPick
+    RejectContactPick,
+    StickyInbox
   }
 
   alias Colt.Services.Sending.EmailWriter
@@ -884,31 +883,12 @@ defmodule ColtWeb.Sending.WriteLive do
     contact = socket.assigns.contact
 
     {contact, sender} =
-      case contact.assigned_email_account_id do
-        id when is_binary(id) ->
-          {contact, load_account(id, actor)}
-
-        _ ->
-          case AssignInbox.run(contact.campaign_id, actor: actor) do
-            {:ok, inbox} ->
-              case CampaignContact.assign_inbox(contact, inbox.id, actor: actor) do
-                {:ok, updated} -> {updated, inbox}
-                _ -> {contact, nil}
-              end
-
-            _ ->
-              {contact, nil}
-          end
+      case StickyInbox.run(contact, actor: actor) do
+        {:ok, inbox} -> {%{contact | assigned_email_account_id: inbox.id}, inbox}
+        _ -> {contact, nil}
       end
 
     assign(socket, contact: contact, sender: sender)
-  end
-
-  defp load_account(id, actor) do
-    case EmailAccount.get(id, actor: actor) do
-      {:ok, account} -> account
-      _ -> nil
-    end
   end
 
   # Subject is shared across the whole sequence — the follow-ups and the OOO
