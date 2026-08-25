@@ -28,6 +28,12 @@ defmodule ColtWeb.Admin.Summary do
         path: "/admin/countries"
       },
       %{
+        kicker: "Data",
+        title: "Industry growth",
+        value: industry_growth_summary(),
+        path: "/admin/industries"
+      },
+      %{
         kicker: "Activity",
         title: "Campaigns",
         value: format_int(Ash.count!(Colt.Resources.Campaign, authorize?: false)) <> " total",
@@ -74,6 +80,15 @@ defmodule ColtWeb.Admin.Summary do
         alert: new_leads > 0
       }
     ]
+  end
+
+  # The tile shows the pair of years the page compares, not a computed figure:
+  # the rollup is a full scan of two years of filings, too heavy for a tile that
+  # renders on every admin page.
+  defp industry_growth_summary do
+    {base_year, latest_year} = Colt.Services.Admin.IndustryGrowth.year_pair()
+
+    "#{base_year} → #{latest_year}"
   end
 
   defp deck_summary do

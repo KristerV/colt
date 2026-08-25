@@ -70,6 +70,45 @@ defmodule ColtWeb.Components.AdminFormat do
   def int(%Decimal{} = d), do: d |> Decimal.round(0) |> Decimal.to_integer() |> int()
   def int(_), do: "—"
 
+  # --- euros ----------------------------------------------------------------
+
+  @doc """
+  Registry-scale euros, rounded to something readable: `€1.4M`, `€820k`, `€430`.
+  Company revenue spans six orders of magnitude in one table, so exact digits
+  cost more than they tell.
+  """
+  def eur_compact(nil), do: "—"
+  def eur_compact(%Decimal{} = d), do: d |> Decimal.to_float() |> eur_compact()
+  def eur_compact(n) when is_integer(n), do: eur_compact(n * 1.0)
+
+  def eur_compact(f) when is_float(f) do
+    sign = if f < 0, do: "-", else: ""
+    magnitude = abs(f)
+
+    sign <>
+      "€" <>
+      cond do
+        magnitude >= 1.0e9 -> one_decimal(magnitude / 1.0e9) <> "B"
+        magnitude >= 1.0e6 -> one_decimal(magnitude / 1.0e6) <> "M"
+        magnitude >= 1.0e3 -> Integer.to_string(round(magnitude / 1.0e3)) <> "k"
+        true -> Integer.to_string(round(magnitude))
+      end
+  end
+
+  def eur_compact(_), do: "—"
+
+  @doc "`eur_compact/1` with an explicit `+` on gains: `+€14.2M`, `-€3.1M`."
+  def eur_change(nil), do: "—"
+  def eur_change(%Decimal{} = d), do: d |> Decimal.to_float() |> eur_change()
+  def eur_change(n) when is_integer(n), do: eur_change(n * 1.0)
+
+  def eur_change(f) when is_float(f),
+    do: if(f > 0, do: "+" <> eur_compact(f), else: eur_compact(f))
+
+  def eur_change(_), do: "—"
+
+  defp one_decimal(f), do: :erlang.float_to_binary(f, decimals: 1)
+
   # --- time -----------------------------------------------------------------
 
   def date(nil), do: "—"
