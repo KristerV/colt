@@ -104,7 +104,8 @@ defmodule Colt.Services.Admin.IndustryGrowthTest do
 
       assert_in_delta data.nodes[@programming].share, 0.75, 0.001
       assert_in_delta data.nodes[@meat].share, 0.25, 0.001
-      assert_in_delta data.market_total.share, 1.0, 0.001
+      # The market total has no parent to be a share of — it IS the whole.
+      assert is_nil(data.market_total.share)
     end
 
     test "thin industries keep their row and their revenue but report no growth", ctx do

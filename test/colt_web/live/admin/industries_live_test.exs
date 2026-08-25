@@ -55,6 +55,8 @@ defmodule ColtWeb.Admin.IndustriesLiveTest do
   end
 
   test "renders every section of the tree, collapsed", %{conn: conn} do
+    seed(@programming, 10, 1_000_000, 2_000_000)
+
     {:ok, _view, html} = live(conn, ~p"/admin/industries")
 
     for {_letter, title} <- Colt.Filters.IndustryLabels.sections() do
@@ -86,13 +88,15 @@ defmodule ColtWeb.Admin.IndustriesLiveTest do
 
     assert html =~ "Computer programming"
 
-    html = view |> element("button[phx-value-node='62']") |> render_click()
+    view |> element("button[phx-value-node='62']") |> render_click()
     html = view |> element("button[phx-value-node='621']") |> render_click()
 
     assert html =~ @programming
   end
 
   test "collapse all closes what was opened", %{conn: conn} do
+    seed(@programming, 10, 1_000_000, 2_000_000)
+
     {:ok, view, _html} = live(conn, ~p"/admin/industries")
 
     view |> element("button[phx-value-node='K']") |> render_click()
@@ -138,7 +142,7 @@ defmodule ColtWeb.Admin.IndustriesLiveTest do
       |> Ash.Changeset.for_create(:seed, %{email: "member@example.com"}, authorize?: false)
       |> Ash.create!(authorize?: false)
 
-    conn = log_in(Phoenix.ConnTest.build_conn(), user)
+    conn = log_in(conn, user)
 
     assert {:error, {:redirect, _}} = live(conn, ~p"/admin/industries")
   end
