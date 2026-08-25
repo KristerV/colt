@@ -43,6 +43,16 @@ defmodule ColtWeb.Admin.ClientLive do
   def handle_event("open_identity", _params, socket),
     do: {:noreply, assign(socket, :modal, :identity)}
 
+  def handle_event("grant_admin", _params, socket) do
+    case Accounts.grant_admin(socket.assigns.profile.user, authorize?: false) do
+      {:ok, _} ->
+        {:noreply, socket |> put_flash(:info, "Made admin") |> reload()}
+
+      {:error, _} ->
+        {:noreply, put_flash(socket, :error, "Could not grant admin")}
+    end
+  end
+
   def handle_event("open_revenue", %{"month" => month}, socket) do
     {:noreply,
      socket
@@ -241,6 +251,15 @@ defmodule ColtWeb.Admin.ClientLive do
       </div>
 
       <div class="flex items-center gap-4">
+        <button
+          :if={not @profile.user.is_admin}
+          type="button"
+          class="text-[12px] font-medium text-accent hover:underline cursor-pointer flex items-center gap-1.5"
+          phx-click="grant_admin"
+          data-confirm="Make this user an admin? This can't be undone from here."
+        >
+          Make admin
+        </button>
         <button
           type="button"
           class="text-[12px] font-medium text-accent hover:underline cursor-pointer flex items-center gap-1.5"
@@ -662,7 +681,9 @@ defmodule ColtWeb.Admin.ClientLive do
             phx-value-company_id={c.id}
           >
             <span class="text-ink font-medium">{c.name}</span>
-            <span class="text-ink55 tabular-nums"> ·             {c.registry_code} · {c.market}</span>
+            <span class="text-ink55 tabular-nums">
+               ·              {c.registry_code} · {c.market}
+            </span>
           </button>
           <button
             :for={p <- @results.persons}
@@ -672,8 +693,8 @@ defmodule ColtWeb.Admin.ClientLive do
             phx-value-person_id={p.id}
           >
             <span class="text-ink font-medium">{p.name}</span>
-            <span class="text-ink55"> ·             {p.email}</span>
-            <span :if={p.company} class="text-ink40"> ·             {p.company.name}</span>
+            <span class="text-ink55"> ·              {p.email}</span>
+            <span :if={p.company} class="text-ink40"> ·              {p.company.name}</span>
           </button>
           <div
             :if={@results.companies == [] and @results.persons == []}

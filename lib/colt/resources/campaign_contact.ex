@@ -25,6 +25,7 @@ defmodule Colt.Resources.CampaignContact do
       reference :person, on_delete: :delete
       reference :assigned_email_account, on_delete: :nilify
       reference :sequence, on_delete: :nilify
+      reference :assigned_to, on_delete: :nilify
     end
   end
 
@@ -48,6 +49,7 @@ defmodule Colt.Resources.CampaignContact do
     define :manual_override, args: [:override]
     define :stop_sequence
     define :enter_sales_funnel
+    define :claim
     define :set_next_action, args: [:next_action_at]
     define :set_outcome
     define :record_demo_step
@@ -297,6 +299,18 @@ defmodule Colt.Resources.CampaignContact do
       change set_attribute(:in_funnel_sales?, true)
     end
 
+    update :claim do
+      description """
+      Assign the contact to the acting user — "I'm dealing with this." Always
+      overwrites whoever was assigned before; there's no ownership contest to
+      arbitrate, just who's on it now.
+      """
+
+      accept []
+      require_atomic? false
+      change relate_actor(:assigned_to)
+    end
+
     update :set_next_action do
       description """
       Schedule (or clear) the next thing to do with this contact. A nil value
@@ -539,6 +553,10 @@ defmodule Colt.Resources.CampaignContact do
       public?: true
 
     belongs_to :sequence, Colt.Resources.Sequence, allow_nil?: true, public?: true
+
+    # Who on our side is handling this contact — "I'm dealing with this."
+    # Independent of `Campaign.owner` (the customer whose campaign this is).
+    belongs_to :assigned_to, Colt.Accounts.User, allow_nil?: true, public?: true
 
     has_one :thread, Colt.Resources.Thread
     has_many :checklist_items, Colt.Resources.ContactChecklistItem

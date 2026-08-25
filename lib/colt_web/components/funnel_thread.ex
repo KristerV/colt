@@ -783,6 +783,9 @@ defmodule ColtWeb.Components.FunnelThread do
   defp event_label(%{kind: :outcome, to: to}) when is_binary(to),
     do: gettext("Marked %{outcome}", outcome: String.downcase(to))
 
+  defp event_label(%{kind: :assigned, to: to}) when is_binary(to),
+    do: gettext("Assigned to %{email}", email: to)
+
   defp event_label(%{from: from, to: to}) when is_binary(from) and is_binary(to),
     do: "#{from} → #{to}"
 

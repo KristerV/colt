@@ -97,6 +97,18 @@ defmodule Colt.Accounts.User do
       require_atomic? false
     end
 
+    update :grant_admin do
+      description """
+      Promote a user to admin. One-directional by design — there is no
+      matching action to revoke it from this UI; an admin who needs demoting
+      is a database operation, not a click.
+      """
+
+      accept []
+      require_atomic? false
+      change set_attribute(:is_admin, true)
+    end
+
     read :get_by_subject do
       description "Get a user by the subject claim in a JWT"
       argument :subject, :string, allow_nil?: false

@@ -114,6 +114,7 @@ defmodule Colt.Resources.StatusEvent do
           :next_action,
           :outcome,
           :checklist,
+          :assigned,
           # what the prospect did inside the `/demo` deck; `to` is one of
           # `demo_steps/0` and, for "cta", `reason` names which button
           :demo,

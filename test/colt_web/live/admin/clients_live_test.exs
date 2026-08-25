@@ -300,6 +300,27 @@ defmodule ColtWeb.Admin.ClientsLiveTest do
       assert html =~ ~s{placeholder="+372 1111"}
     end
 
+    test "granting admin promotes the client and hides the button", %{conn: conn} do
+      seed_user("admin@example.com")
+      client = seed_user("plain@example.com")
+
+      {:ok, view, html} = visit_client(conn, client)
+      assert html =~ "Make admin"
+
+      html = view |> element("button[phx-click=grant_admin]") |> render_click()
+
+      assert html =~ "· admin"
+      refute html =~ "Make admin"
+      assert Ash.get!(User, client.id, authorize?: false).is_admin
+    end
+
+    test "an already-admin client shows no make-admin button", %{conn: conn, admin: admin} do
+      {:ok, _view, html} = visit_client(conn, admin)
+
+      assert html =~ "· admin"
+      refute html =~ "Make admin"
+    end
+
     test "searching links a company by hand", %{conn: conn} do
       seed_user("admin@example.com")
       client = seed_user("nomatch@example.com")

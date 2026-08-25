@@ -29,6 +29,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
     ExtractOooReturn,
     HaltSequence,
     InjectOooWelcomeBack,
+    NotifyReplyDiscord,
     StatusLabel
   }
 
@@ -82,6 +83,7 @@ defmodule Colt.Services.Sending.CategorizeReply do
 
       maybe_auto_enter(category, contact.id, campaign_id)
       ReactivateOnReply.run(contact.id)
+      NotifyReplyDiscord.run(contact, category)
 
       Broadcast.reply_categorized(campaign_id, contact.id, category)
       Broadcast.sequence_halted(campaign_id, contact.id, :reply)

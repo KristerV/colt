@@ -50,9 +50,9 @@ defmodule Colt.Services.Admin.IndustryGrowth do
 
   # Division → section letter, resolved once at compile time and passed to
   # Postgres as a pair of arrays so the rollup happens in one query.
-  @division_sections (for {letter, _title} <- IndustryLabels.sections(),
-                          {division, _label} <- IndustryLabels.divisions_for_section(letter),
-                          do: {division, letter})
+  @division_sections for {letter, _title} <- IndustryLabels.sections(),
+                         {division, _label} <- IndustryLabels.divisions_for_section(letter),
+                         do: {division, letter}
 
   def min_revenue_eur, do: @min_revenue_eur
   def min_companies, do: @min_companies

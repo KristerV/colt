@@ -20,6 +20,7 @@ defmodule Colt.Accounts do
       define :get_user, action: :read, get_by: [:id]
       define :admin_set_profile
       define :admin_link_identity
+      define :grant_admin
     end
   end
 end

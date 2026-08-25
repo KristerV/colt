@@ -58,8 +58,7 @@ defmodule ColtWeb.Admin.IndustriesLive do
             <p class="text-[13px] text-ink70">
               Revenue growth per industry, {@data.base_year} → {@data.latest_year}, from filed
               annual reports. A company counts only where it filed revenue in <strong>both</strong>
-              years and made at least {AdminFormat.eur_compact(IndustryGrowth.min_revenue_eur())} in
-              {@data.latest_year} — so this is like-for-like growth of real companies, not
+              years and made at least {AdminFormat.eur_compact(IndustryGrowth.min_revenue_eur())} in {@data.latest_year} — so this is like-for-like growth of real companies, not
               filing churn. Expand a section to see its divisions, groups and 4-digit classes.
             </p>
           </div>
@@ -117,8 +116,7 @@ defmodule ColtWeb.Admin.IndustriesLive do
 
           <div class="flex items-center justify-between gap-4">
             <p class="text-[11.5px] text-ink55">
-              Sorted fastest-growing first, at every level. Industries with fewer than
-              {IndustryGrowth.min_companies()} companies show their count but no growth —
+              Sorted fastest-growing first, at every level. Industries with fewer than {IndustryGrowth.min_companies()} companies show their count but no growth —
               too few to mean anything — and still count toward their parent.
             </p>
             <button
@@ -148,7 +146,11 @@ defmodule ColtWeb.Admin.IndustriesLive do
                 </tr>
               </thead>
               <tbody>
-                <.row :for={row <- visible_rows(@data.nodes, @expanded)} row={row} expanded={@expanded} />
+                <.row
+                  :for={row <- visible_rows(@data.nodes, @expanded)}
+                  row={row}
+                  expanded={@expanded}
+                />
               </tbody>
             </table>
           </div>
@@ -173,7 +175,10 @@ defmodule ColtWeb.Admin.IndustriesLive do
             phx-value-node={@row.id}
             class="w-4 shrink-0 text-inkFaint hover:text-ink cursor-pointer self-center"
           >
-            <Liid.icon name={if MapSet.member?(@expanded, @row.id), do: "chev", else: "chev-r"} size={11} />
+            <Liid.icon
+              name={if MapSet.member?(@expanded, @row.id), do: "chev", else: "chev-r"}
+              size={11}
+            />
           </button>
           <span :if={@row.leaf?} class="w-4 shrink-0" />
           <span :if={@row.level > 0} class="text-[10px] text-inkFaint tnum shrink-0 w-9">
@@ -225,13 +230,15 @@ defmodule ColtWeb.Admin.IndustriesLive do
 
   defp no_data(assigns) do
     ~H"""
-    <div class="border border-border rounded-[11px] bg-card p-6 space-y-3" style="box-shadow:var(--shadow-card)">
+    <div
+      class="border border-border rounded-[11px] bg-card p-6 space-y-3"
+      style="box-shadow:var(--shadow-card)"
+    >
       <div class="text-[14px] font-semibold text-ink">
         No {@data.latest_year} filings to compare in {Markets.label(@market)}
       </div>
       <p class="text-[13px] text-ink70 max-w-[64ch]">
-        Growth needs companies that filed revenue in both {@data.base_year} and
-        {@data.latest_year}. Nothing in this market qualifies yet — registries publish
+        Growth needs companies that filed revenue in both {@data.base_year} and {@data.latest_year}. Nothing in this market qualifies yet — registries publish
         a year's reports over the months that follow it, so the newest year fills in late.
       </p>
       <p :if={@data.years_available != []} class="text-[12px] text-ink55">

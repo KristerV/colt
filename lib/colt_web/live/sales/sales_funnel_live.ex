@@ -32,6 +32,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   alias Colt.SalesClock
 
   alias Colt.Services.Sales.{
+    ClaimContact,
     CreateManualContact,
     SetChecklistItem,
     SetNextAction,
@@ -252,6 +253,25 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   def handle_event("cancel_lost", _params, socket) do
     {:noreply, assign(socket, pending_lost: false, lost_reason: "")}
+  end
+
+  # ── Claim ────────────────────────────────────────────────────────────
+
+  def handle_event("claim", _params, socket) do
+    case socket.assigns.selected do
+      nil ->
+        {:noreply, socket}
+
+      contact ->
+        case ClaimContact.run(contact.id, actor: socket.assigns.current_user) do
+          {:ok, _} ->
+            {:noreply, socket |> load_contacts() |> keep_selected() |> load_thread_data()}
+
+          {:error, reason} ->
+            {:noreply,
+             assign(socket, error: gettext("Couldn't claim: %{reason}", reason: inspect(reason)))}
+        end
+    end
   end
 
   # ── Checklist ────────────────────────────────────────────────────────
@@ -527,7 +547,13 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
     contacts =
       case CampaignContact.list_for_sales_funnel(socket.assigns.campaign.id,
-             load: [:sales_bucket, :thread, :assigned_email_account, person: :company],
+             load: [
+               :sales_bucket,
+               :thread,
+               :assigned_email_account,
+               :assigned_to,
+               person: :company
+             ],
              actor: actor
            ) do
         {:ok, rows} -> rows
@@ -1136,6 +1162,19 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       <:info_actions>
         <button
           type="button"
+          phx-click="claim"
+          class={[
+            "inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border",
+            if(@contact.assigned_to,
+              do: "bg-card border-border text-inkSoft hover:bg-bgSoft",
+              else: "bg-accentSoft border-accentRing text-accent"
+            )
+          ]}
+        >
+          {claim_label(@contact.assigned_to)}
+        </button>
+        <button
+          type="button"
           phx-click="open_edit"
           class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-card border-border text-inkSoft hover:bg-bgSoft"
         >
@@ -1274,6 +1313,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     </FunnelThread.thread_pane>
     """
   end
+
+  defp claim_label(nil), do: gettext("Claim")
+  defp claim_label(%{email: email}), do: gettext("Assigned: %{email}", email: email)
 
   defp outcome_button_label(nil), do: gettext("Outcome")
   defp outcome_button_label(:won), do: gettext("Won")
