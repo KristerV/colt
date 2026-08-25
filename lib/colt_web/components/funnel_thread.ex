@@ -104,6 +104,15 @@ defmodule ColtWeb.Components.FunnelThread do
 
   defp local_part(_), do: nil
 
+  # Name if we have one, otherwise the email rather than a bare dash —
+  # manual/scraped contacts without a person name still need something to
+  # click on.
+  defp contact_header_label(contact, recipient) do
+    (contact.person && contact.person.name) ||
+      (recipient != "" && recipient) ||
+      "—"
+  end
+
   @doc """
   The right-hand thread pane: a fixed header of contact controls, then a
   scrolling body holding the timeline and the composer.
@@ -141,6 +150,10 @@ defmodule ColtWeb.Components.FunnelThread do
   slot :info_actions,
     doc: "Buttons inside the contact-info disclosure — currently just Edit."
 
+  slot :header_actions,
+    doc:
+      "Controls pinned in the always-visible header bar, e.g. the sales funnel's assign picker."
+
   def thread_pane(assigns) do
     company = assigns.contact.person && assigns.contact.person.company
 
@@ -173,7 +186,7 @@ defmodule ColtWeb.Components.FunnelThread do
               phx-click={JS.toggle(to: "##{@info_id}")}
               class="inline-flex items-center gap-1.5 max-w-[220px] rounded-[8px] px-2.5 py-[7px] text-[13px] font-semibold text-ink hover:bg-paperAlt cursor-pointer"
             >
-              <span class="truncate">{(@contact.person && @contact.person.name) || "—"}</span>
+              <span class="truncate">{contact_header_label(@contact, @recipient)}</span>
               <span class="opacity-50 text-[10px] shrink-0">▾</span>
             </button>
 
@@ -184,7 +197,7 @@ defmodule ColtWeb.Components.FunnelThread do
               phx-click-away={JS.hide(to: "##{@info_id}")}
             >
               <div class="text-[15px] font-bold tracking-[-0.01em] text-ink">
-                {(@contact.person && @contact.person.name) || "—"}
+                {contact_header_label(@contact, @recipient)}
               </div>
               <div
                 :if={@contact.person && @contact.person.title}
@@ -238,6 +251,8 @@ defmodule ColtWeb.Components.FunnelThread do
               </div>
             </div>
           </div>
+
+          {render_slot(@header_actions)}
 
           {render_slot(@bar_items)}
 

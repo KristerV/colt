@@ -49,7 +49,7 @@ defmodule Colt.Resources.CampaignContact do
     define :manual_override, args: [:override]
     define :stop_sequence
     define :enter_sales_funnel
-    define :claim
+    define :assign, args: [:assigned_to_id]
     define :set_next_action, args: [:next_action_at]
     define :set_outcome
     define :record_demo_step
@@ -299,16 +299,16 @@ defmodule Colt.Resources.CampaignContact do
       change set_attribute(:in_funnel_sales?, true)
     end
 
-    update :claim do
+    update :assign do
       description """
-      Assign the contact to the acting user — "I'm dealing with this." Always
-      overwrites whoever was assigned before; there's no ownership contest to
-      arbitrate, just who's on it now.
+      Assign the contact to a user — "I'm dealing with this" when it's the
+      acting admin, or handing it to a teammate otherwise. Always overwrites
+      whoever was assigned before; there's no ownership contest to arbitrate,
+      just who's on it now.
       """
 
-      accept []
+      accept [:assigned_to_id]
       require_atomic? false
-      change relate_actor(:assigned_to)
     end
 
     update :set_next_action do

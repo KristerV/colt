@@ -17,6 +17,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   use ColtWeb, :live_view
 
+  alias Colt.Accounts
+
   alias Colt.Resources.{
     Campaign,
     CampaignContact,
@@ -32,7 +34,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   alias Colt.SalesClock
 
   alias Colt.Services.Sales.{
-    ClaimContact,
+    AssignContact,
     CreateManualContact,
     SetChecklistItem,
     SetNextAction,
@@ -85,6 +87,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
             edit_error: nil,
             edit_form: default_form_values(),
             email_accounts: load_email_account_options(actor),
+            assignable_users: load_assignable_users(),
             error: nil,
             timeline: [],
             thread: nil,
@@ -255,21 +258,23 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     {:noreply, assign(socket, pending_lost: false, lost_reason: "")}
   end
 
-  # ── Claim ────────────────────────────────────────────────────────────
+  # ── Assign ───────────────────────────────────────────────────────────
 
-  def handle_event("claim", _params, socket) do
+  def handle_event("assign", %{"user_id" => user_id}, socket) do
     case socket.assigns.selected do
       nil ->
         {:noreply, socket}
 
       contact ->
-        case ClaimContact.run(contact.id, actor: socket.assigns.current_user) do
+        case AssignContact.run(contact.id, user_id, actor: socket.assigns.current_user) do
           {:ok, _} ->
             {:noreply, socket |> load_contacts() |> keep_selected() |> load_thread_data()}
 
           {:error, reason} ->
             {:noreply,
-             assign(socket, error: gettext("Couldn't claim: %{reason}", reason: inspect(reason)))}
+             assign(socket,
+               error: gettext("Couldn't assign: %{reason}", reason: inspect(reason))
+             )}
         end
     end
   end
@@ -672,6 +677,14 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     end
   end
 
+  # Who the assign picker can hand a contact to — admins only, since they're
+  # the only ones who work this funnel.
+  defp load_assignable_users do
+    Accounts.list_users!(authorize?: false)
+    |> Enum.filter(& &1.is_admin)
+    |> Enum.sort_by(& &1.email)
+  end
+
   defp sender_label(%{assigned_email_account: %{address: address}}), do: address
   defp sender_label(_), do: nil
 
@@ -850,6 +863,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
                     reply_nonce={@reply_nonce}
                     note_body={@note_body}
                     error={@error}
+                    assignable_users={@assignable_users}
+                    current_user={@current_user}
                   />
                 <% @visible != [] -> %>
                   <div
@@ -1073,12 +1088,17 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
                   (c.person && c.person.title) || ""}
               </div>
             </div>
-            <span class={[
-              "shrink-0 text-[11px] font-semibold rounded-[6px] px-[7px] py-0.5 tabular-nums",
-              chip_class
-            ]}>
-              {chip_label}
-            </span>
+            <div class="shrink-0 flex flex-col items-end gap-1">
+              <span class={[
+                "text-[11px] font-semibold rounded-[6px] px-[7px] py-0.5 tabular-nums",
+                chip_class
+              ]}>
+                {chip_label}
+              </span>
+              <span :if={c.assigned_to} class="text-[10.5px] text-inkFaint truncate max-w-[110px]">
+                {c.assigned_to.email}
+              </span>
+            </div>
           </.link>
         <% end %>
       </div>
@@ -1129,6 +1149,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   attr :reply_nonce, :integer, required: true
   attr :note_body, :string, required: true
   attr :error, :any, default: nil
+  attr :assignable_users, :list, required: true
+  attr :current_user, :map, required: true
 
   defp thread_pane(assigns) do
     recipient = (assigns.contact.person && assigns.contact.person.email) || ""
@@ -1162,25 +1184,54 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       <:info_actions>
         <button
           type="button"
-          phx-click="claim"
-          class={[
-            "inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border",
-            if(@contact.assigned_to,
-              do: "bg-card border-border text-inkSoft hover:bg-bgSoft",
-              else: "bg-accentSoft border-accentRing text-accent"
-            )
-          ]}
-        >
-          {claim_label(@contact.assigned_to)}
-        </button>
-        <button
-          type="button"
           phx-click="open_edit"
           class="inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border bg-card border-border text-inkSoft hover:bg-bgSoft"
         >
           {gettext("Edit")}
         </button>
       </:info_actions>
+
+      <:header_actions>
+        <div class="relative">
+          <button
+            type="button"
+            phx-click={JS.toggle(to: "#assign-menu-#{@contact.id}")}
+            class={[
+              "inline-flex items-center gap-1.5 rounded-[8px] px-[11px] py-[7px] text-[12.5px] font-semibold cursor-pointer border",
+              if(@contact.assigned_to,
+                do: "bg-card border-border text-inkSoft hover:bg-bgSoft",
+                else: "bg-accentSoft border-accentRing text-accent"
+              )
+            ]}
+          >
+            {claim_label(@contact.assigned_to)}
+            <span class="opacity-70 text-[10px]">▾</span>
+          </button>
+          <div
+            id={"assign-menu-#{@contact.id}"}
+            class="hidden absolute left-0 top-full mt-1 bg-card border border-border rounded-[8px] z-40 min-w-[200px] py-1"
+            style="box-shadow:var(--shadow-card)"
+            phx-click-away={JS.hide(to: "#assign-menu-#{@contact.id}")}
+          >
+            <button
+              :for={user <- @assignable_users}
+              type="button"
+              phx-click={
+                JS.push("assign", value: %{user_id: user.id})
+                |> JS.hide(to: "#assign-menu-#{@contact.id}")
+              }
+              class={[
+                "flex items-center gap-2 w-full text-left px-3 py-2 text-[12.5px] hover:bg-paperAlt truncate",
+                (@contact.assigned_to && @contact.assigned_to.id == user.id &&
+                   "text-accent font-semibold") ||
+                  "text-inkSoft"
+              ]}
+            >
+              {if user.id == @current_user.id, do: gettext("Me"), else: user.email}
+            </button>
+          </div>
+        </div>
+      </:header_actions>
 
       <:bar_items>
         <.checklist_zone

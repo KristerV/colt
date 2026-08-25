@@ -1,9 +1,9 @@
-defmodule Colt.Services.Sales.ClaimContactTest do
+defmodule Colt.Services.Sales.AssignContactTest do
   use Colt.DataCase, async: false
 
   alias Colt.Accounts.User
   alias Colt.Resources.{Campaign, StatusEvent}
-  alias Colt.Services.Sales.{ClaimContact, CreateManualContact}
+  alias Colt.Services.Sales.{AssignContact, CreateManualContact}
 
   defp seed_user(email) do
     User
@@ -38,30 +38,30 @@ defmodule Colt.Services.Sales.ClaimContactTest do
     Enum.filter(events, &(&1.kind == :assigned))
   end
 
-  test "claiming assigns the acting user" do
+  test "assigning to yourself works like claiming" do
     {owner, contact} = setup_contact()
 
-    {:ok, claimed} = ClaimContact.run(contact.id, actor: owner)
+    {:ok, assigned} = AssignContact.run(contact.id, owner.id, actor: owner)
 
-    assert claimed.assigned_to_id == owner.id
+    assert assigned.assigned_to_id == owner.id
   end
 
-  test "claiming again overwrites whoever had it before — no contest" do
+  test "assigning to a teammate overwrites whoever had it before" do
     {owner, contact} = setup_contact()
     # Not the campaign owner, so must be an admin to touch it (mirrors the
     # sales funnel LiveView, which is admin-only).
     {:ok, other} = Colt.Accounts.grant_admin(seed_user("teammate@example.com"), authorize?: false)
 
-    {:ok, _} = ClaimContact.run(contact.id, actor: owner)
-    {:ok, reclaimed} = ClaimContact.run(contact.id, actor: other)
+    {:ok, _} = AssignContact.run(contact.id, owner.id, actor: owner)
+    {:ok, reassigned} = AssignContact.run(contact.id, other.id, actor: owner)
 
-    assert reclaimed.assigned_to_id == other.id
+    assert reassigned.assigned_to_id == other.id
   end
 
   test "the feed records who it was assigned to" do
     {owner, contact} = setup_contact()
 
-    {:ok, _} = ClaimContact.run(contact.id, actor: owner)
+    {:ok, _} = AssignContact.run(contact.id, owner.id, actor: owner)
 
     assert [%{from: nil, to: "owner@example.com"}] = assigned_events(contact.id, owner)
   end
