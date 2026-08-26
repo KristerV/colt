@@ -245,6 +245,7 @@ defmodule Colt.Services.Sending.EmailWriter do
       |> Enum.sort_by(&(&1.step_position || 999))
       |> Enum.map(fn e ->
         %{
+          id: e.id,
           position: e.step_position,
           subject: e.user_subject || e.ai_subject,
           body: e.user_body || e.ai_body
