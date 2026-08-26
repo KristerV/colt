@@ -25,6 +25,7 @@ defmodule ColtWeb.Components.FunnelThread do
   use Phoenix.Component
   use Gettext, backend: ColtWeb.Gettext
 
+  alias Colt.Filters.IndustryLabels
   alias Colt.Resources.StatusEvent
   alias Colt.Services.Email.RenderBody
   alias ColtWeb.Components.Liid
@@ -240,6 +241,15 @@ defmodule ColtWeb.Components.FunnelThread do
                   >
                     ↗ {website_host(@company.website_url)}
                   </a>
+                </div>
+                <div
+                  :if={company_meta_line(@company) != ""}
+                  class="text-inkFaint mt-1"
+                >
+                  {company_meta_line(@company)}
+                </div>
+                <div :if={@company.ai_summary} class="mt-1.5 leading-snug">
+                  {@company.ai_summary}
                 </div>
                 <div :if={@from_name} class="text-inkFaint mt-1">
                   {gettext("From:")} {@from_name}
@@ -674,10 +684,10 @@ defmodule ColtWeb.Components.FunnelThread do
           <textarea
             id={"note-input-#{@reply_nonce}"}
             name="value"
-            rows="4"
+            rows="10"
             phx-debounce="300"
             placeholder={gettext("Internal note — not sent to recipient.")}
-            class="w-full px-3 py-2 bg-card border border-[#f0dcb0] rounded-[8px] text-[13px] text-[#6e5417] outline-none resize-none focus:border-[#e6c877]"
+            class="w-full px-3 py-2 bg-card border border-[#f0dcb0] rounded-[8px] text-[13px] text-[#6e5417] outline-none resize-y min-h-[220px] focus:border-[#e6c877]"
           >{@note_body}</textarea>
         </form>
         <div class="mt-3 flex justify-end">
@@ -721,6 +731,20 @@ defmodule ColtWeb.Components.FunnelThread do
       _ -> url
     end
   end
+
+  # "Software (6201) · 12 employees" — whichever registry facts we have,
+  # skipping the ones we don't.
+  defp company_meta_line(company) do
+    [
+      IndustryLabels.label(company.industry_code) || company.industry_code,
+      employees_label(company.employees_latest)
+    ]
+    |> Enum.filter(& &1)
+    |> Enum.join(" · ")
+  end
+
+  defp employees_label(n) when is_integer(n), do: gettext("%{n} employees", n: n)
+  defp employees_label(_), do: nil
 
   # Inbound + manual-reply bodies arrive as HTML; outbound AI drafts are plain
   # text. Both halves come back sanitized and go through `raw/1` in the card.

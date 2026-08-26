@@ -846,6 +846,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
                 selected={@selected}
                 selected_bucket={@selected_bucket}
                 campaign_id={@campaign.id}
+                current_user={@current_user}
               />
             </div>
             <div class={["min-h-0", (@level == :thread && "block") || "hidden", "md:block"]}>
@@ -1043,6 +1044,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   attr :selected, :map, default: nil
   attr :selected_bucket, :any, default: nil
   attr :campaign_id, :string, required: true
+  attr :current_user, :map, required: true
 
   defp contact_list(assigns) do
     ~H"""
@@ -1095,8 +1097,19 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
               ]}>
                 {chip_label}
               </span>
-              <span :if={c.assigned_to} class="text-[10.5px] text-inkFaint truncate max-w-[110px]">
-                {c.assigned_to.email}
+              <span
+                :if={c.assigned_to}
+                class={[
+                  "text-[10.5px] truncate max-w-[110px]",
+                  if(c.assigned_to.id == @current_user.id,
+                    do: "text-accent font-semibold",
+                    else: "text-inkFaint"
+                  )
+                ]}
+              >
+                {if c.assigned_to.id == @current_user.id,
+                  do: gettext("Me"),
+                  else: c.assigned_to.email}
               </span>
             </div>
           </.link>
