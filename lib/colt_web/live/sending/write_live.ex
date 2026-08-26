@@ -47,7 +47,7 @@ defmodule ColtWeb.Sending.WriteLive do
   alias ColtWeb.Components.{Funnel, Liid}
 
   @pubsub Colt.PubSub
-  @spell_check_debounce_ms 5_000
+  @spell_check_debounce_ms 2_000
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
@@ -1445,6 +1445,15 @@ defmodule ColtWeb.Sending.WriteLive do
           </tbody>
         </table>
       </div>
+      <div class="mt-3.5 border-t border-border pt-3.5 flex justify-end">
+        <button
+          type="button"
+          phx-click="open_learning"
+          class="inline-flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-semibold text-inkSoft border border-borderStrong rounded-[8px] hover:text-red hover:border-red/40 hover:bg-redSoft cursor-pointer bg-card"
+        >
+          <Liid.icon name="x" size={11} /> {gettext("Not a good fit")}
+        </button>
+      </div>
     </div>
     """
   end
@@ -1732,14 +1741,6 @@ defmodule ColtWeb.Sending.WriteLive do
       >
         {gettext("checking spelling…")}
       </span>
-
-      <button
-        type="button"
-        phx-click="open_learning"
-        class="inline-flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-semibold text-inkSoft border border-borderStrong rounded-[8px] hover:text-red hover:border-red/40 hover:bg-redSoft cursor-pointer bg-card"
-      >
-        <Liid.icon name="x" size={11} /> {gettext("Not a good fit")}
-      </button>
 
       <Liid.btn
         variant={:primary}
