@@ -209,6 +209,7 @@ defmodule Colt.Resources.OutboundEmail do
 
       filter expr(
                thread.campaign_contact.sequence_id == ^arg(:sequence_id) and
+                 is_manual_reply == false and
                  (not is_nil(user_subject) or not is_nil(user_body))
              )
 
