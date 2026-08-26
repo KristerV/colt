@@ -102,7 +102,20 @@ defmodule Colt.Services.Sending.IngestInbound do
 
   defp domain_fallback(_account, %{from_domain: nil}), do: {:ok, :orphan_no_domain}
 
-  defp domain_fallback(account, msg) do
+  defp domain_fallback(account, %{from_domain: domain} = msg)
+       when domain != nil do
+    if Colt.Filters.PublicEmailDomains.public?(domain) do
+      Logger.info(
+        "ingest_inbound: orphan (public domain) msg=#{msg.nylas_message_id} from=#{msg.from_address}"
+      )
+
+      {:ok, :orphan_public_domain}
+    else
+      domain_fallback_by_company_domain(account, msg)
+    end
+  end
+
+  defp domain_fallback_by_company_domain(account, msg) do
     case CampaignContact.find_active_in_inbox_by_domain(account.id, msg.from_domain,
            load: [:thread],
            authorize?: false
