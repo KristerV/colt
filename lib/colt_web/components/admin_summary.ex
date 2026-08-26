@@ -5,6 +5,12 @@ defmodule ColtWeb.Admin.Summary do
 
   require Ash.Query
 
+  # Fixed category order for the admin index — each tile below carries a
+  # `group:` naming one of these.
+  @groups ["Users", "Money", "Demo", "System"]
+
+  @cache_ms 24 * 60 * 60 * 1000
+
   def tiles do
     open_feedback =
       Colt.Resources.Feedback
@@ -14,81 +20,129 @@ defmodule ColtWeb.Admin.Summary do
     new_leads = Colt.Resources.DemoLead.count_new!(authorize?: false)
 
     [
+      client_tile(),
       %{
-        kicker: "Support",
+        group: "Users",
         title: "Feedback",
         value: format_int(open_feedback) <> " open",
         path: "/admin/feedback",
         alert: open_feedback > 0
       },
       %{
-        kicker: "Data",
-        title: "Companies",
-        value: format_approx(Colt.Resources.Company.estimated_count()),
-        path: "/admin/countries"
-      },
-      %{
-        kicker: "Data",
-        title: "Industry growth",
-        value: industry_growth_summary(),
-        path: "/admin/industries"
-      },
-      %{
-        kicker: "Activity",
+        group: "Users",
         title: "Campaigns",
         value: format_int(Ash.count!(Colt.Resources.Campaign, authorize?: false)) <> " total",
         path: "/admin/campaigns"
       },
       %{
-        kicker: "Database",
-        title: "Storage",
-        value: ColtWeb.Admin.StorageLive.total_size(),
-        path: "/admin/storage"
-      },
-      %{
-        kicker: "Spend",
+        group: "Money",
         title: "Costs",
         value: format_money(current_month_cost()),
         path: "/admin/costs"
       },
-      client_tile(),
-      oban_tile(),
-      system_tile(),
       %{
-        kicker: "Email",
-        title: "Tracking",
-        value: tracking_domain_summary(),
-        path: "/admin/tracking-domain"
+        group: "Money",
+        title: "Contact costs",
+        value: contact_cost_summary(),
+        path: "/admin/contact-costs"
       },
       %{
-        kicker: "Demo",
+        group: "Demo",
         title: "Deck",
         value: deck_summary(),
         path: "/admin/deck"
       },
       %{
-        kicker: "Demo",
+        group: "Demo",
         title: "A/B funnel",
         value: format_int(deck_views()) <> " views",
         path: "/admin/ab"
       },
       %{
-        kicker: "Demo",
+        group: "Demo",
         title: "Demo leads",
         value: format_int(new_leads) <> " new",
         path: "/admin/demo-leads",
         alert: new_leads > 0
-      }
+      },
+      system_tile(),
+      %{
+        group: "System",
+        title: "Storage",
+        value: ColtWeb.Admin.StorageLive.total_size(),
+        path: "/admin/storage"
+      },
+      %{
+        group: "System",
+        title: "Companies",
+        value: format_approx(Colt.Resources.Company.estimated_count()),
+        path: "/admin/countries"
+      },
+      %{
+        group: "System",
+        title: "Industry growth",
+        value: industry_growth_summary(),
+        path: "/admin/industries"
+      },
+      %{
+        group: "System",
+        title: "Tracking domain",
+        value: tracking_domain_summary(),
+        path: "/admin/tracking-domain"
+      },
+      oban_tile()
     ]
+  end
+
+  @doc "Tiles bucketed by `group:`, in the fixed category order."
+  def grouped(tiles) do
+    by_group = Enum.group_by(tiles, & &1.group)
+
+    @groups
+    |> Enum.map(&{&1, Map.get(by_group, &1, [])})
+    |> Enum.reject(fn {_group, tiles} -> tiles == [] end)
   end
 
   # The tile shows the pair of years the page compares, not a computed figure:
   # the rollup is a full scan of two years of filings, too heavy for a tile that
   # renders on every admin page.
-  defp industry_growth_summary do
-    {base_year, latest_year} = Colt.Services.Admin.IndustryGrowth.year_pair()
+  # Total revenue growth across every market's "all industries combined"
+  # figure — the same number the page's own headline tile shows, just summed
+  # over markets instead of picked for one. The underlying rollup is a full
+  # GROUPING SETS scan of two years of filings per market, too heavy to redo
+  # on every admin index load — memoized for 24h, same as ClientList.
+  defp industry_growth_summary, do: cached_industry_growth(admin_summary_code_version())
 
-    "#{base_year} → #{latest_year}"
+  defp admin_summary_code_version, do: __MODULE__.module_info(:md5)
+
+  defmemop cached_industry_growth(_code_version), expires_in: @cache_ms do
+    totals =
+      Colt.Markets.atoms()
+      |> Enum.map(&Colt.Services.Admin.IndustryGrowth.load/1)
+      |> Enum.map(& &1.market_total)
+      |> Enum.reject(&is_nil/1)
+
+    case totals do
+      [] ->
+        "no data"
+
+      rows ->
+        base = Enum.reduce(rows, Decimal.new(0), &Decimal.add(&2, &1.base_total))
+        latest = Enum.reduce(rows, Decimal.new(0), &Decimal.add(&2, &1.latest_total))
+        growth_pct(latest, base)
+    end
+  end
+
+  defp growth_pct(latest, base) do
+    if Decimal.compare(base, 0) != :gt do
+      "—"
+    else
+      change = latest |> Decimal.div(base) |> Decimal.sub(1) |> Decimal.mult(100)
+      decimals = if Decimal.compare(Decimal.abs(change), 10) != :lt, do: 0, else: 1
+      sign = if Decimal.positive?(change), do: "+", else: ""
+
+      sign <> Decimal.to_string(Decimal.round(change, decimals), :normal) <> "%"
+    end
   end
 
   defp deck_summary do
@@ -117,12 +171,27 @@ defmodule ColtWeb.Admin.Summary do
   attr :tiles, :list, required: true
   attr :current_path, :string, default: nil
 
-  def summary_strip(assigns) do
+  @doc "Row-by-row admin index: one bounded card per category, one row per page."
+  def summary_groups(assigns) do
+    assigns = assign(assigns, :groups, grouped(assigns.tiles))
+
     ~H"""
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      <%= for tile <- @tiles do %>
-        <.strip_tile tile={tile} active={active?(tile, @current_path)} />
-      <% end %>
+    <div class="space-y-6">
+      <div :for={{group, tiles} <- @groups}>
+        <div class="text-[10.5px] uppercase tracking-[0.08em] font-semibold text-ink55 mb-2">
+          {group}
+        </div>
+        <div
+          class="border border-border rounded-[11px] bg-card overflow-hidden"
+          style="box-shadow:var(--shadow-card)"
+        >
+          <.summary_row
+            :for={tile <- tiles}
+            tile={tile}
+            active={active?(tile, @current_path)}
+          />
+        </div>
+      </div>
     </div>
     """
   end
@@ -130,82 +199,62 @@ defmodule ColtWeb.Admin.Summary do
   attr :tile, :map, required: true
   attr :active, :boolean, default: false
 
-  defp strip_tile(%{tile: %{external: true}} = assigns) do
+  defp summary_row(%{tile: %{external: true}} = assigns) do
     ~H"""
-    <a
-      href={@tile.path}
-      target="_blank"
-      rel="noopener"
-      class={tile_class(@active)}
-      style={"box-shadow:var(--shadow)" <> if(@active, do: ";box-shadow: inset 0 0 0 1px var(--accentRing), var(--shadow)", else: "")}
-    >
-      <.strip_body tile={@tile} active={@active} />
+    <a href={@tile.path} target="_blank" rel="noopener" class={row_class(@active)}>
+      <.row_body tile={@tile} active={@active} />
     </a>
     """
   end
 
-  defp strip_tile(assigns) do
+  defp summary_row(assigns) do
     ~H"""
-    <.link
-      navigate={@tile.path}
-      class={tile_class(@active)}
-      style={"box-shadow:var(--shadow)" <> if(@active, do: ";box-shadow: inset 0 0 0 1px var(--accentRing), var(--shadow)", else: "")}
-    >
-      <.strip_body tile={@tile} active={@active} />
+    <.link navigate={@tile.path} class={row_class(@active)}>
+      <.row_body tile={@tile} active={@active} />
     </.link>
     """
   end
 
-  defp tile_class(active) do
+  defp row_class(active) do
     [
-      "px-[16px] py-[14px] relative text-left cursor-pointer transition-colors border rounded-[11px]",
-      if(active,
-        do: "bg-accentSoft border-accentRing",
-        else: "bg-card border-border hover:bg-paperAlt"
-      )
+      "flex items-center justify-between gap-3 px-4 py-3 border-b border-border last:border-b-0 no-underline transition-colors",
+      if(active, do: "bg-accentSoft", else: "hover:bg-paperAlt")
     ]
   end
 
   attr :tile, :map, required: true
   attr :active, :boolean, default: false
 
-  defp strip_body(assigns) do
+  defp row_body(assigns) do
     ~H"""
-    <div class="flex items-center justify-between mb-1.5">
-      <span class={[
-        "text-[10.5px] font-semibold tracking-[0.08em] uppercase truncate",
-        if(@active, do: "text-accent", else: "text-ink55")
-      ]}>
-        {@tile.title}
+    <span class={[
+      "text-[13px] font-medium flex items-center gap-1.5",
+      if(@active, do: "text-accent", else: "text-ink")
+    ]}>
+      {@tile.title}
+      <ColtWeb.Components.Liid.icon
+        :if={Map.get(@tile, :external)}
+        name="link"
+        size={11}
+        class="text-inkFaint"
+      />
+      <span
+        :if={Map.get(@tile, :alert)}
+        class="w-1.5 h-1.5 rounded-full bg-red"
+        title="needs attention"
+      >
       </span>
-      <span class="flex items-center gap-1.5 shrink-0">
-        <%!-- Only tiles that leave the app get the marker. An internal tile
-              keeps this strip on the page it opens, so there's nothing to warn
-              about. --%>
-        <ColtWeb.Components.Liid.icon
-          :if={Map.get(@tile, :external)}
-          name="link"
-          size={11}
-          class="text-inkFaint"
-        />
-        <span
-          :if={Map.get(@tile, :alert)}
-          class="w-1.5 h-1.5 rounded-full bg-red"
-          title="needs attention"
-        >
-        </span>
-      </span>
-    </div>
-    <div class={[
-      "text-[27px] font-bold leading-none tracking-[-0.02em] tabular-nums truncate",
+    </span>
+    <span class={[
+      "text-[13px] tabular-nums shrink-0",
       cond do
         @active -> "text-accent"
-        Map.get(@tile, :alert) -> "text-red"
-        true -> "text-ink"
+        Map.get(@tile, :alert) -> "text-red font-semibold"
+        true -> "text-ink55"
       end
     ]}>
       {@tile.value}
-    </div>
+    </span>
     """
   end
 
@@ -272,7 +321,7 @@ defmodule ColtWeb.Admin.Summary do
 
   defp system_tile do
     %{
-      kicker: "System",
+      group: "System",
       title: "Resources",
       value: "CPU #{cpu_pct()}% · RAM #{ram_pct()}%",
       path: "/admin/system"
@@ -307,7 +356,7 @@ defmodule ColtWeb.Admin.Summary do
     discarded = discarded_count()
 
     %{
-      kicker: "Background",
+      group: "System",
       title: "Oban Jobs",
       value: format_int(discarded) <> " discarded",
       path: "/admin/oban",
@@ -345,14 +394,35 @@ defmodule ColtWeb.Admin.Summary do
     |> Enum.reduce(Decimal.new(0), &Decimal.add(&2, &1.cost_usd))
   end
 
+  # Most recent month with any enriched contacts — falls back through prior
+  # months since the current month may not have any yet.
+  defp contact_cost_summary do
+    {:ok, rows} = Colt.Services.Costs.ContactCostByMonth.run(3)
+
+    rows
+    |> Enum.filter(& &1.avg_cost_usd)
+    |> List.last()
+    |> case do
+      nil -> "no data yet"
+      row -> "$" <> format_avg(row.avg_cost_usd) <> " · " <> month_short(row.month)
+    end
+  end
+
+  defp format_avg(%Decimal{} = d), do: d |> Decimal.round(4) |> Decimal.to_string(:normal)
+
+  defp month_short(<<y::binary-size(4), "-", mm::binary-size(2)>>) do
+    {:ok, date} = Date.new(String.to_integer(y), String.to_integer(mm), 1)
+    Calendar.strftime(date, "%b")
+  end
+
   # Clients and their lifetime profit now live on one page. The rollup behind it
   # is already memoized for 24h in ClientList, so reading it here is cheap.
   defp client_tile do
     {:ok, %{totals: totals}} = Colt.Services.Admin.ClientList.run()
 
     %{
-      kicker: "Clients",
-      title: "All Users",
+      group: "Users",
+      title: "All users",
       value: "#{format_int(totals.users)} users · #{format_signed(totals.profit)}",
       path: "/admin/clients"
     }

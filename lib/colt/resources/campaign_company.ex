@@ -401,4 +401,28 @@ defmodule Colt.Resources.CampaignCompany do
 
     {:ok, rows}
   end
+
+  @doc false
+  # Total enriched count per "YYYY-MM" month across all campaigns/owners —
+  # same bucketing as enriched_by_month_rows/1, just without the owner split.
+  # Feeds the admin contact-costs page's monthly average. Returns
+  # {:ok, [%{month, count}]}.
+  def enriched_count_by_month(months_back) when is_integer(months_back) and months_back > 0 do
+    import Ecto.Query
+
+    cutoff = DateTime.add(DateTime.utc_now(), -months_back * 31 * 86_400, :second)
+
+    rows =
+      from(cc in "campaign_companies",
+        where: cc.status == "enriched" and cc.inserted_at >= ^cutoff,
+        group_by: fragment("to_char(?, 'YYYY-MM')", cc.inserted_at),
+        select: %{
+          month: fragment("to_char(?, 'YYYY-MM')", cc.inserted_at),
+          count: count(cc.id)
+        }
+      )
+      |> Colt.Repo.all()
+
+    {:ok, rows}
+  end
 end

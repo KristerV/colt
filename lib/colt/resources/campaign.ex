@@ -22,6 +22,7 @@ defmodule Colt.Resources.Campaign do
     define :list_for_user, args: [:user_id]
     define :list_all_recent
     define :list_all_with_owner
+    define :list_active_with_costs, args: [:since]
     define :list_auto_approve_active
     define :rename, args: [:name]
     define :update_filters, args: [:filters]
@@ -65,6 +66,13 @@ defmodule Colt.Resources.Campaign do
     read :list_all_with_owner do
       description "Admin — every campaign across users, for the per-client rollup."
       prepare build(sort: [inserted_at: :desc])
+    end
+
+    read :list_active_with_costs do
+      description "Admin — campaigns with any API-call spend in the last N days, for the contact-costs page."
+      argument :since, :utc_datetime, allow_nil?: false
+      filter expr(last_cost_activity_at >= ^arg(:since))
+      prepare build(sort: [cost_usd: :desc])
     end
 
     read :list_auto_approve_active do
@@ -323,6 +331,10 @@ defmodule Colt.Resources.Campaign do
       filter: expr(reply_category == :interested)
 
     max :last_contact_activity_at, :campaign_contacts, :updated_at
+
+    # Drives the "active in the last 30 days" filter on the contact-costs
+    # admin page — cost activity is what "active" means there.
+    max :last_cost_activity_at, :api_calls, :inserted_at
   end
 
   @doc """

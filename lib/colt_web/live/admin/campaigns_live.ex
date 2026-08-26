@@ -45,7 +45,7 @@ defmodule ColtWeb.Admin.CampaignsLive do
           <%= for c <- @campaigns do %>
             <.link
               navigate={~p"/campaigns/#{c.id}/funnel"}
-              class="grid grid-cols-2 md:grid-cols-none md:[grid-template-columns:2fr_1.5fr_100px_100px_110px_110px_130px] items-center gap-2 md:gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-paperAlt no-underline text-ink"
+              class="grid grid-cols-2 md:[grid-template-columns:2fr_1.5fr_100px_100px_110px_110px_130px] items-center gap-2 md:gap-3 px-4 py-3 border-b border-border last:border-b-0 hover:bg-paperAlt no-underline text-ink"
             >
               <span class="text-[13px] font-medium truncate">{c.name}</span>
               <span class="text-[12px] text-ink55 truncate">{owner_email(c.owner)}</span>
