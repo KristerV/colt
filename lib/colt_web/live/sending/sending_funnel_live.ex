@@ -21,7 +21,15 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   }
 
   alias Colt.Services.Export.ThreadTranscript
-  alias Colt.Services.Sending.{ManualOverride, SendManualReply, Stats, StopSequence}
+
+  alias Colt.Services.Sending.{
+    ManualOverride,
+    SendManualReply,
+    Stats,
+    StopSequence,
+    ThreadNeedsReply
+  }
+
   alias Phoenix.LiveView.JS
   alias ColtWeb.Components.{FunnelThread, Liid}
   alias Phoenix.PubSub
@@ -40,7 +48,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
         if connected?(socket), do: PubSub.subscribe(@pubsub, "campaign:#{campaign.id}")
 
         contacts = load_contacts(campaign.id, actor)
-        sent_steps = compute_sent_steps(contacts)
+        {sent_steps, needs_reply} = compute_thread_progress(contacts)
         stats = Stats.for(campaign.id)
         total_steps = count_email_steps(campaign.id, actor)
 
@@ -54,6 +62,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
             selected_bucket: nil,
             stats: stats,
             sent_steps: sent_steps,
+            needs_reply: needs_reply,
             total_steps: total_steps,
             active_tab: nil,
             reply_html: "",
@@ -259,6 +268,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     contacts = load_contacts(socket.assigns.campaign.id, actor)
     stats = Stats.for(socket.assigns.campaign.id)
     selected_id = socket.assigns.selected && socket.assigns.selected.id
+    {sent_steps, needs_reply} = compute_thread_progress(contacts)
 
     selected =
       if selected_id,
@@ -270,35 +280,53 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
       contacts: contacts,
       selected: selected,
       stats: stats,
-      sent_steps: compute_sent_steps(contacts)
+      sent_steps: sent_steps,
+      needs_reply: needs_reply
     )
     |> load_thread_data()
   end
 
-  # Map contact_id → count of distinct sequence steps actually sent.
-  # Drives the "n/total" progress badge in the contact list. Cheap enough
-  # at v1 scale; Stats memoization covers the heavier metric computation.
-  defp compute_sent_steps(contacts) do
-    Enum.reduce(contacts, %{}, fn c, acc ->
+  # Map contact_id → count of distinct sequence steps actually sent (drives
+  # the "n/total" progress badge), plus the set of contact ids whose most
+  # recent thread activity is an inbound reply we haven't answered yet
+  # (drives the "needs reply" dot). Computed together since both need the
+  # same per-thread outbound/inbound fetch.
+  defp compute_thread_progress(contacts) do
+    Enum.reduce(contacts, {%{}, MapSet.new()}, fn c, {sent_acc, needs_acc} ->
       case c.thread do
         %{id: tid} ->
-          case OutboundEmail.list_for_thread(tid, authorize?: false) do
-            {:ok, rows} ->
-              count =
-                rows
-                |> Enum.filter(&(&1.status == :sent and &1.step_position != nil))
-                |> Enum.map(& &1.step_position)
-                |> Enum.uniq()
-                |> length()
+          outbound =
+            case OutboundEmail.list_for_thread(tid, authorize?: false) do
+              {:ok, rows} -> rows
+              _ -> []
+            end
 
-              if count > 0, do: Map.put(acc, c.id, count), else: acc
+          inbound =
+            case InboundEmail.list_for_thread(tid, authorize?: false) do
+              {:ok, rows} -> rows
+              _ -> []
+            end
 
-            _ ->
-              acc
-          end
+          sent = outbound |> Enum.filter(&(&1.status == :sent))
+
+          step_count =
+            sent
+            |> Enum.filter(&(&1.step_position != nil))
+            |> Enum.map(& &1.step_position)
+            |> Enum.uniq()
+            |> length()
+
+          sent_acc = if step_count > 0, do: Map.put(sent_acc, c.id, step_count), else: sent_acc
+
+          needs_acc =
+            if ThreadNeedsReply.needs_reply?(outbound, inbound),
+              do: MapSet.put(needs_acc, c.id),
+              else: needs_acc
+
+          {sent_acc, needs_acc}
 
         _ ->
-          acc
+          {sent_acc, needs_acc}
       end
     end)
   end
@@ -312,12 +340,12 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     end
   end
 
-  defp visible_contacts(contacts, nil, _sent_map), do: contacts
+  defp visible_contacts(contacts, nil, _sent_map, _needs_reply), do: contacts
 
-  defp visible_contacts(contacts, bucket, sent_map) do
-    Enum.filter(contacts, fn c ->
-      contact_in_bucket?(c, bucket, sent_map)
-    end)
+  defp visible_contacts(contacts, bucket, sent_map, needs_reply) do
+    contacts
+    |> Enum.filter(&contact_in_bucket?(&1, bucket, sent_map))
+    |> Enum.sort_by(&if(MapSet.member?(needs_reply, &1.id), do: 0, else: 1))
   end
 
   defp contact_in_bucket?(c, :sending, _sent_map),
@@ -430,7 +458,13 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
 
     visible =
       if assigns.selected_bucket,
-        do: visible_contacts(assigns.contacts, assigns.selected_bucket, assigns.sent_steps),
+        do:
+          visible_contacts(
+            assigns.contacts,
+            assigns.selected_bucket,
+            assigns.sent_steps,
+            assigns.needs_reply
+          ),
         else: []
 
     assigns =
@@ -506,6 +540,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
                 selected={@selected}
                 selected_bucket={@selected_bucket}
                 sent_steps={@sent_steps}
+                needs_reply={@needs_reply}
                 total_steps={@total_steps}
                 campaign_id={@campaign.id}
               />
@@ -773,6 +808,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
   attr :selected, :map, default: nil
   attr :selected_bucket, :any, default: nil
   attr :sent_steps, :map, default: %{}
+  attr :needs_reply, :any, default: nil
   attr :total_steps, :integer, default: 0
   attr :campaign_id, :string, required: true
 
@@ -809,11 +845,18 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
               )
             ]}
           >
-            <span class={[
-              "w-[34px] h-[34px] rounded-[9px] shrink-0 flex items-center justify-center text-[13px] font-semibold",
-              if(active?, do: "bg-[#dbe7fa] text-accent", else: "bg-[#ece9e2] text-[#7a6f5f]")
-            ]}>
-              {FunnelThread.initials(c.person && c.person.name)}
+            <span class="relative shrink-0">
+              <span class={[
+                "w-[34px] h-[34px] rounded-[9px] flex items-center justify-center text-[13px] font-semibold",
+                if(active?, do: "bg-[#dbe7fa] text-accent", else: "bg-[#ece9e2] text-[#7a6f5f]")
+              ]}>
+                {FunnelThread.initials(c.person && c.person.name)}
+              </span>
+              <span
+                :if={MapSet.member?(@needs_reply, c.id)}
+                title={gettext("They replied — you haven't yet")}
+                class="absolute -top-[2px] -right-[2px] w-[9px] h-[9px] rounded-full bg-amber ring-2 ring-card"
+              />
             </span>
             <div class="flex-1 min-w-0">
               <div class="text-[13.5px] font-semibold text-ink truncate">
