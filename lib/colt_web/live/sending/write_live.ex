@@ -42,10 +42,12 @@ defmodule ColtWeb.Sending.WriteLive do
   }
 
   alias Colt.Services.Sending.EmailWriter
+  alias Colt.Services.Sending.SpellCheck
   alias Phoenix.PubSub
   alias ColtWeb.Components.{Funnel, Liid}
 
   @pubsub Colt.PubSub
+  @spell_check_debounce_ms 5_000
 
   on_mount {ColtWeb.LiveUserAuth, :live_plan_required}
   on_mount {ColtWeb.Sending.PanicHook, :default}
@@ -92,7 +94,11 @@ defmodule ColtWeb.Sending.WriteLive do
             saved_at: nil,
             learning_open?: false,
             learning_saving?: false,
-            learning_error: nil
+            learning_error: nil,
+            spell_status: :not_needed,
+            spell_warnings: %{},
+            spell_gen: 0,
+            spell_timer: nil
           )
           |> load_next_contact()
 
@@ -158,14 +164,14 @@ defmodule ColtWeb.Sending.WriteLive do
 
   def handle_event("set_subject", %{"value" => v}, socket) do
     socket = persist_subject(socket, v)
-    {:noreply, assign(socket, subject: v) |> mark_saved()}
+    {:noreply, assign(socket, subject: v) |> mark_saved() |> schedule_spell_check()}
   end
 
   def handle_event("set_body", %{"position" => pos, "value" => v}, socket) do
     pos = String.to_integer(pos)
     bodies = Map.put(socket.assigns.bodies, pos, v)
     socket = persist_body(socket, pos, v)
-    {:noreply, assign(socket, bodies: bodies) |> mark_saved()}
+    {:noreply, assign(socket, bodies: bodies) |> mark_saved() |> schedule_spell_check()}
   end
 
   # ── Variant picker (the quiet dropdown) ────────────────────────────────
@@ -394,6 +400,31 @@ defmodule ColtWeb.Sending.WriteLive do
        socket
        |> put_flash(:error, gettext("AI writer failed: %{reason}", reason: inspect(reason)))
        |> assign(state: :default)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  # ── Spell check (debounced, whole-sequence, advisory) ─────────────────
+
+  def handle_info({:run_spell_check, gen}, socket) do
+    if gen == socket.assigns.spell_gen do
+      {:noreply, kick_off_spell_check(socket, gen)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:spell_check_done, gen, result}, socket) do
+    if gen == socket.assigns.spell_gen do
+      case result do
+        {:ok, warnings} ->
+          {:noreply,
+           assign(socket, spell_status: :done, spell_warnings: index_warnings(warnings))}
+
+        {:error, _reason} ->
+          {:noreply, assign(socket, spell_status: :error, spell_warnings: %{})}
+      end
     else
       {:noreply, socket}
     end
@@ -690,6 +721,21 @@ defmodule ColtWeb.Sending.WriteLive do
     socket
     |> assign(drafts: emails, ooo_draft: List.first(ooo))
     |> seed_inputs_from_drafts(emails, List.first(ooo))
+    |> reset_spell_check()
+  end
+
+  # A fresh set of drafts (new contact, variant switch, rewrite) makes any
+  # pending/queued check meaningless — it'd be checking text that's no longer
+  # on screen, or racing to paint warnings over the new draft.
+  defp reset_spell_check(socket) do
+    if socket.assigns[:spell_timer], do: Process.cancel_timer(socket.assigns.spell_timer)
+
+    assign(socket,
+      spell_status: :not_needed,
+      spell_warnings: %{},
+      spell_gen: (socket.assigns[:spell_gen] || 0) + 1,
+      spell_timer: nil
+    )
   end
 
   # No user-edited emails written under this template yet ⇒ write by hand.
@@ -945,6 +991,63 @@ defmodule ColtWeb.Sending.WriteLive do
 
   defp mark_saved(socket), do: assign(socket, saved_at: DateTime.utc_now())
 
+  # Any edit invalidates the last check (stale warnings would point at text
+  # that no longer exists) and restarts the debounce. The generation counter
+  # lets a check kicked off before this edit land as a no-op instead of
+  # painting warnings over fresher text.
+  defp schedule_spell_check(socket) do
+    if socket.assigns[:spell_timer], do: Process.cancel_timer(socket.assigns.spell_timer)
+
+    gen = socket.assigns.spell_gen + 1
+    timer = Process.send_after(self(), {:run_spell_check, gen}, @spell_check_debounce_ms)
+
+    assign(socket,
+      spell_status: :dirty,
+      spell_gen: gen,
+      spell_timer: timer
+    )
+  end
+
+  defp kick_off_spell_check(socket, gen) do
+    parent = self()
+    fields = %{subject: socket.assigns.subject, bodies: socket.assigns.bodies}
+    language = socket.assigns.sequence.language
+    contact = socket.assigns.contact
+    campaign_id = socket.assigns.campaign.id
+
+    Task.start(fn ->
+      result =
+        SpellCheck.run(fields,
+          language: language,
+          campaign_id: campaign_id,
+          subject: contact && {:campaign_contact, contact.id}
+        )
+
+      send(parent, {:spell_check_done, gen, result})
+    end)
+
+    assign(socket, spell_status: :checking, spell_timer: nil)
+  end
+
+  # Position -> warning list, keyed to match @bodies ("subject" stays a
+  # string, step positions become integers for Map.get(@bodies-shaped) lookups).
+  defp index_warnings(warnings) do
+    Enum.group_by(warnings, fn w ->
+      case w["position"] do
+        "subject" ->
+          "subject"
+
+        pos ->
+          case Integer.parse(to_string(pos)) do
+            {n, _} -> n
+            :error -> pos
+          end
+      end
+    end)
+  end
+
+  defp spell_check_blocking?(status), do: status in [:dirty, :checking]
+
   defp topic(campaign_id), do: "writing:#{campaign_id}"
 
   # ── Render ─────────────────────────────────────────────────────────────
@@ -987,10 +1090,12 @@ defmodule ColtWeb.Sending.WriteLive do
               saved_at={@saved_at}
               is_admin={@is_admin}
               ooo_draft={@ooo_draft}
+              spell_warnings={@spell_warnings}
             />
             <.action_bar
               drafting={s == :drafting}
               can_approve={can_approve?(@subject, @bodies, @drafts)}
+              spell_status={@spell_status}
             />
         <% end %>
       </div>
@@ -1093,6 +1198,7 @@ defmodule ColtWeb.Sending.WriteLive do
   attr :saved_at, :any, default: nil
   attr :is_admin, :boolean, default: false
   attr :ooo_draft, :map, default: nil
+  attr :spell_warnings, :map, default: %{}
 
   defp editor(assigns) do
     step_by_position = Map.new(assigns.email_steps, fn s -> {s.position, s} end)
@@ -1155,6 +1261,7 @@ defmodule ColtWeb.Sending.WriteLive do
           class="w-full px-4 py-2.5 border border-border bg-bgSoft rounded-[8px] text-[13.5px] text-ink outline-none placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
         />
       </form>
+      <.spell_warnings warnings={Map.get(@spell_warnings, "subject", [])} />
 
       <div class="mt-5 flex flex-col gap-5">
         <%= for {email, idx} <- Enum.with_index(@drafts) do %>
@@ -1173,6 +1280,7 @@ defmodule ColtWeb.Sending.WriteLive do
             removable={not @seeded}
             body={Map.get(@bodies, email.step_position, email.user_body || email.ai_body || "")}
             disabled={false}
+            warnings={Map.get(@spell_warnings, email.step_position, [])}
           />
         <% end %>
 
@@ -1196,7 +1304,11 @@ defmodule ColtWeb.Sending.WriteLive do
         <% end %>
 
         <div :if={@is_admin && @ooo_draft}>
-          <.ooo_card ooo_draft={@ooo_draft} body={Map.get(@bodies, -1, "")} />
+          <.ooo_card
+            ooo_draft={@ooo_draft}
+            body={Map.get(@bodies, -1, "")}
+            warnings={Map.get(@spell_warnings, -1, [])}
+          />
         </div>
       </div>
 
@@ -1493,6 +1605,7 @@ defmodule ColtWeb.Sending.WriteLive do
   attr :removable, :boolean, default: true
   attr :body, :string, default: ""
   attr :disabled, :boolean, default: false
+  attr :warnings, :list, default: []
 
   defp step_card(assigns) do
     ~H"""
@@ -1538,12 +1651,36 @@ defmodule ColtWeb.Sending.WriteLive do
           style="field-sizing: content;"
         >{@body}</textarea>
       </form>
+      <.spell_warnings warnings={@warnings} class="px-5 pb-4" />
+    </div>
+    """
+  end
+
+  attr :warnings, :list, default: []
+  attr :class, :string, default: ""
+
+  # Small amber chip per flagged typo — advisory, never blocking. Placed
+  # right under the field it's about, not bundled at the bottom of the
+  # sequence, so it's obvious which line it refers to.
+  defp spell_warnings(assigns) do
+    ~H"""
+    <div :if={@warnings != []} class={["flex flex-col gap-1.5 mt-2", @class]}>
+      <div
+        :for={w <- @warnings}
+        class="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-[8px] bg-amberSoft text-amber text-[11px] font-medium"
+      >
+        <span>⚠</span>
+        <span class="line-through opacity-70">{w["original"]}</span>
+        <span>→</span>
+        <span class="font-semibold">{w["suggestion"]}</span>
+      </div>
     </div>
     """
   end
 
   attr :ooo_draft, :map, required: true
   attr :body, :string, default: ""
+  attr :warnings, :list, default: []
 
   # Golden, admin-only card for the OOO welcome-back. Rendered after the
   # follow-ups; its blank body is optional (empty ⇒ the feature no-ops for the
@@ -1575,6 +1712,7 @@ defmodule ColtWeb.Sending.WriteLive do
             placeholder={gettext("welcome them back, ask one light question…")}
             class="w-full px-4 py-3 border border-border bg-bgSoft rounded-[8px] text-[13.5px] leading-[1.6] text-ink outline-none resize-y placeholder:text-inkFaint focus:border-accentRing focus:bg-card"
           >{@body}</textarea>
+          <.spell_warnings warnings={@warnings} class="mt-1" />
         </form>
       </div>
     </div>
@@ -1583,10 +1721,18 @@ defmodule ColtWeb.Sending.WriteLive do
 
   attr :drafting, :boolean, default: false
   attr :can_approve, :boolean, default: false
+  attr :spell_status, :atom, default: :not_needed
 
   defp action_bar(assigns) do
     ~H"""
     <div class="mt-8 flex flex-wrap items-center justify-end gap-3">
+      <span
+        :if={spell_check_blocking?(@spell_status)}
+        class="text-[11px] text-inkFaint tabular-nums"
+      >
+        {gettext("checking spelling…")}
+      </span>
+
       <button
         type="button"
         phx-click="open_learning"
@@ -1598,7 +1744,7 @@ defmodule ColtWeb.Sending.WriteLive do
       <Liid.btn
         variant={:primary}
         phx-click="approve"
-        disabled={@drafting or not @can_approve}
+        disabled={@drafting or not @can_approve or spell_check_blocking?(@spell_status)}
       >
         <Liid.icon name="check" size={12} /> {gettext("Approve & next")}
       </Liid.btn>
