@@ -367,6 +367,8 @@ defmodule ColtWeb.Components.FunnelThread do
   end
 
   def timeline_item(%{item: %{kind: :note}} = assigns) do
+    assigns = assign(assigns, author_label: note_author_label(assigns.item.note))
+
     ~H"""
     <div class="flex-none flex justify-center">
       <div
@@ -377,7 +379,10 @@ defmodule ColtWeb.Components.FunnelThread do
           <span class="inline-flex items-center text-[11px] font-semibold px-2 py-[3px] rounded-[6px] bg-[#efd9a8] text-[#9a6f17]">
             {gettext("Note")}
           </span>
-          <span class="ml-auto text-[11px] font-medium text-[#9a6f17] tabular-nums">
+          <span :if={@author_label} class="text-[11px] font-medium text-[#9a6f17] truncate">
+            {@author_label}
+          </span>
+          <span class="ml-auto shrink-0 text-[11px] font-medium text-[#9a6f17] tabular-nums">
             {Calendar.strftime(@item.at, "%b %d · %H:%M")}
           </span>
         </div>
@@ -752,6 +757,11 @@ defmodule ColtWeb.Components.FunnelThread do
     {:ok, split} = RenderBody.run(raw)
     split
   end
+
+  # `:create_system` notes (deck-submission mirrors) have no author; a
+  # person-written note always does.
+  defp note_author_label(%{author: %{email: email}}) when not is_nil(email), do: to_string(email)
+  defp note_author_label(_), do: nil
 
   # Feed-line label for a StatusEvent: "from → to", "→ to", or just "to".
   # A checklist tick gets a real checkbox rather than the generic dot — the

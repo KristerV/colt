@@ -665,7 +665,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     if thread do
       outbound = OutboundEmail.list_for_thread!(thread.id, actor: actor, authorize?: true)
       inbound = InboundEmail.list_for_thread!(thread.id, actor: actor, authorize?: true)
-      notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true)
+      notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true, load: [:author])
       events = StatusEvent.list_for_thread!(thread.id, load: [:actor], authorize?: false)
 
       timeline = FunnelThread.build_timeline(outbound, inbound, notes, events)

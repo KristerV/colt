@@ -376,7 +376,7 @@ defmodule ColtWeb.Sending.SendingFunnelLive do
     if thread do
       outbound = OutboundEmail.list_for_thread!(thread.id, actor: actor, authorize?: true)
       inbound = InboundEmail.list_for_thread!(thread.id, actor: actor, authorize?: true)
-      notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true)
+      notes = Note.list_for_thread!(thread.id, actor: actor, authorize?: true, load: [:author])
 
       # Thread ownership is already established by the authorized contact
       # selection; read the feed (and its actor) unauthorized so an
