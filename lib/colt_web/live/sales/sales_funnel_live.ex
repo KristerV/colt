@@ -58,6 +58,13 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   @buckets [:now, :later, :won, :lost]
   @exits [:won, :lost]
 
+  # `:recent` is a cross-cutting view, not a stage — it sits alongside the
+  # four real buckets rather than being one, so it's a valid URL slug without
+  # being part of `@buckets`' bucket_count/visible_contacts default clauses.
+  @views @buckets ++ [:recent]
+
+  @recent_days 14
+
   def mount(%{"id" => id}, _session, socket) do
     actor = socket.assigns.current_user
 
@@ -131,7 +138,7 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   # Whitelisted slug→atom; unknown slugs fall back to "no bucket selected"
   # rather than raising on a hand-typed URL.
-  defp parse_bucket(slug), do: Enum.find(@buckets, &(to_string(&1) == slug))
+  defp parse_bucket(slug), do: Enum.find(@views, &(to_string(&1) == slug))
 
   # ── Events ───────────────────────────────────────────────────────────
 
@@ -587,16 +594,30 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
     |> Enum.sort_by(& &1.outcome_at, {:desc, DateTime})
   end
 
+  defp visible_contacts(contacts, :recent) do
+    contacts
+    |> Enum.filter(&recent?/1)
+    |> Enum.sort_by(& &1.bucket_changed_at, {:desc, DateTime})
+  end
+
   defp visible_contacts(contacts, bucket),
     do: Enum.filter(contacts, &(&1.sales_bucket == bucket))
 
+  defp bucket_count(contacts, :recent), do: Enum.count(contacts, &recent?/1)
+
   defp bucket_count(contacts, bucket),
     do: Enum.count(contacts, &(&1.sales_bucket == bucket))
+
+  # A rolling window, not a calendar-day cutoff — this isn't a scheduled date
+  # like `next_action_at`, just "how long ago", so plain elapsed time is right.
+  defp recent?(%{bucket_changed_at: at}),
+    do: DateTime.diff(DateTime.utc_now(), at, :day) <= @recent_days
 
   defp bucket_label(:now), do: gettext("Now")
   defp bucket_label(:later), do: gettext("Later")
   defp bucket_label(:won), do: gettext("Won")
   defp bucket_label(:lost), do: gettext("Lost")
+  defp bucket_label(:recent), do: gettext("Recent")
 
   defp bucket_dot(:now), do: "bg-accent"
   defp bucket_dot(:won), do: "bg-green"
@@ -615,6 +636,13 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       0 -> {gettext("Today"), "bg-accentSoft text-accent"}
       n when n < 0 -> {gettext("%{n}d overdue", n: abs(n)), "bg-amberSoft text-amber"}
       n -> {gettext("in %{n}d", n: n), "bg-paperAlt text-inkSoft"}
+    end
+  end
+
+  defp recent_chip(%{bucket_changed_at: at}) do
+    case DateTime.diff(DateTime.utc_now(), at, :day) do
+      0 -> {gettext("Today"), "bg-accentSoft text-accent"}
+      n -> {gettext("%{n}d ago", n: n), "bg-paperAlt text-inkSoft"}
     end
   end
 
@@ -988,17 +1016,56 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
   attr :selected_bucket, :any, default: nil
   attr :campaign_id, :string, required: true
 
+  # Three groups — [Now, Later] [Won, Lost] [Recent] — stacked on mobile,
+  # a row on desktop. `:recent` is a cross-cutting view (any bucket, touched
+  # lately) so it stands apart rather than joining the stage groups.
+  defp bucket_strip(assigns) do
+    ~H"""
+    <div class="flex flex-col md:flex-row gap-3">
+      <.bucket_group
+        buckets={[:now, :later]}
+        contacts={@contacts}
+        selected_bucket={@selected_bucket}
+        campaign_id={@campaign_id}
+      />
+      <.bucket_group
+        buckets={[:won, :lost]}
+        contacts={@contacts}
+        selected_bucket={@selected_bucket}
+        campaign_id={@campaign_id}
+      />
+      <.bucket_group
+        buckets={[:recent]}
+        contacts={@contacts}
+        selected_bucket={@selected_bucket}
+        campaign_id={@campaign_id}
+      />
+    </div>
+    """
+  end
+
+  attr :buckets, :list, required: true
+  attr :contacts, :list, required: true
+  attr :selected_bucket, :any, default: nil
+  attr :campaign_id, :string, required: true
+
   # One flush segmented block. `gap-px` over a border-coloured background draws
   # the hairlines between tiles, which works identically for the 2×2 mobile
   # grid and the single desktop row — no per-edge border juggling.
-  defp bucket_strip(assigns) do
+  defp bucket_group(assigns) do
     ~H"""
     <div
-      class="grid grid-cols-2 md:flex gap-px bg-border border border-border rounded-[11px] overflow-hidden"
+      class={[
+        "grid gap-px bg-border border border-border rounded-[11px] overflow-hidden",
+        if(length(@buckets) == 1,
+          do: "grid-cols-1 md:flex md:flex-1",
+          else: "grid-cols-2 md:flex md:flex-[2]"
+        )
+      ]}
       style="box-shadow:var(--shadow)"
     >
       <.bucket_tile
-        :for={b <- [:now, :later, :won, :lost]}
+        :for={b <- @buckets}
         bucket={b}
         count={bucket_count(@contacts, b)}
         active?={@selected_bucket == b}
@@ -1063,7 +1130,8 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
       <div class="flex-1 overflow-y-auto p-2">
         <%= for c <- @contacts do %>
           <% active? = @selected && @selected.id == c.id %>
-          <% {chip_label, chip_class} = row_chip(c) %>
+          <% {chip_label, chip_class} =
+            if @selected_bucket == :recent, do: recent_chip(c), else: row_chip(c) %>
           <.link
             patch={~p"/campaigns/#{@campaign_id}/sales/#{@selected_bucket}/#{c.id}"}
             style={active? && "box-shadow: inset 0 0 0 1px var(--accentRing)"}
@@ -1082,8 +1150,12 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
               {FunnelThread.initials(c.person && c.person.name)}
             </span>
             <div class="flex-1 min-w-0">
-              <div class="text-[13.5px] font-semibold text-ink truncate">
-                {(c.person && c.person.name) || "—"}
+              <div class="text-[13.5px] font-semibold text-ink truncate flex items-center gap-1.5">
+                <span
+                  :if={@selected_bucket == :recent}
+                  class={["w-[6px] h-[6px] rounded-full shrink-0", bucket_dot(c.sales_bucket)]}
+                />
+                <span class="truncate">{(c.person && c.person.name) || "—"}</span>
               </div>
               <div class="text-[12px] text-inkFaint truncate">
                 {(c.person && c.person.company && c.person.company.name) ||
@@ -1150,6 +1222,9 @@ defmodule ColtWeb.Sales.SalesFunnelLive do
 
   defp empty_bucket_hint(:won), do: gettext("No wins recorded yet.")
   defp empty_bucket_hint(:lost), do: gettext("Nothing written off yet.")
+
+  defp empty_bucket_hint(:recent),
+    do: gettext("Nothing has moved in the last %{n} days.", n: @recent_days)
 
   attr :contact, :map, required: true
   attr :thread, :any, required: true

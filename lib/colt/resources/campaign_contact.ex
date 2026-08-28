@@ -320,6 +320,10 @@ defmodule Colt.Resources.CampaignContact do
 
       accept [:next_action_at]
       require_atomic? false
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :bucket_changed_at, DateTime.utc_now())
+      end
     end
 
     update :set_outcome do
@@ -331,6 +335,10 @@ defmodule Colt.Resources.CampaignContact do
 
       accept [:outcome, :outcome_reason, :outcome_at, :next_action_at]
       require_atomic? false
+
+      change fn changeset, _ ->
+        Ash.Changeset.change_attribute(changeset, :bucket_changed_at, DateTime.utc_now())
+      end
     end
 
     update :record_demo_step do
@@ -520,6 +528,16 @@ defmodule Colt.Resources.CampaignContact do
     attribute :outcome, :atom, constraints: [one_of: [:won, :lost]], public?: true
     attribute :outcome_reason, :string, public?: true
     attribute :outcome_at, :utc_datetime, public?: true
+
+    # When the funnel bucket last actually changed — stamped only by
+    # `set_next_action`/`set_outcome` (which `ReactivateOnReply` also goes
+    # through), never by an unrelated write. Deliberately not `updated_at`,
+    # which bumps on any attribute edit and would make "recently moved"
+    # meaningless. Powers the sales funnel's Recent tab.
+    attribute :bucket_changed_at, :utc_datetime,
+      allow_nil?: false,
+      default: &DateTime.utc_now/0,
+      public?: true
 
     # How far this contact got through the `/demo` deck, stamped the first time
     # each step happens. First-write-wins is the point: a prospect who reloads
