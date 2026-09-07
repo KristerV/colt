@@ -115,6 +115,11 @@ defmodule Colt.Services.Sending.SendOne do
     {:ok, :skipped_contact_replied}
   end
 
+  defp proceed_or_skip(%{contact: %{status: :bounced}} = ctx) do
+    Broadcast.skipped(ctx.campaign.id, ctx.email.id, ctx.contact.id, :contact_bounced)
+    {:ok, :skipped_contact_bounced}
+  end
+
   defp proceed_or_skip(%{campaign: %{panic_switch_on: true}} = ctx) do
     Broadcast.skipped(ctx.campaign.id, ctx.email.id, ctx.contact.id, :panic)
     {:ok, :skipped_panic}

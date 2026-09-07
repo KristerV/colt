@@ -74,6 +74,25 @@ defmodule Colt.Services.Sending.SendOneRepliedGuardTest do
     end
   end
 
+  describe "proceed_or_skip (contact already bounced)" do
+    test "a :scheduled row is skipped, not sent, when the contact has since bounced" do
+      %{email: email, campaign: campaign, contact: contact} =
+        graph(contact_status: :bounced, email_status: :scheduled)
+
+      Colt.Services.Sending.Broadcast.subscribe(campaign.id)
+
+      assert {:ok, :skipped_contact_bounced} = SendOne.run(email.id)
+
+      {:ok, reloaded} = OutboundEmail.get(email.id, authorize?: false)
+      assert reloaded.status == :scheduled
+      assert reloaded.sent_at == nil
+
+      assert_receive {:email_skipped, email_id, contact_id, :contact_bounced}
+      assert email_id == email.id
+      assert contact_id == contact.id
+    end
+  end
+
   # ── fixtures (Ash.Seed bypasses create actions/policies/validations) ──
 
   defp graph(opts) do

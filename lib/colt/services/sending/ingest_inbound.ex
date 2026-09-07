@@ -207,6 +207,7 @@ defmodule Colt.Services.Sending.IngestInbound do
 
     with {:ok, updated} <- CampaignContact.mark_bounced(contact, authorize?: false) do
       Colt.Services.Sales.RecordStatusEvent.run(thread_id, :send_status, from, "bounced")
+      Colt.Services.Sending.HaltSequence.run(thread_id)
       {:ok, updated}
     end
   end
