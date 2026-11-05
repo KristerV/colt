@@ -314,10 +314,10 @@ defmodule ColtWeb.DeckStudioTest do
       assert render(view) =~ "1 / 14"
     end
 
-    test "the try-it choice records a lead and sends them to register", %{conn: conn} do
+    test "the try-it choice records a lead and sends them to sign-in", %{conn: conn} do
       view = play_to_end(conn, ~p"/demo/solving_emails")
 
-      assert {:error, {:live_redirect, %{to: "/register"}}} =
+      assert {:error, {:live_redirect, %{to: "/sign-in"}}} =
                view |> element(~s(button[phx-value-kind="try_it"])) |> render_click()
 
       assert [lead] = DemoLead.list!(authorize?: false)

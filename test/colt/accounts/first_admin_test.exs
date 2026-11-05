@@ -1,9 +1,7 @@
 defmodule Colt.Accounts.FirstAdminTest do
   @moduledoc """
-  The `MaybePromoteFirstAdmin` change is wired into both the magic-link
-  sign-in/registration action and the `:seed` action. Testing the rule via
-  `:seed` keeps the test free of token plumbing — the rule itself is what
-  matters and it's the same change in both paths.
+  The `MaybePromoteFirstAdmin` change is wired into the `:seed` action
+  (magic-link registration is closed, so seeding is the only create path).
   """
 
   use Colt.DataCase, async: false

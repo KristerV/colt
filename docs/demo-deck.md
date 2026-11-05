@@ -332,7 +332,7 @@ doesn't recognise, so they see a real deck either way.
 ## 6. The closing slide
 
 `cta` offers three choices, and all three write a `Colt.Resources.DemoLead` —
-including "try it", which only navigates to `/register`. That row is the
+including "try it", which only navigates to `/sign-in`. That row is the
 denominator the other two are read against, so don't drop it.
 
 - **`call_request`** and **`not_a_fit`** open a panel (name + phone, or a free

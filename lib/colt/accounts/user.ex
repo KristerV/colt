@@ -25,7 +25,7 @@ defmodule Colt.Accounts.User do
     strategies do
       magic_link do
         identity_field :email
-        registration_enabled? true
+        registration_enabled? false
         require_interaction? true
 
         sender Colt.Accounts.User.Senders.SendMagicLinkEmail
@@ -133,8 +133,8 @@ defmodule Colt.Accounts.User do
       filter expr(not is_nil(stripe_customer_id))
     end
 
-    create :sign_in_with_magic_link do
-      description "Sign in or register a user with magic link."
+    read :sign_in_with_magic_link do
+      description "Sign in an existing user with magic link. Registration is closed."
 
       argument :token, :string do
         description "The token from the magic link that was sent to the user"
@@ -146,18 +146,13 @@ defmodule Colt.Accounts.User do
         allow_nil? true
       end
 
-      upsert? true
-      upsert_identity :unique_email
-      upsert_fields [:email]
+      get? true
 
-      # Uses the information from the token to create or sign in the user
-      change AshAuthentication.Strategy.MagicLink.SignInChange
+      # Uses the information from the token to sign in the user
+      prepare AshAuthentication.Strategy.MagicLink.SignInPreparation
 
-      change {AshAuthentication.Strategy.RememberMe.MaybeGenerateTokenChange,
-              strategy_name: :remember_me}
-
-      change Colt.Accounts.User.Changes.MaybePromoteFirstAdmin
-      change Colt.Accounts.User.Changes.NotifyNewUser
+      prepare {AshAuthentication.Strategy.RememberMe.MaybeGenerateTokenPreparation,
+               strategy_name: :remember_me}
 
       metadata :token, :string do
         allow_nil? false

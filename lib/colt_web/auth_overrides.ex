@@ -80,7 +80,7 @@ defmodule ColtWeb.AuthOverrides do
     set :form_class, "flex flex-col gap-3"
 
     set :request_flash_text,
-        "If this user exists, a sign-in link is on its way."
+        "If you have an account, a sign-in link is on its way."
 
     set :disable_button_text, "Requesting…"
   end

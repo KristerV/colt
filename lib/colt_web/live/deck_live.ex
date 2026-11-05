@@ -158,13 +158,14 @@ defmodule ColtWeb.DeckLive do
   end
 
   # "Try it" needs nothing from them — record the choice and send them to
-  # registration. The other two open the panel.
+  # sign-in (registration is closed; the page says how to ask for an account).
+  # The other two open the panel.
   def handle_event("cta_choice", %{"kind" => "try_it"}, socket) do
     AbFunnel.track(socket, "cta_clicked", %{kind: "try_it"})
     record_demo_step(socket, :cta, cta_kind: kind_label(:try_it))
     submit_lead(socket, :try_it, %{})
 
-    {:noreply, push_navigate(socket, to: ~p"/register")}
+    {:noreply, push_navigate(socket, to: ~p"/sign-in")}
   end
 
   def handle_event("cta_choice", %{"kind" => kind}, socket)
